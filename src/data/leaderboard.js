@@ -1,19 +1,20 @@
 // Онлайн-таблица рекордов: конфиг, лимиты и формула очков. Логики здесь нет.
-// Бэкенд: Cloud Firestore, проект fruit-madness-52222, именованная база 'fruit-madness',
-// отдельная коллекция 'fury_scores'. Правила: firestore.rules в корне (общий файл на всю базу).
+// Бэкенд: Cloud Firestore, собственный проект fury-survivors, база (default), коллекция 'fury_scores'.
+// Правила: firestore.rules в корне, публикуются вручную в консоли.
 
-// Публичный конфиг web-приложения fury-survivors-web (не секрет: что можно читать и писать, решают только правила).
+// Публичный конфиг web-приложения проекта fury-survivors (не секрет: что можно читать и писать,
+// решают только правила). measurementId не нужен: Analytics игра не подключает.
 export const FIREBASE_CONFIG = {
-  apiKey: 'AIzaSyAGEpbUurZBgzybDEVkqKri-i20_R4z8FA',
-  authDomain: 'fruit-madness-52222.firebaseapp.com',
-  projectId: 'fruit-madness-52222',
-  storageBucket: 'fruit-madness-52222.firebasestorage.app',
-  messagingSenderId: '278926995710',
-  appId: '1:278926995710:web:9c7fd175bc8cafb02e35af',
+  apiKey: 'AIzaSyBJV2mRO3DxJ2OBmG_AK3jA5bQ9ta3WPYU',
+  authDomain: 'fury-survivors.firebaseapp.com',
+  projectId: 'fury-survivors',
+  storageBucket: 'fury-survivors.firebasestorage.app',
+  messagingSenderId: '489472154496',
+  appId: '1:489472154496:web:9532f74e2d59a611cd7f65',
 };
 
 // Имя базы не входит в web-конфиг. null = база (default).
-export const FIRESTORE_DB_ID = 'fruit-madness';
+export const FIRESTORE_DB_ID = null;
 export const COLLECTION = 'fury_scores';
 export const SDK_URL = 'https://www.gstatic.com/firebasejs/12.19.0';
 
