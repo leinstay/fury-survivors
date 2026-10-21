@@ -5,7 +5,7 @@ import { readPad } from '../ui/focus.js';
 import { World } from '../render/world.js';
 import { Fx } from '../render/fx.js';
 import { FX } from '../data/constants.js';
-import { handleSimEvents } from '../audio/sfx.js';
+import { handleSimEvents, startMusic, fadeOutMusic } from '../audio/sfx.js';
 
 const MAX_DT = 1 / 20;
 
@@ -33,6 +33,7 @@ export default class GameScene extends Phaser.Scene {
     this.input.keyboard.on('keydown-P', () => this.openPause());
     this.world.update(0);
     this.hud.update();
+    startMusic(this);
   }
 
   openPause() {
@@ -95,6 +96,7 @@ export default class GameScene extends Phaser.Scene {
       this.scene.launch('LevelUp', { sim });
     } else if ((sim.state === 'gameover' || sim.state === 'victory') && !this.ended) {
       this.ended = true;
+      fadeOutMusic();
       this.scene.pause('Game');
       this.scene.launch(sim.state === 'victory' ? 'Victory' : 'GameOver', { sim });
     }

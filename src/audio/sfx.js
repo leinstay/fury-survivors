@@ -75,23 +75,50 @@ export function handleSimEvents(scene, events) {
   }
 }
 
-// Запускает луп один раз; повторные вызовы (возврат в меню) ничего не перезапускают.
-export function playMusic(scene) {
+// Музыка играет только в забеге: старт с начала трека с плавным нарастанием, в конце забега плавное затухание.
+// Затухание идёт по таймеру страницы, а не твину сцены: сцена Game на экране итогов стоит на паузе.
+// fade: 0..1, множитель громкости поверх ползунка и AUDIO.gain.
+let fade = 1;
+let fadeTimer = null;
+
+function musicVolume() {
+  return getVolume('music') * AUDIO.gain * fade;
+}
+
+function fadeTo(target, seconds, done) {
+  clearInterval(fadeTimer);
+  const from = fade, start = Date.now(), ms = Math.max(1, seconds * 1000);
+  fadeTimer = setInterval(() => {
+    const k = Math.min(1, (Date.now() - start) / ms);
+    fade = from + (target - from) * k;
+    applyVolumes();
+    if (k >= 1) { clearInterval(fadeTimer); fadeTimer = null; if (done) done(); }
+  }, 50);
+}
+
+export function startMusic(scene) {
   const mgr = (scene && scene.sound) || (game && game.sound);
   if (!mgr) return;
-  if (!music || !music.manager) {
-    if (scene.cache && !scene.cache.audio.exists(MUSIC_KEY)) return;
-    music = mgr.add(MUSIC_KEY, { loop: true, volume: getVolume('music') * AUDIO.gain });
-  }
-  if (!music.isPlaying) music.play();
-  applyVolumes();
+  stopMusic();
+  if (scene.cache && !scene.cache.audio.exists(MUSIC_KEY)) return;
+  fade = 0;
+  music = mgr.add(MUSIC_KEY, { loop: true, volume: 0 });
+  music.play();
+  fadeTo(1, AUDIO.fadeIn);
+}
+
+export function fadeOutMusic() {
+  if (!music) return;
+  fadeTo(0, AUDIO.fadeOut, stopMusic);
 }
 
 export function stopMusic() {
+  clearInterval(fadeTimer);
+  fadeTimer = null;
   if (music) { music.stop(); music.destroy(); music = null; }
 }
 
-// Применить текущие громкости (вызывается слайдером).
+// Применить текущие громкости (вызывается слайдером и затуханием).
 export function applyVolumes() {
-  if (music && music.manager) music.setVolume(getVolume('music') * AUDIO.gain);
+  if (music && music.manager) music.setVolume(musicVolume());
 }

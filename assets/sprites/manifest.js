@@ -51,6 +51,8 @@ export const SPRITES = Object.fromEntries([
   // walk — порядок кадров цикла шага (кадр 2, ноги вместе, повторяется между шагами).
   ['heroine', { ...girl('heroine', 56, '#e0603a')[1], frames: 4, walk: [1, 2, 3, 2] }],
   item('heroine_portrait', 48, 48, '#e0603a', 'rect'),
+  // Героиня в меню: вырезана из сырого листа в исходном разрешении модели (tools/crop-raw.mjs), пиксель картинки = пиксель холста.
+  art('heroine_menu', 140, 244, { density: 2, origin: FEET }),
 
   // Враги
   girl('catgirl', 56, '#d9a441'),

@@ -165,7 +165,7 @@ export class World {
     const pl = this.player;
     pl.baseScale = spriteScale(this.playerKey);
     const lift = animateCharacter(pl, this.playerKey, p, time, 0);
-    pl.setPosition(p.x, p.y + lift);
+    pl.setPosition(Math.round(p.x), Math.round(p.y) + lift);
     pl.setFlipX(p.facing < 0);
     pl.setDepth(p.y);
     pl.setAlpha(p.iframes > 0 && Math.floor(time * 16) % 2 === 0 ? 0.35 : 1);
@@ -187,7 +187,7 @@ export class World {
       s.baseScale = (e.elite ? (e.def?.elite?.sizeMul ?? 1) : 1) * spriteScale(key);
       const lift2 = animateCharacter(s, key, e, time, e.uid);
       applyHitSquash(s, e.hitFlash);
-      s.setPosition(e.x, e.y + lift2);
+      s.setPosition(Math.round(e.x), Math.round(e.y) + lift2);
       this._shadow(e.x, e.y, s, cam);
       s.setFlipX(e.facing < 0);
       s.setDepth(e.y);
@@ -213,7 +213,7 @@ export class World {
 
     this.pools.projectiles.sync(sim.projectiles, (e) => e.sprite, (s, e) => {
       this._setKey(s, e.sprite);
-      s.setPosition(e.x, e.y);
+      s.setPosition(Math.round(e.x), Math.round(e.y));
       s.setRotation(e.angle || 0);
       s.setScale((e.scale == null ? 1 : e.scale) * spriteScale(e.sprite));
       s.setAlpha(e.alpha == null ? 1 : e.alpha);
@@ -223,14 +223,14 @@ export class World {
     this.pools.pickups.sync(sim.pickups, (e) => e.sprite, (s, e) => {
       this._setKey(s, e.sprite);
       s.setScale(spriteScale(e.sprite));
-      s.setPosition(e.x, e.y);
+      s.setPosition(Math.round(e.x), Math.round(e.y));
       s.setDepth(PICKUP_DEPTH + e.y);
     });
 
     this.pools.props.sync(sim.props, (e) => e.sprite, (s, e) => {
       this._setKey(s, e.sprite);
       s.setScale(spriteScale(e.sprite));
-      s.setPosition(e.x, e.y);
+      s.setPosition(Math.round(e.x), Math.round(e.y));
       s.setDepth(e.y);
     });
   }

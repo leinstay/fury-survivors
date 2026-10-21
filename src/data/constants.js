@@ -7,7 +7,8 @@ export const GAME_HEIGHT = 360;
 export const RENDER_ZOOM = 2;
 
 // Звук: ползунок громкости 100% = gain (прежние 10% ползунка; файлы сами по себе громкие).
-export const AUDIO = { gain: 0.1 };
+// fadeIn / fadeOut: нарастание музыки в начале забега и затухание после смерти или победы, с.
+export const AUDIO = { gain: 0.1, fadeIn: 2, fadeOut: 2.5 };
 
 // Время в секундах, расстояния в пикселях игрового мира, скорость в px/с.
 export const SIM = {
@@ -77,15 +78,16 @@ export const FX = {
   puff: { count: 5, eliteCount: 10, bossCount: 20, speed: 60, life: 0.45, size: 3, eliteSize: 1.6, colors: [0xffffff, 0xd0d0d0, 0x9a9a9a] },
   maxParticles: 320,
   ghost: { max: 24, life: 0.25, squashY: 0.25, stretchX: 1.25, eliteScale: 1.25 },
-  shake: { hurt: [2, 0.15], elite: [3, 0.2], boss: [5, 0.35] }, // [амплитуда px, длительность с]
-  hitstop: { crit: 0.03, hurt: 0.06, elite: 0.07, boss: 0.08, cap: 0.1, cooldown: 0.3 },
+  // Эффекты движения выключены по просьбе владельца (0 = выкл). Прежние значения в комментариях.
+  shake: { hurt: [0, 0], elite: [0, 0], boss: [0, 0] }, // [амплитуда px, длительность с]; было [2, 0.15], [3, 0.2], [5, 0.35]
+  hitstop: { crit: 0, hurt: 0, elite: 0, boss: 0, cap: 0.1, cooldown: 0.3 }, // было 0.03, 0.06, 0.07, 0.08
   levelup: { flashAlpha: 0.5, flashTime: 0.3, ringTime: 0.5, ringRadius: 70, ringColor: 0xffe88a },
   pickupSpark: { count: 2, color: 0x7fd8ff, life: 0.25, speed: 40 },
-  hitSquash: { x: 1.18, y: 0.82 },
+  hitSquash: { x: 1, y: 1 }, // было 1.18 × 0.82
   // Ходьба (src/render/anim.js): fps — кадров ходьбы в секунду у спрайтов с кадрами; однокадровые подпрыгивают
   // на hop целых px мира, steps шагов в секунду; летуны парят на hoverHeight px, качаясь на ±hover px.
-  walk: { fps: 8, steps: 2.4, hop: 1, hover: 2, hoverHeight: 6, hoverSpeed: 4 },
+  walk: { fps: 8, steps: 2.4, hop: 0, hover: 0, hoverHeight: 6, hoverSpeed: 4 }, // было hop 1, hover 2
   // Поза босса: при замахе приседает на windupDrop px, при касте подпрыгивает на castLift px.
-  bossPose: { windupDrop: 2, castLift: 3 },
+  bossPose: { windupDrop: 0, castLift: 0 }, // было 2 и 3
   shadow: { alpha: 0.3, widthK: 0.5, height: 0.3, yOffset: -1, depth: -50000 },
 };

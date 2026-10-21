@@ -92,6 +92,24 @@ function centerOrder(boxes) {
   return rows.flatMap((r) => r.items.sort((a, b) => a.x0 - b.x0));
 }
 
+// Сдвиг (dx, dy) кадра im относительно ref, при котором верхние 40% фигуры (голова) совпадают лучше всего.
+function headShift(ref, im) {
+  const rows = Math.round(ref.h * 0.4);
+  const px = (m, x, y) => (x < 0 || y < 0 || x >= m.w || y >= m.h ? null : m.rgba.subarray((y * m.w + x) * 4, (y * m.w + x) * 4 + 4));
+  let best = [0, 0], bestCost = Infinity;
+  for (let dy = -4; dy <= 4; dy++) for (let dx = -6; dx <= 6; dx++) {
+    let cost = 0;
+    for (let y = 0; y < rows; y++) for (let x = 0; x < ref.w; x++) {
+      const a = px(ref, x, y), b = px(im, x - dx, y - dy);
+      const ao = a && a[3] > 0, bo = b && b[3] > 0;
+      if (ao !== bo) cost += 255;
+      else if (ao) cost += Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) + Math.abs(a[2] - b[2]);
+    }
+    if (cost < bestCost) { bestCost = cost; best = [dx, dy]; }
+  }
+  return best;
+}
+
 function flipX(im) {
   const out = new Uint8Array(im.rgba.length);
   for (let y = 0; y < im.h; y++) for (let x = 0; x < im.w; x++) {
@@ -154,10 +172,21 @@ async function main() {
   for (const [key, { spec, frames }] of strips) {
     const fw = spec.frameWidth, fh = spec.frameHeight, n = spec.frames;
     const buf = Buffer.alloc(fw * n * fh * 4);
+    const place = (im) => [
+      Math.round(fw * spec.origin[0] - im.w / 2),
+      spec.origin[1] >= 0.99 ? fh - im.h : Math.round(fh * spec.origin[1] - im.h / 2),
+    ];
+    // sheets.json "align": "head" — кадры шага (1..N-1) сдвигаются так, чтобы голова совпала с кадром 1:
+    // разная ширина рамки (меч, плащ) и подскок модели иначе дают дрожь при смене кадров.
+    const ref = sheet.align === 'head' && frames[1] ? frames[1] : null;
     for (let f = 0; f < n; f++) {
       const im = frames[f] || frames[0];
-      const ox = Math.round(fw * spec.origin[0] - im.w / 2);
-      const oy = spec.origin[1] >= 0.99 ? fh - im.h : Math.round(fh * spec.origin[1] - im.h / 2);
+      let [ox, oy] = place(im);
+      if (ref && f > 0 && im !== ref) {
+        const [rx, ry] = place(ref);
+        const [dx, dy] = headShift(ref, im);
+        ox = rx + dx; oy = ry + dy;
+      }
       for (let y = 0; y < im.h; y++) for (let x = 0; x < im.w; x++) {
         const s = (y * im.w + x) * 4;
         const tx = ox + x, ty = oy + y;

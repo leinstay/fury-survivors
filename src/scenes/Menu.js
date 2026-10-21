@@ -3,7 +3,7 @@ import { GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
 import { FocusNav, addButton } from '../ui/focus.js';
 import { addVolumeSliders } from '../ui/volume.js';
 import { textStyle, COLORS } from '../ui/style.js';
-import { playMusic } from '../audio/sfx.js';
+import { stopMusic } from '../audio/sfx.js';
 import { spriteScale } from '../render/density.js';
 
 export default class MenuScene extends Phaser.Scene {
@@ -21,8 +21,8 @@ export default class MenuScene extends Phaser.Scene {
       this.add.image(Math.floor((GAME_WIDTH - img.width * k) / 2), Math.floor((GAME_HEIGHT - img.height * k) / 2), 'menu_bg').setOrigin(0, 0).setScale(k);
     }
     this.show('main');
-    // Звук разблокируется первым жестом; Phaser сам запустит отложенную музыку. Повторный вход не перезапускает.
-    playMusic(this);
+    // В меню тишина: музыка играет только в забеге (выход из паузы в меню её обрывает).
+    stopMusic();
   }
 
   update(time) {
@@ -39,7 +39,7 @@ export default class MenuScene extends Phaser.Scene {
     this.add.text(cx, 62, t('game.title'), textStyle(32, COLORS.accent, { stroke: '#000000', strokeThickness: 6 })).setOrigin(0.5);
 
     if (view === 'main') {
-      if (this.textures.exists('heroine')) this.add.sprite(cx + 170, 312, 'heroine', 0).setOrigin(0.5, 1).setScale(2 * spriteScale('heroine'));
+      if (this.textures.exists('heroine_menu')) this.add.image(cx + 170, 318, 'heroine_menu').setOrigin(0.5, 1).setScale(spriteScale('heroine_menu'));
       const bw = 160, bh = 30;
       addButton(this, this.nav, { x: cx, y: 150, w: bw, h: bh, label: t('menu.play'), onSelect: () => this.scene.start('Game') });
       addButton(this, this.nav, { x: cx, y: 190, w: bw, h: bh, label: t('menu.leaderboard'), onSelect: () => this.scene.start('Leaderboard') });
