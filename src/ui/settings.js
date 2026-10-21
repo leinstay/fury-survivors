@@ -1,6 +1,7 @@
-// Настройки громкости в localStorage. Значения 0..1.
-const KEY = 'fury-survivors.settings';
-const DEFAULTS = { music: 0.7, sfx: 0.8 };
+// Настройки громкости в localStorage. Значения 0..1 (положение ползунка; реальная громкость ещё умножается
+// на AUDIO.gain в sfx.js). v2: шкала сменилась, старые сохранения не переносим.
+const KEY = 'fury-survivors.settings.v2';
+const DEFAULTS = { music: 1, sfx: 1 };
 let data = null;
 
 function load() {

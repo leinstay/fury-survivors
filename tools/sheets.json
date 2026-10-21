@@ -87,7 +87,7 @@
     ],
     "rows": "center",
     "items": [
-      "heroine",
+      null,
       "catgirl",
       "foxgirl",
       "succubus",
@@ -118,6 +118,33 @@
         40,
         340
       ]
+    ]
+  },
+  "heroine_walk": {
+    "raw": "assets/raw/heroine_walk.png",
+    "step": [
+      6.5,
+      9
+    ],
+    "mergeGap": 4,
+    "items": [
+      {
+        "key": "heroine",
+        "frame": 0
+      },
+      {
+        "key": "heroine",
+        "frame": 1
+      },
+      {
+        "key": "heroine",
+        "frame": 2
+      },
+      {
+        "key": "heroine",
+        "frame": 3
+      },
+      null
     ]
   }
 }

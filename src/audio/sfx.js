@@ -1,5 +1,6 @@
 // Звук: эффекты, музыка, маппинг событий sim на звуки. Громкости берутся из ui/settings.js.
 import { getVolume } from '../ui/settings.js';
+import { AUDIO } from '../data/constants.js';
 
 export const SFX_NAMES = [
   'hit', 'crit', 'kill', 'kill_elite', 'player_hurt', 'pickup_xp', 'pickup_food', 'levelup', 'chest',
@@ -45,7 +46,7 @@ export function playSfx(scene, name, opts = {}) {
   if (same >= PER_SOUND_LIMIT) return;
   lastPlay[name] = t;
 
-  const vol = (opts.volume ?? 1) * getVolume('sfx');
+  const vol = (opts.volume ?? 1) * getVolume('sfx') * AUDIO.gain;
   if (vol <= 0) return;
   const detune = opts.detune ?? (NO_DETUNE.has(name) ? 0 : (Math.random() * 2 - 1) * DETUNE);
   const sound = mgr.add(key, { volume: vol, detune });
@@ -80,7 +81,7 @@ export function playMusic(scene) {
   if (!mgr) return;
   if (!music || !music.manager) {
     if (scene.cache && !scene.cache.audio.exists(MUSIC_KEY)) return;
-    music = mgr.add(MUSIC_KEY, { loop: true, volume: getVolume('music') });
+    music = mgr.add(MUSIC_KEY, { loop: true, volume: getVolume('music') * AUDIO.gain });
   }
   if (!music.isPlaying) music.play();
   applyVolumes();
@@ -92,5 +93,5 @@ export function stopMusic() {
 
 // Применить текущие громкости (вызывается слайдером).
 export function applyVolumes() {
-  if (music && music.manager) music.setVolume(getVolume('music'));
+  if (music && music.manager) music.setVolume(getVolume('music') * AUDIO.gain);
 }

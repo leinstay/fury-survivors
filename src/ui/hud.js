@@ -23,9 +23,9 @@ export class Hud {
     this.levelText = add(scene.add.text(GAME_WIDTH / 2, 5, '', textStyle(10, '#ffffff', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5));
 
     // HP
-    add(scene.add.rectangle(6, 16, 104, 12, 0x000000, 0.7).setOrigin(0, 0).setStrokeStyle(1, 0x000000));
-    this.hpFill = add(scene.add.rectangle(8, 18, 100, 8, COLORS.hp).setOrigin(0, 0));
-    this.hpText = add(scene.add.text(58, 22, '', textStyle(10, '#ffffff', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5));
+    add(scene.add.rectangle(6, 15, 104, 14, 0x000000, 0.7).setOrigin(0, 0).setStrokeStyle(1, 0x000000));
+    this.hpFill = add(scene.add.rectangle(8, 17, 100, 10, COLORS.hp).setOrigin(0, 0));
+    this.hpText = add(scene.add.text(58, 22, '', textStyle(8, '#ffffff', { stroke: '#000000', strokeThickness: 2 })).setOrigin(0.5));
 
     this.timeText = add(scene.add.text(GAME_WIDTH / 2, 20, '', textStyle(16, '#ffffff', { stroke: '#000000', strokeThickness: 4 })).setOrigin(0.5, 0.5));
     this.killText = add(scene.add.text(GAME_WIDTH - 8, 16, '', textStyle(12, '#ffffff', { stroke: '#000000', strokeThickness: 3 })).setOrigin(1, 0));
@@ -104,7 +104,7 @@ export class Hud {
       list.forEach((it, i) => {
         const x = 14 + i * 28;
         const c = addIcon(this.scene, x, y, iconKeyFor(kind, it.id), 16, kind, it.id);
-        const lv = this.scene.add.text(x + 10, y + 8, String(it.level), textStyle(10, '#ffffff', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0, 1);
+        const lv = this.scene.add.text(x + 10, y, String(it.level), textStyle(10, '#ffffff', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0, 0.5);
         for (const o of [c, lv]) { o.setScrollFactor(0).setDepth(D); this.slots.push(o); }
       });
     };

@@ -6,6 +6,9 @@ export const GAME_HEIGHT = 360;
 // Спрайты density 1 (manifest.js) рисуются целым множителем: арт-пиксель = квадрат 2×2 холста, без пересэмплинга.
 export const RENDER_ZOOM = 2;
 
+// Звук: ползунок громкости 100% = gain (прежние 10% ползунка; файлы сами по себе громкие).
+export const AUDIO = { gain: 0.1 };
+
 // Время в секундах, расстояния в пикселях игрового мира, скорость в px/с.
 export const SIM = {
   tickRate: 60,            // шагов симуляции в секунду
@@ -79,9 +82,10 @@ export const FX = {
   levelup: { flashAlpha: 0.5, flashTime: 0.3, ringTime: 0.5, ringRadius: 70, ringColor: 0xffe88a },
   pickupSpark: { count: 2, color: 0x7fd8ff, life: 0.25, speed: 40 },
   hitSquash: { x: 1.18, y: 0.82 },
-  // Процедурная ходьба однокадровых персонажей: шагов в секунду, подскок (px мира), наклон (рад), сжатие при приземлении.
-  walk: { steps: 2.2, hop: 0.5, tilt: 0.06, squash: 0.03, idleBreath: 0.015 },
-  // Поза босса: наклон назад при замахе, вытягивание при касте.
-  bossPose: { windupTilt: -0.12, castStretch: 0.1 },
+  // Ходьба (src/render/anim.js): fps — кадров ходьбы в секунду у спрайтов с кадрами; однокадровые подпрыгивают
+  // на hop целых px мира, steps шагов в секунду; летуны парят на hoverHeight px, качаясь на ±hover px.
+  walk: { fps: 8, steps: 2.4, hop: 1, hover: 2, hoverHeight: 6, hoverSpeed: 4 },
+  // Поза босса: при замахе приседает на windupDrop px, при касте подпрыгивает на castLift px.
+  bossPose: { windupDrop: 2, castLift: 3 },
   shadow: { alpha: 0.3, widthK: 0.5, height: 0.3, yOffset: -1, depth: -50000 },
 };

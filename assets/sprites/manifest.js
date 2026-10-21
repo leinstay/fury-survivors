@@ -5,6 +5,7 @@
 //   file         путь от index.html
 //   frameWidth, frameHeight
 //   frames       число кадров в strip-PNG (горизонтальная полоса)
+//   walk         порядок кадров цикла ходьбы (по умолчанию 1..frames-1), см. src/render/anim.js
 //   origin       [x, y] точка опоры в долях кадра; у персонажей это ноги
 //   size         видимый размер фигуры в px [w, h] (для заглушек и проверки чистки)
 //   color        цвет заглушки (только tools/placeholders.mjs)
@@ -46,7 +47,9 @@ const FEET = [0.5, 1];
 
 export const SPRITES = Object.fromEntries([
   // Герои и портрет
-  girl('heroine', 56, '#e0603a'),
+  // Героиня: свой лист heroine_walk (стойка + 3 кадра шага), тот же масштаб, что у roster.
+  // walk — порядок кадров цикла шага (кадр 2, ноги вместе, повторяется между шагами).
+  ['heroine', { ...girl('heroine', 56, '#e0603a')[1], frames: 4, walk: [1, 2, 3, 2] }],
   item('heroine_portrait', 48, 48, '#e0603a', 'rect'),
 
   // Враги
