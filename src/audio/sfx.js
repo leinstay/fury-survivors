@@ -28,7 +28,7 @@ export function initAudio(g) {
 // Подключить звуки в preload Boot.
 export function preloadAudio(scene) {
   for (const n of SFX_NAMES) scene.load.audio(`sfx_${n}`, `assets/audio/sfx/${n}.wav`);
-  scene.load.audio(MUSIC_KEY, 'assets/audio/music/theme.wav');
+  scene.load.audio(MUSIC_KEY, 'assets/audio/music/theme.mp3');
 }
 
 export function playSfx(scene, name, opts = {}) {

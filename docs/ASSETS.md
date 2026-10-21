@@ -9,7 +9,9 @@
 | density | масштаб в мире | 1 пиксель картинки на холсте | Когда брать |
 |---|---|---|---|
 | 2 | 0.5 | 1 px | сейчас не используется: пиксель вдвое мельче, чем у персонажей |
-| 1 (по умолчанию) | 1 | 2×2 px | всё: персонажи (~50 px в кадре 56×56), боссы (~95 px в кадре 96×96), окружение, предметы, иконки. Персонажи и окружение сняты с родной сетки модели клетка в пиксель |
+| 1 (по умолчанию) | 1 | 2×2 px | всё: персонажи (~50 px в кадре 56×56), окружение, предметы, иконки. Персонажи и окружение сняты с родной сетки модели клетка в пиксель |
+| 2/3 | 1.5 | 3×3 px | боссы: тот же лист, что персонажи, но втрое выше героини |
+| 0.4 | 2.5 | 5×5 px | фон меню (`tools/snap-image.mjs`) |
 | 0.5 | 2 | 4×4 px | эффекты, которые поведение масштабирует от опорной ширины 64 px мира (`proj_blade_arc`, `proj_holy_ground`): родной рисунок модели ~30 px |
 
 Правило выбора: всё новое делаем в density 1 и на той же сетке, что персонажи (рост обычного персонажа ~50 клеток, дерево ~100). 0.5 только для больших эффектов, растягиваемых от ширины 64 px.
@@ -66,6 +68,7 @@ node tools/slice-sheet.mjs <sheet> [--report]
 ## Остальные скрипты
 
 - `node tools/contact-sheet.mjs [key ...] [--scale 4] [--out tools/out/contact-sheet.png] [--bg grass]`: превью спрайтов на шахматке или траве с подписью и линией опоры. Без ключей берёт все из manifest. `tools/out/` в `.gitignore`.
+- `node tools/snap-image.mjs <raw.png> <out.png> [--step N]`: целая картинка (фон) по родной сетке модели без потерь; показ целым множителем через `density` в manifest.
 - `node tools/make-grass.mjs [--seed 7]`: процедурный бесшовный тайл `assets/sprites/grass.png` (128×128).
 - `node tools/placeholders.mjs [--force]` (или `npm run placeholders`): цветные заглушки по manifest (форма из `shape`, цвет из `color`). Существующие файлы не трогает без `--force`, чтобы не затереть настоящие спрайты.
 - `node tools/playtest.mjs`: headless-плейтест с логом `__game.debug()` и скриншотом, для проверки результата в самой игре.
@@ -74,7 +77,7 @@ node tools/slice-sheet.mjs <sheet> [--report]
 
 - Эффекты: `node tools/make-sfx.mjs [имя...]` (или `npm run sfx`) пишет `assets/audio/sfx/<имя>.wav` (22050 Гц, моно, 16 бит) из пресетов `PRESETS` в начале скрипта; поля пресета описаны там же комментарием (`wave`, `freq`, `slide`, `attack/sustain/decay`, `steps`, `lp`, `noiseMix`). Синтез детерминирован. Новый звук: пресет, имя в `SFX_NAMES` в `src/audio/sfx.js` (оттуда загрузка и лимит одновременных), вызов `playSfx(scene, '<имя>')` или ветка в обработчике событий того же файла.
 - Подмена звука файлом: положи wav с тем же именем в `assets/audio/sfx/`. После этого запускай `make-sfx.mjs` только с явными именами: без аргументов он перезапишет все эффекты.
-- Музыка: `node tools/make-music.mjs` (или `npm run music`) строит чиптюн-луп `assets/audio/music/theme.wav` (ля минор, 140 bpm, ~41 с, бесшовный). Подмена: файл с тем же именем `theme.wav` (ключ `music_theme` в `sfx.js`). Источник и лицензию внешнего файла впиши в `CREDITS.md`.
+- Музыка: `assets/audio/music/theme.mp3`, трек Goukisan «Guitar Vs. Piano 1.2» (4:16, 128 кбит/с, источник в `CREDITS.md`), ключ `music_theme` в `src/audio/sfx.js`. Запасной процедурный луп: `node tools/make-music.mjs` пишет `theme.wav` (ля минор, 140 bpm, ~41 с); чтобы играл он, поменяй путь в `preloadAudio`. Источник и лицензию внешнего файла впиши в `CREDITS.md`.
 
 ## Шрифт
 
@@ -97,9 +100,9 @@ node tools/slice-sheet.mjs <sheet> [--report]
 | `harpy` | 56×56 | 1 | 1 | `assets/raw/roster.png` |
 | `lamia` | 56×56 | 1 | 1 | `assets/raw/roster.png` |
 | `elf_archer` | 56×56 | 1 | 1 | `assets/raw/roster.png` |
-| `kitsune_empress` | 96×96 | 1 | 1 | `assets/raw/roster.png` |
-| `harpy_queen` | 96×96 | 1 | 1 | `assets/raw/roster.png` |
-| `dryad_queen` | 96×96 | 1 | 1 | `assets/raw/roster.png` |
+| `kitsune_empress` | 96×96 | 1 | 2/3 | `assets/raw/roster.png` |
+| `harpy_queen` | 96×96 | 1 | 2/3 | `assets/raw/roster.png` |
+| `dryad_queen` | 96×96 | 1 | 2/3 | `assets/raw/roster.png` |
 | `xp_small` | 10×12 | 1 | 1 | `assets/raw/items.png` |
 | `xp_medium` | 12×14 | 1 | 1 | `assets/raw/items.png` |
 | `xp_large` | 14×20 | 1 | 1 | `assets/raw/items.png` |
@@ -134,6 +137,7 @@ node tools/slice-sheet.mjs <sheet> [--report]
 | `icon_armor` | 24×24 | 1 | 1 | `assets/raw/icons.png` |
 | `icon_regen` | 24×24 | 1 | 1 | `assets/raw/icons.png` |
 | `icon_heal` | 24×24 | 1 | 1 | `assets/raw/icons.png` |
+| `menu_bg` | 265×150 | 1 | 0.4 | `assets/raw/menu_bg.png` (tools/snap-image.mjs) |
 | `grass` | 128×128 | 1 | 1 | tools/make-grass.mjs |
 | `tree` | 64×104 | 2 | 1 | `assets/raw/env_props.png` |
 | `rock` | 28×28 | 1 | 1 | `assets/raw/env_props.png` |

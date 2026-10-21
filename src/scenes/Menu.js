@@ -14,6 +14,12 @@ export default class MenuScene extends Phaser.Scene {
   create() {
     this.nav = new FocusNav(this, { onBack: () => { if (this.view !== 'main') this.show('main'); } });
     this.objs = [];
+    // Фон шире экрана на несколько пикселей; позиция целая, чтобы клетки фона легли ровно на пиксели холста.
+    if (this.textures.exists('menu_bg')) {
+      const k = spriteScale('menu_bg');
+      const img = this.textures.get('menu_bg').getSourceImage();
+      this.add.image(Math.floor((GAME_WIDTH - img.width * k) / 2), Math.floor((GAME_HEIGHT - img.height * k) / 2), 'menu_bg').setOrigin(0, 0).setScale(k);
+    }
     this.show('main');
     // Звук разблокируется первым жестом; Phaser сам запустит отложенную музыку. Повторный вход не перезапускает.
     playMusic(this);
@@ -33,13 +39,13 @@ export default class MenuScene extends Phaser.Scene {
     this.add.text(cx, 62, t('game.title'), textStyle(32, COLORS.accent, { stroke: '#000000', strokeThickness: 6 })).setOrigin(0.5);
 
     if (view === 'main') {
-      if (this.textures.exists('heroine')) this.add.sprite(cx + 150, 200, 'heroine', 0).setOrigin(0.5, 1).setScale(2 * spriteScale('heroine'));
+      if (this.textures.exists('heroine')) this.add.sprite(cx + 170, 312, 'heroine', 0).setOrigin(0.5, 1).setScale(2 * spriteScale('heroine'));
       const bw = 160, bh = 30;
       addButton(this, this.nav, { x: cx, y: 150, w: bw, h: bh, label: t('menu.play'), onSelect: () => this.scene.start('Game') });
       addButton(this, this.nav, { x: cx, y: 190, w: bw, h: bh, label: t('menu.leaderboard'), onSelect: () => this.scene.start('Leaderboard') });
       addButton(this, this.nav, { x: cx, y: 230, w: bw, h: bh, label: t('menu.settings'), onSelect: () => this.show('settings') });
-      this.add.text(GAME_WIDTH - 6, GAME_HEIGHT - 4, t('menu.version'), textStyle(8, '#777777')).setOrigin(1, 1);
-      this.add.text(cx, GAME_HEIGHT - 14, t('menu.hint'), textStyle(10, COLORS.dim)).setOrigin(0.5);
+      this.add.text(GAME_WIDTH - 6, GAME_HEIGHT - 4, t('menu.version'), textStyle(8, '#bbbbbb', { stroke: '#000000', strokeThickness: 3 })).setOrigin(1, 1);
+      this.add.text(cx, GAME_HEIGHT - 14, t('menu.hint'), textStyle(10, '#dddddd', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5);
     } else {
       this.add.text(cx, 108, t('settings.title'), textStyle(16)).setOrigin(0.5);
       addVolumeSliders(this, this.nav, { x: cx, y: 150, w: 300 });

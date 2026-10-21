@@ -3,7 +3,7 @@
   "budget": 5,
   "stop": 4.5,
   "estimatePerImage": 0.25,
-  "spent": 0.7872790000000001,
+  "spent": 0.8315520000000001,
   "entries": [
     {
       "date": "2026-10-21T19:22:23.155Z",
@@ -699,6 +699,39 @@
       },
       "seconds": 18,
       "file": "assets/raw/env_props.png"
+    },
+    {
+      "date": "2026-10-21T22:19:38.278Z",
+      "name": "menu_bg",
+      "model": "openai/gpt-image-2.5-flare",
+      "refs": [
+        "assets/raw/env_props.png"
+      ],
+      "quality": "high",
+      "moderation": "low",
+      "aspect": "16:9",
+      "cost": 0.044273,
+      "usage": {
+        "prompt_tokens": 1609,
+        "completion_tokens": 1078,
+        "total_tokens": 2687,
+        "cost": 0.044273,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.044273,
+          "upstream_inference_prompt_cost": 0.011933,
+          "upstream_inference_completions_cost": 0.03234
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 1078
+        }
+      },
+      "seconds": 22,
+      "file": "assets/raw/menu_bg.png"
     }
   ]
 }

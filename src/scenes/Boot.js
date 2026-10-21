@@ -6,7 +6,7 @@ import { FONT_NAME } from '../ui/style.js';
 
 function loadFont() {
   if (typeof FontFace === 'undefined' || !document.fonts) return Promise.resolve();
-  const face = new FontFace(FONT_NAME, 'url(assets/fonts/PixelifySans.ttf)', { weight: '400 700' });
+  const face = new FontFace(FONT_NAME, 'url(assets/fonts/Jersey15-Regular.ttf)', { weight: '400 700' });
   return face.load().then((f) => { document.fonts.add(f); return document.fonts.load(`16px "${FONT_NAME}"`); })
     .catch((e) => { console.error('font load failed', e); });
 }

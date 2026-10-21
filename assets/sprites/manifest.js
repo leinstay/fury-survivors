@@ -24,6 +24,13 @@ function girl(key, frame, color, shape = 'humanoid') {
   return [key, { file: `assets/sprites/${key}.png`, frameWidth: frame, frameHeight: frame, frames: 1, origin: [0.5, 1], size: [frame, frame], color, shape }];
 }
 
+// Босс: кадр 96×96 с листа roster, рисуется в 1.5 раза крупнее (density 2/3).
+const BOSS_DENSITY = 2 / 3;
+function boss(key, color, shape = 'humanoid') {
+  const [k, spec] = girl(key, 96, color, shape);
+  return [k, { ...spec, density: BOSS_DENSITY }];
+}
+
 function item(key, w, h, color, shape = 'round', frames = 1, origin = [0.5, 0.5]) {
   return [key, { file: `assets/sprites/${key}.png`, frameWidth: w, frameHeight: h, frames, origin, size: [w - 4, h - 4], color, shape }];
 }
@@ -54,10 +61,11 @@ export const SPRITES = Object.fromEntries([
 
   girl('elf_archer', 56, '#6fae4a'),
 
-  // Боссы: тот же лист и та же сетка, рост вдвое больше обычного персонажа
-  girl('kitsune_empress', 96, '#f08a3a'),
-  girl('harpy_queen', 96, '#8a6040', 'flyer'),
-  girl('dryad_queen', 96, '#3f8a4a'),
+  // Боссы: тот же лист и та же сетка (вдвое выше обычного персонажа) и масштаб 1.5 при показе (BOSS_DENSITY):
+  // втрое выше героини, клетка арта = ровно 3×3 px холста.
+  boss('kitsune_empress', '#f08a3a'),
+  boss('harpy_queen', '#8a6040', 'flyer'),
+  boss('dryad_queen', '#3f8a4a'),
 
   // Предметы (обычная плотность: арт-пиксель = 2 px холста)
   art('xp_small', 10, 12),
@@ -99,6 +107,9 @@ export const SPRITES = Object.fromEntries([
   item('icon_armor', 24, 24, '#8a5a3a', 'rect'),
   item('icon_regen', 24, 24, '#d86a9a', 'rect'),
   item('icon_heal', 24, 24, '#f6c7c3', 'rect'),
+
+  // Фон меню: снят по родной сетке (tools/snap-image.mjs), рисуется в 2.5 раза крупнее: клетка = 5×5 px холста.
+  art('menu_bg', 265, 150, { density: 0.4, origin: [0, 0] }),
 
   // Окружение (обычная плотность). Трава процедурная: tools/make-grass.mjs.
   item('grass', 128, 128, '#2f5a2a', 'tile', 1, [0, 0]),
