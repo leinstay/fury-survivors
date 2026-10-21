@@ -117,6 +117,9 @@ export class FocusNav {
   }
 
   _key(ev) {
+    // Пока фокус в DOM-поле (ввод ника), клавиши меню не срабатывают.
+    const a = typeof document !== 'undefined' ? document.activeElement : null;
+    if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA')) return;
     const d = KEY_DIRS[ev.code];
     if (d) { this._dir(d[0], d[1]); return; }
     if (ev.repeat) return;

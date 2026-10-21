@@ -49,7 +49,7 @@ export const XP = {
 // Шансы выпадения с обычных врагов (умножаются на стат luck).
 export const DROPS = {
   coinChance: 0.015,
-  foodChance: 0.008,
+  foodChance: 0,           // еда с врагов не падает, только из разрушаемых объектов (как курица в VS)
 };
 
 export const SLOTS = { weapons: 6, passives: 6 };

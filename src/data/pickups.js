@@ -10,7 +10,7 @@ export const PICKUPS = {
   xp_small:  { sprite: 'xp_small',  kind: 'xp', value: 1 },
   xp_medium: { sprite: 'xp_medium', kind: 'xp', value: 5 },
   xp_large:  { sprite: 'xp_large',  kind: 'xp', value: 25 },
-  food:      { sprite: 'food',      kind: 'heal', value: 30 },
+  food:      { sprite: 'food',      kind: 'heal', value: 20 },
   magnet:    { sprite: 'magnet',    kind: 'magnet' },
   coin:      { sprite: 'coin',      kind: 'coin', value: 1 },
   chest:     { sprite: 'chest',     kind: 'chest' },

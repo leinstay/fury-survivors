@@ -36,9 +36,8 @@ export default class MenuScene extends Phaser.Scene {
       if (this.textures.exists('heroine')) this.add.sprite(cx + 150, 200, 'heroine', 0).setOrigin(0.5, 1).setScale(2 * spriteScale('heroine'));
       const bw = 160, bh = 30;
       addButton(this, this.nav, { x: cx, y: 150, w: bw, h: bh, label: t('menu.play'), onSelect: () => this.scene.start('Game') });
-      addButton(this, this.nav, { x: cx, y: 190, w: bw, h: bh, label: t('menu.settings'), onSelect: () => this.show('settings') });
-      const note = this.add.text(cx, 262, '', textStyle(10, COLORS.dim)).setOrigin(0.5);
-      addButton(this, this.nav, { x: cx, y: 230, w: bw, h: bh, label: t('menu.quit'), onSelect: () => note.setText(t('menu.quit_note')) });
+      addButton(this, this.nav, { x: cx, y: 190, w: bw, h: bh, label: t('menu.leaderboard'), onSelect: () => this.scene.start('Leaderboard') });
+      addButton(this, this.nav, { x: cx, y: 230, w: bw, h: bh, label: t('menu.settings'), onSelect: () => this.show('settings') });
       this.add.text(GAME_WIDTH - 6, GAME_HEIGHT - 4, t('menu.version'), textStyle(8, '#777777')).setOrigin(1, 1);
       this.add.text(cx, GAME_HEIGHT - 14, t('menu.hint'), textStyle(10, COLORS.dim)).setOrigin(0.5);
     } else {

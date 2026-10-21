@@ -10,6 +10,7 @@ import { spriteScale } from './density.js';
 const ELITE_TINT = 0xff9a9a;
 const PICKUP_DEPTH = -100000;
 const PROJ_DEPTH = 200000;
+const GROUND_DEPTH = -150000; // зоны на земле: над цветами и травой, под предметами и персонажами
 const OUTLINE_DIRS = [[-1, 0], [1, 0], [0, -1], [0, 1]];
 
 class Pool {
@@ -214,7 +215,7 @@ export class World {
       s.setRotation(e.angle || 0);
       s.setScale((e.scale == null ? 1 : e.scale) * spriteScale(e.sprite));
       s.setAlpha(e.alpha == null ? 1 : e.alpha);
-      s.setDepth(PROJ_DEPTH + e.y);
+      s.setDepth((SPRITES[e.sprite]?.layer === 'ground' ? GROUND_DEPTH : PROJ_DEPTH) + e.y);
     });
 
     this.pools.pickups.sync(sim.pickups, (e) => e.sprite, (s, e) => {

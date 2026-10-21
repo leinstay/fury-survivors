@@ -30,8 +30,8 @@ export default {
     { sprite: 'rock', density: 2, breakable: false },
     { sprite: 'bush', density: 3, breakable: false },
     { sprite: 'flower', density: 6, breakable: false },
-    { sprite: 'barrel', density: 0.6, breakable: true, hp: 1, drop: { food: 0.3, coin: 0.35, magnet: 0.05 } },
-    { sprite: 'lantern', density: 0.4, breakable: true, hp: 1, drop: { magnet: 0.25, food: 0.3, coin: 0.2 } },
+    { sprite: 'barrel', density: 0.6, breakable: true, hp: 1, drop: { food: 0.15, coin: 0.35, magnet: 0.05 } },
+    { sprite: 'lantern', density: 0.4, breakable: true, hp: 1, drop: { magnet: 0.25, food: 0.15, coin: 0.2 } },
   ],
   scaling: { hpPerMinute: 0.06, damagePerMinute: 0.03 },
   timeline: [

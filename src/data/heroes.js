@@ -13,6 +13,6 @@ export const HEROES = {
     sprite: 'heroine',
     portrait: 'heroine_portrait',
     startWeapon: 'blade_arc',
-    stats: { maxHp: 100, atk: 1, speed: 90, crit: 0.05, pickup: 1, haste: 1, luck: 1, armor: 0, regen: 0.1 },
+    stats: { maxHp: 100, atk: 1, speed: 90, crit: 0.05, pickup: 1, haste: 1, luck: 1, armor: 0, regen: 0 },
   },
 };

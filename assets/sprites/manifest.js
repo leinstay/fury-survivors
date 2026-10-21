@@ -9,6 +9,7 @@
 //   size         видимый размер фигуры в px [w, h] (для заглушек и проверки чистки)
 //   color        цвет заглушки (только tools/placeholders.mjs)
 //   shape        'humanoid' | 'blob' | 'flyer' | 'round' | 'rect' | 'tile' — форма заглушки
+//   layer        'ground' — снаряд лежит на земле под персонажами (зоны вроде Holy Ground); иначе поверх всех
 //   density      пикселей текстуры на 1 px мира (по умолчанию 1). Холст 1280×720 при мире 640×360,
 //                поэтому спрайт с density 2 рисуется в масштабе 0.5 и показывает все свои пиксели.
 //                Новые спрайты делаем в density 2: рост гуманоида ~88 px, кадр 96×96 (в мире 48 px, как заглушки).
@@ -25,9 +26,10 @@ function item(key, w, h, color, shape = 'round', frames = 1, origin = [0.5, 0.5]
 }
 
 // Объект из листа (tools/slice-sheet.mjs): кадр w×h, рисунок вписывается в size (по умолчанию весь кадр).
-function art(key, w, h, { frames = 1, origin = [0.5, 0.5], size = [w, h], density, color = '#888888', shape = 'rect' } = {}) {
+function art(key, w, h, { frames = 1, origin = [0.5, 0.5], size = [w, h], density, layer, color = '#888888', shape = 'rect' } = {}) {
   const spec = { file: `assets/sprites/${key}.png`, frameWidth: w, frameHeight: h, frames, origin, size, color, shape };
   if (density) spec.density = density;
+  if (layer) spec.layer = layer;
   return [key, spec];
 }
 const FEET = [0.5, 1];
@@ -63,7 +65,7 @@ export const SPRITES = Object.fromEntries([
   art('proj_blade_arc', 32, 32, { density: 0.5 }),
   art('proj_dagger', 20, 10),
   art('proj_shield', 22, 22),
-  art('proj_holy_ground', 32, 32, { density: 0.5 }),
+  art('proj_holy_ground', 32, 32, { density: 0.5, layer: 'ground' }),
   art('proj_axe', 22, 22),
   art('proj_chain', 22, 22),
   art('proj_firebomb', 22, 22),

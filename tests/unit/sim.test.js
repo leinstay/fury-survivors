@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createSim, xpForLevel } from '../../src/core/sim.js';
 import { SIM, XP, LEVEL_UP } from '../../src/data/constants.js';
+import { PICKUPS } from '../../src/data/pickups.js';
 
 const DT = 1 / 60;
 const idle = { x: 0, y: 0 };
@@ -164,7 +165,7 @@ test('sim: food heals, magnet pulls all xp', () => {
   sim.player.hp = 10;
   sim.dropPickup('food', sim.player.x, sim.player.y);
   sim.step(DT, idle);
-  assert.ok(sim.player.hp > 30);
+  assert.equal(Math.round(sim.player.hp), 10 + PICKUPS.food.value);
   for (let i = 0; i < 20; i++) sim.dropPickup('xp_small', 400 + i * 10, 300, 1);
   sim.dropPickup('magnet', sim.player.x, sim.player.y);
   sim.step(DT, idle);

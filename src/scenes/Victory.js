@@ -10,7 +10,7 @@ export default class VictoryScene extends Phaser.Scene {
   }
 
   create() {
-    this.nav = buildResults(this, this.sim, { titleKey: 'victory.title', titleColor: '#ffd84a', confetti: true });
+    this.nav = buildResults(this, this.sim, { titleKey: 'victory.title', titleColor: '#ffd84a', confetti: true, victory: true });
   }
 
   update(time) {
