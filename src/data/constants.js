@@ -2,8 +2,8 @@
 
 export const GAME_WIDTH = 640;
 export const GAME_HEIGHT = 360;
-// Холст рисуется в RENDER_ZOOM раз крупнее мира: 1280×720. Мир, данные и UI остаются в координатах 640×360,
-// а спрайты с density 2 (manifest.js) показывают все свои пиксели.
+// Холст рисуется в RENDER_ZOOM раз крупнее мира: 1280×720. Мир, данные и UI остаются в координатах 640×360.
+// Спрайты density 1 (manifest.js) рисуются целым множителем: арт-пиксель = квадрат 2×2 холста, без пересэмплинга.
 export const RENDER_ZOOM = 2;
 
 // Время в секундах, расстояния в пикселях игрового мира, скорость в px/с.
@@ -80,7 +80,7 @@ export const FX = {
   pickupSpark: { count: 2, color: 0x7fd8ff, life: 0.25, speed: 40 },
   hitSquash: { x: 1.18, y: 0.82 },
   // Процедурная ходьба однокадровых персонажей: шагов в секунду, подскок (px мира), наклон (рад), сжатие при приземлении.
-  walk: { steps: 7, hop: 2.5, tilt: 0.07, squash: 0.08, idleBreath: 0.015 },
+  walk: { steps: 2.2, hop: 0.5, tilt: 0.06, squash: 0.03, idleBreath: 0.015 },
   // Поза босса: наклон назад при замахе, вытягивание при касте.
   bossPose: { windupTilt: -0.12, castStretch: 0.1 },
   shadow: { alpha: 0.3, widthK: 0.5, height: 0.3, yOffset: -1, depth: -50000 },

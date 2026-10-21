@@ -39,6 +39,7 @@ sim.enemies     // [{ uid, type, sprite, x, y, hp, maxHp, size, facing, elite, b
                 // pose: 'idle' | 'windup' | 'cast'. Выставляет только behavior boss; у остальных всегда 'idle'.
                 //   anim.js: у босса windup и cast показывают кадр 2 (замах рывка, призыв)
                 // rage: bool, true после порога rage.hpFraction (только босс)
+sim.telegraphs  // [{ uid, x, y, radius, delay, t, dmg }] предупреждения об ударах босса (slam), рендер рисует круг
 sim.boss        // живой босс (та же сущность из sim.enemies, поля hp и maxHp для полосы HP) или null
 sim.projectiles // [{ uid, sprite, x, y, angle, scale, alpha, owner: 'player' | 'enemy' }]
                 // scale задаёт behavior (например, orbit: size из уровня оружия); рендер умножает на 1/density спрайта
@@ -55,6 +56,9 @@ sim.events      // события этого шага, очищаются в н�
                 //   { type: 'propBreak', x, y, sprite }      сломан бочонок/фонарь
                 //   { type: 'bossWarning', boss, seconds }   один раз, за stage.bossWarning с до босса (seconds: сколько осталось)
                 //   { type: 'bossSpawn', boss }
+                //   { type: 'bossDown', boss }               убит нефинальный босс (выпал сундук, забег идёт дальше)
+                //   { type: 'slam', x, y, radius }           сработал удар по земле
+                //   { type: 'bossBlink', x, y }              босс появился после телепорта
                 //   { type: 'bossRage', x, y }               босс упал ниже bosses[id].rage.hpFraction HP (один раз);
                 //                                            fx: тряска, звук: boss_spawn ниже тоном
                 //   { type: 'gameover' } | { type: 'victory' }  victory приходит сразу после kill босса

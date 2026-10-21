@@ -1,5 +1,6 @@
-// Процедурная анимация персонажей. Однокадровые спрайты (общий лист roster) идут вприпрыжку:
-// подскок на каждом шаге, наклон в такт и сжатие при приземлении, в покое лёгкое дыхание.
+// Процедурная анимация персонажей. Однокадровые спрайты (общий лист roster) ходят вразвалку, как в
+// Vampire Survivors: плавное покачивание из стороны в сторону вокруг ног и мягкое сжатие в такт, без подскока.
+// В покое лёгкое дыхание.
 // Многокадровые (frames >= 3) по-прежнему чередуют кадры 1/2. Летуны парят.
 // Частицы, числа урона и тряска живут в fx.js.
 import { SPRITES } from '../../assets/sprites/manifest.js';
@@ -27,15 +28,13 @@ export function animateCharacter(sprite, key, e, time, seed) {
     lift = Math.sin(ph) * 2 - 6;
     if (moving) rot += Math.sin(time * W.steps * Math.PI + seed) * W.tilt * 0.5;
   } else if (moving) {
-    // фаза шага: 0..1, в середине шага подскок максимален, на границах приземление
-    const t = time * W.steps + seed * 0.37;
-    const step = t - Math.floor(t);
-    const up = Math.sin(step * Math.PI);
-    lift = -up * W.hop;
-    rot = (Math.floor(t) % 2 ? 1 : -1) * W.tilt * up;
-    const land = 1 - up; // у земли сжат, в воздухе чуть вытянут
-    sy = 1 - land * W.squash + up * W.squash * 0.5;
-    sx = 1 + land * W.squash - up * W.squash * 0.5;
+    // один период синуса = два шага: качнулась влево, качнулась вправо; на каждом шаге чуть осела
+    const ph = time * W.steps * Math.PI + seed * 1.3;
+    rot = Math.sin(ph) * W.tilt;
+    const settle = Math.abs(Math.cos(ph)); // 1 в момент смены ноги
+    sy = 1 - settle * W.squash;
+    sx = 1 + settle * W.squash * 0.5;
+    lift = -(1 - settle) * W.hop;
   } else {
     const b = Math.sin(time * 3 + seed * 1.7) * W.idleBreath;
     sy = 1 + b;

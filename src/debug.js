@@ -8,6 +8,17 @@ export function installDebug(game) {
   window.__game = {
     game,
     errors,
+    // Только для плейтестов (tools/playtest.mjs --god): держит героя живым, правила sim не меняются.
+    god(on = true) {
+      if (this._godTimer) clearInterval(this._godTimer);
+      this._godTimer = null;
+      if (!on) return;
+      this._godTimer = setInterval(() => {
+        const gs = game.scene.getScene('Game');
+        const p = gs && gs.sim && gs.sim.player;
+        if (p) p.hp = p.maxHp || p.hp;
+      }, 50);
+    },
     debug() {
       const active = game.scene.getScenes(true).map((s) => s.sys.settings.key);
       const gameScene = game.scene.getScene('Game');

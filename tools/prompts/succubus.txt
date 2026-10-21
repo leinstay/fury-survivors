@@ -1,7 +1,0 @@
-Character: a little demon girl mage, long dark purple hair, small curved black horns, small bat wings on her back, thin tail with a heart-shaped tip, pink eyes, smug smile. Outfit: long dark purple robe dress with pink trim and a high collar, black gloves, a glowing pink magic orb floating above her raised hand.
-
-Layout: exactly 3 full-body poses of the same character side by side in one row, evenly spaced, same size, all facing three-quarter view to the RIGHT (not facing the viewer), feet on the same baseline:
-1. idle standing pose
-2. walking, left leg forward, right leg back
-3. walking, right leg forward, left leg back
-The two walking poses must clearly differ in leg and arm positions. Draw her at the same pixel scale and height as the knight in the second attached image; she is an enemy in the same game.

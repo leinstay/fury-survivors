@@ -4,15 +4,15 @@
 
 ## Плотность пикселей
 
-Мир и UI в координатах 640×360, холст 1280×720 (`RENDER_ZOOM = 2`). Спрайт рисуется в масштабе `1 / density` (`src/render/density.js`), поэтому поле `density` в manifest задаёт, сколько пикселей картинки приходится на 1 px мира:
+Мир и UI в координатах 640×360, холст 1280×720 (`RENDER_ZOOM = 2`). Спрайт рисуется в масштабе `1 / density` (`src/render/density.js`), поэтому поле `density` в manifest говорит, сколько пикселей картинки приходится на пиксель мира. Все спрайты рисуются целым множителем, без пересэмплинга.
 
 | density | масштаб в мире | 1 пиксель картинки на холсте | Когда брать |
 |---|---|---|---|
-| 2 | 0.5 | 1 px | персонажи: герой, обычные враги. Рост гуманоида ~88 px в кадре 96×96 (в мире 48 px) |
-| 1 (по умолчанию) | 1 | 2×2 px | босс, предметы, иконки, снаряды, окружение: крупнее и грубее, без апскейла |
+| 2 | 0.5 | 1 px | сейчас не используется: пиксель вдвое мельче, чем у персонажей |
+| 1 (по умолчанию) | 1 | 2×2 px | всё: персонажи (~50 px в кадре 56×56), боссы (~95 px в кадре 96×96), окружение, предметы, иконки. Персонажи и окружение сняты с родной сетки модели клетка в пиксель |
 | 0.5 | 2 | 4×4 px | эффекты, которые поведение масштабирует от опорной ширины 64 px мира (`proj_blade_arc`, `proj_holy_ground`): родной рисунок модели ~30 px |
 
-Правило выбора: мелко и детально: density 2; крупно и грубо: density 1; большие эффекты, растягиваемые от ширины 64 px: 0.5. Новые персонажи делаются в density 2 (хелпер `hd()` в manifest).
+Правило выбора: всё новое делаем в density 1 и на той же сетке, что персонажи (рост обычного персонажа ~50 клеток, дерево ~100). 0.5 только для больших эффектов, растягиваемых от ширины 64 px.
 
 Растяжка холста на экран: при целом масштабе экрана пиксели чёткие (`image-rendering: pixelated`), при нецелом включается мягкое сглаживание (`src/ui/scaling.js`).
 
@@ -23,8 +23,8 @@ node tools/gen-sprite.mjs <name> [--ref path]... [--aspect 3:2] [--quality mediu
 ```
 
 - Промпт: `tools/prompts/_style.txt` (общий стиль, идёт первым) + `tools/prompts/<name>.txt` (персонаж или лист). Результат: `assets/raw/<name>.png`, сырой ответ модели.
-- Референсы `--ref`: `references/main.png` (техника рисовки) и готовый лист героини `assets/raw/heroine.png` для врагов, чтобы держать стиль. Папка `references/` не в git.
-- Персонаж: один лист из 3 поз в ряд (стойка, шаг А, шаг Б), все в три четверти вправо. Лист предметов или окружения: объекты в ряд с широкими промежутками. Наряд и фигуру описывай нейтрально, без sexy/fanservice/seductive/busty (`VISION.md`).
+- Референсы `--ref`: `references/main.png` (техника и чибиобразные пропорции) для листа персонажей; готовый `assets/raw/roster.png` для остальных листов, чтобы держать размер клетки и стиль. Папка `references/` не в git.
+- Персонажи: один общий лист `roster` (`tools/prompts/roster.txt`, `--aspect 21:9 --quality high`): героиня, враги и три босса вдвое выше, все в стойке в три четверти вправо. Ходьба процедурная (`src/render/anim.js`). Лист окружения или предметов: объекты с промежутками, размеры заданы относительно персонажа («вдвое выше девушки»).
 - `--dry-run` печатает тело запроса без отправки и без трат.
 - Деньги: `tools/gen-ledger.json` (`budget` 5, `stop` 4.5, `spent`, список трат). Скрипт отказывается работать, если `spent + оценка > stop` (оценка: самая дорогая из прошлых трат или `estimatePerImage`). Трата пишется в ledger даже если картинки в ответе нет. Вручную ledger не править.
 - Один процесс за раз: lock-файл `tools/.gen.lock` (в `.gitignore`); второй запуск завершится с кодом 4. Если процесс убили и lock остался, удали файл.
@@ -57,7 +57,7 @@ node tools/clean-sprite.mjs <raw.png> <spriteKey> [--frames N] [--colors 16 | --
 node tools/slice-sheet.mjs <sheet> [--report]
 ```
 
-- `tools/sheets.json`: `{ "<sheet>": { "raw": "assets/raw/x.png", "items": [...] } }`. Листы: `env_props`, `items`, `icons`, `projectiles`.
+- `tools/sheets.json`: `{ "<sheet>": { "raw": "assets/raw/x.png", "items": [...] } }`. Листы: `roster`, `env_props`, `items`, `icons`, `projectiles`. Необязательные поля листа: `step: [min, max]` (границы шага сетки модели, px исходника; при `--quality high` около 4.5–7), `rows: "center"` (ряды по центрам, для листа с высокими фигурами на два ряда), `mergeGap` (сливать области ближе этого, по умолчанию 14; 0, если фигуры стоят тесно), `cuts: [[x, y0, y1], ...]` (вертикальные разрезы маски, если соседние фигуры касаются свечением или хвостом).
 - `items` идут в порядке чтения (ряды сверху вниз, слева направо). Элемент: ключ спрайта, или `{ "key", "frame", "flip" }` для кадра многокадрового спрайта (`tree`, `flower`), или `null`, чтобы пропустить найденный объект (в `icons` последний `null`).
 - `--report` только печатает найденные объекты и их родные размеры, файлы не пишет. Запускай его первым: число объектов должно совпасть с `items`.
 - Объект больше `manifest.size` уменьшается голосованием по блокам, меньше остаётся родным. При `origin[1] = 1` он ставится низом на нижнюю строку кадра, иначе центром.
@@ -82,19 +82,24 @@ node tools/slice-sheet.mjs <sheet> [--report]
 
 ## Таблица спрайтов
 
-Собрана скриптом из `assets/sprites/manifest.js` (кадр, число кадров, density) и `tools/sheets.json` (лист-источник); для персонажей источник `assets/raw/<key>.png`. Босс чистился из разведённого `assets/raw/dryad_queen_split.png`. `heroine_portrait` пока заглушка без raw. Таблицу пересобирай при изменении manifest.
+Собрана из `assets/sprites/manifest.js` (кадр, число кадров, density) и `tools/sheets.json` (лист-источник).
 
 | Ключ | Кадр | Кадров | density | Источник |
 |---|---|---|---|---|
-| `heroine` | 96×96 | 3 | 2 | `assets/raw/heroine.png` |
+| `heroine` | 56×56 | 1 | 1 | `assets/raw/roster.png` |
 | `heroine_portrait` | 48×48 | 1 | 1 | нет (заглушка) |
-| `bat` | 48×48 | 3 | 2 | `assets/raw/bat.png` |
-| `slime` | 64×64 | 3 | 2 | `assets/raw/slime.png` |
-| `catgirl` | 96×96 | 3 | 2 | `assets/raw/catgirl.png` |
-| `ghost` | 64×64 | 3 | 2 | `assets/raw/ghost.png` |
-| `foxgirl` | 96×96 | 3 | 2 | `assets/raw/foxgirl.png` |
-| `succubus` | 96×96 | 3 | 2 | `assets/raw/succubus.png` |
-| `dryad_queen` | 128×128 | 3 | 1 | `assets/raw/dryad_queen_split.png` (разведённый `dryad_queen.png`) |
+| `catgirl` | 56×56 | 1 | 1 | `assets/raw/roster.png` |
+| `foxgirl` | 56×56 | 1 | 1 | `assets/raw/roster.png` |
+| `succubus` | 56×56 | 1 | 1 | `assets/raw/roster.png` |
+| `slime` | 56×56 | 1 | 1 | `assets/raw/roster.png` |
+| `ghost` | 56×56 | 1 | 1 | `assets/raw/roster.png` |
+| `bunnygirl` | 56×56 | 1 | 1 | `assets/raw/roster.png` |
+| `harpy` | 56×56 | 1 | 1 | `assets/raw/roster.png` |
+| `lamia` | 56×56 | 1 | 1 | `assets/raw/roster.png` |
+| `elf_archer` | 56×56 | 1 | 1 | `assets/raw/roster.png` |
+| `kitsune_empress` | 96×96 | 1 | 1 | `assets/raw/roster.png` |
+| `harpy_queen` | 96×96 | 1 | 1 | `assets/raw/roster.png` |
+| `dryad_queen` | 96×96 | 1 | 1 | `assets/raw/roster.png` |
 | `xp_small` | 10×12 | 1 | 1 | `assets/raw/items.png` |
 | `xp_medium` | 12×14 | 1 | 1 | `assets/raw/items.png` |
 | `xp_large` | 14×20 | 1 | 1 | `assets/raw/items.png` |
@@ -130,9 +135,9 @@ node tools/slice-sheet.mjs <sheet> [--report]
 | `icon_regen` | 24×24 | 1 | 1 | `assets/raw/icons.png` |
 | `icon_heal` | 24×24 | 1 | 1 | `assets/raw/icons.png` |
 | `grass` | 128×128 | 1 | 1 | tools/make-grass.mjs |
-| `tree` | 56×60 | 2 | 1 | `assets/raw/env_props.png` |
-| `rock` | 30×22 | 1 | 1 | `assets/raw/env_props.png` |
-| `bush` | 30×24 | 1 | 1 | `assets/raw/env_props.png` |
-| `flower` | 14×16 | 2 | 1 | `assets/raw/env_props.png` |
-| `barrel` | 18×20 | 1 | 1 | `assets/raw/env_props.png` |
-| `lantern` | 22×36 | 1 | 1 | `assets/raw/env_props.png` |
+| `tree` | 64×104 | 2 | 1 | `assets/raw/env_props.png` |
+| `rock` | 28×28 | 1 | 1 | `assets/raw/env_props.png` |
+| `bush` | 32×32 | 1 | 1 | `assets/raw/env_props.png` |
+| `flower` | 22×22 | 2 | 1 | `assets/raw/env_props.png` |
+| `barrel` | 22×26 | 1 | 1 | `assets/raw/env_props.png` |
+| `lantern` | 26×40 | 1 | 1 | `assets/raw/env_props.png` |

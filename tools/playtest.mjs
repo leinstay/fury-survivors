@@ -1,6 +1,7 @@
 // Быстрый плейтест в headless Chromium: Play, движение по кругу, выбор первой карточки на уровнях,
 // каждые 10 с печатает __game.debug(). Скриншот (опционально) делается на shotAt-й секунде.
-// node tools/playtest.mjs [seconds=60] [--shot path.png] [--shot-at 25] [--size 640x360] [--url http://...]
+// node tools/playtest.mjs [seconds=60] [--shot path.png] [--shot-at 25] [--size 640x360] [--url http://...] [--god]
+// --god: опционально, держит героя живым (window.__game.god(true) из src/debug.js, hp = max каждые 50 мс) для визуальных проверок.
 import { chromium } from '@playwright/test';
 import { spawn } from 'node:child_process';
 
@@ -10,6 +11,7 @@ const opt = (name, def) => {
   return i >= 0 ? args[i + 1] : def;
 };
 const seconds = Number(args.find((a) => /^\d+$/.test(a)) || 60);
+const god = args.includes('--god');
 const shot = opt('--shot', null);
 const shotAt = Number(opt('--shot-at', 25));
 let url = opt('--url', null);
@@ -32,6 +34,7 @@ try {
   await page.waitForFunction(() => window.__game && window.__game.debug().scene === 'Menu', null, { timeout: 10000 });
   await page.keyboard.press('Enter');
   await page.waitForTimeout(800);
+  if (god) await page.evaluate(() => window.__game.god(true));
   const keys = ['KeyW', 'KeyD', 'KeyS', 'KeyA'];
   for (let s = 0; s < seconds; s++) {
     const k = keys[s % 4];

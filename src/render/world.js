@@ -10,6 +10,7 @@ import { spriteScale } from './density.js';
 const PICKUP_DEPTH = -100000;
 const PROJ_DEPTH = 200000;
 const GROUND_DEPTH = -150000; // зоны на земле: над цветами и травой, под предметами и персонажами
+const TELEGRAPH_DEPTH = GROUND_DEPTH + 1e4; // предупреждения об ударах босса
 
 // Параметры свечения элит; цвет можно задать врагу в data (elite.glow).
 const ELITE_GLOW = { color: 0xff3d6e, strength: 3, pulse: 0.35, pulseSpeed: 5, quality: 0.1, distance: 10, padding: 10 };
@@ -99,6 +100,7 @@ export class World {
     }
     this.shadows = [];
     this.shadowN = 0;
+    this.telegraphGfx = scene.add.graphics().setDepth(TELEGRAPH_DEPTH);
     this.shake = { x: 0, y: 0 }; // смещение камеры от fx (тряска)
   }
 
@@ -189,6 +191,7 @@ export class World {
       this._shadow(e.x, e.y, s, cam);
       s.setFlipX(e.facing < 0);
       s.setDepth(e.y);
+      s.setAlpha(e.alpha == null ? 1 : e.alpha);
       this._tint(s, e.hitFlash > 0, e.elite);
       if (e.elite) this._glow(s, e, time);
       else if (s.eliteGlow) dropGlow(s);
@@ -196,6 +199,16 @@ export class World {
     for (let i = this.shadowN; i < this.shadows.length; i++) {
       if (!this.shadows[i].visible) break;
       this.shadows[i].setVisible(false);
+    }
+
+    // предупреждения об ударах босса: заливка растёт от центра до края за delay
+    const g = this.telegraphGfx;
+    g.clear();
+    for (const tg of sim.telegraphs) {
+      const k = Math.min(1, tg.t / tg.delay);
+      g.fillStyle(0xff2020, 0.12 + 0.12 * k).fillCircle(tg.x, tg.y, tg.radius);
+      g.fillStyle(0xff2020, 0.3 + 0.2 * k).fillCircle(tg.x, tg.y, tg.radius * k);
+      g.lineStyle(1, 0xff6060, 0.9).strokeCircle(tg.x, tg.y, tg.radius);
     }
 
     this.pools.projectiles.sync(sim.projectiles, (e) => e.sprite, (s, e) => {

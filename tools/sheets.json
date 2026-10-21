@@ -6,23 +6,28 @@
         "key": "tree",
         "frame": 0
       },
+      {
+        "key": "tree",
+        "frame": 1
+      },
       "rock",
-      "bush",
-      "barrel",
       {
         "key": "flower",
         "frame": 0
       },
+      "bush",
       {
         "key": "flower",
         "frame": 1
       },
       "lantern",
-      {
-        "key": "tree",
-        "frame": 1
-      }
-    ]
+      "barrel"
+    ],
+    "step": [
+      4,
+      7
+    ],
+    "mergeGap": 2
   },
   "items": {
     "raw": "assets/raw/items.png",
@@ -77,8 +82,8 @@
   "roster": {
     "raw": "assets/raw/roster.png",
     "step": [
-      3,
-      7
+      4.5,
+      5.2
     ],
     "rows": "center",
     "items": [
@@ -87,11 +92,32 @@
       "foxgirl",
       "succubus",
       "slime",
+      "kitsune_empress",
+      "harpy_queen",
       "dryad_queen",
       "ghost",
       "bunnygirl",
       "harpy",
-      "lamia"
+      "lamia",
+      "elf_archer"
+    ],
+    "mergeGap": 0,
+    "cuts": [
+      [
+        295,
+        40,
+        620
+      ],
+      [
+        534,
+        40,
+        620
+      ],
+      [
+        1238,
+        40,
+        340
+      ]
     ]
   }
 }

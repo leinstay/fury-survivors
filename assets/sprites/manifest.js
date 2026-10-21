@@ -10,17 +10,18 @@
 //   color        цвет заглушки (только tools/placeholders.mjs)
 //   shape        'humanoid' | 'blob' | 'flyer' | 'round' | 'rect' | 'tile' — форма заглушки
 //   layer        'ground' — снаряд лежит на земле под персонажами (зоны вроде Holy Ground); иначе поверх всех
-//   density      пикселей текстуры на 1 px мира (по умолчанию 1). Холст 1280×720 при мире 640×360,
-//                поэтому спрайт с density 2 рисуется в масштабе 0.5 и показывает все свои пиксели.
-//                Новые спрайты делаем в density 2: рост гуманоида ~88 px, кадр 96×96 (в мире 48 px, как заглушки).
+//   density      пикселей текстуры на 1 px мира (по умолчанию 1). Холст 1280×720 при мире 640×360 (RENDER_ZOOM 2):
+//                density 1 = арт-пиксель 2×2 px холста, density 2 = 1×1 (спрайт рисуется в 0.5).
+//                Персонажи ~50 px в кадре 56×56, боссы ~95 px в кадре 96×96.
 //
 // Кадры персонажей: 0 стойка, 1 шаг А, 2 шаг Б. Смотрят в три четверти вправо, влево flipX.
 
 // Персонаж общего листа (assets/raw/roster.png, tools/slice-sheet.mjs roster): все сняты с одной сетки модели
-// один арт-пиксель в пиксель, без масштабирования. Один кадр стойки, ходьба процедурная (src/render/anim.js).
+// и ужаты одним общим множителем листа (sheets.json scale), так что пропорции между персонажами сохраняются.
+// Обычная плотность: арт-пиксель = пиксель мира. Один кадр стойки, ходьба процедурная (src/render/anim.js).
 // Кадр frame×frame, ноги на нижней строке.
 function girl(key, frame, color, shape = 'humanoid') {
-  return [key, { file: `assets/sprites/${key}.png`, frameWidth: frame, frameHeight: frame, frames: 1, origin: [0.5, 1], size: [frame, frame], density: 2, color, shape }];
+  return [key, { file: `assets/sprites/${key}.png`, frameWidth: frame, frameHeight: frame, frames: 1, origin: [0.5, 1], size: [frame, frame], color, shape }];
 }
 
 function item(key, w, h, color, shape = 'round', frames = 1, origin = [0.5, 0.5]) {
@@ -38,22 +39,25 @@ const FEET = [0.5, 1];
 
 export const SPRITES = Object.fromEntries([
   // Герои и портрет
-  girl('heroine', 96, '#e0603a'),
+  girl('heroine', 56, '#e0603a'),
   item('heroine_portrait', 48, 48, '#e0603a', 'rect'),
 
   // Враги
-  girl('catgirl', 96, '#d9a441'),
-  girl('foxgirl', 96, '#e3803a'),
-  girl('succubus', 96, '#b33a6b'),
-  girl('slime', 96, '#5ac46a', 'blob'),
-  girl('ghost', 96, '#cfd8ff', 'flyer'),
-  girl('bunnygirl', 96, '#f0f0f0'),
-  girl('harpy', 96, '#a07850', 'flyer'),
-  girl('lamia', 96, '#2f7a4a', 'blob'),
+  girl('catgirl', 56, '#d9a441'),
+  girl('foxgirl', 56, '#e3803a'),
+  girl('succubus', 56, '#b33a6b'),
+  girl('slime', 56, '#5ac46a', 'blob'),
+  girl('ghost', 56, '#cfd8ff', 'flyer'),
+  girl('bunnygirl', 56, '#f0f0f0'),
+  girl('harpy', 56, '#a07850', 'flyer'),
+  girl('lamia', 56, '#2f7a4a', 'blob'),
 
-  // Босс
-  // Босс с того же листа и той же сетки (родной рост ~1.55 роста героини).
-  girl('dryad_queen', 144, '#3f8a4a'),
+  girl('elf_archer', 56, '#6fae4a'),
+
+  // Боссы: тот же лист и та же сетка, рост вдвое больше обычного персонажа
+  girl('kitsune_empress', 96, '#f08a3a'),
+  girl('harpy_queen', 96, '#8a6040', 'flyer'),
+  girl('dryad_queen', 96, '#3f8a4a'),
 
   // Предметы (обычная плотность: арт-пиксель = 2 px холста)
   art('xp_small', 10, 12),
@@ -98,10 +102,10 @@ export const SPRITES = Object.fromEntries([
 
   // Окружение (обычная плотность). Трава процедурная: tools/make-grass.mjs.
   item('grass', 128, 128, '#2f5a2a', 'tile', 1, [0, 0]),
-  art('tree', 56, 60, { frames: 2, origin: FEET }),
-  art('rock', 30, 22, { origin: FEET }),
-  art('bush', 30, 24, { origin: FEET }),
-  art('flower', 14, 16, { frames: 2, origin: FEET }),
-  art('barrel', 18, 20, { origin: FEET }),
-  art('lantern', 22, 36, { origin: FEET }),
+  art('tree', 64, 104, { frames: 2, origin: FEET }),
+  art('rock', 28, 28, { origin: FEET }),
+  art('bush', 32, 32, { origin: FEET }),
+  art('flower', 22, 22, { frames: 2, origin: FEET }),
+  art('barrel', 22, 26, { origin: FEET }),
+  art('lantern', 26, 40, { origin: FEET }),
 ]);

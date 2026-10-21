@@ -14,7 +14,7 @@ import ChestScene from './scenes/Chest.js';
 import LeaderboardScene from './scenes/Leaderboard.js';
 
 // Каждая сцена при старте получает камеру с origin (0, 0) и зумом RENDER_ZOOM: код сцен и UI работает
-// в координатах 640×360, а холст 1280×720. init вызывается при каждом старте сцены, когда камеры уже созданы.
+// в координатах 640×360, а холст в RENDER_ZOOM раз крупнее. init вызывается при каждом старте сцены, когда камеры уже созданы.
 function zoomed(SceneClass) {
   const scene = new SceneClass();
   const ownInit = scene.init;

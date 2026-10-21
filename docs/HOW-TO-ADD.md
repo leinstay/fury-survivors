@@ -44,7 +44,7 @@ Behavior: `melee_arc`, `projectile`, `orbit`, `aura`, `boomerang`, `chain`, `are
 ## Герой
 
 1. `src/data/heroes.js`: `sprite`, `portrait`, `startWeapon` (id из `weapons.js`), `stats` с полным набором `maxHp, atk, speed, crit, pickup, haste, luck, armor, regen`.
-2. manifest: спрайт героя в двойной плотности (кадр 96×96, `density: 2`, кадры: стойка, шаг А, шаг Б; образец `heroine`) и портрет (`heroine_portrait`, 48×48).
+2. manifest: спрайт героя `girl('<id>', 56, '#цвет')` (один кадр стойки, ходьба процедурная; рисунок добавляется в общий лист `roster`, см. `docs/ASSETS.md`) и портрет (`heroine_portrait`, 48×48).
 3. i18n: `hero.<id>.name`.
 4. Выбор героя: меню героя пока нет. `createSim({ hero, stage, seed })` принимает id, но `src/scenes/Game.js` передаёт `'heroine'` строкой. Для второго героя нужна правка `Game.js` и меню (чужие файлы, не только data).
 5. Тесты: `data: hero start weapons exist`, `data: sprites referenced by content exist in manifest`. Пассивки сверяются по набору статов первого героя.
@@ -62,7 +62,7 @@ Behavior: `chase`, `dash`, `ranged`, `swarm`, `phase` (`boss` только дл�
    },
    ```
    `size` это радиус хитбокса в px мира. Нулевых `hp/speed/damage/xp/size` быть не должно.
-2. manifest: `hd('<id>', кадр, ноги, w, h, '#цвет', 'humanoid' | 'blob' | 'flyer')`: кадр квадратный, `density: 2`, 3 кадра.
+2. manifest: `girl('<id>', 56, '#цвет', 'humanoid' | 'blob' | 'flyer')` (боссы: кадр 96). Рисунок: строка в промпте `tools/prompts/roster.txt` и ключ в `items` листа `roster` в `tools/sheets.json`, затем `node tools/slice-sheet.mjs roster`.
 3. i18n: `enemy.<id>.name`.
 4. Чтобы враг появился, добавь его в `timeline` этапа (рецепт «Волна»).
 5. Тесты: `data: enemies have behavior, positive stats, elite block`, `stage: timeline sorted and references known enemies`.
@@ -82,23 +82,31 @@ Behavior: `chase`, `dash`, `ranged`, `swarm`, `phase` (`boss` только дл�
 1. `src/data/bosses.js`: поля как у врага плюс `attacks`, `rage`, `drop`:
    ```js
    dryad_queen: {
-     sprite: 'dryad_queen', behavior: 'boss', hp: 8000, speed: 34, damage: 22, xp: 0, size: 34, knockbackResist: 1,
+     sprite: 'dryad_queen', behavior: 'boss', hp: 30000, speed: 34, damage: 44, xp: 0, size: 26, knockbackResist: 1,
      attacks: [
        { type: 'dash', cooldown: 5, windup: 0.8, speed: 260, time: 0.6 },
        { type: 'summon', cooldown: 8, enemy: 'catgirl', count: 6, radius: 90 },
+       { type: 'slam', cooldown: 6.5, count: 4, radius: 36, delay: 0.9, interval: 0.55, damage: 34 },
      ],
-     rage: { hpFraction: 0.5, cooldownMul: 0.7 },
+     rage: { hpFraction: 0.5, cooldownMul: 0.7, speedMul: 1.25 },
+     final: true,
      drop: 'chest',
    },
    ```
    - `dash`: `windup` (замах, поза `windup`), `speed`, `time` (длительность рывка).
    - `summon`: `enemy` (id из `enemies.js`), `count`, `radius` (кольцо вокруг босса; поза `cast` 0.6 с).
-   - `rage`: когда `hp <= maxHp * hpFraction`, один раз шлётся `bossRage`, кулдауны умножаются на `cooldownMul`.
-   - Другой тип атаки: ветка в `src/behaviors/enemies/boss.js` и добавь тип в проверку теста `data: bosses use known behavior, attacks and summons`.
+   - `fan`: `count` снарядов веером на игрока, `spread` (градусы, полный угол), `speed`, `damage`, `life`; необязательно `volleys` (залпов, по умолчанию 1) и `interval` (пауза между залпами, 0.4 с).
+   - `ring`: кольцо из `count` снарядов, `volleys` залпов через `interval`, каждый следующий повёрнут на `spin` рад (спираль); `speed`, `damage`, `life`.
+   - `slam`: `count` ударов по земле через `interval`; каждый целится в позицию игрока в момент предупреждения. Через `delay` с круг `radius` бьёт на `damage`, если игрок внутри. Предупреждение лежит в `sim.telegraphs`, рисует его `src/render/world.js` (красный круг, заливка растёт за `delay`); по удару шлётся событие `slam`.
+   - `blink`: босс растворяется за `delay` с (`e.alpha` падает до 0), появляется на расстоянии `distance` от игрока и проявляется за `fadeIn` (0.3 с); событие `bossBlink`.
+   - Любая атака принимает `rageOnly: true`: включается только в ярости. Урон снарядов и ударов умножается на рост урона босса со временем (`stage.scaling`).
+   - `rage`: когда `hp <= maxHp * hpFraction`, один раз шлётся `bossRage`, кулдауны умножаются на `cooldownMul`, скорость ходьбы на необязательный `speedMul`.
+   - `final: true`: убийство этого босса даёт победу. У остальных боссов падает только `drop` (сундук), шлётся `bossDown`, забег идёт дальше.
+   - Другой тип атаки: ветка в `src/behaviors/enemies/boss.js` и добавь тип в проверку теста `data: bosses use known behavior, attacks and summons`; тест на механику добавь в `tests/unit/boss.test.js`.
 2. manifest: 3 кадра: 0 стойка, 1 шаг, 2 каст/замах (`anim.js`: у босса позы `windup` и `cast` показывают кадр 2). Образец `dryad_queen` (128×128, обычная плотность).
 3. i18n: `boss.<id>.name`.
-4. Этап: `{ at: <duration>, type: 'boss', boss: '<id>' }` последним событием; `at` равен `duration` (тест `data: pickups, props drops and timeline are consistent`). За `bossWarning` секунд до этого директор шлёт `bossWarning`, HUD показывает баннер `boss.warning`.
-5. Победа наступает после убийства босса (`victory` в `sim.js`).
+4. Этап: `{ at, type: 'boss', boss: '<id>' }`. В лесу три босса: 5:00, 10:00 и финальный на `duration` (15:00, последнее событие таймлайна, у него `final: true`). За `bossWarning` секунд до каждого директор шлёт `bossWarning`, HUD показывает баннер `boss.warning`, полоса HP берёт имя из `boss.<id>.name`.
+5. Победа наступает после убийства босса с `final: true` (`victory` в `sim.js`).
 6. Тесты: `data: bosses use known behavior...`, `tests/unit/mechanics.test.js` (`boss: ...`: предупреждение, позы, ярость).
 
 ## Карта (этап)

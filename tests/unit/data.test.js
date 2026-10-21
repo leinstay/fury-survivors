@@ -102,7 +102,7 @@ test('data: combos use maxed regular weapons and evolved results', () => {
 });
 
 test('data: enemies have behavior, positive stats, elite block', () => {
-  assert.equal(Object.keys(ENEMIES).length, 8);
+  assert.equal(Object.keys(ENEMIES).length, 9);
   for (const [id, e] of Object.entries(ENEMIES)) {
     assert.ok(ENEMY_BEHAVIORS[e.behavior], `${id}: behavior`);
     assert.ok(e.hp > 0 && e.speed > 0 && e.damage > 0 && e.xp > 0 && e.size > 0, `${id}: stats`);
@@ -115,11 +115,26 @@ test('data: bosses use known behavior, attacks and summons', () => {
     assert.ok(ENEMY_BEHAVIORS[b.behavior], `${id}: behavior`);
     assert.ok(b.attacks.length > 0);
     for (const a of b.attacks) {
-      assert.ok(['dash', 'summon'].includes(a.type));
+      assert.ok(['dash', 'summon', 'fan', 'ring', 'slam', 'blink'].includes(a.type), `${id}: attack ${a.type}`);
+      assert.ok(a.cooldown > 0, `${id}: cooldown`);
       if (a.type === 'summon') assert.ok(ENEMIES[a.enemy], `${id}: summon enemy`);
+      if (a.type === 'fan' || a.type === 'ring') assert.ok(a.count > 0 && a.speed > 0 && a.damage > 0 && a.life > 0, `${id}: ${a.type}`);
+      if (a.type === 'slam') assert.ok(a.count > 0 && a.radius > 0 && a.delay > 0 && a.damage > 0, `${id}: slam`);
+      if (a.type === 'blink') assert.ok(a.delay > 0 && a.distance > 0, `${id}: blink`);
     }
   }
-  assert.ok(BOSSES.dryad_queen);
+  assert.equal(Object.keys(BOSSES).length, 3);
+  assert.deepEqual(Object.keys(BOSSES).filter((id) => BOSSES[id].final), ['dryad_queen']);
+});
+
+test('stage: three bosses every 5 minutes, only the last one is final', () => {
+  assert.equal(forest.duration, 900);
+  const bosses = forest.timeline.filter((e) => e.type === 'boss');
+  assert.deepEqual(bosses.map((b) => [b.at, b.boss]), [[300, 'kitsune_empress'], [600, 'harpy_queen'], [900, 'dryad_queen']]);
+  assert.ok(BOSSES[bosses[bosses.length - 1].boss].final);
+  for (const b of bosses.slice(0, -1)) assert.ok(!BOSSES[b.boss].final);
+  assert.ok(en['enemy.elf_archer.name']);
+  for (const b of bosses) assert.ok(en[`boss.${b.boss}.name`], b.boss);
 });
 
 test('data: pickups, props drops and timeline are consistent', () => {

@@ -83,9 +83,9 @@ function steer(sim, out, t) {
   out.y = ay / l;
 }
 
-// opts: { seed, upgrades (bool), until (с), dt, hero }
+// opts: { seed, upgrades (bool), until (с), dt, hero, onSecond(sim), onEvents(events) }
 export function runBot(opts) {
-  const { seed = 1, upgrades = true, until = 610, dt = 1 / 60 } = opts;
+  const { seed = 1, upgrades = true, until = 910, dt = 1 / 60 } = opts;
   const sim = createSim({ hero: 'heroine', stage: 'forest', seed });
   if (!upgrades) sim.levelUp.skips = 1e9;
   const input = { x: 0, y: 0 };
@@ -94,7 +94,7 @@ export function runBot(opts) {
   };
   let step = 0;
   let lastLevel = 1;
-  const marks = [60, 120, 180, 240, 300, 360, 420, 480, 540, 600];
+  const marks = [60, 120, 180, 240, 300, 360, 420, 480, 540, 600, 720, 840];
   let mi = 0;
   let nextSecond = 1;
   while (sim.time < until && (sim.state === 'running' || sim.state === 'levelup')) {
@@ -113,6 +113,7 @@ export function runBot(opts) {
       res.levelTimes[lastLevel] = sim.time;
     }
     while (mi < marks.length && sim.time >= marks[mi]) { res.levelAt[marks[mi]] = sim.player.level; (res.trace ||= []).push([marks[mi], sim.enemies.length, Math.round(sim.player.hp), sim.kills]); mi++; }
+    if (opts.onEvents && sim.events.length) opts.onEvents(sim.events);
     for (const ev of sim.events) if (ev.type === 'chest' && ev.items.some((i) => i.evolved)) res.evolutions++;
   }
   if (sim.state === 'gameover') res.deathTime = sim.time;

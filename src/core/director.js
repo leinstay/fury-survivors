@@ -5,7 +5,7 @@ export function createDirector(stage, rng) {
   const events = stage.timeline;
   const end = stage.duration;
   let idx = 0;
-  let warned = false;
+  const warned = new Set(); // боссы, о которых уже предупредили
   const active = []; // активные spawn-события { ev, acc, check }
 
   function start(ev, sim) {
@@ -53,12 +53,11 @@ export function createDirector(stage, rng) {
   return {
     update(sim, dt) {
       const t = sim.time;
-      if (!warned && stage.bossWarning) {
+      if (stage.bossWarning) {
         for (const ev of events) {
-          if (ev.type === 'boss' && t >= ev.at - stage.bossWarning) {
-            warned = true;
+          if (ev.type === 'boss' && !warned.has(ev) && t >= ev.at - stage.bossWarning && t < ev.at) {
+            warned.add(ev);
             sim.events.push({ type: 'bossWarning', boss: ev.boss, seconds: Math.max(0, ev.at - t) });
-            break;
           }
         }
       }

@@ -123,7 +123,7 @@ test('props: break from weapons, push propBreak, drop by table', () => {
   assert.equal(s2.pickups.length, n);
 });
 
-test('boss: bossWarning comes once, 10 s before the boss', () => {
+test('boss: bossWarning comes once, 10 s before the first boss', () => {
   assert.equal(forest.bossWarning, 10);
   const at = forest.timeline.find((e) => e.type === 'boss').at;
   const sim = createSim({ seed: 35 });
@@ -140,7 +140,7 @@ test('boss: bossWarning comes once, 10 s before the boss', () => {
   }
   assert.equal(warns.length, 1);
   assert.ok(Math.abs(warns[0][0] - (at - forest.bossWarning)) < 0.1, `warning at ${warns[0][0]}`);
-  assert.equal(warns[0][1].boss, 'dryad_queen');
+  assert.equal(warns[0][1].boss, forest.timeline.find((e) => e.type === 'boss').boss);
   assert.equal(spawnAt.length, 1);
   assert.ok(spawnAt[0] - warns[0][0] > 9.8);
 });

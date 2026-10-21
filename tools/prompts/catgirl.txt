@@ -1,7 +1,0 @@
-Character: a playful cat-girl, short messy blonde hair with cat ears, yellow cat eyes, mischievous grin, cat tail. Outfit: brown leather adventurer vest over a cream shirt, short brown shorts, striped knee socks, small boots, fingerless gloves with little claws raised.
-
-Layout: exactly 3 full-body poses of the same character side by side in one row, evenly spaced, same size, all facing three-quarter view to the RIGHT (not facing the viewer), feet on the same baseline:
-1. idle standing pose
-2. walking, left leg forward, right leg back
-3. walking, right leg forward, left leg back
-The two walking poses must clearly differ in leg and arm positions. Draw her at the same pixel scale and height as the knight in the second attached image; she is an enemy in the same game.

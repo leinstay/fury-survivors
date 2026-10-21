@@ -142,8 +142,11 @@ export default {
   'enemy.ghost.name': 'Ghost Girl',
   'enemy.foxgirl.name': 'Foxgirl',
   'enemy.succubus.name': 'Succubus',
+  'enemy.elf_archer.name': 'Elf Archer',
   'enemy.bunnygirl.name': 'Bunny Girl',
   'enemy.lamia.name': 'Lamia',
+  'boss.kitsune_empress.name': 'Kitsune Empress',
+  'boss.harpy_queen.name': 'Harpy Queen',
   'boss.dryad_queen.name': 'Dryad Queen',
 
   // Этапы

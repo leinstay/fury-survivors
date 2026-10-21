@@ -18,7 +18,7 @@ import { SPRITES } from '../assets/sprites/manifest.js';
 import { buildMask, removeSpecks, edgeProfiles, edgePeaks, commonStep, gridSnap, shrink } from './clean-sprite.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const MERGE_GAP = 14; // px исходника: области ближе этого считаются одним объектом
+const MERGE_GAP = 14; // px исходника: области ближе этого считаются одним объектом (sheets.json: mergeGap)
 
 function components(mask, w, h) {
   const lab = new Int32Array(w * h).fill(-1);
@@ -47,8 +47,8 @@ function components(mask, w, h) {
   return boxes;
 }
 
-function mergeClose(boxes) {
-  const near = (a, b) => a.x0 - MERGE_GAP <= b.x1 && b.x0 - MERGE_GAP <= a.x1 && a.y0 - MERGE_GAP <= b.y1 && b.y0 - MERGE_GAP <= a.y1;
+function mergeClose(boxes, gap = MERGE_GAP) {
+  const near = (a, b) => a.x0 - gap <= b.x1 && b.x0 - gap <= a.x1 && a.y0 - gap <= b.y1 && b.y0 - gap <= a.y1;
   let list = boxes.slice();
   for (let changed = true; changed;) {
     changed = false;
@@ -110,8 +110,11 @@ async function main() {
   const { data, info } = await sharp(join(root, sheet.raw)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const w = info.width, h = info.height;
   const { mask } = buildMask(data, w, h);
+  // Фигуры, которые касаются друг друга (свечение, хвост, крыло), разделяются вертикальными разрезами:
+  // sheets.json "cuts": [[x, y0, y1], ...] в px исходника.
+  for (const [x, y0, y1] of sheet.cuts || []) for (let y = y0; y < y1; y++) mask[y * w + x] = 0;
   removeSpecks(mask, w, h, 12);
-  const found = mergeClose(components(mask, w, h)).filter((b) => (b.x1 - b.x0) * (b.y1 - b.y0) > 150);
+  const found = mergeClose(components(mask, w, h), sheet.mergeGap).filter((b) => (b.x1 - b.x0) * (b.y1 - b.y0) > 150);
   const boxes = sheet.rows === 'center' ? centerOrder(found) : overlapOrder(found);
 
   const profs = boxes.map((b) => edgeProfiles(data, mask, w, h, b));

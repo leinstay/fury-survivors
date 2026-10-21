@@ -64,6 +64,7 @@ class Sim {
     this.events = [];
     this.enemies = [];
     this.projectiles = [];
+    this.telegraphs = [];   // предупреждения об ударах по земле { uid, x, y, radius, delay, t, dmg }
     this.pickups = [];
     this.props = [];
     this.uid = 0;
@@ -144,6 +145,7 @@ class Sim {
     this._separate();
     this._updateWeapons(dt);
     this._updateProjectiles(dt);
+    this._updateTelegraphs(dt);
     this._contactDamage();
     this._updatePickups(dt);
     this._sweepProps();
@@ -185,7 +187,7 @@ class Sim {
     if (!e) {
       e = {
         uid: 0, type: '', sprite: '', x: 0, y: 0, hp: 0, maxHp: 0, size: 0, facing: 1, elite: false, boss: false,
-        hitFlash: 0, moving: false, pose: 'idle', rage: false,
+        hitFlash: 0, moving: false, pose: 'idle', rage: false, alpha: 1,
         vx: 0, vy: 0, kx: 0, ky: 0, speed: 0, damage: 0, xp: 0, st: 0, a: 0, b: 0, t: 0, mark: 0,
         dead: false, def: null, params: EMPTY, beh: null, resist: 0, hitAt: new Float64Array(SLOT_COUNT),
       };
@@ -210,7 +212,7 @@ class Sim {
     e.speed = def.speed;
     e.damage = def.damage * dmgScale * (ed ? ed.damageMul : 1);
     e.xp = (def.xp || 0) * (ed ? ed.xpMul || 1 : 1);
-    e.pose = 'idle'; e.rage = false; e.st = 0; e.a = 0; e.b = 0; e.t = this.rng.next() * 6.2832; e.mark = 0;
+    e.pose = 'idle'; e.alpha = 1; e.rage = false; e.st = 0; e.a = 0; e.b = 0; e.t = this.rng.next() * 6.2832; e.mark = 0;
     e.dead = false;
     e.def = def;
     e.params = def.params || EMPTY;
@@ -351,12 +353,16 @@ class Sim {
     this.deadN++;
     this.kills++;
     const luck = this.player.stats.luck;
-    this.events.push({ type: 'kill', x: e.x, y: e.y, enemy: e.type, elite: e.elite, boss: e.boss, sprite: e.sprite, size: e.size });
+    this.events.push({ type: 'kill', x: e.x, y: e.y, enemy: e.type, elite: e.elite, boss: e.boss, final: !!(e.boss && e.def.final), sprite: e.sprite, size: e.size });
     if (e.xp > 0) this.dropPickup(xpTierFor(e.xp), e.x, e.y, e.xp);
     if (e.boss) {
       if (e.def.drop) this.dropPickup(e.def.drop, e.x, e.y);
-      this.state = 'victory';
-      this.events.push({ type: 'victory' });
+      if (e.def.final) {
+        this.state = 'victory';
+        this.events.push({ type: 'victory' });
+      } else {
+        this.events.push({ type: 'bossDown', boss: e.type });
+      }
       return;
     }
     if (e.elite) {
@@ -455,6 +461,29 @@ class Sim {
     p.radius = 4;
     p.dmg = dmg;
     return p;
+  }
+
+  // Удар по земле: через delay секунд урон игроку, если он в радиусе. Рендер только рисует sim.telegraphs.
+  addTelegraph(x, y, radius, delay, dmg) {
+    const tg = { uid: ++this.uid, x, y, radius, delay, t: 0, dmg };
+    this.telegraphs.push(tg);
+    return tg;
+  }
+
+  _updateTelegraphs(dt) {
+    const arr = this.telegraphs;
+    const pl = this.player;
+    for (let i = arr.length - 1; i >= 0; i--) {
+      const tg = arr[i];
+      tg.t += dt;
+      if (tg.t < tg.delay) continue;
+      const dx = pl.x - tg.x;
+      const dy = pl.y - tg.y;
+      if (dx * dx + dy * dy <= tg.radius * tg.radius) this.hurtPlayer(tg.dmg);
+      this.events.push({ type: 'slam', x: tg.x, y: tg.y, radius: tg.radius });
+      arr[i] = arr[arr.length - 1];
+      arr.pop();
+    }
   }
 
   _updateProjectiles(dt) {
