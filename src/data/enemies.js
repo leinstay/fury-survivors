@@ -7,10 +7,10 @@
 //   size,                        // радиус хитбокса, px
 //   knockbackResist: 0..1,
 //   params: {},                  // параметры behavior'а (дистанция рывка, скорость снаряда...)
-//   elite: { hpMul, damageMul, sizeMul, xpMul, outline, drop: 'chest' },  // outline — цвет контура в рендере
+//   elite: { hpMul, damageMul, sizeMul, xpMul, glow, drop: 'chest' },  // glow — цвет свечения вокруг силуэта
 // }
-// Элита: тот же спрайт в 1.5 раза крупнее, с белым контуром, без перекраски.
-const elite = () => ({ hpMul: 8, damageMul: 1.5, sizeMul: 1.5, xpMul: 6, outline: 0xffffff, drop: 'chest' });
+// Элита: тот же спрайт в 1.5 раза крупнее, с цветным свечением вокруг силуэта, без перекраски.
+const elite = () => ({ hpMul: 8, damageMul: 1.5, sizeMul: 1.5, xpMul: 6, glow: 0xff3d6e, drop: 'chest' });
 
 export const ENEMIES = {
   bat: {

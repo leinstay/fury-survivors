@@ -73,9 +73,9 @@ Behavior: `chase`, `dash`, `ranged`, `swarm`, `phase` (`boss` только дл�
 
 Элитная версия не отдельная запись: у врага есть блок `elite`, и тест требует его у каждого врага (`hpMul > 1`, `sizeMul > 1`, `drop === 'chest'`).
 
-1. В `src/data/enemies.js` блок `elite: elite()`. Хелпер даёт `hpMul: 8, damageMul: 1.5, sizeMul: 1.5, xpMul: 6, outline: 0xffffff, drop: 'chest'`; `outline` это цвет контура. Нужны другие числа: напиши объект вручную.
+1. В `src/data/enemies.js` блок `elite: elite()`. Хелпер даёт `hpMul: 8, damageMul: 1.5, sizeMul: 1.5, xpMul: 6, glow: 0xff3d6e, drop: 'chest'`; `glow` это цвет свечения вокруг силуэта. Нужны другие числа: напиши объект вручную.
 2. Появление: событие `{ at, type: 'elite', enemy }` в `timeline` (рецепт «Волна»). Из элиты всегда выпадает сундук (`src/core/sim.js`, тест `chest: elite always drops a chest, boss drops one too`).
-3. Отдельного спрайта и i18n не нужно: рендер рисует контур цветом `outline` (тело не перекрашивается) и увеличивает спрайт на `sizeMul` (тот же множитель, что у хитбокса).
+3. Отдельного спрайта и i18n не нужно: рендер добавляет пульсирующее свечение цветом `glow` (тело не перекрашивается) и увеличивает спрайт на `sizeMul` (тот же множитель, что у хитбокса).
 
 ## Босс
 

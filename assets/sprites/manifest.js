@@ -48,8 +48,9 @@ export const SPRITES = Object.fromEntries([
   hd('succubus', 96, 94, 50, 84, '#b33a6b'),
 
   // Босс
-  // Босс в половинной плотности: арт-пиксель модели = 4 px холста, вдвое крупнее, как увеличенные боссы VS
-  ['dryad_queen', { file: 'assets/sprites/dryad_queen.png', frameWidth: 128, frameHeight: 128, frames: 3, origin: [0.5, 124 / 128], size: [70, 115], density: 0.5, color: '#3f8a4a', shape: 'humanoid' }],
+  // Босс вдвое выше героини: родной рост 115 арт-пикселей приводится к ~88 px мира (density 115/88).
+  // Временный нецелый масштаб, до пересоздания персонажей на общей сетке.
+  ['dryad_queen', { file: 'assets/sprites/dryad_queen.png', frameWidth: 128, frameHeight: 128, frames: 3, origin: [0.5, 124 / 128], size: [70, 115], density: 1.3, color: '#3f8a4a', shape: 'humanoid' }],
 
   // Предметы (обычная плотность: арт-пиксель = 2 px холста)
   art('xp_small', 10, 12),

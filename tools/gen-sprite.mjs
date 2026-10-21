@@ -1,7 +1,9 @@
 // Генерация картинки через OpenRouter. Ключ читается только здесь, из .secrets/, и никуда не пишется.
 // Учёт трат в tools/gen-ledger.json, жёсткий стоп по ledger.stop. Одновременно работает один процесс (lock-файл).
 //
-// node tools/gen-sprite.mjs <name> [--ref path]... [--aspect 3:2] [--quality medium] [--bg transparent] [--dry-run]
+// node tools/gen-sprite.mjs <name> [--ref path]... [--aspect 3:2] [--quality high] [--moderation low] [--bg transparent] [--dry-run]
+//   quality: auto | low | medium | high | xhigh | max (выше качество — чётче края пикселей, дороже)
+//   moderation: передаётся провайдеру OpenAI как есть (low снижает отказы на нарядах персонажей)
 //   промпт: tools/prompts/<name>.txt (+ общий tools/prompts/_style.txt в начале)
 //   результат: assets/raw/<name>.png (сырой ответ модели, дальше tools/clean-sprite.mjs)
 import { readFileSync, writeFileSync, existsSync, mkdirSync, openSync, closeSync, unlinkSync } from 'node:fs';
@@ -15,12 +17,13 @@ const KEY_FILE = join(root, '.secrets', 'openrouter-flare');
 const ENDPOINT = 'https://openrouter.ai/api/v1/images';
 
 function parseArgs(argv) {
-  const args = { refs: [], aspect: null, quality: 'medium', bg: 'transparent', dryRun: false, name: null };
+  const args = { refs: [], aspect: null, quality: 'high', moderation: 'low', bg: 'transparent', dryRun: false, name: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--ref') args.refs.push(argv[++i]);
     else if (a === '--aspect') args.aspect = argv[++i];
     else if (a === '--quality') args.quality = argv[++i];
+    else if (a === '--moderation') args.moderation = argv[++i];
     else if (a === '--bg') args.bg = argv[++i];
     else if (a === '--dry-run') args.dryRun = true;
     else if (!args.name) args.name = a;
@@ -78,6 +81,7 @@ async function main() {
     n: 1,
   };
   if (args.aspect) body.aspect_ratio = args.aspect;
+  if (args.moderation) body.moderation = args.moderation;
 
   if (args.dryRun) {
     console.log(JSON.stringify({ ...body, input_references: args.refs.map((r) => `<ref ${r}>`) }, null, 2));
@@ -107,7 +111,7 @@ async function main() {
     const cost = json.usage?.cost ?? null;
     const entry = {
       date: new Date().toISOString(), name: args.name, model: ledger.model, refs: args.refs,
-      quality: args.quality, aspect: args.aspect, cost, usage: json.usage, seconds: Math.round((Date.now() - started) / 1000),
+      quality: args.quality, moderation: args.moderation, aspect: args.aspect, cost, usage: json.usage, seconds: Math.round((Date.now() - started) / 1000),
     };
     // Деньги списаны даже без картинки: в ledger пишем всегда. Неизвестную цену считаем по оценке.
     ledger.spent += cost ?? estimate;
