@@ -21,12 +21,14 @@
 ## Генерация: `tools/gen-sprite.mjs`
 
 ```
-node tools/gen-sprite.mjs <name> [--ref path]... [--aspect 3:2] [--quality medium] [--bg transparent] [--dry-run]
+node tools/gen-sprite.mjs <name> [--ref path]... [--aspect 3:2] [--quality medium] [--bg transparent] [--model google/gemini-3-pro-image] [--resolution 2K] [--dry-run]
 ```
 
 - Промпт: `tools/prompts/_style.txt` (общий стиль, идёт первым) + `tools/prompts/<name>.txt` (персонаж или лист). Результат: `assets/raw/<name>.png`, сырой ответ модели.
 - Референсы `--ref`: `references/main.png` (техника и чибиобразные пропорции) для листа персонажей; готовый `assets/raw/roster.png` для остальных листов, чтобы держать размер клетки и стиль. Папка `references/` не в git.
 - Персонажи: один общий лист `roster` (`tools/prompts/roster.txt`, `--aspect 21:9 --quality high`): героиня, враги и три босса вдвое выше, все в стойке в три четверти вправо. Ходьба процедурная (`src/render/anim.js`). Лист окружения или предметов: объекты с промежутками, размеры заданы относительно персонажа («вдвое выше девушки»).
+- `--model`: по умолчанию модель из ledger (Flare). Gemini (Nano Banana Pro, `google/gemini-3-pro-image`, ~$0.136 за картинку 1K/2K): без `quality`, `background`, `moderation`, фон непрозрачный (промпт просит пурпурный #FF00FF), `_style.txt` к нему не добавляется. Сетка у Gemini мыльная и неровная (клетка 18–22 px), кадры приходится уменьшать.
+- Правка готового листа: лист в `--ref` и промпт «верни ту же картинку, измени только …» (`tools/prompts/roster_fix.txt`). Flare держит раскладку и сетку, но мелкие детали в 1–2 клетки (рот) не стирает.
 - `--dry-run` печатает тело запроса без отправки и без трат.
 - Деньги: `tools/gen-ledger.json` (`budget` 5, `stop` 4.5, `spent`, список трат). Скрипт отказывается работать, если `spent + оценка > stop` (оценка: самая дорогая из прошлых трат или `estimatePerImage`). Трата пишется в ledger даже если картинки в ответе нет. Вручную ledger не править.
 - Один процесс за раз: lock-файл `tools/.gen.lock` (в `.gitignore`); второй запуск завершится с кодом 4. Если процесс убили и lock остался, удали файл.
@@ -59,8 +61,9 @@ node tools/clean-sprite.mjs <raw.png> <spriteKey> [--frames N] [--colors 16 | --
 node tools/slice-sheet.mjs <sheet> [--report]
 ```
 
-- `tools/sheets.json`: `{ "<sheet>": { "raw": "assets/raw/x.png", "items": [...] } }`. Листы: `roster`, `env_props`, `items`, `icons`, `projectiles`. Необязательные поля листа: `step: [min, max]` (границы шага сетки модели, px исходника; при `--quality high` около 4.5–7), `rows: "center"` (ряды по центрам, для листа с высокими фигурами на два ряда), `mergeGap` (сливать области ближе этого, по умолчанию 14; 0, если фигуры стоят тесно), `cuts: [[x, y0, y1], ...]` (вертикальные разрезы маски, если соседние фигуры касаются свечением или хвостом).
+- `tools/sheets.json`: `{ "<sheet>": { "raw": "assets/raw/x.png", "items": [...] } }`. Листы: `roster`, `env_props`, `items`, `icons`, `projectiles`. Необязательные поля листа: `step: [min, max]` (границы шага сетки модели, px исходника; при `--quality high` около 4.5–7), `rows: "center"` (ряды по центрам, для листа с высокими фигурами на два ряда), `mergeGap` (сливать области ближе этого, по умолчанию 14; 0, если фигуры стоят тесно), `cuts: [[x, y0, y1], ...]` (вертикальные разрезы маски, если соседние фигуры касаются свечением или хвостом; `[x0, x1, y, "h"]` — горизонтальный отрезок для ступенчатого разреза вокруг выступа), `boxes: [[x0, y0, x1, y1], ...]` (рамка на каждый item: область достаётся рамке, где её центр, у каждой фигуры своя маска; так нарезан `roster`), `drop: [[x0, y0, x1, y1]]` (области с центром внутри выбрасываются), `align: "head"` (кадры шага выравниваются по голове).
 - `items` идут в порядке чтения (ряды сверху вниз, слева направо). Элемент: ключ спрайта, или `{ "key", "frame", "flip" }` для кадра многокадрового спрайта (`tree`, `flower`), или `null`, чтобы пропустить найденный объект (в `icons` последний `null`).
+- `--raw` (листы с `boxes`): каждая фигура ещё и в исходном разрешении с прозрачным фоном, `assets/raw/<лист>/<ключ>.png`. Это референсы для Nano Banana и героиня в меню (`heroine_menu` = `assets/raw/roster/heroine.png`).
 - `--report` только печатает найденные объекты и их родные размеры, файлы не пишет. Запускай его первым: число объектов должно совпасть с `items`.
 - Объект больше `manifest.size` уменьшается голосованием по блокам, меньше остаётся родным. При `origin[1] = 1` он ставится низом на нижнюю строку кадра, иначе центром.
 - Новый объект: ключ в manifest, строка в `items` листа в нужной позиции, промпт `tools/prompts/<лист>.txt`.
@@ -99,7 +102,6 @@ node tools/slice-sheet.mjs <sheet> [--report]
 | `bunnygirl` | 56×56 | 1 | 1 | `assets/raw/roster.png` |
 | `harpy` | 56×56 | 1 | 1 | `assets/raw/roster.png` |
 | `lamia` | 56×56 | 1 | 1 | `assets/raw/roster.png` |
-| `elf_archer` | 56×56 | 1 | 1 | `assets/raw/roster.png` |
 | `kitsune_empress` | 96×96 | 1 | 2/3 | `assets/raw/roster.png` |
 | `harpy_queen` | 96×96 | 1 | 2/3 | `assets/raw/roster.png` |
 | `dryad_queen` | 96×96 | 1 | 2/3 | `assets/raw/roster.png` |

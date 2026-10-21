@@ -52,7 +52,7 @@ export const SPRITES = Object.fromEntries([
   ['heroine', { ...girl('heroine', 56, '#e0603a')[1], frames: 4, walk: [1, 2, 3, 2] }],
   item('heroine_portrait', 48, 48, '#e0603a', 'rect'),
   // Героиня в меню: вырезана из сырого листа в исходном разрешении модели (tools/crop-raw.mjs), пиксель картинки = пиксель холста.
-  art('heroine_menu', 140, 244, { density: 2, origin: FEET }),
+  art('heroine_menu', 139, 261, { density: 2, origin: FEET }),
 
   // Враги
   girl('catgirl', 56, '#d9a441'),
@@ -64,7 +64,6 @@ export const SPRITES = Object.fromEntries([
   girl('harpy', 56, '#a07850', 'flyer'),
   girl('lamia', 56, '#2f7a4a', 'blob'),
 
-  girl('elf_archer', 56, '#6fae4a'),
 
   // Боссы: тот же лист и та же сетка (вдвое выше обычного персонажа) и масштаб 1.5 при показе (BOSS_DENSITY):
   // втрое выше героини, клетка арта = ровно 3×3 px холста.

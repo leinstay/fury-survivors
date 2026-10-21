@@ -1,7 +1,11 @@
 // Генерация картинки через OpenRouter. Ключ читается только здесь, из .secrets/, и никуда не пишется.
 // Учёт трат в tools/gen-ledger.json, жёсткий стоп по ledger.stop. Одновременно работает один процесс (lock-файл).
 //
-// node tools/gen-sprite.mjs <name> [--ref path]... [--aspect 3:2] [--quality high] [--moderation low] [--bg transparent] [--dry-run]
+// node tools/gen-sprite.mjs <name> [--ref path]... [--aspect 3:2] [--quality high] [--moderation low] [--bg transparent]
+//                            [--model id] [--resolution 1K|2K|4K] [--dry-run]
+//   model: по умолчанию ledger.model (gpt-image). Для google/gemini-3-pro-image (Nano Banana Pro) quality, background
+//          и moderation не передаются (модель их не принимает, фон всегда непрозрачный: просим в промпте пурпурный),
+//          resolution 1K/2K/4K (1K и 2K стоят одинаково).
 //   quality: auto | low | medium | high | xhigh | max (выше качество — чётче края пикселей, дороже)
 //   moderation: передаётся провайдеру OpenAI как есть (low снижает отказы на нарядах персонажей)
 //   промпт: tools/prompts/<name>.txt (+ общий tools/prompts/_style.txt в начале)
@@ -17,7 +21,7 @@ const KEY_FILE = join(root, '.secrets', 'openrouter-flare');
 const ENDPOINT = 'https://openrouter.ai/api/v1/images';
 
 function parseArgs(argv) {
-  const args = { refs: [], aspect: null, quality: 'high', moderation: 'low', bg: 'transparent', dryRun: false, name: null };
+  const args = { refs: [], aspect: null, quality: 'high', moderation: 'low', bg: 'transparent', model: null, resolution: null, dryRun: false, name: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--ref') args.refs.push(argv[++i]);
@@ -25,6 +29,8 @@ function parseArgs(argv) {
     else if (a === '--quality') args.quality = argv[++i];
     else if (a === '--moderation') args.moderation = argv[++i];
     else if (a === '--bg') args.bg = argv[++i];
+    else if (a === '--model') args.model = argv[++i];
+    else if (a === '--resolution') args.resolution = argv[++i];
     else if (a === '--dry-run') args.dryRun = true;
     else if (!args.name) args.name = a;
   }
@@ -61,7 +67,9 @@ async function main() {
   const ledger = loadLedger();
   const promptFile = join(root, 'tools', 'prompts', `${args.name}.txt`);
   const styleFile = join(root, 'tools', 'prompts', '_style.txt');
-  const prompt = [existsSync(styleFile) ? readFileSync(styleFile, 'utf8').trim() : '', readFileSync(promptFile, 'utf8').trim()]
+  // Gemini рисует непрозрачный фон: общий стиль (прозрачность, сетка Flare) ему не подходит, промпт сам задаёт пурпурный фон.
+  const useStyle = existsSync(styleFile) && !(args.model || ledger.model).startsWith('google/');
+  const prompt = [useStyle ? readFileSync(styleFile, 'utf8').trim() : '', readFileSync(promptFile, 'utf8').trim()]
     .filter(Boolean).join('\n\n');
 
   // Оценка следующей траты: самая дорогая из прошлых или стартовая оценка.
@@ -72,16 +80,13 @@ async function main() {
     process.exit(3);
   }
 
-  const body = {
-    model: ledger.model,
-    prompt,
-    quality: args.quality,
-    background: args.bg,
-    output_format: 'png',
-    n: 1,
-  };
+  const model = args.model || ledger.model;
+  const gemini = model.startsWith('google/');
+  const body = { model, prompt, n: 1 };
+  if (!gemini) Object.assign(body, { quality: args.quality, background: args.bg, output_format: 'png' });
   if (args.aspect) body.aspect_ratio = args.aspect;
-  if (args.moderation) body.moderation = args.moderation;
+  if (args.resolution) body.resolution = args.resolution;
+  if (args.moderation && !gemini) body.moderation = args.moderation;
 
   if (args.dryRun) {
     console.log(JSON.stringify({ ...body, input_references: args.refs.map((r) => `<ref ${r}>`) }, null, 2));
@@ -110,7 +115,7 @@ async function main() {
     const b64 = json.data?.[0]?.b64_json;
     const cost = json.usage?.cost ?? null;
     const entry = {
-      date: new Date().toISOString(), name: args.name, model: ledger.model, refs: args.refs,
+      date: new Date().toISOString(), name: args.name, model, refs: args.refs, resolution: args.resolution,
       quality: args.quality, moderation: args.moderation, aspect: args.aspect, cost, usage: json.usage, seconds: Math.round((Date.now() - started) / 1000),
     };
     // Деньги списаны даже без картинки: в ledger пишем всегда. Неизвестную цену считаем по оценке.

@@ -11,7 +11,7 @@
 // 3. Если объект больше manifest.size [w, h], он уменьшается голосованием по блокам (shrink); меньше — остаётся родным.
 // 4. Объект ставится в кадр по origin: при origin y = 1 низом на нижнюю строку, иначе центром.
 import sharp from 'sharp';
-import { readFileSync } from 'node:fs';
+import { readFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { SPRITES } from '../assets/sprites/manifest.js';
@@ -44,7 +44,47 @@ function components(mask, w, h) {
     }
     boxes.push(b);
   }
-  return boxes;
+  return { boxes, lab };
+}
+
+// sheets.json "boxes": рамка [x0, y0, x1, y1] на каждый item. Связная область достаётся рамке, в которой её центр,
+// у объекта своя маска: чужие куски внутри его рамки (хвост, крыло соседа) не попадают. "drop": [[x0, y0, x1, y1]] —
+// области с центром внутри выбрасываются (лишний огонёк, обрезок).
+function assignByBoxes(mask, w, h, sheet) {
+  const { boxes: comps, lab } = components(mask, w, h);
+  const sum = comps.map(() => ({ x: 0, y: 0, n: 0 }));
+  for (let i = 0; i < w * h; i++) if (lab[i] >= 0) { const s = sum[lab[i]]; s.x += i % w; s.y += (i / w) | 0; s.n++; }
+  const inside = (r, x, y) => x >= r[0] && x < r[2] && y >= r[1] && y < r[3];
+  const owner = sum.map((s) => {
+    const cx = s.x / s.n, cy = s.y / s.n;
+    if ((sheet.drop || []).some((r) => inside(r, cx, cy))) return -1;
+    return sheet.boxes.findIndex((r) => inside(r, cx, cy));
+  });
+  return sheet.boxes.map((_, k) => {
+    const m = new Uint8Array(w * h);
+    const b = { x0: w, x1: 0, y0: h, y1: 0 };
+    for (let i = 0; i < w * h; i++) {
+      if (lab[i] < 0 || owner[lab[i]] !== k) continue;
+      m[i] = 1;
+      const x = i % w, y = (i / w) | 0;
+      if (x < b.x0) b.x0 = x; if (x > b.x1) b.x1 = x; if (y < b.y0) b.y0 = y; if (y > b.y1) b.y1 = y;
+    }
+    return { mask: m, box: b };
+  });
+}
+
+// Фигура в исходном разрешении (без снятия сетки) с прозрачным фоном: для референсов (Nano Banana, меню).
+async function writeRaw(data, w, obj, file) {
+  const { box: b, mask } = obj;
+  const bw = b.x1 - b.x0 + 1, bh = b.y1 - b.y0 + 1;
+  const out = Buffer.alloc(bw * bh * 4);
+  for (let y = 0; y < bh; y++) for (let x = 0; x < bw; x++) {
+    const i = (b.y0 + y) * w + b.x0 + x;
+    if (!mask[i]) continue;
+    out.set(data.subarray(i * 4, i * 4 + 3), (y * bw + x) * 4);
+    out[(y * bw + x) * 4 + 3] = 255;
+  }
+  await sharp(out, { raw: { width: bw, height: bh, channels: 4 } }).png().toFile(file);
 }
 
 function mergeClose(boxes, gap = MERGE_GAP) {
@@ -129,13 +169,37 @@ async function main() {
   const w = info.width, h = info.height;
   const { mask } = buildMask(data, w, h);
   // Фигуры, которые касаются друг друга (свечение, хвост, крыло), разделяются вертикальными разрезами:
-  // sheets.json "cuts": [[x, y0, y1], ...] в px исходника.
-  for (const [x, y0, y1] of sheet.cuts || []) for (let y = y0; y < y1; y++) mask[y * w + x] = 0;
+  // sheets.json "cuts": [[x, y0, y1], ...] в px исходника; [x0, x1, y, "h"] — горизонтальный отрезок,
+  // чтобы собрать из вертикальных ступенчатый разрез вокруг выступа (хвост, крыло, корни).
+  for (const c of sheet.cuts || []) {
+    if (c[3] === 'h') for (let x = c[0]; x <= c[1]; x++) mask[c[2] * w + x] = 0;
+    else for (let y = c[1]; y < c[2]; y++) mask[y * w + c[0]] = 0;
+  }
   removeSpecks(mask, w, h, 12);
-  const found = mergeClose(components(mask, w, h), sheet.mergeGap).filter((b) => (b.x1 - b.x0) * (b.y1 - b.y0) > 150);
-  const boxes = sheet.rows === 'center' ? centerOrder(found) : overlapOrder(found);
+  let boxes, masks;
+  if (sheet.boxes) {
+    const objs = assignByBoxes(mask, w, h, sheet);
+    boxes = objs.map((o) => o.box);
+    masks = objs.map((o) => o.mask);
+    // --raw: каждая фигура в исходном разрешении в assets/raw/<sheet>/<key>.png
+    if (process.argv.includes('--raw')) {
+      const dir = join(root, 'assets', 'raw', name);
+      mkdirSync(dir, { recursive: true });
+      for (let i = 0; i < objs.length; i++) {
+        const it = sheet.items[i];
+        if (!it) continue;
+        const key = typeof it === 'string' ? it : it.key;
+        await writeRaw(data, w, objs[i], join(dir, `${key}.png`));
+      }
+      console.log(`raw crops in assets/raw/${name}/`);
+    }
+  } else {
+    const found = mergeClose(components(mask, w, h).boxes, sheet.mergeGap).filter((b) => (b.x1 - b.x0) * (b.y1 - b.y0) > 150);
+    boxes = sheet.rows === 'center' ? centerOrder(found) : overlapOrder(found);
+    masks = boxes.map(() => mask);
+  }
 
-  const profs = boxes.map((b) => edgeProfiles(data, mask, w, h, b));
+  const profs = boxes.map((b, i) => edgeProfiles(data, masks[i], w, h, b));
   // Шаг сетки модели зависит от качества и масштаба листа: границы шага задаются в sheets.json (step: [min, max]).
   const [minStep, maxStep] = sheet.step || [6, 16];
   const gap = Math.max(2, minStep - 1);
@@ -143,7 +207,7 @@ async function main() {
   let sy = commonStep(profs.map((p) => edgePeaks(p.rowE, p.y0, p.y1, gap)), minStep, maxStep);
   if (sy > sx * 1.6) sy /= 2;
   else if (sx > sy * 1.6) sx /= 2;
-  const native = profs.map((p) => gridSnap(data, mask, w, p, sx, sy));
+  const native = profs.map((p, i) => gridSnap(data, masks[i], w, p, sx, sy));
   console.log(`${name}: ${boxes.length} objects, cell ${sx.toFixed(2)}x${sy.toFixed(2)}`);
 
   if (reportOnly || boxes.length !== sheet.items.length) {

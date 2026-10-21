@@ -3,7 +3,7 @@
   "budget": 5,
   "stop": 4.5,
   "estimatePerImage": 0.25,
-  "spent": 0.856619,
+  "spent": 1.622235,
   "entries": [
     {
       "date": "2026-10-21T19:22:23.155Z",
@@ -765,6 +765,390 @@
       },
       "seconds": 15,
       "file": "assets/raw/heroine_walk.png"
+    },
+    {
+      "date": "2026-10-21T22:48:54.438Z",
+      "name": "heroine_walk",
+      "model": "google/gemini-3-pro-image",
+      "refs": [
+        "assets/raw/heroine_ref.png"
+      ],
+      "resolution": "2K",
+      "quality": "high",
+      "moderation": "low",
+      "aspect": "21:9",
+      "cost": 0.136364,
+      "usage": {
+        "prompt_tokens": 982,
+        "completion_tokens": 1120,
+        "total_tokens": 2102,
+        "cost": 0.136364,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.136364,
+          "upstream_inference_prompt_cost": 0.001964,
+          "upstream_inference_completions_cost": 0.1344
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 1120
+        }
+      },
+      "seconds": 31,
+      "file": "assets/raw/heroine_walk.png"
+    },
+    {
+      "date": "2026-10-21T22:50:54.706Z",
+      "name": "heroine_walk_fix",
+      "model": "google/gemini-3-pro-image",
+      "refs": [
+        "assets/raw/heroine_walk_v1.png"
+      ],
+      "resolution": "2K",
+      "quality": "high",
+      "moderation": "low",
+      "aspect": "21:9",
+      "cost": 0.135772,
+      "usage": {
+        "prompt_tokens": 686,
+        "completion_tokens": 1120,
+        "total_tokens": 1806,
+        "cost": 0.135772,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.135772,
+          "upstream_inference_prompt_cost": 0.001372,
+          "upstream_inference_completions_cost": 0.1344
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 1120
+        }
+      },
+      "seconds": 36,
+      "file": "assets/raw/heroine_walk_fix.png"
+    },
+    {
+      "date": "2026-10-21T22:51:25.774Z",
+      "name": "heroine",
+      "model": "openai/gpt-image-2.5-flare",
+      "refs": [
+        "assets/raw/heroine_ref.png",
+        "references/main.png"
+      ],
+      "resolution": null,
+      "quality": "high",
+      "moderation": "low",
+      "aspect": "1:1",
+      "cost": 0.064024,
+      "usage": {
+        "prompt_tokens": 1532,
+        "completion_tokens": 1756,
+        "total_tokens": 3288,
+        "cost": 0.064024,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.064024,
+          "upstream_inference_prompt_cost": 0.011344,
+          "upstream_inference_completions_cost": 0.05268
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 1756
+        }
+      },
+      "seconds": 23,
+      "file": "assets/raw/heroine.png"
+    },
+    {
+      "date": "2026-10-21T22:54:37.702Z",
+      "name": "roster",
+      "model": "openai/gpt-image-2.5-flare",
+      "refs": [
+        "references/main.png"
+      ],
+      "resolution": null,
+      "quality": "high",
+      "moderation": "low",
+      "aspect": "21:9",
+      "cost": 0.035142,
+      "usage": {
+        "prompt_tokens": 2082,
+        "completion_tokens": 722,
+        "total_tokens": 2804,
+        "cost": 0.035142,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.035142,
+          "upstream_inference_prompt_cost": 0.013482,
+          "upstream_inference_completions_cost": 0.02166
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 722
+        }
+      },
+      "seconds": 20,
+      "file": "assets/raw/roster.png"
+    },
+    {
+      "date": "2026-10-21T22:56:24.780Z",
+      "name": "roster",
+      "model": "openai/gpt-image-2.5-flare",
+      "refs": [
+        "references/main.png"
+      ],
+      "resolution": null,
+      "quality": "high",
+      "moderation": "low",
+      "aspect": "21:9",
+      "cost": 0.035552,
+      "usage": {
+        "prompt_tokens": 2164,
+        "completion_tokens": 722,
+        "total_tokens": 2886,
+        "cost": 0.035552,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.035552,
+          "upstream_inference_prompt_cost": 0.013892,
+          "upstream_inference_completions_cost": 0.02166
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 722
+        }
+      },
+      "seconds": 19,
+      "file": "assets/raw/roster.png"
+    },
+    {
+      "date": "2026-10-21T22:59:50.400Z",
+      "name": "elf_archer",
+      "model": "openai/gpt-image-2.5-flare",
+      "refs": [
+        "assets/raw/roster.png"
+      ],
+      "resolution": null,
+      "quality": "high",
+      "moderation": "low",
+      "aspect": "1:1",
+      "cost": 0.062374,
+      "usage": {
+        "prompt_tokens": 1334,
+        "completion_tokens": 1756,
+        "total_tokens": 3090,
+        "cost": 0.062374,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.062374,
+          "upstream_inference_prompt_cost": 0.009694,
+          "upstream_inference_completions_cost": 0.05268
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 1756
+        }
+      },
+      "seconds": 27,
+      "file": "assets/raw/elf_archer.png"
+    },
+    {
+      "date": "2026-10-21T23:01:13.703Z",
+      "name": "elf_archer",
+      "model": "openai/gpt-image-2.5-flare",
+      "refs": [
+        "assets/raw/roster.png"
+      ],
+      "resolution": null,
+      "quality": "high",
+      "moderation": "low",
+      "aspect": "1:1",
+      "cost": 0.062589,
+      "usage": {
+        "prompt_tokens": 1377,
+        "completion_tokens": 1756,
+        "total_tokens": 3133,
+        "cost": 0.062589,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.062589,
+          "upstream_inference_prompt_cost": 0.009909,
+          "upstream_inference_completions_cost": 0.05268
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 1756
+        }
+      },
+      "seconds": 24,
+      "file": "assets/raw/elf_archer.png"
+    },
+    {
+      "date": "2026-10-21T23:01:37.996Z",
+      "name": "roster",
+      "model": "openai/gpt-image-2.5-flare",
+      "refs": [
+        "references/main.png"
+      ],
+      "resolution": null,
+      "quality": "high",
+      "moderation": "low",
+      "aspect": "21:9",
+      "cost": 0.035552,
+      "usage": {
+        "prompt_tokens": 2164,
+        "completion_tokens": 722,
+        "total_tokens": 2886,
+        "cost": 0.035552,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.035552,
+          "upstream_inference_prompt_cost": 0.013892,
+          "upstream_inference_completions_cost": 0.02166
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 722
+        }
+      },
+      "seconds": 19,
+      "file": "assets/raw/roster.png"
+    },
+    {
+      "date": "2026-10-21T23:06:14.159Z",
+      "name": "roster_fix",
+      "model": "openai/gpt-image-2.5-flare",
+      "refs": [
+        "assets/raw/roster_merged.png"
+      ],
+      "resolution": null,
+      "quality": "high",
+      "moderation": "low",
+      "aspect": "21:9",
+      "cost": 0.031349,
+      "usage": {
+        "prompt_tokens": 1333,
+        "completion_tokens": 722,
+        "total_tokens": 2055,
+        "cost": 0.031349,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.031349,
+          "upstream_inference_prompt_cost": 0.009689,
+          "upstream_inference_completions_cost": 0.02166
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 722
+        }
+      },
+      "seconds": 23,
+      "file": "assets/raw/roster_fix.png"
+    },
+    {
+      "date": "2026-10-21T23:11:04.275Z",
+      "name": "heroine_walk",
+      "model": "google/gemini-3-pro-image",
+      "refs": [
+        "assets/raw/roster/heroine.png"
+      ],
+      "resolution": "2K",
+      "quality": "high",
+      "moderation": "low",
+      "aspect": "21:9",
+      "cost": 0.136044,
+      "usage": {
+        "prompt_tokens": 822,
+        "completion_tokens": 1120,
+        "total_tokens": 1942,
+        "cost": 0.136044,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.136044,
+          "upstream_inference_prompt_cost": 0.001644,
+          "upstream_inference_completions_cost": 0.1344
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 1120
+        }
+      },
+      "seconds": 29,
+      "file": "assets/raw/heroine_walk.png"
+    },
+    {
+      "date": "2026-10-21T23:13:59.863Z",
+      "name": "roster_nomouth",
+      "model": "openai/gpt-image-2.5-flare",
+      "refs": [
+        "assets/raw/roster.png"
+      ],
+      "resolution": null,
+      "quality": "high",
+      "moderation": "low",
+      "aspect": "21:9",
+      "cost": 0.030854,
+      "usage": {
+        "prompt_tokens": 1234,
+        "completion_tokens": 722,
+        "total_tokens": 1956,
+        "cost": 0.030854,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.030854,
+          "upstream_inference_prompt_cost": 0.009194,
+          "upstream_inference_completions_cost": 0.02166
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 722
+        }
+      },
+      "seconds": 21,
+      "file": "assets/raw/roster_nomouth.png"
     }
   ]
 }

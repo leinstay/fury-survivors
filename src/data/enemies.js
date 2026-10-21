@@ -43,11 +43,6 @@ export const ENEMIES = {
     params: { keep: 150, range: 260, cooldown: 2.2, projSpeed: 110, projDamage: 16, projLife: 4 },
     elite: elite(),
   },
-  elf_archer: {
-    sprite: 'elf_archer', behavior: 'ranged', hp: 30, speed: 38, damage: 8, xp: 5, size: 9, knockbackResist: 0.2,
-    params: { keep: 210, range: 320, cooldown: 3.4, projSpeed: 175, projDamage: 14, projLife: 3 },
-    elite: elite(),
-  },
   bunnygirl: {
     sprite: 'bunnygirl', behavior: 'chase', hp: 14, speed: 82, damage: 10, xp: 2, size: 8, knockbackResist: 0,
     params: {},

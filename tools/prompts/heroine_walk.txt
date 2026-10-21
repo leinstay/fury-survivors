@@ -1,9 +1,11 @@
-Subject: a walk cycle sprite strip for the character in the attached image (a chibi red-haired knight girl). Redraw EXACTLY this character: same face, same hair, same armor, same colors, same chibi proportions, same pixel size and the same pixel grid (one art pixel as big as in the attached image), three-quarter view facing RIGHT.
+Subject: a pixel art sprite sheet with a walk animation for the character in the attached image. Copy her EXACTLY: same design, colors, face, chibi proportions and the same big square pixels (the same pixel grid: the attached image is the exact pixel size, keep each figure the same number of art pixels tall). Her face stays clean: no blush, no red or orange pixels on the cheeks.
 
-Layout: exactly 5 frames in one horizontal row, evenly spaced with wide empty gaps, all the same height, feet of every frame on one baseline, nothing touching:
-1. idle standing pose (like the attached image).
-2. walk: right foot forward, left foot back, legs apart, arms swinging opposite.
-3. walk: passing pose, legs together under the body, body one pixel higher.
-4. walk: left foot forward, right foot back, legs apart, arms swinging opposite.
-5. walk: passing pose, legs together under the body, body one pixel higher.
-Only the legs, arms, cape and ponytail move between frames; the head, face and armor stay identical in every frame. Small simple steps, cute chibi waddle, no running.
+Layout: exactly 5 frames in one horizontal row, evenly spaced, wide empty gaps between frames, all figures the same size, feet of every frame on one baseline, three-quarter view facing RIGHT:
+1. idle standing pose, identical to the attached image.
+2. walk: right leg forward, left leg back.
+3. walk: passing pose, legs together under the body.
+4. walk: left leg forward, right leg back.
+5. walk: passing pose, legs together under the body.
+The head, face, hair and armor stay identical in every frame; only legs, arms, cape and ponytail move. Small cute chibi steps.
+Crisp hard-edged square pixels, no blur, no anti-aliasing.
+Background: solid flat pure magenta #FF00FF everywhere, no shadows, no floor, no text.

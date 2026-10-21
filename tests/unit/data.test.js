@@ -102,7 +102,7 @@ test('data: combos use maxed regular weapons and evolved results', () => {
 });
 
 test('data: enemies have behavior, positive stats, elite block', () => {
-  assert.equal(Object.keys(ENEMIES).length, 9);
+  assert.equal(Object.keys(ENEMIES).length, 8);
   for (const [id, e] of Object.entries(ENEMIES)) {
     assert.ok(ENEMY_BEHAVIORS[e.behavior], `${id}: behavior`);
     assert.ok(e.hp > 0 && e.speed > 0 && e.damage > 0 && e.xp > 0 && e.size > 0, `${id}: stats`);
@@ -133,7 +133,6 @@ test('stage: three bosses every 5 minutes, only the last one is final', () => {
   assert.deepEqual(bosses.map((b) => [b.at, b.boss]), [[300, 'kitsune_empress'], [600, 'harpy_queen'], [900, 'dryad_queen']]);
   assert.ok(BOSSES[bosses[bosses.length - 1].boss].final);
   for (const b of bosses.slice(0, -1)) assert.ok(!BOSSES[b.boss].final);
-  assert.ok(en['enemy.elf_archer.name']);
   for (const b of bosses) assert.ok(en[`boss.${b.boss}.name`], b.boss);
 });
 
