@@ -189,7 +189,7 @@ export class World {
     this.pools.enemies.sync(sim.enemies, (e) => e.sprite || e.type, (s, e) => {
       const key = e.sprite || e.type;
       this._setKey(s, key);
-      s.baseScale = (e.elite ? 1.25 : 1) * spriteScale(key);
+      s.baseScale = (e.elite ? (e.def?.elite?.sizeMul ?? 1) : 1) * spriteScale(key);
       const lift2 = animateCharacter(s, key, e, time, e.uid);
       applyHitSquash(s, e.hitFlash);
       s.setPosition(e.x, e.y + lift2);

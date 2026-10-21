@@ -100,6 +100,7 @@ export class Fx {
         case 'kill': this._kill(ev); break;
         case 'playerHurt': this.shake(...FX.shake.hurt); break;
         case 'bossSpawn': this.shake(...FX.shake.boss); break;
+        case 'bossRage': this.shake(...FX.shake.boss); break;
         case 'pickup': this._burst(pl.x, pl.y - 6, FX.pickupSpark.count, FX.pickupSpark.speed, FX.pickupSpark.life, [FX.pickupSpark.color], 1); break;
         case 'levelup': this.pendingLevelup = true; break; // играется после закрытия меню (resume)
         default: break;

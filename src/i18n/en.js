@@ -92,7 +92,7 @@ export default {
   'weapon.aegis_storm.name': 'Aegis Storm',
   'weapon.aegis_storm.desc': 'Blades and shields spin in a deadly storm.',
   'weapon.thunder_knives.name': 'Thunder Knives',
-  'weapon.thunder_knives.desc': 'Lightning-charged knives that chain between foes.',
+  'weapon.thunder_knives.desc': 'A storm of lightning-charged knives that pierce through crowds.',
 
   // Пассивки
   'passive.max_hp.name': 'Max HP',

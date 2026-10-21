@@ -65,6 +65,7 @@ export function handleSimEvents(scene, events) {
       case 'levelup': playSfx(scene, 'levelup'); break;
       case 'chest': playSfx(scene, 'chest'); break;
       case 'bossSpawn': playSfx(scene, 'boss_spawn'); break;
+      case 'bossRage': playSfx(scene, 'boss_spawn', { detune: -300 }); break;
       case 'gameover': playSfx(scene, 'gameover'); break;
       case 'victory': playSfx(scene, 'victory'); break;
       case 'weaponFire': playSfx(scene, 'weapon_fire', { volume: 0.5 }); break;

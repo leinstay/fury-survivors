@@ -10,8 +10,10 @@
 import { createSim } from './core/sim.js';
 
 const sim = createSim({ hero: 'heroine', stage: 'forest', seed: 12345 });
+// hero: id из data/heroes.js; stage: id этапа (сейчас таблица STAGES = { forest } зашита в sim.js);
+// seed: тот же seed даёт тот же забег (core/rng.js), на этом стоят balance-тесты
 
-sim.step(dt, input);   // dt в секундах (рендер режет до 1/20), input = { x, y } вектор движения длиной 0..1
+sim.step(dt, input);   // dt в секундах (Game.js режет до 1/20, sim сам до 0.1), input = { x, y } вектор движения длиной 0..1
                        // в состоянии 'levelup' / 'gameover' / 'victory' step ничего не делает
 ```
 
@@ -21,6 +23,7 @@ sim.step(dt, input);   // dt в секундах (рендер режет до 1
 sim.state      // 'running' | 'levelup' | 'gameover' | 'victory'
 sim.time       // с с начала забега
 sim.kills
+sim.coins       // собранные монеты
 sim.player = {
   x, y, hp, maxHp, level, xp, xpNext,
   facing,                 // 1 вправо, -1 влево
@@ -32,24 +35,29 @@ sim.player = {
   stats,                  // итоговые статы (core/stats.js)
 }
 sim.enemies     // [{ uid, type, sprite, x, y, hp, maxHp, size, facing, elite, boss, hitFlash, moving, pose, rage }]
-                // pose: 'idle' | 'windup' | 'cast' (осмысленно у босса; anim.js: windup/cast = кадр 2), rage: bool (только босс)
+                // size: радиус хитбокса (у элиты уже умножен на elite.sizeMul)
+                // pose: 'idle' | 'windup' | 'cast'. Выставляет только behavior boss; у остальных всегда 'idle'.
+                //   anim.js: у босса windup и cast показывают кадр 2 (замах рывка, призыв)
+                // rage: bool, true после порога rage.hpFraction (только босс)
 sim.boss        // живой босс (та же сущность из sim.enemies, поля hp и maxHp для полосы HP) или null
 sim.projectiles // [{ uid, sprite, x, y, angle, scale, alpha, owner: 'player' | 'enemy' }]
-sim.pickups     // [{ uid, type, sprite, x, y }]
-sim.props       // [{ uid, sprite, x, y, breakable }]  разрушаемые объекты
+                // scale задаёт behavior (например, orbit: size из уровня оружия); рендер умножает на 1/density спрайта
+sim.pickups     // [{ uid, type, sprite, kind, value, x, y }]  type = id из data/pickups.js
+sim.props       // [{ uid, sprite, x, y, breakable, hp, drop }]  только разрушаемые; декор рисует render/decor.js
 sim.events      // события этого шага, очищаются в начале step():
                 //   { type: 'hit', x, y, amount, crit, weapon }
-                //   { type: 'kill', x, y, enemy, elite }
+                //   { type: 'kill', x, y, enemy, elite, boss, sprite, size }
                 //   { type: 'playerHurt', amount }
                 //   { type: 'pickup', kind }
                 //   { type: 'levelup', level }
                 //   { type: 'weaponFire', weapon }
                 //   { type: 'chest', items: [...] }          формат ниже
                 //   { type: 'propBreak', x, y, sprite }      сломан бочонок/фонарь
-                //   { type: 'bossWarning', boss, seconds }   один раз, за stage.bossWarning с до босса
+                //   { type: 'bossWarning', boss, seconds }   один раз, за stage.bossWarning с до босса (seconds: сколько осталось)
                 //   { type: 'bossSpawn', boss }
-                //   { type: 'bossRage', x, y }               босс упал ниже bosses[id].rage.hpFraction HP
-                //   { type: 'gameover' } | { type: 'victory' }
+                //   { type: 'bossRage', x, y }               босс упал ниже bosses[id].rage.hpFraction HP (один раз);
+                //                                            fx: тряска, звук: boss_spawn ниже тоном
+                //   { type: 'gameover' } | { type: 'victory' }  victory приходит сразу после kill босса
 sim.damageByWeapon  // { weaponId: totalDamage }
 ```
 
@@ -82,7 +90,7 @@ sim.skip()
 sim.banish(i)       // убрать карточку i из пула до конца забега и выдать замену
 ```
 
-Тексты карточек рендер берёт через `t()` по соглашению ключей ниже; описание уровня — `t('weapon.<id>.desc')` (общее) или `t('weapon.<id>.lvl<N>')` если есть.
+Тексты карточек рендер берёт через `t()` по соглашению ключей ниже. Описание: `<kind>.<id>.lvl<N>` если ключ есть (`hasKey`), иначе `<kind>.<id>.desc`; у карточки лечения `card.heal.desc` (`src/scenes/LevelUp.js`). В пул карточек попадает всё из `WEAPONS` (кроме `evolved` и оружия, уже поглощённого супероружием игрока) и `PASSIVES`: новая карточка при свободном слоте (`SLOTS`), повышение уровня пока не максимум.
 
 ## Соглашение ключей i18n
 
@@ -101,9 +109,25 @@ sim.banish(i)       // убрать карточку i из пула до кон
 
 `src/behaviors/weapons/<behavior>.js` и `src/behaviors/enemies/<behavior>.js` экспортируют объект и регистрируются в `src/behaviors/index.js` по имени. Новое поведение = новый файл + строка в реестре. Запись в data ссылается на поведение строкой `behavior`.
 
-Оружие: `{ init(weaponState, sim), update(weaponState, sim, dt) }`, где `weaponState = { id, level, def, params, cooldown, ... }`, `params` — числа текущего уровня с учётом статов игрока.
-Враги: `{ init(enemy, sim), update(enemy, sim, dt) }`.
+Оружие: `{ init(w, sim), update(w, sim, dt) }`, где `w = { id, level, def, params, slot, ... }`. `params` — копия строки уровня из data с пересчётом: `damage` умножен на `atk`, `cooldown` поделён на `haste`; остальные поля (`amount`, `area`, `speed`, ...) как в data. Снаряды берутся из пула через `sim.addProjectile(owner, sprite)`; поведение, которому нужно двигать снаряд само, ставит `p.bk` и реализует `moveProjectile(p, w, sim)` (так делает `orbit`).
+
+Поля уровня, которые читает конкретное поведение, перечислены в шапке `src/data/weapons.js`. Для `orbit` это `amount`, `area` (радиус орбиты), `speed` (рад/с), `duration`/`cooldown`, а также `size` (масштаб спрайта щита, по умолчанию 1) и `hitRadius` (радиус попадания, по умолчанию 10); `duration: 1e9` и `cooldown: 0` дают вечные щиты (супероружие `aegis_storm`).
+
+Враги: `{ init(e, sim), update(e, sim, dt) }`; `e.params` — `params` из data. Поведение `boss` читает `def.attacks` (`dash`: `windup`, `speed`, `time`; `summon`: `enemy`, `count`, `radius`) и `def.rage`; пишет в `e.pose` и `e.rage`, при пороге шлёт `bossRage`.
+
+Директор (`src/core/director.js`) исполняет `timeline` этапа: `spawn` (поддерживает минимум живых врагов через `min`/`minEnd`), `ring`, `elite`, `burst`, `boss`; за `stage.bossWarning` секунд до события `boss` шлёт `bossWarning`. Масштабирование врагов по времени: `stage.scaling`.
 
 ## Рендер
 
-`src/scenes/Game.js` создаёт sim, каждый кадр читает ввод (`src/ui/input.js`: клавиатура, геймпад, экранный джойстик), вызывает `sim.step`, затем `src/render/world.js` синхронизирует спрайты, `src/ui/hud.js` обновляет HUD. При `state === 'levelup'` Game ставится на паузу и запускается сцена LevelUp поверх.
+`src/scenes/Game.js` создаёт sim, каждый кадр читает ввод (`src/ui/input.js`: клавиатура, геймпад, экранный джойстик), вызывает `sim.step`, затем `handleEvents(sim.events)` (хитстоп, эффекты, звук), `src/render/world.js` синхронизирует спрайты, `src/ui/hud.js` обновляет HUD. При `levelup`, сундуке, `gameover` и `victory` Game ставится на паузу (`scene.pause('Game')`) и поверх запускается `LevelUp`, `Chest`, `GameOver` или `Victory`; `Pause` запускается по кнопке.
+
+Файлы `src/render/`: `world.js` (спрайты по uid, тени, камера, контур элиты цветом `elite.tint`), `anim.js` (процедурная анимация), `fx.js` (частицы, числа урона, тряска), `decor.js` (декор этапа по чанкам), `density.js` (масштаб спрайта).
+
+## Рендер и координаты
+
+- Мир, данные и UI в координатах 640×360 (`GAME_WIDTH`, `GAME_HEIGHT` в `src/data/constants.js`). Холст в `RENDER_ZOOM` = 2 раза больше: 1280×720 (`src/main.js`).
+- Каждая сцена при старте получает камеру с origin (0, 0) и `zoom` = `RENDER_ZOOM` (обёртка `zoomed` в `main.js`), поэтому код сцен, HUD и меню про удвоение не знает. Текст создаётся с `resolution: RENDER_ZOOM`, чтобы не размываться.
+- Phaser: `pixelArt: true`, `roundPixels: true`, Scale FIT. Растяжка холста на экран: целый масштаб даёт `image-rendering: pixelated`, нецелый мягкое сглаживание, чтобы пиксели не рябили при движении (`src/ui/scaling.js`).
+- `density` спрайта в manifest это число пикселей текстуры на 1 px мира. Спрайт рисуется в масштабе `1 / density` (`src/render/density.js`): density 2 показывает каждый пиксель текстуры на холсте, density 1 даёт блоки 2×2 px, density 0.5 блоки 4×4 px. Выбор плотности: `docs/ASSETS.md`.
+- Камера следует за игроком (`scrollX/scrollY` в мировых координатах), фон `grass` это `tileSprite` с `scrollFactor` 0. Опора спрайта (`origin` в manifest) у персонажей стоит на ногах; глубина персонажей равна их `y`, снаряды рисуются поверх (`PROJ_DEPTH`).
+- Размер элиты на экране и хитбокс берут один множитель `elite.sizeMul`.

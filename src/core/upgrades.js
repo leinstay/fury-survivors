@@ -23,9 +23,12 @@ export function buildPool(player, banished) {
   const pool = [];
   const weapons = player.weapons;
   const passives = player.passives;
+  // Оружие, поглощённое супероружием игрока, больше не предлагается (как в VS).
+  const consumed = new Set();
+  for (const c of COMBOS) if (find(weapons, c.result)) for (const id of c.from) consumed.add(id);
   for (const id in WEAPONS) {
     const def = WEAPONS[id];
-    if (def.evolved) continue;
+    if (def.evolved || consumed.has(id)) continue;
     const own = find(weapons, id);
     const card = own
       ? (own.level < def.maxLevel ? { kind: 'weapon', id, level: own.level + 1, isNew: false, icon: def.icon } : null)

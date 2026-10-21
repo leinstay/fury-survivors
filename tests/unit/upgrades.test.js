@@ -84,3 +84,11 @@ test('upgrades: chest without evolution upgrades an owned weapon', () => {
   assert.equal(items[0].id, 'blade_arc');
   assert.equal(items[0].level, 2);
 });
+
+test('weapons consumed by an evolution are not offered again', () => {
+  const player = { weapons: [{ id: 'aegis_storm', level: 1 }], passives: [] };
+  const ids = buildPool(player, null).filter((c) => c.kind === 'weapon').map((c) => c.id);
+  assert.ok(!ids.includes('blade_arc'));
+  assert.ok(!ids.includes('guardian_shields'));
+  assert.ok(ids.includes('throwing_daggers'));
+});

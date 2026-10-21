@@ -13,7 +13,8 @@
 // Смысл полей по behavior (damage умножается на atk, cooldown делится на haste):
 //   melee_arc  : amount — число взмахов подряд (чередуют стороны), area — длина удара, knockback
 //   projectile : amount — число снарядов веером, speed, duration — время полёта, pierce — сколько врагов пробьёт сверх первого
-//   orbit      : amount — число щитов, area — радиус орбиты, speed — рад/с, duration — сколько щиты активны, cooldown — пауза
+//   orbit      : amount — число щитов, area — радиус орбиты, speed — рад/с, duration — сколько щиты активны, cooldown — пауза,
+//                size — масштаб спрайта (по умолчанию 1), hitRadius — радиус попадания (по умолчанию 10)
 //   aura       : area — радиус, cooldown — период удара по каждому врагу в зоне
 //   boomerang  : amount — число топоров, area — дальность, speed, duration — предельное время жизни
 //   chain      : amount — число молний, jumps — перескоков на следующего врага, area — дальность перескока, range — дальность цели
@@ -110,7 +111,7 @@ export const WEAPONS = {
     // Blade Arc + Guardian Shields: щиты-клинки, всегда активные.
     icon: 'icon_aegis_storm', sprite: 'proj_blade_arc', behavior: 'orbit', maxLevel: 1, evolved: true,
     levels: [
-      { damage: 26, cooldown: 0, amount: 6, area: 70, speed: 4.5, duration: 1e9, knockback: 130 },
+      { damage: 26, cooldown: 0, amount: 6, area: 70, speed: 4.5, duration: 1e9, knockback: 130, size: 0.45, hitRadius: 14 },
     ],
   },
   thunder_knives: {

@@ -1,0 +1,168 @@
+# Как добавлять контент
+
+Баланс и контент лежат в `src/data/`, строки в `src/i18n/en.js`, картинки в `assets/sprites/` (ключи в `assets/sprites/manifest.js`). Формат каждой записи описан комментарием в начале файла data. Как делать картинки: `docs/ASSETS.md`.
+
+Общее для всех рецептов:
+
+- Ключи i18n выводятся из id (таблица в `docs/ARCHITECTURE.md`). Нет ключа: `t()` вернёт сам ключ, игра не упадёт, но на экране будет `weapon.x.name`.
+- Любой спрайт, на который ссылается data, должен быть в `manifest.js` и существовать как файл (тест `manifest: every sprite has a file`). Пока настоящего арта нет, `npm run placeholders` создаёт заглушку по записи manifest (существующие файлы не трогает, `--force` перезаписывает).
+- После правок: `npm test`. Тесты в `tests/unit/data.test.js` считают количество контента (7 обычных оружий, 9 пассивок, 2 комбо, 6 врагов); при добавлении сущности обнови эти числа в тесте осознанно.
+
+## Оружие с существующим behavior
+
+Behavior: `melee_arc`, `projectile`, `orbit`, `aura`, `boomerang`, `chain`, `area_drop`. Смысл полей уровня по behavior расписан в шапке `src/data/weapons.js`.
+
+1. `src/data/weapons.js`: запись по образцу `throwing_daggers`:
+   ```js
+   throwing_daggers: {
+     icon: 'icon_throwing_daggers', sprite: 'proj_dagger', behavior: 'projectile', maxLevel: 7,
+     levels: [ { damage: 8, cooldown: 1.0, amount: 1, speed: 280, duration: 1.2, pierce: 0, knockback: 40 }, /* ... 7 строк */ ],
+   },
+   ```
+   `levels.length` равно `maxLevel`; у обычного оружия `maxLevel: 7`, `damage > 0`, `cooldown >= 0`, урон между уровнями не падает.
+2. `assets/sprites/manifest.js`: `art('proj_<имя>', w, h)` для снаряда и `item('icon_<id>', 24, 24, '#цвет', 'rect')` для иконки.
+3. `src/i18n/en.js`: `weapon.<id>.name`, `weapon.<id>.desc`. Необязательно `weapon.<id>.lvl<N>`: описание уровня на карточке (`src/scenes/LevelUp.js` берёт его раньше `.desc`).
+4. Картинки: снаряд и иконка (`docs/ASSETS.md`, листы `projectiles` и `icons` в `tools/sheets.json`).
+5. Тесты: `data: weapons have behavior, icon, sprite and full level tables`, `data: sprites referenced by content exist in manifest`. Баланс: `npm test` (бот из `tests/balance/`).
+
+Оружие попадает в пул карточек само: список берётся из `WEAPONS`. Супероружие (`evolved: true`) в карточки не попадает, см. рецепт «Комбо».
+
+## Оружие с новым behavior
+
+1. Файл `src/behaviors/weapons/<имя>.js`, `export default { init(w, sim), update(w, sim, dt) }`. `w` это состояние оружия: `w.id`, `w.level`, `w.def`, `w.params` (числа текущего уровня; `params.damage` уже умножен на `atk`, `params.cooldown` поделён на `haste`), `w.slot`. Снаряды: `sim.addProjectile('player', w.def.sprite)`, затем заполнить `life`, `radius`, `dmg`, `vx/vy` и т. д. Образцы: `projectile.js` (простой), `orbit.js` (снаряд с `p.bk = orbit` и методом `moveProjectile`). Событие выстрела: `sim.events.push({ type: 'weaponFire', weapon: w.id })`.
+2. Регистрация: импорт и строка в `WEAPON_BEHAVIORS` в `src/behaviors/index.js` (имя ключа = значение `behavior` в data).
+3. Дальше как в рецепте выше. `src/core/` не импортирует Phaser и DOM; числа берутся из `w.params`, не хардкодятся.
+4. Новые поля уровня опиши в шапке `src/data/weapons.js`.
+
+## Пассивка
+
+1. `src/data/passives.js`: `{ icon: 'icon_<id>', stat, mode: 'add' | 'mul', levels: [...] }`. `stat` обязан быть ключом `stats` героя (`maxHp, atk, speed, crit, pickup, haste, luck, armor, regen`). Значения строго растут. `maxLevel` равен `levels.length`.
+2. Новый стат (а не новая пассивка на существующий): добавить в `stats` героя (`src/data/heroes.js`), учесть в `src/core/stats.js` и в месте применения в `sim.js`. Это правка кода, не только данных.
+3. manifest: `item('icon_<id>', 24, 24, ...)`. i18n: `passive.<id>.name`, `passive.<id>.desc`.
+4. Тест: `data: passives are well formed`. Он же считает пассивки (сейчас 9).
+
+## Герой
+
+1. `src/data/heroes.js`: `sprite`, `portrait`, `startWeapon` (id из `weapons.js`), `stats` с полным набором `maxHp, atk, speed, crit, pickup, haste, luck, armor, regen`.
+2. manifest: спрайт героя в двойной плотности (кадр 96×96, `density: 2`, кадры: стойка, шаг А, шаг Б; образец `heroine`) и портрет (`heroine_portrait`, 48×48).
+3. i18n: `hero.<id>.name`.
+4. Выбор героя: меню героя пока нет. `createSim({ hero, stage, seed })` принимает id, но `src/scenes/Game.js` передаёт `'heroine'` строкой. Для второго героя нужна правка `Game.js` и меню (чужие файлы, не только data).
+5. Тесты: `data: hero start weapons exist`, `data: sprites referenced by content exist in manifest`. Пассивки сверяются по набору статов первого героя.
+
+## Враг
+
+Behavior: `chase`, `dash`, `ranged`, `swarm`, `phase` (`boss` только для боссов). Параметры `params` по behavior смотри в соответствующем файле `src/behaviors/enemies/`.
+
+1. `src/data/enemies.js`:
+   ```js
+   foxgirl: {
+     sprite: 'foxgirl', behavior: 'dash', hp: 26, speed: 50, damage: 9, xp: 4, size: 9, knockbackResist: 0,
+     params: { range: 140, windup: 0.45, dashSpeed: 240, dashTime: 0.35, cooldown: 2.2 },
+     elite: elite(0xff8040),
+   },
+   ```
+   `size` это радиус хитбокса в px мира. Нулевых `hp/speed/damage/xp/size` быть не должно.
+2. manifest: `hd('<id>', кадр, ноги, w, h, '#цвет', 'humanoid' | 'blob' | 'flyer')`: кадр квадратный, `density: 2`, 3 кадра.
+3. i18n: `enemy.<id>.name`.
+4. Чтобы враг появился, добавь его в `timeline` этапа (рецепт «Волна»).
+5. Тесты: `data: enemies have behavior, positive stats, elite block`, `stage: timeline sorted and references known enemies`.
+
+Новое поведение: файл `src/behaviors/enemies/<имя>.js` (`init(e, sim)`, `update(e, sim, dt)`) и строка в `ENEMY_BEHAVIORS` в `src/behaviors/index.js`. Образец: `chase.js`.
+
+## Элита
+
+Элитная версия не отдельная запись: у врага есть блок `elite`, и тест требует его у каждого врага (`hpMul > 1`, `sizeMul > 1`, `drop === 'chest'`).
+
+1. В `src/data/enemies.js` блок `elite: elite(0xRRGGBB)`. Хелпер даёт `hpMul: 8, damageMul: 1.5, sizeMul: 1.25, xpMul: 6, drop: 'chest'`; `tint` это цвет контура. Нужны другие числа: напиши объект вручную.
+2. Появление: событие `{ at, type: 'elite', enemy }` в `timeline` (рецепт «Волна»). Из элиты всегда выпадает сундук (`src/core/sim.js`, тест `chest: elite always drops a chest, boss drops one too`).
+3. Отдельного спрайта и i18n не нужно: рендер красит контур цветом `tint` и увеличивает спрайт на `sizeMul` (тот же множитель, что у хитбокса).
+
+## Босс
+
+1. `src/data/bosses.js`: поля как у врага плюс `attacks`, `rage`, `drop`:
+   ```js
+   dryad_queen: {
+     sprite: 'dryad_queen', behavior: 'boss', hp: 8000, speed: 34, damage: 22, xp: 0, size: 34, knockbackResist: 1,
+     attacks: [
+       { type: 'dash', cooldown: 5, windup: 0.8, speed: 260, time: 0.6 },
+       { type: 'summon', cooldown: 8, enemy: 'catgirl', count: 6, radius: 90 },
+     ],
+     rage: { hpFraction: 0.5, cooldownMul: 0.7 },
+     drop: 'chest',
+   },
+   ```
+   - `dash`: `windup` (замах, поза `windup`), `speed`, `time` (длительность рывка).
+   - `summon`: `enemy` (id из `enemies.js`), `count`, `radius` (кольцо вокруг босса; поза `cast` 0.6 с).
+   - `rage`: когда `hp <= maxHp * hpFraction`, один раз шлётся `bossRage`, кулдауны умножаются на `cooldownMul`.
+   - Другой тип атаки: ветка в `src/behaviors/enemies/boss.js` и добавь тип в проверку теста `data: bosses use known behavior, attacks and summons`.
+2. manifest: 3 кадра: 0 стойка, 1 шаг, 2 каст/замах (`anim.js`: у босса позы `windup` и `cast` показывают кадр 2). Образец `dryad_queen` (128×128, обычная плотность).
+3. i18n: `boss.<id>.name`.
+4. Этап: `{ at: <duration>, type: 'boss', boss: '<id>' }` последним событием; `at` равен `duration` (тест `data: pickups, props drops and timeline are consistent`). За `bossWarning` секунд до этого директор шлёт `bossWarning`, HUD показывает баннер `boss.warning`.
+5. Победа наступает после убийства босса (`victory` в `sim.js`).
+6. Тесты: `data: bosses use known behavior...`, `tests/unit/mechanics.test.js` (`boss: ...`: предупреждение, позы, ярость).
+
+## Карта (этап)
+
+`src/data/stages/forest.js`: формат в шапке файла.
+
+1. Новый файл `src/data/stages/<id>.js` с `export default { id, name: 'stage.<id>', duration, bossWarning, tiles, props, scaling, timeline }`.
+2. Регистрация: пока этапы зашиты в код: `const STAGES = { forest }` в `src/core/sim.js` (там же импорт) и `stage: 'forest'` в `src/scenes/Game.js`. Для второго этапа нужно править эти места (вне `data`).
+3. `props`: список `{ sprite, density, breakable, hp?, drop? }`. `density` это среднее число на чанк `SIM.chunkSize` (320 px). Неразрушаемые (`breakable: false`) только декор: их рисует `src/render/decor.js`, sim о них не знает. Разрушаемые создаёт sim (см. «Разрушаемый объект»).
+4. `tiles`: поле есть в формате, но рендер сейчас рисует фон из спрайта `grass` (`src/render/world.js`) и поле не читает. Другой фон потребует правки `world.js`.
+5. `scaling: { hpPerMinute, damagePerMinute }`: рост HP и урона врагов, множитель `1 + k * минуты`.
+6. `timeline`: события отсортированы по `at` (с). Типы (директор: `src/core/director.js`):
+   - `spawn`: `{ at, type: 'spawn', enemy, rate, rateEnd?, until?, group, min?, minEnd? }`. `rate` групп/с, к `rateEnd` линейно до `until` (`until > at`); `group` врагов в группе; `min`/`minEnd`: держать не меньше столько живых врагов этого вида (линейно).
+   - `ring`: `{ at, type: 'ring', enemy, count, radius? }`, кольцо вокруг игрока.
+   - `elite`: `{ at, type: 'elite', enemy }`, один элитный враг с дропом-сундуком.
+   - `burst`: `{ at, type: 'burst', enemy, count }`, кучка врагов у края экрана.
+   - `boss`: `{ at, type: 'boss', boss }`.
+7. `bossWarning`: за сколько секунд до события `boss` слать `bossWarning` (0 или не задано: без предупреждения).
+8. i18n: `stage.<id>.name`. manifest: спрайты props и фон.
+9. Тесты: `stage: timeline sorted and references known enemies`, `data: pickups, props drops and timeline are consistent` (проверяют `forest`; для нового этапа добавь аналогичные проверки). Баланс: `tests/balance/` ходит по лесу.
+
+## Разрушаемый объект
+
+1. В `props` этапа: `{ sprite: 'barrel', density: 0.6, breakable: true, hp: 1, drop: { food: 0.3, coin: 0.35, magnet: 0.05 } }`.
+   - `drop`: `{ pickupId: шанс }`, ключи из `src/data/pickups.js`, шансы в `(0, 1]`, суммарно умножаются на `luck`, выпадает максимум один предмет (кумулятивный бросок).
+   - `hp` по умолчанию 1; каждое попадание снимает 1.
+2. manifest: спрайт (`art('barrel', 18, 20, { origin: FEET })`), опора у основания.
+3. Sim шлёт `{ type: 'propBreak', x, y, sprite }` при поломке (рендер: осколки и звук).
+4. Тест: `props: break from weapons, push propBreak, drop by table` (`tests/unit/mechanics.test.js`), `data: pickups, props drops...`.
+
+Новый подбираемый предмет: запись в `src/data/pickups.js` (`kind`: `xp | heal | magnet | coin | chest`), спрайт в manifest. Новый `kind` требует ветки в `sim.js`.
+
+## Волна и событие
+
+Правится только `timeline` в `src/data/stages/<этап>.js`.
+
+```js
+{ at: 150, type: 'ring', enemy: 'ghost', count: 16 },
+{ at: 240, type: 'elite', enemy: 'slime' },
+{ at: 510, type: 'burst', enemy: 'slime', count: 30 },
+{ at: 390, type: 'spawn', enemy: 'succubus', rate: 0.1, rateEnd: 0.25, until: 560, group: 2 },
+```
+
+Держи список отсортированным по `at`. Лимит живых врагов `SIM.maxEnemies` (400) общий; при нехватке места элита и босс вытесняют самого дальнего обычного врага. Проверка: `npm test` (структура и отсортированность) и баланс-тесты (пик врагов не выше лимита).
+
+## Комбо (супероружие)
+
+1. `src/data/weapons.js`: запись результата с `evolved: true`, `maxLevel: 1`, одним уровнем в `levels` и существующим `behavior`:
+   ```js
+   aegis_storm: {
+     icon: 'icon_aegis_storm', sprite: 'proj_blade_arc', behavior: 'orbit', maxLevel: 1, evolved: true,
+     levels: [ { damage: 26, cooldown: 0, amount: 6, area: 70, speed: 4.5, duration: 1e9, knockback: 130, size: 0.45, hitRadius: 14 } ],
+   },
+   ```
+2. `src/data/combos.js`: `{ from: ['blade_arc', 'guardian_shields'], result: 'aegis_storm' }`. Обе части обычные (не `evolved`) и должны быть на `maxLevel`.
+3. manifest: иконка `icon_<result>` (спрайт снаряда можно взять от части). i18n: `weapon.<result>.name`, `weapon.<result>.desc`.
+4. Как выпадает: из сундука элиты или босса, если обе части на максимуме. Результат встаёт в слот первой части (`from[0]`), вторая часть удаляется. Сундук шлёт item с `evolved: true` и `from`.
+5. Тесты: `data: combos use maxed regular weapons and evolved results` (проверяет, что у каждого evolved-оружия есть комбо, и число комбо: сейчас 2), `data: combos reference existing weapons`, `combo: ...` в `mechanics.test.js`.
+
+## Чек-лист перед коммитом
+
+- [ ] Все новые id есть в data, и у каждого есть ключи i18n (имя и описание) в `src/i18n/en.js`; строки в коде только через `t()`.
+- [ ] Каждый новый спрайт есть в `assets/sprites/manifest.js` и файл лежит в `assets/sprites/` (заглушка допустима).
+- [ ] `npm test` зелёный (unit + balance).
+- [ ] `npm run smoke` зелёный, если трогал сцены, UI, рендер, manifest или спрайты.
+- [ ] Не трогал `.secrets/`, ключи и `tools/gen-ledger.json` вручную.
+- [ ] Новые поля data описаны в шапке соответствующего файла.

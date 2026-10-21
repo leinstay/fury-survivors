@@ -7,7 +7,8 @@ const REHIT = 0.5;
 function addShield(w, sim) {
   const p = sim.addProjectile('player', w.def.sprite);
   p.life = 1e9;
-  p.radius = SHIELD_RADIUS;
+  p.radius = w.params.hitRadius ?? SHIELD_RADIUS;
+  p.scale = w.params.size ?? 1;
   p.dmg = w.params.damage;
   p.kb = w.params.knockback || 0;
   p.pierce = 1e9;
