@@ -1,5 +1,8 @@
 import { t } from '../i18n/index.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
+import { FocusNav, addButton } from '../ui/focus.js';
+import { addVolumeSliders } from '../ui/volume.js';
+import { textStyle, COLORS } from '../ui/style.js';
 
 export default class MenuScene extends Phaser.Scene {
   constructor() {
@@ -7,14 +10,38 @@ export default class MenuScene extends Phaser.Scene {
   }
 
   create() {
+    this.nav = new FocusNav(this, { onBack: () => { if (this.view !== 'main') this.show('main'); } });
+    this.objs = [];
+    this.show('main');
+  }
+
+  update(time) {
+    this.nav.update(time);
+  }
+
+  show(view) {
+    this.view = view;
+    this.nav.clear();
+    for (const o of this.objs) o.destroy();
+    const before = new Set(this.children.list);
     const cx = GAME_WIDTH / 2;
-    this.add.text(cx, GAME_HEIGHT / 2 - 24, t('game.title'), {
-      fontFamily: 'monospace', fontSize: '32px', color: '#ff7a3d',
-    }).setOrigin(0.5);
-    this.add.text(cx, GAME_HEIGHT / 2 + 16, t('menu.wip'), {
-      fontFamily: 'monospace', fontSize: '12px', color: '#aaaaaa',
-    }).setOrigin(0.5);
-    // Проверка, что заглушки грузятся: героиня под заголовком.
-    if (this.textures.exists('heroine')) this.add.sprite(cx, GAME_HEIGHT - 40, 'heroine', 0).setOrigin(0.5, 1);
+
+    this.add.text(cx, 62, t('game.title'), textStyle(32, COLORS.accent, { stroke: '#000000', strokeThickness: 4 })).setOrigin(0.5);
+
+    if (view === 'main') {
+      if (this.textures.exists('heroine')) this.add.sprite(cx + 150, 200, 'heroine', 0).setOrigin(0.5, 1).setScale(2);
+      const bw = 160, bh = 30;
+      addButton(this, this.nav, { x: cx, y: 150, w: bw, h: bh, label: t('menu.play'), onSelect: () => this.scene.start('Game') });
+      addButton(this, this.nav, { x: cx, y: 190, w: bw, h: bh, label: t('menu.settings'), onSelect: () => this.show('settings') });
+      const note = this.add.text(cx, 262, '', textStyle(10, COLORS.dim)).setOrigin(0.5);
+      addButton(this, this.nav, { x: cx, y: 230, w: bw, h: bh, label: t('menu.quit'), onSelect: () => note.setText(t('menu.quit_note')) });
+      this.add.text(cx, GAME_HEIGHT - 14, t('menu.hint'), textStyle(10, COLORS.dim)).setOrigin(0.5);
+    } else {
+      this.add.text(cx, 108, t('settings.title'), textStyle(16)).setOrigin(0.5);
+      addVolumeSliders(this, this.nav, { x: cx, y: 150, w: 300 });
+      addButton(this, this.nav, { x: cx, y: 230, w: 120, h: 30, label: t('settings.back'), onSelect: () => this.show('main') });
+    }
+    this.objs = this.children.list.filter((o) => !before.has(o) && o.type !== 'Zone');
+    this.nav.focus(0);
   }
 }

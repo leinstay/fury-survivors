@@ -59,6 +59,27 @@ export const SPRITES = Object.fromEntries([
   item('proj_firebomb', 16, 16, '#ff7030'),
   item('proj_enemy', 8, 8, '#ff40a0'),
 
+  // Иконки оружия, пассивок и карточки лечения (24×24)
+  item('icon_blade_arc', 24, 24, '#d8d8e8', 'rect'),
+  item('icon_throwing_daggers', 24, 24, '#b8b8c8', 'rect'),
+  item('icon_guardian_shields', 24, 24, '#7aa6d8', 'rect'),
+  item('icon_holy_ground', 24, 24, '#fbe3a0', 'rect'),
+  item('icon_war_axe', 24, 24, '#8a8a9a', 'rect'),
+  item('icon_storm_chain', 24, 24, '#bcdcf2', 'rect'),
+  item('icon_firebomb', 24, 24, '#f2904a', 'rect'),
+  item('icon_aegis_storm', 24, 24, '#7a5aa0', 'rect'),
+  item('icon_thunder_knives', 24, 24, '#4a6aa8', 'rect'),
+  item('icon_max_hp', 24, 24, '#b8433a', 'rect'),
+  item('icon_attack', 24, 24, '#e0603a', 'rect'),
+  item('icon_speed', 24, 24, '#86b85a', 'rect'),
+  item('icon_crit', 24, 24, '#f7c06a', 'rect'),
+  item('icon_pickup', 24, 24, '#b08ad0', 'rect'),
+  item('icon_haste', 24, 24, '#7aa6d8', 'rect'),
+  item('icon_luck', 24, 24, '#bfe07a', 'rect'),
+  item('icon_armor', 24, 24, '#8a5a3a', 'rect'),
+  item('icon_regen', 24, 24, '#d86a9a', 'rect'),
+  item('icon_heal', 24, 24, '#f6c7c3', 'rect'),
+
   // Окружение
   item('grass', 32, 32, '#2f5a2a', 'tile', 4, [0, 0]),
   item('tree', 48, 64, '#1f4a22', 'round', 1, [0.5, 1]),

@@ -7,6 +7,11 @@ export function setLang(code) {
   current = langs[code] || langs.en;
 }
 
+// Есть ли ключ в словаре (t() для неизвестного ключа возвращает сам ключ).
+export function hasKey(key) {
+  return (current[key] ?? langs.en[key]) !== undefined;
+}
+
 // t('key', { n: 3 }) подставляет {n}. Неизвестный ключ возвращается как есть.
 export function t(key, params) {
   let s = current[key] ?? langs.en[key] ?? key;

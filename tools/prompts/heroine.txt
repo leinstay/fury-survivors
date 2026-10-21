@@ -1,0 +1,7 @@
+Character: a young female knight with long bright red-orange hair in a high ponytail, green eyes, determined smile. Silver plate armor: breastplate, pauldrons, gauntlets, armored boots and greaves; the armor leaves her midriff and upper thighs bare; short red cloth skirt under a small faulds plate, short red cape. She holds a longsword in her right hand.
+
+Layout: exactly 3 full-body poses of the same character side by side in one row, evenly spaced, same size, all facing three-quarter view to the RIGHT (not facing the viewer), feet on the same baseline:
+1. idle standing pose, sword lowered
+2. walking, left leg forward, right leg back
+3. walking, right leg forward, left leg back
+The two walking poses must clearly differ in leg and arm positions.

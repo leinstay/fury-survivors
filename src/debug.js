@@ -16,6 +16,8 @@ export function installDebug(game) {
         scenes: active,
         scene: active[active.length - 1] || null,
         fps: Math.round(game.loop.actualFps),
+        state: sim ? sim.state : null,
+        kills: sim ? sim.kills : null,
         enemies: sim ? sim.enemies.length : 0,
         hp: sim ? sim.player.hp : null,
         level: sim ? sim.player.level : null,
