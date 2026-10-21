@@ -1,0 +1,17 @@
+{
+  "name": "fury-survivors",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Vampire Survivors-like on Phaser 3, no build step",
+  "scripts": {
+    "serve": "node tools/serve.mjs",
+    "test": "node --test tests/unit/ tests/balance/",
+    "smoke": "playwright test",
+    "placeholders": "node tools/placeholders.mjs",
+    "prepare": "git config core.hooksPath .githooks || true"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1"
+  }
+}

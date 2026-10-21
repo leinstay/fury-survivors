@@ -1,0 +1,11 @@
+#!/bin/sh
+# Не даём закоммитить ключи и секреты.
+if git diff --cached --name-only | grep -E '^(\.secrets|references)/' >/dev/null; then
+  echo "pre-commit: .secrets/ or references/ in index, refusing" >&2
+  exit 1
+fi
+if git diff --cached -U0 | grep -E '^\+.*sk-or-v[0-9]+-[A-Za-z0-9]{16,}' >/dev/null; then
+  echo "pre-commit: OpenRouter key in staged changes, refusing" >&2
+  exit 1
+fi
+exit 0
