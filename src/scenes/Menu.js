@@ -3,6 +3,7 @@ import { GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
 import { FocusNav, addButton } from '../ui/focus.js';
 import { addVolumeSliders } from '../ui/volume.js';
 import { textStyle, COLORS } from '../ui/style.js';
+import { playMusic } from '../audio/sfx.js';
 import { spriteScale } from '../render/density.js';
 
 export default class MenuScene extends Phaser.Scene {
@@ -14,6 +15,8 @@ export default class MenuScene extends Phaser.Scene {
     this.nav = new FocusNav(this, { onBack: () => { if (this.view !== 'main') this.show('main'); } });
     this.objs = [];
     this.show('main');
+    // Звук разблокируется первым жестом; Phaser сам запустит отложенную музыку. Повторный вход не перезапускает.
+    playMusic(this);
   }
 
   update(time) {

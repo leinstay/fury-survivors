@@ -12,7 +12,8 @@
 // Режим --grid (по умолчанию для спрайтов с density > 1): модель рисует пиксель-арт на своей неровной сетке (клетки ~9×10 px).
 // Границы клеток ищутся по пикам перепадов цвета, из каждой клетки берётся самый частый цвет: рисунок переносится
 // один арт-пиксель в один пиксель, без масштабирования, квантования и новой обводки (своя у рисунка уже есть).
-// Рост получается родной; если он отличается от manifest.size[1] больше чем на 10%, скрипт предупреждает.
+// Рост получается родной. Если он больше manifest.size[1] (или --height) больше чем на 10%, чистый рисунок уменьшается
+// голосованием по блокам (shrink): модель рисует разные листы на сетке разного шага.
 // 6. Кадр frameWidth×frameHeight: ноги на origin[1], центр стоп на origin[0]. Результат: assets/sprites/<key>.png.
 import sharp from 'sharp';
 import { readFileSync } from 'node:fs';
@@ -289,6 +290,34 @@ function edgeProfiles(data, mask, w, h, pose) {
 }
 
 // Снятие позы по родной сетке с общим шагом [sx, sy]. Возвращает { w, h, rgba } с обрезанными пустыми краями.
+// Уменьшение чистого пиксель-арта в k раз (k < 1): каждый выходной пиксель берёт самый частый цвет своего блока,
+// тёмные цвета (обводка) получают бонус, чтобы контур не рвался. Пусто, если блок прозрачен больше чем наполовину.
+function shrink(im, k) {
+  const ow = Math.max(1, Math.round(im.w * k)), oh = Math.max(1, Math.round(im.h * k));
+  const rgba = new Uint8Array(ow * oh * 4);
+  const counts = new Map();
+  for (let j = 0; j < oh; j++) for (let i = 0; i < ow; i++) {
+    const xa = Math.floor(i * im.w / ow), xb = Math.max(xa + 1, Math.floor((i + 1) * im.w / ow));
+    const ya = Math.floor(j * im.h / oh), yb = Math.max(ya + 1, Math.floor((j + 1) * im.h / oh));
+    counts.clear();
+    let solid = 0, best = -1, bestN = 0;
+    for (let y = ya; y < yb; y++) for (let x = xa; x < xb; x++) {
+      const q = (y * im.w + x) * 4;
+      if (!im.rgba[q + 3]) continue;
+      solid++;
+      const lum = im.rgba[q] * 0.3 + im.rgba[q + 1] * 0.59 + im.rgba[q + 2] * 0.11;
+      const key = im.rgba[q] << 16 | im.rgba[q + 1] << 8 | im.rgba[q + 2];
+      const n = (counts.get(key) || 0) + (lum < 70 ? 1.6 : 1);
+      counts.set(key, n);
+      if (n > bestN) { bestN = n; best = q; }
+    }
+    if (solid * 2 < (xb - xa) * (yb - ya)) continue;
+    const o = (j * ow + i) * 4;
+    rgba[o] = im.rgba[best]; rgba[o + 1] = im.rgba[best + 1]; rgba[o + 2] = im.rgba[best + 2]; rgba[o + 3] = 255;
+  }
+  return trim({ w: ow, h: oh, rgba });
+}
+
 function gridSnap(data, mask, w, prof, sx, sy) {
   const gx = { lines: gridLines(prof.colE, prof.x0, prof.x1, sx) };
   const gy = { lines: gridLines(prof.rowE, prof.y0, prof.y1, sy) };
@@ -368,13 +397,22 @@ export async function cleanSprite(input, key, opts = {}) {
 
   if (grid) {
     const profs = poses.map((pose) => edgeProfiles(data, mask, w, h, pose));
-    const sx = commonStep(profs.map((p) => edgePeaks(p.colE, p.x0, p.x1, 5)));
-    const sy = commonStep(profs.map((p) => edgePeaks(p.rowE, p.y0, p.y1, 5)));
-    const images = profs.map((p) => gridSnap(data, mask, w, p, sx, sy));
+    let sx = commonStep(profs.map((p) => edgePeaks(p.colE, p.x0, p.x1, 5)));
+    let sy = commonStep(profs.map((p) => edgePeaks(p.rowE, p.y0, p.y1, 5)));
+    // Клетки модели почти квадратные. Если по одной оси шаг вдвое больше, там пропущена каждая вторая граница.
+    if (sy > sx * 1.6) sy /= 2;
+    else if (sx > sy * 1.6) sx /= 2;
+    let images = profs.map((p) => gridSnap(data, mask, w, p, sx, sy));
     const nativeH = Math.max(...images.map((im) => im.h));
     const want = opts.height || spec.size[1];
-    const report = { ...base, mode: 'grid', cell: `${sx.toFixed(2)}x${sy.toFixed(2)}` };
-    if (Math.abs(nativeH - want) > want * 0.1) report.warning = `native height ${nativeH} differs from manifest size ${want}`;
+    const report = { ...base, mode: 'grid', cell: `${sx.toFixed(2)}x${sy.toFixed(2)}`, nativeHeight: nativeH };
+    // Модель рисует разные листы на сетке разного шага. Если родной рост заметно больше нужного,
+    // чистый рисунок уменьшается голосованием по блокам (один масштаб на все позы).
+    if (nativeH > want * 1.1) {
+      const k = want / nativeH;
+      images = images.map((im) => shrink(im, k));
+      report.shrunk = +k.toFixed(3);
+    } else if (nativeH < want * 0.9) report.warning = `native height ${nativeH} is below manifest size ${want}`;
     return place(images, spec, fw, fh, frames, opts, report);
   }
   const res = resamplePoses(data, mask, w, h, poses, spec, opts);

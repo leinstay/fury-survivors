@@ -9,7 +9,7 @@
 index.html                 точка входа, грузит vendor/phaser.min.js и src/main.js (ES-модули)
 vendor/phaser.min.js       Phaser 3.90.0, лежит в репо, не CDN
 src/
-  main.js                  конфиг Phaser (640x360, pixelArt, FIT), список сцен
+  main.js                  конфиг Phaser (холст 1280x720, мир 640x360 через zoom 2), список сцен
   data/                    ВЕСЬ БАЛАНС И КОНТЕНТ. Логику тут не пишем
     constants.js           глобальные числа: лимиты врагов, i-frames, магнит, кривая опыта
     heroes.js              герои: статы, стартовое оружие, спрайт

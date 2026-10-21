@@ -1,0 +1,7 @@
+Character: a small cute purple bat with big pink ears, round body, tiny fangs, red eyes, leathery wings.
+
+Layout: exactly 3 poses of the same bat side by side in one row, evenly spaced, same size, flying, facing three-quarter view to the RIGHT:
+1. wings spread level
+2. wings raised high
+3. wings swept down
+The bat body is small: wingspan about half the height of the knight in the second attached image, at the same pixel scale.

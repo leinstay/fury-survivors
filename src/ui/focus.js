@@ -1,5 +1,6 @@
 // Общая фокус-навигация меню: клавиатура (стрелки/WASD, Enter/Space, Esc), мышь, геймпад.
 import { textStyle, COLORS } from './style.js';
+import { playSfx } from '../audio/sfx.js';
 
 // Состояние геймпада (первый подключённый) или null. Без Phaser-плагина: читаем Gamepad API напрямую.
 export function readPad() {
@@ -48,7 +49,7 @@ export class FocusNav {
       if (item.disabled) return;
       this.focus(this.items.indexOf(item));
       if (item.onPointer) item.onPointer(p);
-      else if (item.onSelect) item.onSelect();
+      else if (item.onSelect) { playSfx(this.scene, 'ui_select'); item.onSelect(); }
     });
     zone.on('pointermove', (p) => { if (p.isDown && item.onPointer && !item.disabled) item.onPointer(p); });
     item.zone = zone;
@@ -66,8 +67,10 @@ export class FocusNav {
   focus(i) {
     if (i < 0 || i >= this.items.length) return;
     if (this.index >= 0 && this.items[this.index]) this.items[this.index].setFocus(false);
+    const changed = this.index >= 0 && this.index !== i;
     this.index = i;
     this.items[i].setFocus(true);
+    if (changed && this.items.length > 1 && !this.silent) playSfx(this.scene, 'ui_move');
   }
 
   // Если фокус стоит на отключённом пункте, переносит на ближайший живой.
@@ -98,7 +101,7 @@ export class FocusNav {
 
   select() {
     const it = this.items[this.index];
-    if (it && !it.disabled && it.onSelect) it.onSelect();
+    if (it && !it.disabled && it.onSelect) { playSfx(this.scene, 'ui_select'); it.onSelect(); }
   }
 
   _dir(dx, dy) {
@@ -107,12 +110,17 @@ export class FocusNav {
     this.move(dx, dy);
   }
 
+  _back() {
+    playSfx(this.scene, 'ui_back');
+    this.onBack();
+  }
+
   _key(ev) {
     const d = KEY_DIRS[ev.code];
     if (d) { this._dir(d[0], d[1]); return; }
     if (ev.repeat) return;
     if (ev.code === 'Enter' || ev.code === 'Space' || ev.code === 'NumpadEnter') this.select();
-    else if (ev.code === 'Escape' && this.onBack) this.onBack();
+    else if (ev.code === 'Escape' && this.onBack) this._back();
   }
 
   // Вызывать из update() сцены: опрос геймпада.
@@ -121,7 +129,7 @@ export class FocusNav {
     if (!p) return;
     const prev = this.padPrev;
     if (p.a && !prev.a) this.select();
-    if (p.b && !prev.b && this.onBack) this.onBack();
+    if (p.b && !prev.b && this.onBack) this._back();
     const dx = p.x > 0.5 ? 1 : p.x < -0.5 ? -1 : 0;
     const dy = p.y > 0.5 ? 1 : p.y < -0.5 ? -1 : 0;
     const key = `${dx},${dy}`;

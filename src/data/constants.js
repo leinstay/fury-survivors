@@ -66,3 +66,18 @@ export const FEEL = {
   hitstop: 0.04,           // с, на крупных ударах
   shake: 0.08,
 };
+
+// Эффекты рендера (src/render/fx.js, anim.js, world.js). Время в секундах, расстояния в px мира.
+export const FX = {
+  dmgText: { max: 60, life: 0.6, rise: 18, size: 8, critSize: 12, color: '#ffffff', critColor: '#ffb52e', stroke: '#1a1426' },
+  sparks: { min: 2, max: 4, speed: 70, life: 0.25, color: 0xfff2a0, critColor: 0xffb52e },
+  puff: { count: 5, eliteCount: 10, bossCount: 20, speed: 60, life: 0.45, size: 3, eliteSize: 1.6, colors: [0xffffff, 0xd0d0d0, 0x9a9a9a] },
+  maxParticles: 320,
+  ghost: { max: 24, life: 0.25, squashY: 0.25, stretchX: 1.25, eliteScale: 1.25 },
+  shake: { hurt: [2, 0.15], elite: [3, 0.2], boss: [5, 0.35] }, // [амплитуда px, длительность с]
+  hitstop: { crit: 0.03, hurt: 0.06, elite: 0.07, boss: 0.08, cap: 0.1, cooldown: 0.3 },
+  levelup: { flashAlpha: 0.5, flashTime: 0.3, ringTime: 0.5, ringRadius: 70, ringColor: 0xffe88a },
+  pickupSpark: { count: 2, color: 0x7fd8ff, life: 0.25, speed: 40 },
+  hitSquash: { x: 1.18, y: 0.82 },
+  shadow: { alpha: 0.3, widthK: 0.5, height: 0.3, yOffset: -1, depth: -50000 },
+};

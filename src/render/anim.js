@@ -1,6 +1,7 @@
 // Процедурная анимация персонажей: ходьба кадрами 1/2, покачивание, наклон, парение летунов.
-// Без частиц, чисел урона и тряски (это fx, этап 2).
+// Частицы, числа урона и тряска живут в fx.js.
 import { SPRITES } from '../../assets/sprites/manifest.js';
+import { FX } from '../data/constants.js';
 
 const STEP_TIME = 0.16;
 
@@ -27,4 +28,11 @@ export function animateCharacter(sprite, key, e, time, seed) {
   }
   // flipX делает вызывающий; здесь только вертикальное парение
   return flyer ? Math.sin(time * 6 + seed) * 2 - 6 : 0;
+}
+
+// Сжатие при ударе: пока горит hitFlash, спрайт чуть приплюснут по вертикали.
+export function applyHitSquash(sprite, flash) {
+  if (!(flash > 0)) return;
+  sprite.scaleX *= FX.hitSquash.x;
+  sprite.scaleY *= FX.hitSquash.y;
 }

@@ -1,0 +1,7 @@
+Character: the forest boss, a tall dryad queen: long flowing green hair with leaves and pink blossoms, a crown of antlers made of branches, golden eyes, calm regal smile. Outfit: a long gown made of layered leaves and bark, with roots trailing on the ground at the hem, holding a tall wooden staff topped with a glowing green crystal.
+
+Layout: exactly 3 full-body poses of the same character side by side in one row, evenly spaced, same size, all facing three-quarter view to the RIGHT (not facing the viewer), bottom of the gown on the same baseline:
+1. idle, staff planted
+2. gliding forward, gown sweeping left
+3. casting, staff raised high
+She is about twice as tall as the knight in the second attached image, at the same pixel scale.

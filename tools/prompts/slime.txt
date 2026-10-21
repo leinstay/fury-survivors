@@ -1,0 +1,7 @@
+Character: a cute slime-girl made of translucent bright green jelly: a girl's head and torso with a jelly hair bob and big round eyes, happy face, her lower body melts into a round wobbly slime puddle (no legs). Light green highlights, darker green shading.
+
+Layout: exactly 3 poses of the same slime-girl side by side in one row, evenly spaced, same size, facing three-quarter view to the RIGHT, bottoms on the same baseline:
+1. resting, round
+2. squashed down and wider (bouncing)
+3. stretched up and narrower (bouncing)
+She is about 60% as tall as the knight in the second attached image, at the same pixel scale.

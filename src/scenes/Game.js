@@ -3,6 +3,9 @@ import { GameInput } from '../ui/input.js';
 import { Hud } from '../ui/hud.js';
 import { readPad } from '../ui/focus.js';
 import { World } from '../render/world.js';
+import { Fx } from '../render/fx.js';
+import { FX } from '../data/constants.js';
+import { handleSimEvents } from '../audio/sfx.js';
 
 const MAX_DT = 1 / 20;
 
@@ -15,6 +18,10 @@ export default class GameScene extends Phaser.Scene {
   create() {
     this.sim = createSim({ hero: 'heroine', stage: 'forest', seed: Date.now() });
     this.world = new World(this, this.sim);
+    this.fx = new Fx(this);
+    this.hitstop = 0;
+    this.hitCool = 0;
+    this.events.on('resume', () => this.fx.playPending());
     this.gameInput = new GameInput(this, { isBlocked: (x, y) => this.hud && this.hud.isOnPauseButton(x, y) });
     this.hud = new Hud(this, this.sim, { touch: this.gameInput.touch, onPause: () => this.openPause() });
     this.ended = false;
@@ -33,6 +40,24 @@ export default class GameScene extends Phaser.Scene {
     this.scene.launch('Pause', { sim: this.sim });
   }
 
+  // Единая точка обработки событий sim: эффекты, звук, хитстоп.
+  handleEvents(events) {
+    if (!events.length) return;
+    this.fx.onEvents(events);
+    handleSimEvents(this, events);
+    const h = FX.hitstop;
+    let stop = 0;
+    for (const ev of events) {
+      if (ev.type === 'hit' && ev.crit) stop = Math.max(stop, h.crit);
+      else if (ev.type === 'playerHurt') stop = Math.max(stop, h.hurt);
+      else if (ev.type === 'kill' && (ev.boss || ev.elite)) stop = Math.max(stop, ev.boss ? h.boss : h.elite);
+    }
+    if (stop > 0 && this.hitCool <= 0) {
+      this.hitstop = Math.min(h.cap, Math.max(this.hitstop, 0) + stop);
+      this.hitCool = h.cooldown;
+    }
+  }
+
   update(time, delta) {
     const dt = Math.min(delta / 1000, MAX_DT);
     const sim = this.sim;
@@ -43,7 +68,16 @@ export default class GameScene extends Phaser.Scene {
     this.padStart = start;
     if (!this.scene.isActive('Game')) return;
 
-    sim.step(dt, this.gameInput.read());
+    const input = this.gameInput.read();
+    if (this.hitstop > 0) {
+      this.hitstop -= dt;
+    } else {
+      sim.step(dt, input);
+      this.handleEvents(sim.events);
+    }
+    this.hitCool -= dt;
+    this.fx.update(dt);
+    this.world.shake = { x: this.fx.offsetX, y: this.fx.offsetY };
     this.world.update(dt);
     this.hud.update();
 

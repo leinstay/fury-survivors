@@ -1,6 +1,15 @@
 import { SPRITES } from '../../assets/sprites/manifest.js';
 import { t } from '../i18n/index.js';
-import { GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
+import { GAME_WIDTH, GAME_HEIGHT, RENDER_ZOOM } from '../data/constants.js';
+import { initAudio, preloadAudio } from '../audio/sfx.js';
+import { FONT_NAME } from '../ui/style.js';
+
+function loadFont() {
+  if (typeof FontFace === 'undefined' || !document.fonts) return Promise.resolve();
+  const face = new FontFace(FONT_NAME, 'url(assets/fonts/PixelifySans.ttf)', { weight: '400 700' });
+  return face.load().then((f) => { document.fonts.add(f); return document.fonts.load(`16px "${FONT_NAME}"`); })
+    .catch((e) => { console.error('font load failed', e); });
+}
 
 // Грузит все спрайты из manifest.js как spritesheet и уходит в меню.
 export default class BootScene extends Phaser.Scene {
@@ -9,8 +18,12 @@ export default class BootScene extends Phaser.Scene {
   }
 
   preload() {
+    initAudio(this.game);
+    preloadAudio(this);
+    // Шрифт грузим параллельно с ассетами; create ждёт его.
+    this.fontReady = loadFont();
     this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2, t('boot.loading'), {
-      fontFamily: 'monospace', fontSize: '16px', color: '#ffffff',
+      fontFamily: 'monospace', fontSize: '16px', color: '#ffffff', resolution: RENDER_ZOOM,
     }).setOrigin(0.5);
 
     for (const [key, s] of Object.entries(SPRITES)) {
@@ -19,6 +32,6 @@ export default class BootScene extends Phaser.Scene {
   }
 
   create() {
-    this.scene.start('Menu');
+    this.fontReady.then(() => this.scene.start('Menu'));
   }
 }

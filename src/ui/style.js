@@ -1,6 +1,7 @@
 import { RENDER_ZOOM } from '../data/constants.js';
-// Общие стили текста. Шрифт пока monospace, размеры целые.
-export const FONT = 'monospace';
+// Общие стили текста. Pixelify Sans (OFL), fallback monospace.
+export const FONT_NAME = 'Pixelify Sans';
+export const FONT = `'${FONT_NAME}', monospace`;
 
 // resolution = RENDER_ZOOM: текст рисуется в разрешении холста и не огрубляется зумом камеры.
 export function textStyle(size = 12, color = '#ffffff', extra = {}) {

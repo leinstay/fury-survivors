@@ -1,0 +1,7 @@
+Character: a cute ghost girl: pale blue-white translucent sheet-like body with a wavy tail instead of legs, long pale hair, big dark eyes, small spooky smile, tiny arms raised, faint cyan glow inside the outline. Floating.
+
+Layout: exactly 3 poses of the same ghost side by side in one row, evenly spaced, same size, facing three-quarter view to the RIGHT:
+1. floating, arms raised
+2. tail waving to the left
+3. tail waving to the right
+She is about 70% as tall as the knight in the second attached image, at the same pixel scale.

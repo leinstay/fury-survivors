@@ -1,8 +1,8 @@
 // Синхронизация спрайтов с состоянием sim: пулы по uid, сортировка по y, вспышки, анимация.
 import { SPRITES } from '../../assets/sprites/manifest.js';
-import { GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
+import { GAME_WIDTH, GAME_HEIGHT, FX } from '../data/constants.js';
 import { HEROES } from '../data/heroes.js';
-import { animateCharacter } from './anim.js';
+import { animateCharacter, applyHitSquash } from './anim.js';
 import { Decor } from './decor.js';
 import { spriteScale } from './density.js';
 
@@ -80,6 +80,30 @@ export class World {
       props: new Pool(scene),
     };
     scene.cameras.main.setRoundPixels(true);
+
+    if (!scene.textures.exists('fx_shadow')) {
+      const g = scene.add.graphics();
+      g.fillStyle(0xffffff, 1).fillEllipse(16, 8, 32, 16);
+      g.generateTexture('fx_shadow', 32, 16);
+      g.destroy();
+    }
+    this.shadows = [];
+    this.shadowN = 0;
+    this.shake = { x: 0, y: 0 }; // смещение камеры от fx (тряска)
+  }
+
+  // Тень у ног: тёмный эллипс под спрайтом, пул по порядку обхода за кадр.
+  _shadow(x, y, sprite, cam) {
+    if (x < cam.scrollX - 40 || x > cam.scrollX + GAME_WIDTH + 40 || y < cam.scrollY - 40 || y > cam.scrollY + GAME_HEIGHT + 60) return;
+    const c = FX.shadow;
+    let s = this.shadows[this.shadowN];
+    if (!s) {
+      s = this.scene.add.image(0, 0, 'fx_shadow').setTint(0x000000).setAlpha(c.alpha).setDepth(c.depth);
+      this.shadows.push(s);
+    }
+    this.shadowN++;
+    const w = Math.max(8, sprite.width * Math.abs(sprite.baseScale || 1) * c.widthK);
+    s.setVisible(true).setPosition(Math.round(x), Math.round(y + c.yOffset)).setScale(w / 32, w * c.height / 16);
   }
 
   _tex(key) {
@@ -126,8 +150,10 @@ export class World {
 
     // камера и фон
     const cam = this.scene.cameras.main;
-    cam.scrollX = Math.round(p.x - GAME_WIDTH / 2);
-    cam.scrollY = Math.round(p.y - GAME_HEIGHT / 2);
+    cam.scrollX = Math.round(p.x - GAME_WIDTH / 2) + this.shake.x;
+    cam.scrollY = Math.round(p.y - GAME_HEIGHT / 2) + this.shake.y;
+    this.shadowN = 0;
+    this._shadow(p.x, p.y, pl, cam);
     this.bg.tilePositionX = cam.scrollX;
     this.bg.tilePositionY = cam.scrollY;
     this.decor.update(cam);
@@ -137,11 +163,17 @@ export class World {
       this._setKey(s, key);
       s.baseScale = (e.elite ? 1.25 : 1) * spriteScale(key);
       const lift2 = animateCharacter(s, key, e, time, e.uid);
+      applyHitSquash(s, e.hitFlash);
       s.setPosition(e.x, e.y + lift2);
+      this._shadow(e.x, e.y, s, cam);
       s.setFlipX(e.facing < 0);
       s.setDepth(e.y);
       this._tint(s, e.hitFlash > 0, e.elite);
     });
+    for (let i = this.shadowN; i < this.shadows.length; i++) {
+      if (!this.shadows[i].visible) break;
+      this.shadows[i].setVisible(false);
+    }
 
     this.pools.projectiles.sync(sim.projectiles, (e) => e.sprite, (s, e) => {
       this._setKey(s, e.sprite);

@@ -12,7 +12,9 @@
     "prepare": "git config core.hooksPath .githooks || true",
     "gen": "node tools/gen-sprite.mjs",
     "clean": "node tools/clean-sprite.mjs",
-    "sheet": "node tools/contact-sheet.mjs"
+    "sheet": "node tools/contact-sheet.mjs",
+    "sfx": "node tools/make-sfx.mjs",
+    "music": "node tools/make-music.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.1",

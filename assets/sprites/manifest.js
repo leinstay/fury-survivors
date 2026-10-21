@@ -15,12 +15,9 @@
 //
 // Кадры персонажей: 0 стойка, 1 шаг А, 2 шаг Б. Смотрят в три четверти вправо, влево flipX.
 
-const FEET_64 = 60 / 64;   // ноги на 60-й строке кадра 64×64
-const FEET_128 = 122 / 128;
-
-function char(key, size, color, shape = 'humanoid', frame = 64) {
-  const feet = frame === 128 ? FEET_128 : FEET_64;
-  return [key, { file: `assets/sprites/${key}.png`, frameWidth: frame, frameHeight: frame, frames: 3, origin: [0.5, feet], size, color, shape }];
+// Спрайт двойной плотности: квадратный кадр frame, ноги на строке feet, рост фигуры h.
+function hd(key, frame, feet, w, h, color, shape = 'humanoid') {
+  return [key, { file: `assets/sprites/${key}.png`, frameWidth: frame, frameHeight: frame, frames: 3, origin: [0.5, feet / frame], size: [w, h], density: 2, color, shape }];
 }
 
 function item(key, w, h, color, shape = 'round', frames = 1, origin = [0.5, 0.5]) {
@@ -33,15 +30,16 @@ export const SPRITES = Object.fromEntries([
   item('heroine_portrait', 48, 48, '#e0603a', 'rect'),
 
   // Враги
-  char('bat', [16, 12], '#6b4a8a', 'flyer'),
-  char('slime', [32, 26], '#5ac46a', 'blob'),
-  char('catgirl', [22, 48], '#d9a441'),
-  char('ghost', [24, 32], '#cfd8ff', 'flyer'),
-  char('foxgirl', [22, 48], '#e3803a'),
-  char('succubus', [22, 48], '#b33a6b'),
+  hd('bat', 48, 44, 40, 34, '#6b4a8a', 'flyer'),
+  hd('slime', 64, 62, 50, 56, '#5ac46a', 'blob'),
+  hd('catgirl', 96, 94, 50, 84, '#d9a441'),
+  hd('ghost', 64, 62, 36, 60, '#cfd8ff', 'flyer'),
+  hd('foxgirl', 96, 94, 54, 84, '#e3803a'),
+  hd('succubus', 96, 94, 50, 84, '#b33a6b'),
 
   // Босс
-  char('dryad_queen', [72, 96], '#3f8a4a', 'humanoid', 128),
+  // Босс в обычной плотности: арт-пиксель модели = 2 px холста, крупнее и грубее остальных, как увеличенные боссы VS
+  ['dryad_queen', { file: 'assets/sprites/dryad_queen.png', frameWidth: 128, frameHeight: 128, frames: 3, origin: [0.5, 124 / 128], size: [70, 115], color: '#3f8a4a', shape: 'humanoid' }],
 
   // Предметы
   item('xp_small', 8, 8, '#4fc3ff'),
