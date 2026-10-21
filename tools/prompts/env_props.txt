@@ -1,0 +1,5 @@
+Subject: forest map objects for a top-down-ish (three-quarter view from the front) survivor game, same pixel scale as the knight in the second attached image.
+
+Layout: 8 separate objects arranged in two rows with wide empty gaps between them, nothing touching or overlapping, each object complete and fully inside the image:
+Row 1 (left to right): 1. a round leafy deciduous tree with a short brown trunk, as tall as 1.5 knights; 2. a grey mossy boulder, knee high; 3. a round green leafy bush, knee high; 4. a small wooden barrel with iron bands, knee high.
+Row 2 (left to right): 5. a small yellow wildflower cluster, ankle high; 6. a small pink wildflower cluster, ankle high; 7. a wooden post lantern with a warm glowing light, waist high; 8. a tall dark green pine tree, as tall as 1.5 knights.

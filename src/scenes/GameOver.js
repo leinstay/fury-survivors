@@ -10,7 +10,7 @@ export default class GameOverScene extends Phaser.Scene {
   }
 
   create() {
-    this.nav = buildResults(this, this.sim, { titleKey: 'gameover.title', titleColor: '#ff5a5a' });
+    this.nav = buildResults(this, this.sim, { titleKey: 'gameover.title', titleColor: '#ff4040' });
   }
 
   update(time) {

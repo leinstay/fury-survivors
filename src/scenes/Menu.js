@@ -30,7 +30,7 @@ export default class MenuScene extends Phaser.Scene {
     const before = new Set(this.children.list);
     const cx = GAME_WIDTH / 2;
 
-    this.add.text(cx, 62, t('game.title'), textStyle(32, COLORS.accent, { stroke: '#000000', strokeThickness: 4 })).setOrigin(0.5);
+    this.add.text(cx, 62, t('game.title'), textStyle(32, COLORS.accent, { stroke: '#000000', strokeThickness: 6 })).setOrigin(0.5);
 
     if (view === 'main') {
       if (this.textures.exists('heroine')) this.add.sprite(cx + 150, 200, 'heroine', 0).setOrigin(0.5, 1).setScale(2 * spriteScale('heroine'));
@@ -39,6 +39,7 @@ export default class MenuScene extends Phaser.Scene {
       addButton(this, this.nav, { x: cx, y: 190, w: bw, h: bh, label: t('menu.settings'), onSelect: () => this.show('settings') });
       const note = this.add.text(cx, 262, '', textStyle(10, COLORS.dim)).setOrigin(0.5);
       addButton(this, this.nav, { x: cx, y: 230, w: bw, h: bh, label: t('menu.quit'), onSelect: () => note.setText(t('menu.quit_note')) });
+      this.add.text(GAME_WIDTH - 6, GAME_HEIGHT - 4, t('menu.version'), textStyle(8, '#777777')).setOrigin(1, 1);
       this.add.text(cx, GAME_HEIGHT - 14, t('menu.hint'), textStyle(10, COLORS.dim)).setOrigin(0.5);
     } else {
       this.add.text(cx, 108, t('settings.title'), textStyle(16)).setOrigin(0.5);

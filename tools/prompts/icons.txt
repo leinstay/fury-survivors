@@ -1,0 +1,7 @@
+Subject: square inventory icons for a fantasy survivor game, each icon a single bold object on its own, no background tile, no frame, readable at very small size, chunky pixels (about 32 pixels across each icon).
+
+Layout: a grid of 20 separate icons, 5 columns by 4 rows, all the same size, evenly spaced with clear empty gaps, nothing touching. Row by row, left to right:
+Row 1: 1. a curved white sword slash arc; 2. three throwing daggers fanned out; 3. a blue round shield with a glowing rim; 4. a glowing golden holy rune circle; 5. a double-bladed war axe.
+Row 2: 6. a blue lightning bolt with a chain link; 7. a round fire bomb flask with a lit fuse; 8. a purple shield with swirling storm wind; 9. a dagger crackling with blue lightning; 10. a red heart.
+Row 3: 11. a red flexed arm fist (attack); 12. a green winged boot (speed); 13. a golden four-pointed critical star; 14. a purple magnet; 15. a blue hourglass (haste).
+Row 4: 16. a green four-leaf clover; 17. a brown leather chestplate (armor); 18. a pink heart with a small green leaf (regeneration); 19. a pink healing potion bottle; 20. a gold coin.

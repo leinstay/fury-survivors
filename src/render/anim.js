@@ -1,4 +1,4 @@
-// Процедурная анимация персонажей: ходьба кадрами 1/2, покачивание, наклон, парение летунов.
+// Процедурная анимация персонажей: ходьба кадрами 1/2 (у босса 0/1, кадр 2 — поза каста), покачивание, наклон, парение летунов.
 // Частицы, числа урона и тряска живут в fx.js.
 import { SPRITES } from '../../assets/sprites/manifest.js';
 import { FX } from '../data/constants.js';
@@ -10,7 +10,11 @@ export function animateCharacter(sprite, key, e, time, seed) {
   const def = SPRITES[key];
   const frames = def ? def.frames : 1;
   const moving = !!e.moving;
-  if (frames >= 3 && moving) {
+  if (e.boss && frames >= 3) {
+    // у босса кадр 2 — каст/замах, ходьба кадрами 0 и 1
+    if (e.pose === 'cast' || e.pose === 'windup') sprite.setFrame(2);
+    else sprite.setFrame(moving ? Math.floor(time / STEP_TIME + seed) % 2 : 0);
+  } else if (frames >= 3 && moving) {
     sprite.setFrame(1 + (Math.floor(time / STEP_TIME + seed) % 2));
   } else {
     sprite.setFrame(0);

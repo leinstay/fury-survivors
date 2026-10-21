@@ -24,6 +24,14 @@ function item(key, w, h, color, shape = 'round', frames = 1, origin = [0.5, 0.5]
   return [key, { file: `assets/sprites/${key}.png`, frameWidth: w, frameHeight: h, frames, origin, size: [w - 4, h - 4], color, shape }];
 }
 
+// Объект из листа (tools/slice-sheet.mjs): кадр w×h, рисунок вписывается в size (по умолчанию весь кадр).
+function art(key, w, h, { frames = 1, origin = [0.5, 0.5], size = [w, h], density, color = '#888888', shape = 'rect' } = {}) {
+  const spec = { file: `assets/sprites/${key}.png`, frameWidth: w, frameHeight: h, frames, origin, size, color, shape };
+  if (density) spec.density = density;
+  return [key, spec];
+}
+const FEET = [0.5, 1];
+
 export const SPRITES = Object.fromEntries([
   // Герои и портрет
   ['heroine', { file: 'assets/sprites/heroine.png', frameWidth: 96, frameHeight: 96, frames: 3, origin: [0.5, 94 / 96], size: [60, 88], density: 2, color: '#e0603a', shape: 'humanoid' }],
@@ -41,24 +49,25 @@ export const SPRITES = Object.fromEntries([
   // Босс в обычной плотности: арт-пиксель модели = 2 px холста, крупнее и грубее остальных, как увеличенные боссы VS
   ['dryad_queen', { file: 'assets/sprites/dryad_queen.png', frameWidth: 128, frameHeight: 128, frames: 3, origin: [0.5, 124 / 128], size: [70, 115], color: '#3f8a4a', shape: 'humanoid' }],
 
-  // Предметы
-  item('xp_small', 8, 8, '#4fc3ff'),
-  item('xp_medium', 12, 12, '#5aff8a'),
-  item('xp_large', 16, 16, '#ff5a5a'),
-  item('food', 16, 16, '#ffb070'),
-  item('magnet', 16, 16, '#c0c0c0'),
-  item('coin', 12, 12, '#ffd84a'),
-  item('chest', 24, 20, '#a0602a', 'rect', 1, [0.5, 1]),
+  // Предметы (обычная плотность: арт-пиксель = 2 px холста)
+  art('xp_small', 10, 12),
+  art('xp_medium', 12, 14),
+  art('xp_large', 14, 20),
+  art('food', 16, 16),
+  art('magnet', 16, 16),
+  art('coin', 12, 14),
+  art('chest', 22, 20, { origin: FEET }),
 
-  // Снаряды и эффекты оружия
-  item('proj_blade_arc', 64, 32, '#ffffff', 'rect'),
-  item('proj_dagger', 16, 8, '#dddddd', 'rect'),
-  item('proj_shield', 16, 16, '#7ab0ff'),
-  item('proj_holy_ground', 64, 64, '#fff3a0'),
-  item('proj_axe', 20, 20, '#b0b0b0', 'rect'),
-  item('proj_chain', 16, 16, '#9ad0ff'),
-  item('proj_firebomb', 16, 16, '#ff7030'),
-  item('proj_enemy', 8, 8, '#ff40a0'),
+  // Снаряды и эффекты оружия. Взмах и святой круг в половинной плотности (арт-пиксель = 4 px холста):
+  // поведение оружия масштабирует их от ширины 64 px мира, а родной рисунок модели ~30 px.
+  art('proj_blade_arc', 32, 32, { density: 0.5 }),
+  art('proj_dagger', 20, 10),
+  art('proj_shield', 22, 22),
+  art('proj_holy_ground', 32, 32, { density: 0.5 }),
+  art('proj_axe', 22, 22),
+  art('proj_chain', 22, 22),
+  art('proj_firebomb', 22, 22),
+  art('proj_enemy', 10, 10),
 
   // Иконки оружия, пассивок и карточки лечения (24×24)
   item('icon_blade_arc', 24, 24, '#d8d8e8', 'rect'),
@@ -81,12 +90,12 @@ export const SPRITES = Object.fromEntries([
   item('icon_regen', 24, 24, '#d86a9a', 'rect'),
   item('icon_heal', 24, 24, '#f6c7c3', 'rect'),
 
-  // Окружение
-  item('grass', 32, 32, '#2f5a2a', 'tile', 4, [0, 0]),
-  item('tree', 48, 64, '#1f4a22', 'round', 1, [0.5, 1]),
-  item('rock', 24, 16, '#6a6a6a', 'round', 1, [0.5, 1]),
-  item('bush', 24, 16, '#2a6a30', 'round', 1, [0.5, 1]),
-  item('flower', 8, 8, '#ffe070', 'round', 2, [0.5, 1]),
-  item('barrel', 16, 20, '#8a5a2a', 'rect', 1, [0.5, 1]),
-  item('lantern', 12, 24, '#e0c050', 'rect', 1, [0.5, 1]),
+  // Окружение (обычная плотность). Трава процедурная: tools/make-grass.mjs.
+  item('grass', 128, 128, '#2f5a2a', 'tile', 1, [0, 0]),
+  art('tree', 56, 60, { frames: 2, origin: FEET }),
+  art('rock', 30, 22, { origin: FEET }),
+  art('bush', 30, 24, { origin: FEET }),
+  art('flower', 14, 16, { frames: 2, origin: FEET }),
+  art('barrel', 18, 20, { origin: FEET }),
+  art('lantern', 22, 36, { origin: FEET }),
 ]);

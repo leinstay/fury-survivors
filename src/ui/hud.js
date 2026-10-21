@@ -1,6 +1,6 @@
 // HUD: HP, XP, уровень, таймер, убийства, иконки оружия и пассивок, кнопка паузы на таче.
 import { GAME_WIDTH } from '../data/constants.js';
-import { t } from '../i18n/index.js';
+import { t, hasKey } from '../i18n/index.js';
 import { textStyle, COLORS } from './style.js';
 import { addIcon, iconKeyFor } from './icons.js';
 
@@ -30,13 +30,33 @@ export class Hud {
     this.timeText = add(scene.add.text(GAME_WIDTH / 2, 20, '', textStyle(16, '#ffffff', { stroke: '#000000', strokeThickness: 4 })).setOrigin(0.5, 0.5));
     this.killText = add(scene.add.text(GAME_WIDTH - 8, 16, '', textStyle(12, '#ffffff', { stroke: '#000000', strokeThickness: 3 })).setOrigin(1, 0));
 
+    this.coinText = add(scene.add.text(GAME_WIDTH - 8, 30, '', textStyle(12, '#ffd84a', { stroke: '#000000', strokeThickness: 3 })).setOrigin(1, 0));
+
+    // Полоса HP босса под таймером
+    this.bossObjs = [];
+    const bw = 200;
+    const bx = GAME_WIDTH / 2 - bw / 2;
+    this.bossBarW = bw - 2;
+    this.bossObjs.push(add(scene.add.rectangle(bx - 1, 34, bw + 2, 10, 0x000000, 0.8).setOrigin(0, 0).setStrokeStyle(1, 0xb0a0d0)));
+    this.bossFill = add(scene.add.rectangle(bx + 1, 36, this.bossBarW, 6, 0xc02030).setOrigin(0, 0));
+    this.bossObjs.push(this.bossFill);
+    this.bossName = add(scene.add.text(GAME_WIDTH / 2, 52, '', textStyle(10, '#ffffff', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5, 0.5));
+    this.bossObjs.push(this.bossName);
+    for (const o of this.bossObjs) o.setVisible(false);
+    this.bossShown = '';
+
+    // Баннер предупреждения о боссе
+    this.banner = add(scene.add.text(GAME_WIDTH / 2, 110, t('boss.warning'), textStyle(24, '#ff3030', { stroke: '#000000', strokeThickness: 5 })).setOrigin(0.5)).setVisible(false);
+    this.bannerUntil = -1;
+    this.bannerStart = 0;
+
     this.slots = [];
     this.slotSig = '';
 
     if (touch) {
       const x = GAME_WIDTH - 22;
-      const r = add(scene.add.rectangle(x, 48, 28, 28, 0x000000, 0.5).setStrokeStyle(2, 0xffffff));
-      add(scene.add.text(x, 48, t('hud.pause'), textStyle(14)).setOrigin(0.5));
+      const r = add(scene.add.rectangle(x, 64, 28, 28, 0x000000, 0.5).setStrokeStyle(2, 0xffffff));
+      add(scene.add.text(x, 64, t('hud.pause'), textStyle(14)).setOrigin(0.5));
       r.setInteractive();
       r.on('pointerdown', (p, lx, ly, ev) => { if (ev && ev.stopPropagation) ev.stopPropagation(); if (onPause) onPause(); });
       this.pauseRect = r;
@@ -45,7 +65,35 @@ export class Hud {
 
   // Область кнопки паузы (для ввода: тут джойстик не стартует).
   isOnPauseButton(x, y) {
-    return !!this.pauseRect && x > GAME_WIDTH - 40 && y > 30 && y < 66;
+    return !!this.pauseRect && x > GAME_WIDTH - 40 && y > 46 && y < 82;
+  }
+
+  // События sim этого шага (баннер босса).
+  onEvents(events) {
+    for (const ev of events) {
+      if (ev.type === 'bossWarning') {
+        this.bannerStart = this.sim.time;
+        this.bannerUntil = this.sim.time + 3;
+      }
+    }
+  }
+
+  _updateBoss() {
+    const b = this.sim.boss;
+    const alive = !!b && b.hp > 0 && !b.dead;
+    const key = alive ? b.type : '';
+    if (key !== this.bossShown) {
+      this.bossShown = key;
+      for (const o of this.bossObjs) o.setVisible(alive);
+      if (alive) {
+        const k = `boss.${b.type}.name`;
+        this.bossName.setText(hasKey(k) ? t(k) : b.type);
+      }
+    }
+    if (alive) {
+      const max = b.maxHp || b.hp || 1;
+      this.bossFill.width = Math.max(1, Math.round(this.bossBarW * Math.max(0, Math.min(1, b.hp / max))));
+    }
   }
 
   _rebuildSlots() {
@@ -73,6 +121,10 @@ export class Hud {
     this.hpText.setText(`${Math.ceil(Math.max(0, p.hp))}/${Math.ceil(p.maxHp)}`);
     this.timeText.setText(formatTime(sim.time));
     this.killText.setText(t('hud.kills', { n: sim.kills }));
+    this.coinText.setText(t('hud.coins', { n: sim.coins || 0 }));
+    this._updateBoss();
+    const showBanner = sim.time < this.bannerUntil;
+    this.banner.setVisible(showBanner && Math.floor((sim.time - this.bannerStart) * 3) % 2 === 0);
     const sig = p.weapons.map((w) => `${w.id}${w.level}`).join() + '|' + p.passives.map((w) => `${w.id}${w.level}`).join();
     if (sig !== this.slotSig) {
       this.slotSig = sig;

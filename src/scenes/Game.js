@@ -25,6 +25,7 @@ export default class GameScene extends Phaser.Scene {
     this.gameInput = new GameInput(this, { isBlocked: (x, y) => this.hud && this.hud.isOnPauseButton(x, y) });
     this.hud = new Hud(this, this.sim, { touch: this.gameInput.touch, onPause: () => this.openPause() });
     this.ended = false;
+    this.pendingChest = null;
     const pad = readPad();
     this.padStart = !!(pad && pad.start);
 
@@ -44,6 +45,8 @@ export default class GameScene extends Phaser.Scene {
   handleEvents(events) {
     if (!events.length) return;
     this.fx.onEvents(events);
+    this.hud.onEvents(events);
+    for (const ev of events) if (ev.type === 'chest') this.pendingChest = ev.items || [];
     handleSimEvents(this, events);
     const h = FX.hitstop;
     let stop = 0;
@@ -81,7 +84,13 @@ export default class GameScene extends Phaser.Scene {
     this.world.update(dt);
     this.hud.update();
 
-    if (sim.state === 'levelup') {
+    const chest = this.pendingChest;
+    this.pendingChest = null;
+    if (chest) {
+      // сундук первым; LevelUp (sim.state === 'levelup') откроется в следующем кадре после resume
+      this.scene.pause('Game');
+      this.scene.launch('Chest', { sim, items: chest });
+    } else if (sim.state === 'levelup') {
       this.scene.pause('Game');
       this.scene.launch('LevelUp', { sim });
     } else if ((sim.state === 'gameover' || sim.state === 'victory') && !this.ended) {

@@ -63,7 +63,7 @@ function nearest(pal, r, g, b) {
 }
 
 // 1. Маска фона. Возвращает Uint8Array: 1 = пиксель фигуры.
-function buildMask(data, w, h) {
+export function buildMask(data, w, h) {
   const n = w * h;
   let transparent = 0;
   for (let i = 0; i < n; i++) if (data[i * 4 + 3] < 128) transparent++;
@@ -92,7 +92,7 @@ function buildMask(data, w, h) {
 }
 
 // Мелкий мусор: связные области меньше minArea пикселей убираются.
-function removeSpecks(mask, w, h, minArea) {
+export function removeSpecks(mask, w, h, minArea) {
   const seen = new Uint8Array(w * h);
   const stack = new Int32Array(w * h);
   for (let s = 0; s < w * h; s++) {
@@ -223,7 +223,7 @@ function cleanup(img, outlineIdx, outline) {
 }
 
 // Пики профиля перепадов: локальный максимум в окне ±3, не ближе minGap друг к другу.
-function edgePeaks(E, a, b, minGap) {
+export function edgePeaks(E, a, b, minGap) {
   let max = 0;
   for (let x = a; x < b; x++) if (E[x] > max) max = E[x];
   const peaks = [];
@@ -242,7 +242,7 @@ function edgePeaks(E, a, b, minGap) {
 }
 
 // Шаг сетки: самая частая разница между соседними пиками (6..16 px) по всем позам.
-function commonStep(peakLists) {
+export function commonStep(peakLists) {
   const hist = new Map();
   for (const p of peakLists) for (let i = 1; i < p.length; i++) {
     const d = p[i] - p[i - 1];
@@ -271,7 +271,7 @@ function gridLines(E, a, b, step) {
 }
 
 // Профили перепадов цвета по столбцам и строкам внутри позы (граница фигура/фон тоже перепад).
-function edgeProfiles(data, mask, w, h, pose) {
+export function edgeProfiles(data, mask, w, h, pose) {
   const x0 = Math.max(0, pose.x0 - 2), x1 = Math.min(w - 1, pose.x1 + 3);
   const y0 = Math.max(0, pose.y0 - 2), y1 = Math.min(h - 1, pose.y1 + 3);
   const diff = (ax, ay, bx, by) => {
@@ -292,7 +292,7 @@ function edgeProfiles(data, mask, w, h, pose) {
 // Снятие позы по родной сетке с общим шагом [sx, sy]. Возвращает { w, h, rgba } с обрезанными пустыми краями.
 // Уменьшение чистого пиксель-арта в k раз (k < 1): каждый выходной пиксель берёт самый частый цвет своего блока,
 // тёмные цвета (обводка) получают бонус, чтобы контур не рвался. Пусто, если блок прозрачен больше чем наполовину.
-function shrink(im, k) {
+export function shrink(im, k) {
   const ow = Math.max(1, Math.round(im.w * k)), oh = Math.max(1, Math.round(im.h * k));
   const rgba = new Uint8Array(ow * oh * 4);
   const counts = new Map();
@@ -318,7 +318,7 @@ function shrink(im, k) {
   return trim({ w: ow, h: oh, rgba });
 }
 
-function gridSnap(data, mask, w, prof, sx, sy) {
+export function gridSnap(data, mask, w, prof, sx, sy) {
   const gx = { lines: gridLines(prof.colE, prof.x0, prof.x1, sx) };
   const gy = { lines: gridLines(prof.rowE, prof.y0, prof.y1, sy) };
   const ow = gx.lines.length - 1, oh = gy.lines.length - 1;
@@ -346,7 +346,7 @@ function gridSnap(data, mask, w, prof, sx, sy) {
   return trim({ w: ow, h: oh, rgba });
 }
 
-function trim(img) {
+export function trim(img) {
   const { w, h, rgba } = img;
   let l = w, r = -1, t = h, b = -1;
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {

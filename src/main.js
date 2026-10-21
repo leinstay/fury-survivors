@@ -10,6 +10,7 @@ import LevelUpScene from './scenes/LevelUp.js';
 import PauseScene from './scenes/Pause.js';
 import GameOverScene from './scenes/GameOver.js';
 import VictoryScene from './scenes/Victory.js';
+import ChestScene from './scenes/Chest.js';
 
 // Каждая сцена при старте получает камеру с origin (0, 0) и зумом RENDER_ZOOM: код сцен и UI работает
 // в координатах 640×360, а холст 1280×720. init вызывается при каждом старте сцены, когда камеры уже созданы.
@@ -36,7 +37,7 @@ const game = new Phaser.Game({
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
   input: { gamepad: true },
-  scene: [BootScene, MenuScene, GameScene, LevelUpScene, PauseScene, GameOverScene, VictoryScene].map(zoomed),
+  scene: [BootScene, MenuScene, GameScene, LevelUpScene, PauseScene, GameOverScene, VictoryScene, ChestScene].map(zoomed),
 });
 
 installDebug(game);

@@ -8,6 +8,7 @@ export default {
   'menu.play': 'Play',
   'menu.settings': 'Settings',
   'menu.quit': 'Quit',
+  'menu.version': 'v0.3 demo',
   'menu.wip': 'Work in progress',
   'menu.quit_note': 'Close the tab to quit',
   'menu.hint': 'Arrows / WASD: move   Enter / Space: select   Esc: back',
@@ -39,6 +40,26 @@ export default {
   'hud.level': 'LV {n}',
   'hud.kills': 'Kills {n}',
   'hud.pause': 'II',
+  'hud.coins': 'Coins {n}',
+  'boss.warning': 'WARNING! A BOSS APPROACHES',
+
+  // Сундук
+  'chest.title': 'Treasure!',
+  'chest.new': 'NEW!',
+  'chest.evolution': 'EVOLUTION!',
+  'chest.continue': 'Continue',
+  'chest.open': 'Opening...',
+
+  // Статы игрока
+  'stat.title': 'Stats',
+  'stat.hp': 'HP',
+  'stat.atk': 'ATK',
+  'stat.spd': 'SPD',
+  'stat.crt': 'CRT',
+  'stat.pickup': 'Pickup',
+  'stat.haste': 'Haste',
+  'stat.luck': 'Luck',
+  'stat.armor': 'Armor',
 
   // Итоги
   'gameover.title': 'Game Over',

@@ -1,6 +1,7 @@
 // Общая фокус-навигация меню: клавиатура (стрелки/WASD, Enter/Space, Esc), мышь, геймпад.
 import { textStyle, COLORS } from './style.js';
 import { playSfx } from '../audio/sfx.js';
+import { addPanel } from './panel.js';
 
 // Состояние геймпада (первый подключённый) или null. Без Phaser-плагина: читаем Gamepad API напрямую.
 export function readPad() {
@@ -154,14 +155,11 @@ export class FocusNav {
 
 // Кнопка-прямоугольник с текстом. Возвращает item (можно менять item.disabled и вызывать item.setLabel).
 export function addButton(scene, nav, { x, y, w, h, label, onSelect, size = 14, color = '#ffffff' }) {
-  const rect = scene.add.rectangle(x, y, w, h, COLORS.panel).setStrokeStyle(2, COLORS.stroke);
+  const rect = addPanel(scene, x, y, w, h);
   const text = scene.add.text(x, y, label, textStyle(size, color)).setOrigin(0.5);
   const item = {
     x, y, w, h, onSelect, rect, text, disabled: false,
-    setFocus(f) {
-      rect.setFillStyle(f ? COLORS.panelFocus : COLORS.panel);
-      rect.setStrokeStyle(2, f ? COLORS.strokeFocus : COLORS.stroke);
-    },
+    setFocus(f) { rect.setFocus(f); },
     setLabel(s) { text.setText(s); },
     setDisabled(d) {
       item.disabled = d;
@@ -175,7 +173,7 @@ export function addButton(scene, nav, { x, y, w, h, label, onSelect, size = 14, 
 
 // Слайдер 0..1 с шагом 0.1. get()/set(v) работают с настройками.
 export function addSlider(scene, nav, { x, y, w, h = 24, label, get, set }) {
-  const rect = scene.add.rectangle(x, y, w, h, COLORS.panel).setStrokeStyle(2, COLORS.stroke);
+  const rect = addPanel(scene, x, y, w, h);
   const labelText = scene.add.text(x - w / 2 + 8, y, label, textStyle(12)).setOrigin(0, 0.5);
   const trackW = Math.round(w * 0.42);
   const trackX = x + w / 2 - trackW - 44;
@@ -189,10 +187,7 @@ export function addSlider(scene, nav, { x, y, w, h = 24, label, get, set }) {
   };
   const item = {
     x, y, w, h, rect, labelText, disabled: false,
-    setFocus(f) {
-      rect.setFillStyle(f ? COLORS.panelFocus : COLORS.panel);
-      rect.setStrokeStyle(2, f ? COLORS.strokeFocus : COLORS.stroke);
-    },
+    setFocus(f) { rect.setFocus(f); },
     onAdjust(dir) { set(get() + dir * 0.1); refresh(); },
     onPointer(p) {
       const v = (p.worldX - trackX) / trackW; // worldX учитывает зум камеры

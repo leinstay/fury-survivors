@@ -53,3 +53,20 @@ test('balance: same seed gives the same run', () => {
   assert.equal(a.sim.player.level, b.sim.player.level);
   assert.equal(a.sim.player.hp, b.sim.player.hp);
 });
+
+test('balance: boss is not immortal (takes damage within 3 minutes) and bot kills it on some seed', () => {
+  let victories = 0;
+  for (const seed of [1, 2, 3, 4]) {
+    let minRatio = 1;
+    let sawBoss = false;
+    const r = runBot({
+      seed, upgrades: true, until: 780,
+      onSecond: (sim) => { if (sim.boss) { sawBoss = true; minRatio = Math.min(minRatio, sim.boss.hp / sim.boss.maxHp); } },
+    });
+    if (r.state === 'victory') { victories++; continue; }
+    if (r.state === 'gameover' && r.time < 600) continue; // не дожил до босса
+    assert.ok(sawBoss, `seed ${seed}: boss appeared`);
+    assert.ok(minRatio < 1, `seed ${seed}: boss took no damage`);
+  }
+  assert.ok(victories >= 1, 'bot beat the boss on at least one of 4 seeds');
+});

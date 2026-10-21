@@ -31,7 +31,9 @@ sim.player = {
   passives: [{ id, level }],
   stats,                  // итоговые статы (core/stats.js)
 }
-sim.enemies     // [{ uid, type, sprite, x, y, hp, maxHp, size, facing, elite, boss, hitFlash, moving }]
+sim.enemies     // [{ uid, type, sprite, x, y, hp, maxHp, size, facing, elite, boss, hitFlash, moving, pose, rage }]
+                // pose: 'idle' | 'windup' | 'cast' (осмысленно у босса; anim.js: windup/cast = кадр 2), rage: bool (только босс)
+sim.boss        // живой босс (та же сущность из sim.enemies, поля hp и maxHp для полосы HP) или null
 sim.projectiles // [{ uid, sprite, x, y, angle, scale, alpha, owner: 'player' | 'enemy' }]
 sim.pickups     // [{ uid, type, sprite, x, y }]
 sim.props       // [{ uid, sprite, x, y, breakable }]  разрушаемые объекты
@@ -42,13 +44,28 @@ sim.events      // события этого шага, очищаются в н�
                 //   { type: 'pickup', kind }
                 //   { type: 'levelup', level }
                 //   { type: 'weaponFire', weapon }
-                //   { type: 'chest', items: [...] }
+                //   { type: 'chest', items: [...] }          формат ниже
+                //   { type: 'propBreak', x, y, sprite }      сломан бочонок/фонарь
+                //   { type: 'bossWarning', boss, seconds }   один раз, за stage.bossWarning с до босса
                 //   { type: 'bossSpawn', boss }
+                //   { type: 'bossRage', x, y }               босс упал ниже bosses[id].rage.hpFraction HP
                 //   { type: 'gameover' } | { type: 'victory' }
 sim.damageByWeapon  // { weaponId: totalDamage }
 ```
 
 Все массивы сущностей живут дольше одного кадра: рендер сопоставляет спрайты по `uid` (создаёт новые, прячет пропавшие в пул).
+
+### Сундук
+
+Падает с каждой элиты и с босса (`drop: 'chest'` в data). При подборе применяется сразу и шлёт `{ type: 'chest', items }`. Каждый item:
+
+```js
+{ kind: 'weapon' | 'passive' | 'heal', id, level, isNew, icon,
+  evolved?: true,        // только супероружие
+  from?: [idA, idB] }    // только супероружие: обе части (из data/combos.js), они убраны, результат встал на слот from[0]
+```
+
+Содержимое: супероружие, если обе части на maxLevel; иначе +1 уровень случайного оружия; иначе +1 уровень пассивки; иначе лечение.
 
 ### Улучшения уровня
 

@@ -2,6 +2,7 @@
 import { SPRITES } from '../../assets/sprites/manifest.js';
 import { GAME_WIDTH, GAME_HEIGHT, FX } from '../data/constants.js';
 import { HEROES } from '../data/heroes.js';
+import { ENEMIES } from '../data/enemies.js';
 import { animateCharacter, applyHitSquash } from './anim.js';
 import { Decor } from './decor.js';
 import { spriteScale } from './density.js';
@@ -9,6 +10,7 @@ import { spriteScale } from './density.js';
 const ELITE_TINT = 0xff9a9a;
 const PICKUP_DEPTH = -100000;
 const PROJ_DEPTH = 200000;
+const OUTLINE_DIRS = [[-1, 0], [1, 0], [0, -1], [0, 1]];
 
 class Pool {
   constructor(scene, key) {
@@ -87,6 +89,8 @@ export class World {
       g.generateTexture('fx_shadow', 32, 16);
       g.destroy();
     }
+    this.outlines = []; // подложки контура элит: 4 копии спрайта со сдвигом на 1 арт-пиксель
+    this.outlineN = 0;
     this.shadows = [];
     this.shadowN = 0;
     this.shake = { x: 0, y: 0 }; // смещение камеры от fx (тряска)
@@ -104,6 +108,29 @@ export class World {
     this.shadowN++;
     const w = Math.max(8, sprite.width * Math.abs(sprite.baseScale || 1) * c.widthK);
     s.setVisible(true).setPosition(Math.round(x), Math.round(y + c.yOffset)).setScale(w / 32, w * c.height / 16);
+  }
+
+  // Контур элиты: 4 копии спрайта, залитые цветом, сдвинутые на 1 арт-пиксель (baseScale) и лежащие под ним.
+  _outline(s, e, flip) {
+    const ed = ENEMIES[e.type] && ENEMIES[e.type].elite;
+    const color = ed && ed.tint !== undefined ? ed.tint : 0xff3030;
+    const off = Math.abs(s.baseScale || 1);
+    for (let i = 0; i < 4; i++) {
+      let o = this.outlines[this.outlineN];
+      if (!o) {
+        o = this.scene.add.sprite(0, 0, s.texture.key, 0);
+        o.tintColor = -1;
+        this.outlines.push(o);
+      }
+      this.outlineN++;
+      if (o.texture.key !== s.texture.key) o.setTexture(s.texture.key);
+      o.setFrame(s.frame.name);
+      if (o.tintColor !== color) { o.tintColor = color; o.setTintFill(color); }
+      o.setVisible(true).setOrigin(s.originX, s.originY).setFlipX(flip)
+        .setScale(s.scaleX, s.scaleY).setRotation(s.rotation)
+        .setPosition(s.x + OUTLINE_DIRS[i][0] * off, s.y + OUTLINE_DIRS[i][1] * off)
+        .setDepth(s.depth - 0.5);
+    }
   }
 
   _tex(key) {
@@ -153,6 +180,7 @@ export class World {
     cam.scrollX = Math.round(p.x - GAME_WIDTH / 2) + this.shake.x;
     cam.scrollY = Math.round(p.y - GAME_HEIGHT / 2) + this.shake.y;
     this.shadowN = 0;
+    this.outlineN = 0;
     this._shadow(p.x, p.y, pl, cam);
     this.bg.tilePositionX = cam.scrollX;
     this.bg.tilePositionY = cam.scrollY;
@@ -169,7 +197,12 @@ export class World {
       s.setFlipX(e.facing < 0);
       s.setDepth(e.y);
       this._tint(s, e.hitFlash > 0, e.elite);
+      if (e.elite) this._outline(s, e, e.facing < 0);
     });
+    for (let i = this.outlineN; i < this.outlines.length; i++) {
+      if (!this.outlines[i].visible) break;
+      this.outlines[i].setVisible(false);
+    }
     for (let i = this.shadowN; i < this.shadows.length; i++) {
       if (!this.shadows[i].visible) break;
       this.shadows[i].setVisible(false);

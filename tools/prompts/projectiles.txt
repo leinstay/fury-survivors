@@ -1,0 +1,5 @@
+Subject: weapon projectiles and effects for a survivor game, same pixel scale as the knight in the second attached image, bright saturated colors so they read over green grass.
+
+Layout: 8 separate objects in two rows with wide empty gaps, nothing touching, all pointing or flying to the RIGHT:
+Row 1: 1. a wide white crescent sword slash arc with a pale blue edge, about as wide as the knight is tall; 2. a single silver throwing dagger flying right, small; 3. a small round blue glowing shield orb; 4. a large flat golden glowing holy circle with runes on the ground, seen from above at an angle, as wide as the knight is tall.
+Row 2: 5. a spinning steel war axe, small; 6. a small crackling blue lightning ball; 7. a small round fire bomb flask with a lit fuse; 8. a small glowing pink magic orb (enemy bullet).

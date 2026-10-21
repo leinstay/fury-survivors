@@ -3,7 +3,8 @@ import { GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
 import { FocusNav, addButton } from '../ui/focus.js';
 import { addIcon } from '../ui/icons.js';
 import { displayName } from '../ui/icons.js';
-import { textStyle, COLORS } from '../ui/style.js';
+import { textStyle } from '../ui/style.js';
+import { addPanel } from '../ui/panel.js';
 
 const CARD_W = 140;
 const CARD_H = 180;
@@ -53,7 +54,7 @@ export default class LevelUpScene extends Phaser.Scene {
 
     cards.forEach((c, i) => {
       const x = x0 + i * (CARD_W + CARD_GAP);
-      const rect = this.add.rectangle(x, cy, CARD_W, CARD_H, COLORS.panel).setStrokeStyle(2, COLORS.stroke);
+      const rect = addPanel(this, x, cy, CARD_W, CARD_H);
       addIcon(this, x, cy - 62, c.icon, 32, c.kind, c.id);
       this.add.text(x, cy - 30, c.kind === 'heal' ? t('card.heal.name') : displayName(c.kind, c.id),
         textStyle(12, '#ffffff', { align: 'center', wordWrap: { width: CARD_W - 12 } })).setOrigin(0.5, 0);
@@ -63,10 +64,7 @@ export default class LevelUpScene extends Phaser.Scene {
       if (this.banishMode) this.add.rectangle(x, cy, CARD_W, CARD_H, 0xaa2020, 0.18);
       this.nav.add({
         x, y: cy, w: CARD_W, h: CARD_H,
-        setFocus: (f) => {
-          rect.setFillStyle(f ? COLORS.panelFocus : COLORS.panel);
-          rect.setStrokeStyle(2, f ? COLORS.strokeFocus : COLORS.stroke);
-        },
+        setFocus: (f) => rect.setFocus(f),
         onSelect: () => this.pick(i),
       });
     });

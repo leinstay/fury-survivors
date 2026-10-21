@@ -1,0 +1,77 @@
+{
+  "env_props": {
+    "raw": "assets/raw/env_props.png",
+    "items": [
+      {
+        "key": "tree",
+        "frame": 0
+      },
+      "rock",
+      "bush",
+      "barrel",
+      {
+        "key": "flower",
+        "frame": 0
+      },
+      {
+        "key": "flower",
+        "frame": 1
+      },
+      "lantern",
+      {
+        "key": "tree",
+        "frame": 1
+      }
+    ]
+  },
+  "items": {
+    "raw": "assets/raw/items.png",
+    "items": [
+      "xp_small",
+      "xp_medium",
+      "xp_large",
+      "food",
+      "magnet",
+      "coin",
+      "chest"
+    ]
+  },
+  "icons": {
+    "raw": "assets/raw/icons.png",
+    "items": [
+      "icon_blade_arc",
+      "icon_throwing_daggers",
+      "icon_guardian_shields",
+      "icon_holy_ground",
+      "icon_war_axe",
+      "icon_storm_chain",
+      "icon_firebomb",
+      "icon_aegis_storm",
+      "icon_thunder_knives",
+      "icon_max_hp",
+      "icon_attack",
+      "icon_speed",
+      "icon_crit",
+      "icon_pickup",
+      "icon_haste",
+      "icon_luck",
+      "icon_armor",
+      "icon_regen",
+      "icon_heal",
+      null
+    ]
+  },
+  "projectiles": {
+    "raw": "assets/raw/projectiles.png",
+    "items": [
+      "proj_blade_arc",
+      "proj_dagger",
+      "proj_shield",
+      "proj_holy_ground",
+      "proj_axe",
+      "proj_chain",
+      "proj_firebomb",
+      "proj_enemy"
+    ]
+  }
+}

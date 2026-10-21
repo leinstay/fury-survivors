@@ -68,13 +68,19 @@ export function drawCards(player, rng, banished, count = LEVEL_UP.cards, exclude
 export function applyCard(player, card) {
   if (card.kind === 'weapon') {
     if (card.from) {
+      // супероружие занимает слот первой части, остальные части убираются
+      let at = -1;
       for (const id of card.from) {
         const idx = player.weapons.findIndex((w) => w.id === id);
-        if (idx >= 0) {
-          player.weapons[idx].removed = true;
+        if (idx < 0) continue;
+        player.weapons[idx].removed = true;
+        if (at < 0) { at = idx; player.weapons[idx] = { id: card.id, level: card.level }; } else {
           player.weapons.splice(idx, 1);
+          if (idx < at) at--;
         }
       }
+      if (at < 0) player.weapons.push({ id: card.id, level: card.level });
+      return;
     }
     const own = find(player.weapons, card.id);
     if (own) own.level = card.level;

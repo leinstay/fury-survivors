@@ -185,7 +185,7 @@ class Sim {
     if (!e) {
       e = {
         uid: 0, type: '', sprite: '', x: 0, y: 0, hp: 0, maxHp: 0, size: 0, facing: 1, elite: false, boss: false,
-        hitFlash: 0, moving: false,
+        hitFlash: 0, moving: false, pose: 'idle', rage: false,
         vx: 0, vy: 0, kx: 0, ky: 0, speed: 0, damage: 0, xp: 0, st: 0, a: 0, b: 0, t: 0, mark: 0,
         dead: false, def: null, params: EMPTY, beh: null, resist: 0, hitAt: new Float64Array(SLOT_COUNT),
       };
@@ -210,7 +210,7 @@ class Sim {
     e.speed = def.speed;
     e.damage = def.damage * dmgScale * (ed ? ed.damageMul : 1);
     e.xp = (def.xp || 0) * (ed ? ed.xpMul || 1 : 1);
-    e.st = 0; e.a = 0; e.b = 0; e.t = this.rng.next() * 6.2832; e.mark = 0;
+    e.pose = 'idle'; e.rage = false; e.st = 0; e.a = 0; e.b = 0; e.t = this.rng.next() * 6.2832; e.mark = 0;
     e.dead = false;
     e.def = def;
     e.params = def.params || EMPTY;
@@ -354,6 +354,7 @@ class Sim {
     this.events.push({ type: 'kill', x: e.x, y: e.y, enemy: e.type, elite: e.elite, boss: e.boss, sprite: e.sprite, size: e.size });
     if (e.xp > 0) this.dropPickup(xpTierFor(e.xp), e.x, e.y, e.xp);
     if (e.boss) {
+      if (e.def.drop) this.dropPickup(e.def.drop, e.x, e.y);
       this.state = 'victory';
       this.events.push({ type: 'victory' });
       return;
@@ -596,6 +597,7 @@ class Sim {
     o.hp -= 1;
     if (o.hp > 0) return;
     o.dead = true;
+    this.events.push({ type: 'propBreak', x: o.x, y: o.y, sprite: o.sprite });
     const luck = this.player.stats.luck;
     const roll = this.rng.next();
     let acc = 0;

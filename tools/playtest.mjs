@@ -39,7 +39,7 @@ try {
     await page.waitForTimeout(1000);
     await page.keyboard.up(k);
     const d = await page.evaluate(() => window.__game.debug());
-    if (d.scene === 'LevelUp') await page.keyboard.press('Enter');
+    if (d.scene === 'LevelUp' || d.scene === 'Chest') await page.keyboard.press('Enter');
     if (s % 10 === 9 || d.scene === 'GameOver' || d.scene === 'Victory') {
       console.log(JSON.stringify({
         t: Math.round(d.time), scene: d.scene, fps: d.fps, enemies: d.enemies, hp: d.hp && Math.round(d.hp), lvl: d.level,

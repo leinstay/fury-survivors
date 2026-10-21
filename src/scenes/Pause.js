@@ -4,27 +4,50 @@ import { FocusNav, addButton, readPad } from '../ui/focus.js';
 import { addVolumeSliders } from '../ui/volume.js';
 import { addIcon, displayName, iconKeyFor } from '../ui/icons.js';
 import { textStyle } from '../ui/style.js';
+import { addPanel } from '../ui/panel.js';
 
+// Билд в две колонки (оружие слева, пассивки справа): 6+6 строк не налезают на кнопки.
 export function addBuildList(scene, x, y, player) {
-  scene.add.text(x, y, t('pause.build'), textStyle(14, '#ffd84a')).setOrigin(0, 0);
-  let cy = y + 22;
-  for (const [kind, title, list] of [
-    ['weapon', t('pause.weapons'), player.weapons],
-    ['passive', t('pause.passives'), player.passives],
-  ]) {
-    scene.add.text(x, cy, title, textStyle(10, '#aaaaaa')).setOrigin(0, 0);
+  addPanel(scene, x + 150, y + 82, 308, 172);
+  scene.add.text(x + 8, y + 4, t('pause.build'), textStyle(14, '#ffd84a')).setOrigin(0, 0);
+  [
+    ['weapon', t('pause.weapons'), player.weapons, x + 8],
+    ['passive', t('pause.passives'), player.passives, x + 164],
+  ].forEach(([kind, title, list, cx]) => {
+    let cy = y + 26;
+    scene.add.text(cx, cy, title, textStyle(10, '#aaaaaa')).setOrigin(0, 0);
     cy += 14;
-    if (!list.length) {
-      scene.add.text(x + 4, cy, t('pause.none'), textStyle(10, '#777777')).setOrigin(0, 0);
-      cy += 16;
-    }
+    if (!list.length) scene.add.text(cx + 4, cy, t('pause.none'), textStyle(10, '#777777')).setOrigin(0, 0);
     for (const it of list) {
-      addIcon(scene, x + 8, cy + 7, iconKeyFor(kind, it.id), 14, kind, it.id);
-      scene.add.text(x + 22, cy + 7, `${displayName(kind, it.id)}  ${t('levelup.lv', { n: it.level })}`, textStyle(10)).setOrigin(0, 0.5);
+      addIcon(scene, cx + 7, cy + 7, iconKeyFor(kind, it.id), 14, kind, it.id);
+      scene.add.text(cx + 20, cy + 7, `${displayName(kind, it.id)} ${t('levelup.lv', { n: it.level })}`, textStyle(10)).setOrigin(0, 0.5);
       cy += 16;
     }
-    cy += 6;
-  }
+  });
+}
+
+const fmtPct = (v) => `${Math.round(v * 100)}%`;
+const STAT_ROWS = [
+  ['stat.hp', (s, p) => `${Math.ceil(p.hp)}/${Math.ceil(s.maxHp ?? p.maxHp)}`],
+  ['stat.atk', (s) => fmtPct(s.atk ?? 1)],
+  ['stat.spd', (s) => String(Math.round(s.speed ?? 0))],
+  ['stat.crt', (s) => fmtPct(s.crit ?? 0)],
+  ['stat.pickup', (s) => fmtPct(s.pickup ?? 1)],
+  ['stat.haste', (s) => fmtPct(s.haste ?? 1)],
+  ['stat.luck', (s) => fmtPct(s.luck ?? 1)],
+  ['stat.armor', (s) => String(Math.round((s.armor ?? 0) * 10) / 10)],
+];
+
+// Компактный блок статов: 2 колонки по 4 строки.
+export function addStatsBlock(scene, x, y, player) {
+  const stats = player.stats || {};
+  addPanel(scene, x + 150, y + 36, 300, 82);
+  STAT_ROWS.forEach(([key, fn], i) => {
+    const cx = x + 10 + Math.floor(i / 4) * 148;
+    const cy = y + 4 + (i % 4) * 18;
+    scene.add.text(cx, cy, t(key), textStyle(10, '#aaaaaa')).setOrigin(0, 0);
+    scene.add.text(cx + 136, cy, fn(stats, player), textStyle(10)).setOrigin(1, 0);
+  });
 }
 
 export default class PauseScene extends Phaser.Scene {
@@ -46,8 +69,9 @@ export default class PauseScene extends Phaser.Scene {
     const cx = 170;
     addButton(this, this.nav, { x: cx, y: 90, w: 180, h: 30, label: t('pause.resume'), onSelect: () => this.resume() });
     addVolumeSliders(this, this.nav, { x: cx, y: 140, w: 280 });
-    addButton(this, this.nav, { x: cx, y: 230, w: 180, h: 30, label: t('pause.quit'), onSelect: () => this.quit() });
-    addBuildList(this, 340, 60, this.sim.player);
+    addButton(this, this.nav, { x: cx, y: 215, w: 180, h: 30, label: t('pause.quit'), onSelect: () => this.quit() });
+    addStatsBlock(this, 20, 262, this.sim.player);
+    addBuildList(this, 330, 56, this.sim.player);
 
     this.input.keyboard.on('keydown-P', () => this.resume());
   }

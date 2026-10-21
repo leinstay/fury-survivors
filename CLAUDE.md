@@ -41,11 +41,14 @@ assets/
   sprites/manifest.js      ключ спрайта -> файл, размер кадра, точка опоры, кадры
   sprites/*.png            спрайты (заглушки и настоящие с тем же именем и кадром)
   audio/sfx/*.wav          эффекты (jsfxr)
-  audio/music/theme.ogg    фоновая музыка, заменяется подменой файла
+  audio/music/theme.wav    фоновая музыка, заменяется подменой файла
   fonts/                   пиксельный шрифт (OFL)
 tools/                     локальные скрипты Node, в игру не попадают
   gen-sprite.mjs           генерация через OpenRouter (ключ из .secrets/, бюджет из ledger)
   clean-sprite.mjs         чистка в пиксель-арт: хромакей, даунскейл, палитра, обводка, кадр
+  slice-sheet.mjs          нарезка листа объектов (окружение, предметы, иконки, снаряды) по tools/sheets.json
+  make-grass.mjs           процедурный тайл травы
+  make-music.mjs           процедурный чиптюн-луп assets/audio/music/theme.wav
   palette.json             общая палитра всех спрайтов
   placeholders.mjs         заглушки по manifest.js
   make-sfx.mjs             генерация звуков из пресетов jsfxr

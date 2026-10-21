@@ -3,6 +3,7 @@
 // {
 //   id, name: 'stage.forest',
 //   duration: 600,               // с, на этой секунде босс
+//   bossWarning: 10,             // с до босса: событие bossWarning
 //   tiles: ['grass', ...],       // ключи тайлсета
 //   props: [{ sprite, density, breakable, hp, drop }],
 //     density — среднее число на чанк SIM.chunkSize x SIM.chunkSize;
@@ -22,6 +23,7 @@ export default {
   id: 'forest',
   name: 'stage.forest',
   duration: 600,
+  bossWarning: 10,             // за сколько секунд до босса отправить событие bossWarning
   tiles: ['grass'],
   props: [
     { sprite: 'tree', density: 2.5, breakable: false },
