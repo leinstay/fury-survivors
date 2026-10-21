@@ -2,14 +2,14 @@
 // Бэкенд: Cloud Firestore, проект fruit-madness-52222, именованная база 'fruit-madness',
 // отдельная коллекция 'fury_scores'. Правила: firestore.rules в корне (общий файл на всю базу).
 
-// Публичный web-конфиг Firebase (не секрет: что можно читать и писать, решают только правила).
+// Публичный конфиг web-приложения fury-survivors-web (не секрет: что можно читать и писать, решают только правила).
 export const FIREBASE_CONFIG = {
   apiKey: 'AIzaSyAGEpbUurZBgzybDEVkqKri-i20_R4z8FA',
   authDomain: 'fruit-madness-52222.firebaseapp.com',
   projectId: 'fruit-madness-52222',
   storageBucket: 'fruit-madness-52222.firebasestorage.app',
   messagingSenderId: '278926995710',
-  appId: '1:278926995710:web:f38b0dc86449e2492e35af',
+  appId: '1:278926995710:web:9c7fd175bc8cafb02e35af',
 };
 
 // Имя базы не входит в web-конфиг. null = база (default).

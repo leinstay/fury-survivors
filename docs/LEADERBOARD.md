@@ -1,5 +1,7 @@
 # Таблица рекордов (Cloud Firestore)
 
+Web-приложение в консоли: `fury-survivors-web` (свой appId, проект и база общие с Fruit Madness).
+
 Анонимный онлайн-топ-10. Клиент не авторизован, единственная защита это `firestore.rules`. Архитектура перенесена из Fruit Madness (`.claude/docs/leaderboard.md` там). Игра полностью работает без сети.
 
 ## Безопасность
