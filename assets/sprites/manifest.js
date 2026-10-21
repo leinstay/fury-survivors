@@ -48,8 +48,8 @@ export const SPRITES = Object.fromEntries([
   hd('succubus', 96, 94, 50, 84, '#b33a6b'),
 
   // Босс
-  // Босс в обычной плотности: арт-пиксель модели = 2 px холста, крупнее и грубее остальных, как увеличенные боссы VS
-  ['dryad_queen', { file: 'assets/sprites/dryad_queen.png', frameWidth: 128, frameHeight: 128, frames: 3, origin: [0.5, 124 / 128], size: [70, 115], color: '#3f8a4a', shape: 'humanoid' }],
+  // Босс в половинной плотности: арт-пиксель модели = 4 px холста, вдвое крупнее, как увеличенные боссы VS
+  ['dryad_queen', { file: 'assets/sprites/dryad_queen.png', frameWidth: 128, frameHeight: 128, frames: 3, origin: [0.5, 124 / 128], size: [70, 115], density: 0.5, color: '#3f8a4a', shape: 'humanoid' }],
 
   // Предметы (обычная плотность: арт-пиксель = 2 px холста)
   art('xp_small', 10, 12),

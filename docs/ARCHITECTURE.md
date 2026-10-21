@@ -121,7 +121,7 @@ sim.banish(i)       // убрать карточку i из пула до кон
 
 `src/scenes/Game.js` создаёт sim, каждый кадр читает ввод (`src/ui/input.js`: клавиатура, геймпад, экранный джойстик), вызывает `sim.step`, затем `handleEvents(sim.events)` (хитстоп, эффекты, звук), `src/render/world.js` синхронизирует спрайты, `src/ui/hud.js` обновляет HUD. При `levelup`, сундуке, `gameover` и `victory` Game ставится на паузу (`scene.pause('Game')`) и поверх запускается `LevelUp`, `Chest`, `GameOver` или `Victory`; `Pause` запускается по кнопке.
 
-Файлы `src/render/`: `world.js` (спрайты по uid, тени, камера, контур элиты цветом `elite.tint`), `anim.js` (процедурная анимация), `fx.js` (частицы, числа урона, тряска), `decor.js` (декор этапа по чанкам), `density.js` (масштаб спрайта).
+Файлы `src/render/`: `world.js` (спрайты по uid, тени, камера, контур элиты цветом `elite.outline`), `anim.js` (процедурная анимация), `fx.js` (частицы, числа урона, тряска), `decor.js` (декор этапа по чанкам), `density.js` (масштаб спрайта).
 
 ## Рендер и координаты
 

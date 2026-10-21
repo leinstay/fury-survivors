@@ -7,7 +7,6 @@ import { animateCharacter, applyHitSquash } from './anim.js';
 import { Decor } from './decor.js';
 import { spriteScale } from './density.js';
 
-const ELITE_TINT = 0xff9a9a;
 const PICKUP_DEPTH = -100000;
 const PROJ_DEPTH = 200000;
 const GROUND_DEPTH = -150000; // зоны на земле: над цветами и травой, под предметами и персонажами
@@ -114,7 +113,7 @@ export class World {
   // Контур элиты: 4 копии спрайта, залитые цветом, сдвинутые на 1 арт-пиксель (baseScale) и лежащие под ним.
   _outline(s, e, flip) {
     const ed = ENEMIES[e.type] && ENEMIES[e.type].elite;
-    const color = ed && ed.tint !== undefined ? ed.tint : 0xff3030;
+    const color = ed && ed.outline !== undefined ? ed.outline : 0xffffff;
     const off = Math.abs(s.baseScale || 1);
     for (let i = 0; i < 4; i++) {
       let o = this.outlines[this.outlineN];
@@ -152,11 +151,10 @@ export class World {
   }
 
   _tint(s, flash, elite) {
-    const state = flash ? 1 : elite ? 2 : 0;
+    const state = flash ? 1 : 0;
     if (s.tintState === state) return;
     s.tintState = state;
     if (state === 1) s.setTintFill(0xffffff);
-    else if (state === 2) s.setTint(ELITE_TINT);
     else s.clearTint();
   }
 
