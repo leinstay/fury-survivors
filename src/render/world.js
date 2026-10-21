@@ -4,6 +4,7 @@ import { GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
 import { HEROES } from '../data/heroes.js';
 import { animateCharacter } from './anim.js';
 import { Decor } from './decor.js';
+import { spriteScale } from './density.js';
 
 const ELITE_TINT = 0xff9a9a;
 const PICKUP_DEPTH = -100000;
@@ -115,7 +116,7 @@ export class World {
 
     // игрок
     const pl = this.player;
-    pl.baseScale = 1;
+    pl.baseScale = spriteScale(this.playerKey);
     const lift = animateCharacter(pl, this.playerKey, p, time, 0);
     pl.setPosition(p.x, p.y + lift);
     pl.setFlipX(p.facing < 0);
@@ -134,7 +135,7 @@ export class World {
     this.pools.enemies.sync(sim.enemies, (e) => e.sprite || e.type, (s, e) => {
       const key = e.sprite || e.type;
       this._setKey(s, key);
-      s.baseScale = e.elite ? 1.25 : 1;
+      s.baseScale = (e.elite ? 1.25 : 1) * spriteScale(key);
       const lift2 = animateCharacter(s, key, e, time, e.uid);
       s.setPosition(e.x, e.y + lift2);
       s.setFlipX(e.facing < 0);
@@ -146,19 +147,21 @@ export class World {
       this._setKey(s, e.sprite);
       s.setPosition(e.x, e.y);
       s.setRotation(e.angle || 0);
-      s.setScale(e.scale == null ? 1 : e.scale);
+      s.setScale((e.scale == null ? 1 : e.scale) * spriteScale(e.sprite));
       s.setAlpha(e.alpha == null ? 1 : e.alpha);
       s.setDepth(PROJ_DEPTH + e.y);
     });
 
     this.pools.pickups.sync(sim.pickups, (e) => e.sprite, (s, e) => {
       this._setKey(s, e.sprite);
+      s.setScale(spriteScale(e.sprite));
       s.setPosition(e.x, e.y);
       s.setDepth(PICKUP_DEPTH + e.y);
     });
 
     this.pools.props.sync(sim.props, (e) => e.sprite, (s, e) => {
       this._setKey(s, e.sprite);
+      s.setScale(spriteScale(e.sprite));
       s.setPosition(e.x, e.y);
       s.setDepth(e.y);
     });

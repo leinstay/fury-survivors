@@ -187,7 +187,7 @@ export function addSlider(scene, nav, { x, y, w, h = 24, label, get, set }) {
     },
     onAdjust(dir) { set(get() + dir * 0.1); refresh(); },
     onPointer(p) {
-      const v = (p.x - trackX) / trackW;
+      const v = (p.worldX - trackX) / trackW; // worldX учитывает зум камеры
       set(Math.min(1, Math.max(0, v)));
       refresh();
     },

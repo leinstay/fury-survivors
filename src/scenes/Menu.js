@@ -3,6 +3,7 @@ import { GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
 import { FocusNav, addButton } from '../ui/focus.js';
 import { addVolumeSliders } from '../ui/volume.js';
 import { textStyle, COLORS } from '../ui/style.js';
+import { spriteScale } from '../render/density.js';
 
 export default class MenuScene extends Phaser.Scene {
   constructor() {
@@ -29,7 +30,7 @@ export default class MenuScene extends Phaser.Scene {
     this.add.text(cx, 62, t('game.title'), textStyle(32, COLORS.accent, { stroke: '#000000', strokeThickness: 4 })).setOrigin(0.5);
 
     if (view === 'main') {
-      if (this.textures.exists('heroine')) this.add.sprite(cx + 150, 200, 'heroine', 0).setOrigin(0.5, 1).setScale(2);
+      if (this.textures.exists('heroine')) this.add.sprite(cx + 150, 200, 'heroine', 0).setOrigin(0.5, 1).setScale(2 * spriteScale('heroine'));
       const bw = 160, bh = 30;
       addButton(this, this.nav, { x: cx, y: 150, w: bw, h: bh, label: t('menu.play'), onSelect: () => this.scene.start('Game') });
       addButton(this, this.nav, { x: cx, y: 190, w: bw, h: bh, label: t('menu.settings'), onSelect: () => this.show('settings') });

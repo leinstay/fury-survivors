@@ -1,9 +1,13 @@
 // Ввод игры: WASD/стрелки (8 направлений), геймпад, экранный джойстик на тач-устройствах.
-import { GAME_WIDTH } from '../data/constants.js';
+import { GAME_WIDTH, RENDER_ZOOM } from '../data/constants.js';
 import { readPad } from './focus.js';
 
 const STICK_RADIUS = 36;
 const DEADZONE = 0.2;
+
+// Указатель в координатах экрана 640×360 (pointer.x/y — в пикселях холста 1280×720).
+const sx = (p) => p.x / RENDER_ZOOM;
+const sy = (p) => p.y / RENDER_ZOOM;
 
 export class GameInput {
   // opts.isBlocked(x, y): true, если точка занята UI (джойстик там не стартует)
@@ -20,20 +24,20 @@ export class GameInput {
       scene.input.addPointer(2);
       this.gfx = scene.add.graphics().setScrollFactor(0).setDepth(1e6 + 1);
       scene.input.on('pointerdown', (p) => {
-        if (this.pointerId !== null || p.x > GAME_WIDTH / 2 || this.isBlocked(p.x, p.y)) return;
+        if (this.pointerId !== null || sx(p) > GAME_WIDTH / 2 || this.isBlocked(sx(p), sy(p))) return;
         this.pointerId = p.id;
-        this.origin = { x: p.x, y: p.y };
-        this._draw(p.x, p.y);
+        this.origin = { x: sx(p), y: sy(p) };
+        this._draw(sx(p), sy(p));
       });
       scene.input.on('pointermove', (p) => {
         if (p.id !== this.pointerId) return;
-        let dx = p.x - this.origin.x;
-        let dy = p.y - this.origin.y;
+        let dx = sx(p) - this.origin.x;
+        let dy = sy(p) - this.origin.y;
         const len = Math.hypot(dx, dy);
         if (len > STICK_RADIUS) { dx = (dx / len) * STICK_RADIUS; dy = (dy / len) * STICK_RADIUS; }
         this.stick.x = dx / STICK_RADIUS;
         this.stick.y = dy / STICK_RADIUS;
-        this._draw(p.x, p.y);
+        this._draw(sx(p), sy(p));
       });
       const up = (p) => {
         if (p.id !== this.pointerId) return;

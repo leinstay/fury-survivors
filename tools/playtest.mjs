@@ -1,6 +1,6 @@
 // Быстрый плейтест в headless Chromium: Play, движение по кругу, выбор первой карточки на уровнях,
 // каждые 10 с печатает __game.debug(). Скриншот (опционально) делается на shotAt-й секунде.
-// node tools/playtest.mjs [seconds=60] [--shot path.png] [--shot-at 25] [--url http://...]
+// node tools/playtest.mjs [seconds=60] [--shot path.png] [--shot-at 25] [--size 640x360] [--url http://...]
 import { chromium } from '@playwright/test';
 import { spawn } from 'node:child_process';
 
@@ -13,6 +13,7 @@ const seconds = Number(args.find((a) => /^\d+$/.test(a)) || 60);
 const shot = opt('--shot', null);
 const shotAt = Number(opt('--shot-at', 25));
 let url = opt('--url', null);
+const [vw, vh] = opt('--size', '640x360').split('x').map(Number);
 
 let srv = null;
 if (!url) {
@@ -21,14 +22,14 @@ if (!url) {
   await new Promise((r) => setTimeout(r, 800));
 }
 const browser = await chromium.launch();
-const page = await browser.newPage({ viewport: { width: 640, height: 360 } });
+const page = await browser.newPage({ viewport: { width: vw, height: vh } });
 const errors = [];
 page.on('pageerror', (e) => errors.push(String(e)));
 page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
 
 try {
   await page.goto(url);
-  await page.waitForFunction(() => window.__game && window.__game.debug().scene === 'Menu');
+  await page.waitForFunction(() => window.__game && window.__game.debug().scene === 'Menu', null, { timeout: 10000 });
   await page.keyboard.press('Enter');
   await page.waitForTimeout(800);
   const keys = ['KeyW', 'KeyD', 'KeyS', 'KeyA'];
@@ -48,8 +49,8 @@ try {
     if (shot && s === shotAt) await page.screenshot({ path: shot });
     if (d.scene === 'GameOver' || d.scene === 'Victory') break;
   }
-  console.log('errors:', JSON.stringify(errors));
 } finally {
+  console.log('errors:', JSON.stringify(errors));
   await browser.close();
   if (srv) srv.kill();
 }

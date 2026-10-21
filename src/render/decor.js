@@ -3,6 +3,7 @@
 // при возвращении в то же место декор стоит там же. Видимые чанки берут спрайты из пула.
 import { SIM } from '../data/constants.js';
 import { SPRITES } from '../../assets/sprites/manifest.js';
+import { spriteScale } from './density.js';
 
 const FLAT_DEPTH = -200000; // цветы и прочая мелочь лежат под всеми
 
@@ -41,7 +42,7 @@ export class Decor {
         s.setOrigin(spec ? spec.origin[0] : 0.5, spec ? spec.origin[1] : 1);
         const x = Math.round((cx + rnd()) * this.size);
         const y = Math.round((cy + rnd()) * this.size);
-        s.setPosition(x, y).setFlipX(rnd() < 0.5);
+        s.setPosition(x, y).setFlipX(rnd() < 0.5).setScale(spriteScale(def.sprite));
         s.setDepth(def.flat || def.sprite === 'flower' ? FLAT_DEPTH + y : y);
         list.push(s);
       }
@@ -50,8 +51,9 @@ export class Decor {
   }
 
   update(cam) {
-    const x0 = Math.floor(cam.scrollX / this.size) - 1, x1 = Math.floor((cam.scrollX + cam.width) / this.size) + 1;
-    const y0 = Math.floor(cam.scrollY / this.size) - 1, y1 = Math.floor((cam.scrollY + cam.height) / this.size) + 1;
+    const v = cam.worldView; // видимая область мира с учётом зума
+    const x0 = Math.floor(v.x / this.size) - 1, x1 = Math.floor((v.x + v.width) / this.size) + 1;
+    const y0 = Math.floor(v.y / this.size) - 1, y1 = Math.floor((v.y + v.height) / this.size) + 1;
     for (const [key, list] of this.chunks) {
       const [cx, cy] = key.split(',').map(Number);
       if (cx < x0 || cx > x1 || cy < y0 || cy > y1) {

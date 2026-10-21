@@ -9,6 +9,9 @@
 //   size         видимый размер фигуры в px [w, h] (для заглушек и проверки чистки)
 //   color        цвет заглушки (только tools/placeholders.mjs)
 //   shape        'humanoid' | 'blob' | 'flyer' | 'round' | 'rect' | 'tile' — форма заглушки
+//   density      пикселей текстуры на 1 px мира (по умолчанию 1). Холст 1280×720 при мире 640×360,
+//                поэтому спрайт с density 2 рисуется в масштабе 0.5 и показывает все свои пиксели.
+//                Новые спрайты делаем в density 2: рост гуманоида ~88 px, кадр 96×96 (в мире 48 px, как заглушки).
 //
 // Кадры персонажей: 0 стойка, 1 шаг А, 2 шаг Б. Смотрят в три четверти вправо, влево flipX.
 
@@ -26,7 +29,7 @@ function item(key, w, h, color, shape = 'round', frames = 1, origin = [0.5, 0.5]
 
 export const SPRITES = Object.fromEntries([
   // Герои и портрет
-  char('heroine', [22, 48], '#e0603a'),
+  ['heroine', { file: 'assets/sprites/heroine.png', frameWidth: 96, frameHeight: 96, frames: 3, origin: [0.5, 94 / 96], size: [60, 88], density: 2, color: '#e0603a', shape: 'humanoid' }],
   item('heroine_portrait', 48, 48, '#e0603a', 'rect'),
 
   // Враги

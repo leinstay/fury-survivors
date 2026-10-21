@@ -1,12 +1,18 @@
 // Чистка сгенерированного листа в настоящий пиксель-арт под кадр из manifest.js.
 //
-// node tools/clean-sprite.mjs <raw.png> <spriteKey> [--frames N] [--colors 16 | --palette] [--threshold 0.4] [--dark 0.3] [--no-outline]
+// node tools/clean-sprite.mjs <raw.png> <spriteKey> [--frames N] [--colors 16 | --palette] [--threshold 0.4] [--dark 0.3] [--no-outline] [--grid | --resample]
+//   [--height N] [--frame N] [--out path]   переопределить рост, квадратный кадр и файл (для проб; по умолчанию из manifest)
 //
 // 1. Фон: альфа из PNG или хромакей пурпурного (#FF00FF), с удалением пурпурного ореола.
 // 2. Позы: столбцы с непрозрачными пикселями режутся по пустым промежуткам, лишние куски сливаются с соседями.
 // 3. Квантование: своя палитра спрайта (k-means, --colors) или общая tools/palette.json (--palette).
 // 4. Уменьшение до роста manifest.size[1] голосованием по блокам (самый частый цвет блока), один масштаб на все позы.
 // 5. Удаление одиночных пикселей, обводка 1 px цветом palette.outline.
+//
+// Режим --grid (по умолчанию для спрайтов с density > 1): модель рисует пиксель-арт на своей неровной сетке (клетки ~9×10 px).
+// Границы клеток ищутся по пикам перепадов цвета, из каждой клетки берётся самый частый цвет: рисунок переносится
+// один арт-пиксель в один пиксель, без масштабирования, квантования и новой обводки (своя у рисунка уже есть).
+// Рост получается родной; если он отличается от manifest.size[1] больше чем на 10%, скрипт предупреждает.
 // 6. Кадр frameWidth×frameHeight: ноги на origin[1], центр стоп на origin[0]. Результат: assets/sprites/<key>.png.
 import sharp from 'sharp';
 import { readFileSync } from 'node:fs';
@@ -18,7 +24,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const PALETTE = JSON.parse(readFileSync(join(root, 'tools', 'palette.json'), 'utf8'));
 
 function parseArgs(argv) {
-  const a = { input: null, key: null, frames: null, colors: 16, palette: false, threshold: 0.4, darkWeight: 0.3, outline: true };
+  const a = { input: null, key: null, frames: null, grid: null, colors: 16, palette: false, threshold: 0.4, darkWeight: 0.3, outline: true, height: null, frame: null, out: null };
   for (let i = 0; i < argv.length; i++) {
     const v = argv[i];
     if (v === '--frames') a.frames = Number(argv[++i]);
@@ -27,6 +33,11 @@ function parseArgs(argv) {
     else if (v === '--threshold') a.threshold = Number(argv[++i]);
     else if (v === '--dark') a.darkWeight = Number(argv[++i]);
     else if (v === '--no-outline') a.outline = false;
+    else if (v === '--grid') a.grid = true;
+    else if (v === '--resample') a.grid = false;
+    else if (v === '--height') a.height = Number(argv[++i]);
+    else if (v === '--frame') a.frame = Number(argv[++i]);
+    else if (v === '--out') a.out = argv[++i];
     else if (!a.input) a.input = v;
     else if (!a.key) a.key = v;
   }
@@ -210,11 +221,134 @@ function cleanup(img, outlineIdx, outline) {
   return { w: W, h: H, px: res };
 }
 
+// Пики профиля перепадов: локальный максимум в окне ±3, не ближе minGap друг к другу.
+function edgePeaks(E, a, b, minGap) {
+  let max = 0;
+  for (let x = a; x < b; x++) if (E[x] > max) max = E[x];
+  const peaks = [];
+  for (let x = a + 1; x < b; x++) {
+    if (E[x] < max * 0.08) continue;
+    let ok = true;
+    for (let k = -3; k <= 3; k++) if (k && E[x + k] > E[x]) ok = false;
+    if (!ok) continue;
+    if (peaks.length && x - peaks[peaks.length - 1] < minGap) {
+      if (E[x] > E[peaks[peaks.length - 1]]) peaks[peaks.length - 1] = x; // из двух близких берём сильный
+      continue;
+    }
+    peaks.push(x);
+  }
+  return peaks;
+}
+
+// Шаг сетки: самая частая разница между соседними пиками (6..16 px) по всем позам.
+function commonStep(peakLists) {
+  const hist = new Map();
+  for (const p of peakLists) for (let i = 1; i < p.length; i++) {
+    const d = p[i] - p[i - 1];
+    if (d >= 6 && d <= 16) hist.set(d, (hist.get(d) || 0) + 1);
+  }
+  let best = 9, bn = 0;
+  for (const [d, n] of hist) if (n > bn) { bn = n; best = d; }
+  // уточнение: среднее по соседним значениям гистограммы
+  const near = [best - 1, best, best + 1].map((d) => [d, hist.get(d) || 0]);
+  const sum = near.reduce((s, [, n]) => s + n, 0);
+  return near.reduce((s, [d, n]) => s + d * n, 0) / sum;
+}
+
+// Границы клеток по одной оси: пики не ближе 0.7 шага, длинные однотонные участки дорезаются по шагу.
+function gridLines(E, a, b, step) {
+  const peaks = edgePeaks(E, a, b, Math.round(step * 0.7));
+  const lines = [];
+  let prev = a;
+  for (const v of [...peaks, b]) {
+    const n = Math.max(1, Math.round((v - prev) / step));
+    for (let k = 0; k < n; k++) lines.push(Math.round(prev + (v - prev) * k / n));
+    prev = v;
+  }
+  lines.push(b);
+  return lines;
+}
+
+// Профили перепадов цвета по столбцам и строкам внутри позы (граница фигура/фон тоже перепад).
+function edgeProfiles(data, mask, w, h, pose) {
+  const x0 = Math.max(0, pose.x0 - 2), x1 = Math.min(w - 1, pose.x1 + 3);
+  const y0 = Math.max(0, pose.y0 - 2), y1 = Math.min(h - 1, pose.y1 + 3);
+  const diff = (ax, ay, bx, by) => {
+    const mi = mask[ay * w + ax], mj = mask[by * w + bx];
+    if (!mi && !mj) return 0;
+    if (mi !== mj) return 255;
+    const i = (ay * w + ax) * 4, j = (by * w + bx) * 4;
+    return Math.abs(data[i] - data[j]) + Math.abs(data[i + 1] - data[j + 1]) + Math.abs(data[i + 2] - data[j + 2]);
+  };
+  const colE = new Float64Array(w + 4), rowE = new Float64Array(h + 4);
+  for (let y = y0 + 1; y <= y1; y++) for (let x = x0 + 1; x <= x1; x++) {
+    if (diff(x, y, x - 1, y) > 60) colE[x]++;
+    if (diff(x, y, x, y - 1) > 60) rowE[y]++;
+  }
+  return { colE, rowE, x0, x1, y0, y1 };
+}
+
+// Снятие позы по родной сетке с общим шагом [sx, sy]. Возвращает { w, h, rgba } с обрезанными пустыми краями.
+function gridSnap(data, mask, w, prof, sx, sy) {
+  const gx = { lines: gridLines(prof.colE, prof.x0, prof.x1, sx) };
+  const gy = { lines: gridLines(prof.rowE, prof.y0, prof.y1, sy) };
+  const ow = gx.lines.length - 1, oh = gy.lines.length - 1;
+  const rgba = new Uint8Array(ow * oh * 4);
+  const counts = new Map();
+  for (let j = 0; j < oh; j++) for (let i = 0; i < ow; i++) {
+    // мода по внутренней части клетки: края клеток размыты
+    const xa = gx.lines[i], xb = gx.lines[i + 1], ya = gy.lines[j], yb = gy.lines[j + 1];
+    counts.clear();
+    let best = -1, bestN = 0, total = 0, solid = 0;
+    for (let y = ya + 1; y < Math.max(ya + 2, yb - 1); y++) for (let x = xa + 1; x < Math.max(xa + 2, xb - 1); x++) {
+      total++;
+      if (!mask[y * w + x]) continue;
+      solid++;
+      const q = (y * w + x) * 4;
+      const key = (data[q] >> 3) << 10 | (data[q + 1] >> 3) << 5 | (data[q + 2] >> 3);
+      const n = (counts.get(key) || 0) + 1;
+      counts.set(key, n);
+      if (n > bestN) { bestN = n; best = q; }
+    }
+    if (best < 0 || solid * 2 < total) continue;
+    const o = (j * ow + i) * 4;
+    rgba[o] = data[best]; rgba[o + 1] = data[best + 1]; rgba[o + 2] = data[best + 2]; rgba[o + 3] = 255;
+  }
+  return trim({ w: ow, h: oh, rgba });
+}
+
+function trim(img) {
+  const { w, h, rgba } = img;
+  let l = w, r = -1, t = h, b = -1;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if (!rgba[(y * w + x) * 4 + 3]) continue;
+    if (x < l) l = x;
+    if (x > r) r = x;
+    if (y < t) t = y;
+    if (y > b) b = y;
+  }
+  if (r < 0) return { w: 0, h: 0, rgba: new Uint8Array(0) };
+  const nw = r - l + 1, nh = b - t + 1, out = new Uint8Array(nw * nh * 4);
+  for (let y = 0; y < nh; y++) out.set(rgba.subarray(((y + t) * w + l) * 4, ((y + t) * w + r + 1) * 4), y * nw * 4);
+  return { w: nw, h: nh, rgba: out };
+}
+
+// Палитровое изображение (индексы, -1 прозрачно) -> RGBA.
+function toRgba(img, pal) {
+  const rgba = new Uint8Array(img.w * img.h * 4);
+  for (let i = 0; i < img.w * img.h; i++) {
+    const p = img.px[i];
+    if (p < 0) continue;
+    rgba[i * 4] = pal[p][0]; rgba[i * 4 + 1] = pal[p][1]; rgba[i * 4 + 2] = pal[p][2]; rgba[i * 4 + 3] = 255;
+  }
+  return { w: img.w, h: img.h, rgba };
+}
+
 // Центр стоп: средний x непрозрачных пикселей в нижних 20% строк.
 function feetCenter(img) {
-  const { w, h, px } = img;
+  const { w, h, rgba } = img;
   let sum = 0, n = 0;
-  for (let y = Math.floor(h * 0.8); y < h; y++) for (let x = 0; x < w; x++) if (px[y * w + x] >= 0) { sum += x; n++; }
+  for (let y = Math.floor(h * 0.8); y < h; y++) for (let x = 0; x < w; x++) if (rgba[(y * w + x) * 4 + 3]) { sum += x; n++; }
   return n ? sum / n : w / 2;
 }
 
@@ -228,7 +362,26 @@ export async function cleanSprite(input, key, opts = {}) {
   const { mask, useAlpha } = buildMask(data, w, h);
   removeSpecks(mask, w, h, Math.round(w * h * 0.0002));
   const poses = findPoses(mask, w, h, frames);
+  const fw = opts.frame || spec.frameWidth, fh = opts.frame || spec.frameHeight;
+  const grid = opts.grid ?? (spec.density || 1) > 1;
+  const base = { source: `${w}x${h}`, background: useAlpha ? 'alpha' : 'chroma' };
 
+  if (grid) {
+    const profs = poses.map((pose) => edgeProfiles(data, mask, w, h, pose));
+    const sx = commonStep(profs.map((p) => edgePeaks(p.colE, p.x0, p.x1, 5)));
+    const sy = commonStep(profs.map((p) => edgePeaks(p.rowE, p.y0, p.y1, 5)));
+    const images = profs.map((p) => gridSnap(data, mask, w, p, sx, sy));
+    const nativeH = Math.max(...images.map((im) => im.h));
+    const want = opts.height || spec.size[1];
+    const report = { ...base, mode: 'grid', cell: `${sx.toFixed(2)}x${sy.toFixed(2)}` };
+    if (Math.abs(nativeH - want) > want * 0.1) report.warning = `native height ${nativeH} differs from manifest size ${want}`;
+    return place(images, spec, fw, fh, frames, opts, report);
+  }
+  const res = resamplePoses(data, mask, w, h, poses, spec, opts);
+  return place(res.images, spec, fw, fh, frames, opts, { ...base, ...res.info });
+}
+
+function resamplePoses(data, mask, w, h, poses, spec, opts) {
   let pal = opts.palette ? PALETTE.colors.map(hexToRgb) : kmeans(data, mask, opts.colors || 16);
   pal = [...pal, hexToRgb(PALETTE.outline)];
   const outlineIdx = pal.length - 1;
@@ -244,32 +397,35 @@ export async function cleanSprite(input, key, opts = {}) {
 
   const pad = opts.outline === false ? 0 : 2;
   const maxH = Math.max(...poses.map((p) => p.y1 - p.y0 + 1));
-  const scale = (spec.size[1] - pad) / maxH;
-  const fw = spec.frameWidth, fh = spec.frameHeight;
+  const scale = ((opts.height || spec.size[1]) - pad) / maxH;
+  const images = poses.map((pose) => {
+    const img = downscale(idx, mask, w, pose, scale, opts.threshold ?? 0.4, pal, opts.darkWeight ?? 0.3);
+    return toRgba(cleanup(img, outlineIdx, opts.outline !== false), pal);
+  });
+  return { images, info: { mode: 'resample', scale: +scale.toFixed(4), colors: pal.length } };
+}
+
+// 6. Кадры в strip: ноги на origin[1], центр стоп на origin[0].
+async function place(images, spec, fw, fh, frames, opts, info) {
   const strip = Buffer.alloc(fw * frames * fh * 4);
   const feetY = Math.round(fh * spec.origin[1]);
-  const report = [];
-
-  poses.forEach((pose, f) => {
-    let img = downscale(idx, mask, w, pose, scale, opts.threshold ?? 0.4, pal, opts.darkWeight ?? 0.3);
-    img = cleanup(img, outlineIdx, opts.outline !== false);
+  const report = images.map((img, f) => {
     const ox = Math.round(fw * spec.origin[0] - feetCenter(img));
     const oy = feetY - img.h;
     let clipped = 0;
     for (let y = 0; y < img.h; y++) for (let x = 0; x < img.w; x++) {
-      const p = img.px[y * img.w + x];
-      if (p < 0) continue;
+      const i = (y * img.w + x) * 4;
+      if (!img.rgba[i + 3]) continue;
       const tx = ox + x, ty = oy + y;
       if (tx < 0 || ty < 0 || tx >= fw || ty >= fh) { clipped++; continue; }
       const o = (ty * fw * frames + f * fw + tx) * 4;
-      strip[o] = pal[p][0]; strip[o + 1] = pal[p][1]; strip[o + 2] = pal[p][2]; strip[o + 3] = 255;
+      strip[o] = img.rgba[i]; strip[o + 1] = img.rgba[i + 1]; strip[o + 2] = img.rgba[i + 2]; strip[o + 3] = 255;
     }
-    report.push({ frame: f, size: `${img.w}x${img.h}`, clipped });
+    return { frame: f, size: `${img.w}x${img.h}`, clipped };
   });
-
-  const out = spec.file;
+  const out = opts.out || spec.file;
   await sharp(strip, { raw: { width: fw * frames, height: fh, channels: 4 } }).png().toFile(join(root, out));
-  return { out, source: `${w}x${h}`, background: useAlpha ? 'alpha' : 'chroma', scale: +scale.toFixed(4), colors: pal.length, frames: report };
+  return { out, ...info, frames: report };
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

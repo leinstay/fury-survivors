@@ -2,6 +2,9 @@
 
 export const GAME_WIDTH = 640;
 export const GAME_HEIGHT = 360;
+// Холст рисуется в RENDER_ZOOM раз крупнее мира: 1280×720. Мир, данные и UI остаются в координатах 640×360,
+// а спрайты с density 2 (manifest.js) показывают все свои пиксели.
+export const RENDER_ZOOM = 2;
 
 // Время в секундах, расстояния в пикселях игрового мира, скорость в px/с.
 export const SIM = {
