@@ -1,0 +1,19 @@
+Task: create a pixel art walk-cycle sprite sheet for the character in the attached image. The attached image is the exact character; every frame must look like the same sprite, only her pose changes.
+
+Character (keep identical in every frame): chibi adult woman knight, about 2 heads tall. Long bright red-orange hair in a high ponytail with a gold hair tie, green eyes, plain face with NO mouth (exactly like the attached image: no lips, no blush, no red pixels on the face). Silver breastplate with pauldrons and gauntlets, bare midriff, short red pleated skirt with a small faulds plate, long red cape, silver armored boots. She ALWAYS holds her silver longsword in her front hand, blade pointing down and slightly back, in every single frame.
+
+View: three-quarter view facing RIGHT, exactly the same camera angle as the attached image in all frames. Not front view, not side profile.
+
+Style: pixel art with the same chunky pixel size as the attached image (the figure is about 50 art pixels tall). Hard square pixels, dark brown 1-pixel outline, flat cel shading, same colors. No blur, no anti-aliasing, no gradients, no glow.
+
+Layout: ONE horizontal row of exactly 5 frames, left to right, evenly spaced on a wide canvas. Each figure is small: it takes about 65% of the canvas height, with a large empty margin above the top of the ponytail and below the feet. Wide empty gaps between frames, figures never touch or overlap. All frames the same size, feet of every frame on one shared baseline.
+
+Frames:
+1. Idle: the same standing pose as the attached image.
+2. Contact: front (right) leg stepping forward with the heel down, back leg extended behind on its toes; the sword arm swings slightly back, the free arm swings forward; cape trails behind.
+3. Passing: legs under the body, the back leg bent and lifted, passing the standing leg; body raised by one pixel; ponytail and cape lift slightly.
+4. Contact (opposite): back (left) leg stepping forward, front leg extended behind; arms swing the opposite way to frame 2.
+5. Passing (opposite): mirror timing of frame 3 with the other leg lifted.
+Small cute chibi steps. Head, face, hair and armor shapes stay identical between frames; only legs, arms, cape and ponytail move. The sword stays in her hand in frames 1–5.
+
+Background: solid flat pure magenta #FF00FF everywhere, no floor, no shadows, no text, no frame borders, no labels.

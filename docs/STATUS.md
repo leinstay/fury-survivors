@@ -145,3 +145,11 @@
 - Лист `assets/raw/heroine_walk.png`: `--model google/gemini-3-pro-image --resolution 2K`, референс `assets/raw/roster/heroine.png`, подробный промпт `tools/prompts/heroine_walk.txt` (стойка, контакт, проход, контакт, проход; меч в каждом кадре; фигуры на 65% высоты с запасом).
 - Для сравнения Nano Banana 2 (`google/gemini-3.1-flash-image`, `heroine_walk_nb2`): фигуры во всю высоту, шаги читаются хуже. Nano Banana 2.1 отказал по квоте Google.
 - Нарезка `slice-sheet.mjs heroine_walk` (клетка ~19 px, родной рост 53–56 клеток, без уменьшения), кадры шага выровнены по голове. В manifest 5 кадров, цикл `walk: [1, 2, 3, 4]`.
+
+## Ходьба героини из PixelLab
+
+- Сравнение: Nano Banana Pro меняет пропорции от кадра к кадру (рост 53–56, разный размер головы); Flare со старым промптом держит форму, но кадров мало. PixelLab (`animate-with-text-v3`, pixellab.ai) лучше обоих.
+- Первый кадр: героиня из `assets/raw/roster/heroine.png`, уменьшенная до 256 px по высоте (лимит API), холст 192×256; действие «walking to the right in place…», 8 кадров + исходный. Стоит 6 генераций пробного тарифа (64×64 — 1, но меч слипается с ногой).
+- Кадры PixelLab нарисованы с детализацией в 1 px, сетки 5 px у них нет: нарезка по сетке (`slice-sheet`) искажала пропорции. Поэтому `tools/hd-frames.mjs` уменьшает каждый кадр целиком в 0.4 (lanczos3, альфа порогом), лента 9 кадров 77×102, в manifest `density: 2` (показ 1:1 на холсте). Исходники: `assets/raw/heroine_walk_pixellab/0..8.png`.
+- Ключ PixelLab в репозиторий не кладём; бесплатный тариф: одна генерация за раз, 40 генераций.
+- Прежние варианты: `heroine_walk.png` (Flare), `heroine_walk_pro.png` (Nano Banana Pro), `heroine_walk_nb2.png`.

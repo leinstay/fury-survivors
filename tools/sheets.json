@@ -262,8 +262,8 @@
   "heroine_walk": {
     "raw": "assets/raw/heroine_walk.png",
     "step": [
-      16,
-      26
+      6.5,
+      9.5
     ],
     "mergeGap": 4,
     "align": "head",
@@ -284,10 +284,7 @@
         "key": "heroine",
         "frame": 3
       },
-      {
-        "key": "heroine",
-        "frame": 4
-      }
+      null
     ]
   }
 }
