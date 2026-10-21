@@ -102,7 +102,7 @@ test('data: combos use maxed regular weapons and evolved results', () => {
 });
 
 test('data: enemies have behavior, positive stats, elite block', () => {
-  assert.equal(Object.keys(ENEMIES).length, 6);
+  assert.equal(Object.keys(ENEMIES).length, 8);
   for (const [id, e] of Object.entries(ENEMIES)) {
     assert.ok(ENEMY_BEHAVIORS[e.behavior], `${id}: behavior`);
     assert.ok(e.hp > 0 && e.speed > 0 && e.damage > 0 && e.xp > 0 && e.size > 0, `${id}: stats`);

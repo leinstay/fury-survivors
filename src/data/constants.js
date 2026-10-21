@@ -79,5 +79,9 @@ export const FX = {
   levelup: { flashAlpha: 0.5, flashTime: 0.3, ringTime: 0.5, ringRadius: 70, ringColor: 0xffe88a },
   pickupSpark: { count: 2, color: 0x7fd8ff, life: 0.25, speed: 40 },
   hitSquash: { x: 1.18, y: 0.82 },
+  // Процедурная ходьба однокадровых персонажей: шагов в секунду, подскок (px мира), наклон (рад), сжатие при приземлении.
+  walk: { steps: 7, hop: 2.5, tilt: 0.07, squash: 0.08, idleBreath: 0.015 },
+  // Поза босса: наклон назад при замахе, вытягивание при касте.
+  bossPose: { windupTilt: -0.12, castStretch: 0.1 },
   shadow: { alpha: 0.3, widthK: 0.5, height: 0.3, yOffset: -1, depth: -50000 },
 };

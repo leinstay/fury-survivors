@@ -242,11 +242,11 @@ export function edgePeaks(E, a, b, minGap) {
 }
 
 // Шаг сетки: самая частая разница между соседними пиками (6..16 px) по всем позам.
-export function commonStep(peakLists) {
+export function commonStep(peakLists, minStep = 6, maxStep = 16) {
   const hist = new Map();
   for (const p of peakLists) for (let i = 1; i < p.length; i++) {
     const d = p[i] - p[i - 1];
-    if (d >= 6 && d <= 16) hist.set(d, (hist.get(d) || 0) + 1);
+    if (d >= minStep && d <= maxStep) hist.set(d, (hist.get(d) || 0) + 1);
   }
   let best = 9, bn = 0;
   for (const [d, n] of hist) if (n > bn) { bn = n; best = d; }

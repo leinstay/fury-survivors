@@ -1,7 +1,7 @@
 // Враги. Строки интерфейса: enemy.<id>.name.
 // Формат записи:
 // id: {
-//   sprite: 'bat',               // ключ из manifest.js
+//   sprite: 'harpy',             // ключ из manifest.js
 //   behavior: 'swarm',           // файл src/behaviors/enemies/<behavior>.js
 //   hp, speed, damage, xp,       // speed в px/с, damage за касание
 //   size,                        // радиус хитбокса, px
@@ -13,8 +13,8 @@
 const elite = () => ({ hpMul: 8, damageMul: 1.5, sizeMul: 1.5, xpMul: 6, glow: 0xff3d6e, drop: 'chest' });
 
 export const ENEMIES = {
-  bat: {
-    sprite: 'bat', behavior: 'swarm', hp: 5, speed: 100, damage: 6, xp: 1, size: 6, knockbackResist: 0,
+  harpy: {
+    sprite: 'harpy', behavior: 'swarm', hp: 5, speed: 100, damage: 6, xp: 1, size: 7, knockbackResist: 0,
     params: { wobble: 40, wobbleFreq: 5 },
     elite: elite(),
   },
@@ -41,6 +41,16 @@ export const ENEMIES = {
   succubus: {
     sprite: 'succubus', behavior: 'ranged', hp: 40, speed: 42, damage: 10, xp: 6, size: 9, knockbackResist: 0.2,
     params: { keep: 150, range: 260, cooldown: 2.2, projSpeed: 110, projDamage: 16, projLife: 4 },
+    elite: elite(),
+  },
+  bunnygirl: {
+    sprite: 'bunnygirl', behavior: 'chase', hp: 14, speed: 82, damage: 10, xp: 2, size: 8, knockbackResist: 0,
+    params: {},
+    elite: elite(),
+  },
+  lamia: {
+    sprite: 'lamia', behavior: 'chase', hp: 70, speed: 32, damage: 16, xp: 6, size: 11, knockbackResist: 0.5,
+    params: {},
     elite: elite(),
   },
 };

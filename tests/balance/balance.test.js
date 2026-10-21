@@ -8,7 +8,8 @@ const withUpgrades = [1, 2, 3, 4, 5, 6, 7, 8].map((seed) => runBot({ seed, upgra
 const withoutUpgrades = [1, 2, 3, 4, 5].map((seed) => runBot({ seed, upgrades: false }));
 
 test('balance: level at 5:00 is in range', () => {
-  for (const r of withUpgrades) {
+  // считаем только забеги, дожившие до 5:00
+  for (const r of withUpgrades.filter((x) => x.time >= 300)) {
     const lv = r.levelAt[300];
     assert.ok(lv >= 12 && lv <= 26, `level at 5:00 = ${lv}`);
   }

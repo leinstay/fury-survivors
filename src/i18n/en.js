@@ -136,12 +136,14 @@ export default {
   'passive.regen.desc': 'Slowly recovers health.',
 
   // Враги и боссы
-  'enemy.bat.name': 'Bat',
-  'enemy.slime.name': 'Slime',
+  'enemy.harpy.name': 'Harpy',
+  'enemy.slime.name': 'Slime Girl',
   'enemy.catgirl.name': 'Catgirl',
-  'enemy.ghost.name': 'Ghost',
+  'enemy.ghost.name': 'Ghost Girl',
   'enemy.foxgirl.name': 'Foxgirl',
   'enemy.succubus.name': 'Succubus',
+  'enemy.bunnygirl.name': 'Bunny Girl',
+  'enemy.lamia.name': 'Lamia',
   'boss.dryad_queen.name': 'Dryad Queen',
 
   // Этапы

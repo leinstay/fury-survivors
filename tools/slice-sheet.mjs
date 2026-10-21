@@ -64,8 +64,8 @@ function mergeClose(boxes) {
   return list;
 }
 
-// Ряды: объект попадает в текущий ряд, если его вертикальный отрезок пересекается с рядом.
-function readingOrder(boxes) {
+// Ряды по перекрытию (по умолчанию): объект попадает в ряд, если его вертикальный отрезок пересекается с рядом.
+function overlapOrder(boxes) {
   const sorted = boxes.slice().sort((a, b) => a.y0 - b.y0);
   const rows = [];
   for (const b of sorted) {
@@ -74,6 +74,21 @@ function readingOrder(boxes) {
     else rows.push({ y0: b.y0, y1: b.y1, items: [b] });
   }
   rows.sort((a, b) => a.y0 - b.y0);
+  return rows.flatMap((r) => r.items.sort((a, b) => a.x0 - b.x0));
+}
+
+// Ряды по центрам (sheets.json: "rows": "center"): объект попадает в ряд, если его центр по y близок
+// к центру ряда. Высокий объект на два ряда (босс) получает свой ряд между ними.
+function centerOrder(boxes) {
+  const cy = (b) => (b.y0 + b.y1) / 2;
+  const sorted = boxes.slice().sort((a, b) => cy(a) - cy(b));
+  const rows = [];
+  for (const b of sorted) {
+    const row = rows.find((r) => Math.abs(cy(b) - r.cy) < Math.min(r.h, b.y1 - b.y0) / 4);
+    if (row) row.items.push(b);
+    else rows.push({ cy: cy(b), h: b.y1 - b.y0, items: [b] });
+  }
+  rows.sort((a, b) => a.cy - b.cy);
   return rows.flatMap((r) => r.items.sort((a, b) => a.x0 - b.x0));
 }
 
@@ -96,11 +111,15 @@ async function main() {
   const w = info.width, h = info.height;
   const { mask } = buildMask(data, w, h);
   removeSpecks(mask, w, h, 12);
-  const boxes = readingOrder(mergeClose(components(mask, w, h)).filter((b) => (b.x1 - b.x0) * (b.y1 - b.y0) > 150));
+  const found = mergeClose(components(mask, w, h)).filter((b) => (b.x1 - b.x0) * (b.y1 - b.y0) > 150);
+  const boxes = sheet.rows === 'center' ? centerOrder(found) : overlapOrder(found);
 
   const profs = boxes.map((b) => edgeProfiles(data, mask, w, h, b));
-  let sx = commonStep(profs.map((p) => edgePeaks(p.colE, p.x0, p.x1, 5)));
-  let sy = commonStep(profs.map((p) => edgePeaks(p.rowE, p.y0, p.y1, 5)));
+  // Шаг сетки модели зависит от качества и масштаба листа: границы шага задаются в sheets.json (step: [min, max]).
+  const [minStep, maxStep] = sheet.step || [6, 16];
+  const gap = Math.max(2, minStep - 1);
+  let sx = commonStep(profs.map((p) => edgePeaks(p.colE, p.x0, p.x1, gap)), minStep, maxStep);
+  let sy = commonStep(profs.map((p) => edgePeaks(p.rowE, p.y0, p.y1, gap)), minStep, maxStep);
   if (sy > sx * 1.6) sy /= 2;
   else if (sx > sy * 1.6) sx /= 2;
   const native = profs.map((p) => gridSnap(data, mask, w, p, sx, sy));

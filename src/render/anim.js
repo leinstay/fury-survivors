@@ -1,37 +1,56 @@
-// Процедурная анимация персонажей: ходьба кадрами 1/2 (у босса 0/1, кадр 2 — поза каста), покачивание, наклон, парение летунов.
+// Процедурная анимация персонажей. Однокадровые спрайты (общий лист roster) идут вприпрыжку:
+// подскок на каждом шаге, наклон в такт и сжатие при приземлении, в покое лёгкое дыхание.
+// Многокадровые (frames >= 3) по-прежнему чередуют кадры 1/2. Летуны парят.
 // Частицы, числа урона и тряска живут в fx.js.
 import { SPRITES } from '../../assets/sprites/manifest.js';
 import { FX } from '../data/constants.js';
 
 const STEP_TIME = 0.16;
 
-// Применяет позу к спрайту. e: сущность sim (moving), seed: стабильное число для фазы.
+// Применяет позу к спрайту и возвращает вертикальное смещение (px мира, вверх отрицательное).
+// e: сущность sim (moving, boss, pose), seed: стабильное число для фазы.
 export function animateCharacter(sprite, key, e, time, seed) {
   const def = SPRITES[key];
   const frames = def ? def.frames : 1;
   const moving = !!e.moving;
-  if (e.boss && frames >= 3) {
-    // у босса кадр 2 — каст/замах, ходьба кадрами 0 и 1
-    if (e.pose === 'cast' || e.pose === 'windup') sprite.setFrame(2);
-    else sprite.setFrame(moving ? Math.floor(time / STEP_TIME + seed) % 2 : 0);
-  } else if (frames >= 3 && moving) {
-    sprite.setFrame(1 + (Math.floor(time / STEP_TIME + seed) % 2));
-  } else {
-    sprite.setFrame(0);
-  }
-  const phase = time * (moving ? 14 : 3) + seed * 1.7;
+  const base = sprite.baseScale || 1;
   const flyer = def && def.shape === 'flyer';
-  if (moving || flyer) {
-    sprite.rotation = Math.sin(phase) * (flyer ? 0.05 : 0.07);
-    const squash = Math.sin(phase * 2) * 0.04;
-    sprite.scaleY = (sprite.baseScale || 1) * (1 + squash);
-    sprite.scaleX = (sprite.baseScale || 1) * (1 - squash);
+  const W = FX.walk;
+
+  if (frames >= 3 && moving) sprite.setFrame(1 + (Math.floor(time / STEP_TIME + seed) % 2));
+  else sprite.setFrame(0);
+
+  let rot = 0, sx = 1, sy = 1, lift = 0;
+  if (flyer) {
+    const ph = time * 6 + seed;
+    rot = Math.sin(ph * 0.5) * 0.05;
+    lift = Math.sin(ph) * 2 - 6;
+    if (moving) rot += Math.sin(time * W.steps * Math.PI + seed) * W.tilt * 0.5;
+  } else if (moving) {
+    // фаза шага: 0..1, в середине шага подскок максимален, на границах приземление
+    const t = time * W.steps + seed * 0.37;
+    const step = t - Math.floor(t);
+    const up = Math.sin(step * Math.PI);
+    lift = -up * W.hop;
+    rot = (Math.floor(t) % 2 ? 1 : -1) * W.tilt * up;
+    const land = 1 - up; // у земли сжат, в воздухе чуть вытянут
+    sy = 1 - land * W.squash + up * W.squash * 0.5;
+    sx = 1 + land * W.squash - up * W.squash * 0.5;
   } else {
-    sprite.rotation = 0;
-    sprite.scaleX = sprite.scaleY = sprite.baseScale || 1;
+    const b = Math.sin(time * 3 + seed * 1.7) * W.idleBreath;
+    sy = 1 + b;
+    sx = 1 - b * 0.5;
   }
-  // flipX делает вызывающий; здесь только вертикальное парение
-  return flyer ? Math.sin(time * 6 + seed) * 2 - 6 : 0;
+  if (e.boss && frames < 3) {
+    if (e.pose === 'windup') rot += FX.bossPose.windupTilt * (sprite.flipX ? -1 : 1);
+    else if (e.pose === 'cast') { sy *= 1 + FX.bossPose.castStretch; sx *= 1 - FX.bossPose.castStretch * 0.5; }
+  } else if (e.boss && frames >= 3 && (e.pose === 'cast' || e.pose === 'windup')) {
+    sprite.setFrame(2);
+  }
+  sprite.rotation = rot;
+  sprite.scaleX = base * sx;
+  sprite.scaleY = base * sy;
+  return lift;
 }
 
 // Сжатие при ударе: пока горит hitFlash, спрайт чуть приплюснут по вертикали.

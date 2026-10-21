@@ -1,0 +1,17 @@
+Proportions override: HoloCure-style squat chibi, about 2 heads tall, blocky square silhouettes, short sturdy legs, big expressive heads. All characters are adult women. Outfits are as revealing as the first attached image (bare shoulders, deep neckline, bare midriff, high thigh slits, short skirts), never nude, nothing explicit.
+
+Layout: one sprite sheet, every figure in an idle standing pose, facing three-quarter view to the RIGHT, all drawn at exactly the same pixel scale on one shared pixel grid. Wide empty gaps between all figures; nothing touches or overlaps, no shadows under feet.
+LEFT third: the forest boss, standing alone, exactly twice as tall as the other figures, feet at the bottom.
+RIGHT two thirds: two rows of figures, all exactly the same height, feet of each row on one baseline.
+Row 1, left to right:
+1. Heroine knight: long bright red-orange hair in a high ponytail, green eyes, silver breastplate with a low neckline, pauldrons and gauntlets, bare midriff, short red skirt with a small faulds plate, red cape, armored boots, holding a longsword.
+2. Cat girl: messy blonde bob with cat ears, cat tail, yellow eyes, cropped brown leather top, tiny shorts, striped thigh-high socks, paw gloves with claws.
+3. Fox shrine maiden: exactly like the fox girl in the first attached image (orange hair, fox ears, big fluffy fox tails, off-shoulder white sleeves, red dress with a high slit, blue fox fire in her hand).
+4. Succubus: long dark purple hair, curved black horns, small bat wings, heart-tipped tail, black corset top with a deep neckline, short black skirt, thigh-high boots, pink eyes.
+5. Slime girl: translucent bright green jelly woman with a jelly bob haircut and big round eyes, her lower body melts into a round slime puddle.
+Row 2, left to right:
+6. Ghost girl: pale blue translucent woman with long white hair, torn off-shoulder white dress fading into a wispy ghost tail instead of legs, floating.
+7. Bunny girl: long white rabbit ears, short white hair, red eyes, open white jacket with fur trim over a cropped top, short shorts, fluffy boots.
+8. Harpy: arms are large brown-and-cream feathered wings, bird talon feet, feathered crop top and short feather skirt, wild brown hair with feathers.
+9. Lamia: long dark green hair, gold jewelry, a bandeau top, her lower body is a long coiled emerald snake tail instead of legs.
+The boss (left third): Dryad Queen, long flowing green hair with pink blossoms, a crown of branch antlers, golden eyes, a gown of layered leaves with bare shoulders and a high slit, roots trailing at the hem, holding a tall wooden staff with a glowing green crystal.

@@ -151,7 +151,7 @@ test('sim: contact damage, i-frames, gameover', () => {
 
 test('sim: enemy limit holds', () => {
   const sim = createSim({ seed: 10 });
-  for (let i = 0; i < 600; i++) sim.spawnEnemy('bat', 300 + i, 300);
+  for (let i = 0; i < 600; i++) sim.spawnEnemy('harpy', 300 + i, 300);
   assert.equal(sim.enemies.length, SIM.maxEnemies);
   sim.spawnEnemy('slime', 0, 300, true);
   assert.equal(sim.enemies.filter((e) => !e.dead).length, SIM.maxEnemies, 'elite evicts a regular enemy instead of exceeding the cap');
@@ -259,7 +259,7 @@ test('sim: step stays fast with 400 enemies', () => {
   for (let i = 0; i < SIM.maxEnemies; i++) {
     const a = i * 2.399;
     const r = 30 + (i % 40) * 6;
-    sim.spawnEnemy(i % 3 === 0 ? 'bat' : i % 3 === 1 ? 'catgirl' : 'slime', Math.cos(a) * r, Math.sin(a) * r);
+    sim.spawnEnemy(i % 3 === 0 ? 'harpy' : i % 3 === 1 ? 'catgirl' : 'slime', Math.cos(a) * r, Math.sin(a) * r);
   }
   for (let i = 0; i < 60; i++) go({ x: 0.7, y: 0.2 }); // прогрев
   let worst = 0;
@@ -271,7 +271,7 @@ test('sim: step stays fast with 400 enemies', () => {
     sim.step(DT, { x: 0.7, y: 0.2 });
     worst = Math.max(worst, performance.now() - s);
     // держим толпу: доспавниваем до лимита
-    while (sim.canSpawn()) sim.spawnEnemy('bat', sim.player.x + 250, sim.player.y + (sim.enemies.length % 50) * 4);
+    while (sim.canSpawn()) sim.spawnEnemy('harpy', sim.player.x + 250, sim.player.y + (sim.enemies.length % 50) * 4);
   }
   const avg = (performance.now() - t0) / N;
   assert.equal(sim.state, 'running');

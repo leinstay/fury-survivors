@@ -16,9 +16,11 @@
 //
 // Кадры персонажей: 0 стойка, 1 шаг А, 2 шаг Б. Смотрят в три четверти вправо, влево flipX.
 
-// Спрайт двойной плотности: квадратный кадр frame, ноги на строке feet, рост фигуры h.
-function hd(key, frame, feet, w, h, color, shape = 'humanoid') {
-  return [key, { file: `assets/sprites/${key}.png`, frameWidth: frame, frameHeight: frame, frames: 3, origin: [0.5, feet / frame], size: [w, h], density: 2, color, shape }];
+// Персонаж общего листа (assets/raw/roster.png, tools/slice-sheet.mjs roster): все сняты с одной сетки модели
+// один арт-пиксель в пиксель, без масштабирования. Один кадр стойки, ходьба процедурная (src/render/anim.js).
+// Кадр frame×frame, ноги на нижней строке.
+function girl(key, frame, color, shape = 'humanoid') {
+  return [key, { file: `assets/sprites/${key}.png`, frameWidth: frame, frameHeight: frame, frames: 1, origin: [0.5, 1], size: [frame, frame], density: 2, color, shape }];
 }
 
 function item(key, w, h, color, shape = 'round', frames = 1, origin = [0.5, 0.5]) {
@@ -36,21 +38,22 @@ const FEET = [0.5, 1];
 
 export const SPRITES = Object.fromEntries([
   // Герои и портрет
-  ['heroine', { file: 'assets/sprites/heroine.png', frameWidth: 96, frameHeight: 96, frames: 3, origin: [0.5, 94 / 96], size: [60, 88], density: 2, color: '#e0603a', shape: 'humanoid' }],
+  girl('heroine', 96, '#e0603a'),
   item('heroine_portrait', 48, 48, '#e0603a', 'rect'),
 
   // Враги
-  hd('bat', 48, 44, 40, 34, '#6b4a8a', 'flyer'),
-  hd('slime', 64, 62, 50, 56, '#5ac46a', 'blob'),
-  hd('catgirl', 96, 94, 50, 84, '#d9a441'),
-  hd('ghost', 64, 62, 36, 60, '#cfd8ff', 'flyer'),
-  hd('foxgirl', 96, 94, 54, 84, '#e3803a'),
-  hd('succubus', 96, 94, 50, 84, '#b33a6b'),
+  girl('catgirl', 96, '#d9a441'),
+  girl('foxgirl', 96, '#e3803a'),
+  girl('succubus', 96, '#b33a6b'),
+  girl('slime', 96, '#5ac46a', 'blob'),
+  girl('ghost', 96, '#cfd8ff', 'flyer'),
+  girl('bunnygirl', 96, '#f0f0f0'),
+  girl('harpy', 96, '#a07850', 'flyer'),
+  girl('lamia', 96, '#2f7a4a', 'blob'),
 
   // Босс
-  // Босс вдвое выше героини: родной рост 115 арт-пикселей приводится к ~88 px мира (density 115/88).
-  // Временный нецелый масштаб, до пересоздания персонажей на общей сетке.
-  ['dryad_queen', { file: 'assets/sprites/dryad_queen.png', frameWidth: 128, frameHeight: 128, frames: 3, origin: [0.5, 124 / 128], size: [70, 115], density: 1.3, color: '#3f8a4a', shape: 'humanoid' }],
+  // Босс с того же листа и той же сетки (родной рост ~1.55 роста героини).
+  girl('dryad_queen', 144, '#3f8a4a'),
 
   // Предметы (обычная плотность: арт-пиксель = 2 px холста)
   art('xp_small', 10, 12),

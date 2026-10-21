@@ -80,7 +80,7 @@ test('chest: every item has kind, id, level, isNew; evolution has both parts in 
 });
 
 test('chest: elite always drops a chest, boss drops one too', () => {
-  for (const type of ['bat', 'slime', 'catgirl', 'ghost', 'foxgirl', 'succubus']) {
+  for (const type of ['harpy', 'slime', 'catgirl', 'ghost', 'foxgirl', 'succubus']) {
     for (let seed = 1; seed <= 3; seed++) {
       const sim = createSim({ seed });
       const e = sim.spawnEnemy(type, 500, 500, true);

@@ -73,5 +73,25 @@
       "proj_firebomb",
       "proj_enemy"
     ]
+  },
+  "roster": {
+    "raw": "assets/raw/roster.png",
+    "step": [
+      3,
+      7
+    ],
+    "rows": "center",
+    "items": [
+      "heroine",
+      "catgirl",
+      "foxgirl",
+      "succubus",
+      "slime",
+      "dryad_queen",
+      "ghost",
+      "bunnygirl",
+      "harpy",
+      "lamia"
+    ]
   }
 }
