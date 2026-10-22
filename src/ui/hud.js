@@ -157,16 +157,16 @@ export class Hud {
     g.fillStyle(m.dots.player, 1).fillRect(cx - 1, cy - 1, 2, 2);
   }
 
-  // Панель DPS-метра: рамка как у миникарты, строка общего DPS сверху, затем по оружию в порядке слотов.
+  // Панель DPS-метра: рамка как у миникарты, строка общего DPS сверху, затем до maxRows строк оружия,
+  // лучшие по DPS (порядок и подписи обновляются раз в секунду вместе с числами).
   _rebuildDps() {
     for (const o of this.dpsObjs) o.destroy();
     this.dpsObjs = [];
     this.dpsRows = [];
     if (this.dpsMode === 'off') return;
     const m = HUD.dpsMeter;
-    const weapons = this.sim.player.weapons;
-    const rows = weapons.length + 1;
-    const h = rows * m.rowH + m.pad * 2;
+    const n = Math.min(m.maxRows, this.sim.player.weapons.length);
+    const h = (n + 1) * m.rowH + m.pad * 2;
     const left = GAME_WIDTH - m.margin - m.width;
     const top = GAME_HEIGHT - m.margin - h;
     const add = (o) => {
@@ -178,24 +178,20 @@ export class Hud {
     frame.fillStyle(m.bg, m.alpha).fillRect(left, top, m.width, h);
     frame.lineStyle(1, m.rim, 0.8).strokeRect(left + 0.5, top + 0.5, m.width - 1, h - 1);
     const style = (color) => textStyle(8, color, { stroke: '#000000', strokeThickness: 2 });
-    const row = (i, id) => {
+    for (let i = 0; i <= n; i++) {
       const y = top + m.pad + i * m.rowH;
-      const color = id ? m.colors[(i - 1) % m.colors.length] : m.total;
+      const cy = y + m.rowH / 2;
+      const color = i ? m.colors[(i - 1) % m.colors.length] : m.total;
       const bar = add(this.scene.add
           .rectangle(left + m.pad, y + 1, 1, m.rowH - 2, color, m.barAlpha).setOrigin(0, 0));
-      const cy = y + m.rowH / 2;
-      if (id) {
-        add(addIcon(this.scene, left + m.pad + m.icon / 2 + 1, cy, iconKeyFor('weapon', id), m.icon, 'weapon', id));
-        add(this.scene.add.text(left + m.pad + m.icon + 5, cy, displayName('weapon', id), style('#ffffff'))
-            .setOrigin(0, 0.5));
-      } else {
-        add(this.scene.add.text(left + m.pad + 2, cy, t('hud.dps_label'), style('#ffd84a')).setOrigin(0, 0.5));
-      }
-      const num = add(this.scene.add.text(left + m.width - m.pad - 2, cy, '', style('#ffffff')).setOrigin(1, 0.5));
-      this.dpsRows.push({ id, bar, num });
-    };
-    row(0, null);
-    weapons.forEach((w, i) => row(i + 1, w.id));
+      const label = add(this.scene.add.text(left + m.pad + (i ? m.icon + 5 : 2), cy,
+          i ? '' : t('hud.dps_label'), style(i ? '#ffffff' : '#ffd84a')).setOrigin(0, 0.5));
+      const num = add(this.scene.add.text(left + m.width - m.pad - 2, cy, '', style('#ffffff'))
+          .setOrigin(1, 0.5));
+      this.dpsRows.push({
+        id: null, bar, label, num, icon: null, ix: left + m.pad + m.icon / 2 + 1, iy: cy,
+      });
+    }
     this.dpsShown = null;
   }
 
@@ -206,11 +202,22 @@ export class Hud {
     const m = HUD.dpsMeter;
     const full = m.width - m.pad * 2;
     const total = sim.dps;
-    for (const r of this.dpsRows) {
-      const v = r.id ? (sim.dpsByWeapon[r.id] || 0) : total;
+    const byW = sim.dpsByWeapon;
+    const order = sim.player.weapons.map((w) => w.id).sort((a, b) => (byW[b] || 0) - (byW[a] || 0));
+    this.dpsRows.forEach((r, i) => {
+      const id = i ? order[i - 1] : null;
+      const v = i ? (byW[id] || 0) : total;
       r.bar.width = Math.max(1, Math.round(full * (total > 0 ? v / total : 0)));
       r.num.setText(String(Math.round(v)));
-    }
+      if (i && r.id !== id) {
+        r.id = id;
+        r.label.setText(displayName('weapon', id));
+        if (r.icon) r.icon.destroy();
+        r.icon = addIcon(this.scene, r.ix, r.iy, iconKeyFor('weapon', id), m.icon, 'weapon', id)
+            .setScrollFactor(0).setDepth(D).setAlpha(this.dpsAlpha);
+        this.dpsObjs.push(r.icon);
+      }
+    });
   }
 
   _rebuildSlots() {

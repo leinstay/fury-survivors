@@ -63,8 +63,10 @@ export const HUD = {
   dpsWindow: 5,            // с, окно DPS-метра (среднее за последние N секунд, обновление раз в секунду)
   // DPS-метр: панель в правом нижнем углу в стиле миникарты, как Details в WoW: строка на оружие с полоской
   // на всю ширину (доля от общего DPS), иконкой слева и числом справа; верхняя строка — общий DPS.
+  // maxRows строк оружия: лучшие по DPS, сортировка раз в секунду вместе с числами.
   dpsMeter: {
-    width: 112, rowH: 12, icon: 9, margin: 8, pad: 3, alpha: 0.6, bg: 0x000000, rim: 0xb0a0d0,
+    width: 112, rowH: 12, icon: 9, margin: 8, pad: 3, maxRows: 5,
+    alpha: 0.6, bg: 0x000000, rim: 0xb0a0d0,
     total: 0x8a6ad0, barAlpha: 0.8,
     colors: [0xc41e3a, 0xff7c0a, 0xa330c9, 0x3fc7eb, 0xaad372, 0xfff468, 0xf48cba, 0x0070dd],
   },
