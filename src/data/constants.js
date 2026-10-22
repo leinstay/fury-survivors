@@ -61,15 +61,17 @@ export const COMBAT = {
 export const HUD = {
   bossBannerTime: 3,       // с, сколько мигает предупреждение о боссе
   dpsWindow: 5,            // с, окно DPS-метра (среднее за последние N секунд, обновление раз в секунду)
-  // DPS-метр: строки по оружию (иконка, полоска доли, число) и общая строка, справа под счётом.
+  // DPS-метр: панель в правом нижнем углу в стиле миникарты, как Details в WoW: строка на оружие с полоской
+  // на всю ширину (доля от общего DPS), иконкой слева и числом справа; верхняя строка — общий DPS.
   dpsMeter: {
-    width: 96, rowH: 11, icon: 9, bar: 46, barH: 4, y: 50, touchY: 100,
-    color: 0xff7a3d, total: 0xffd84a,
+    width: 112, rowH: 12, icon: 9, margin: 8, pad: 3, alpha: 0.6, bg: 0x000000, rim: 0xb0a0d0,
+    total: 0x8a6ad0, barAlpha: 0.8,
+    colors: [0xc41e3a, 0xff7c0a, 0xa330c9, 0x3fc7eb, 0xaad372, 0xfff468, 0xf48cba, 0x0070dd],
   },
   transparentAlpha: 0.45,  // прозрачность миникарты и DPS в режиме transparent
-  // Миникарта: круг в правом нижнем углу, точки для предметов, элит и боссов (обычных врагов не показывает).
+  // Миникарта: круг в правом верхнем углу под XP-баром, точки для предметов, элит и боссов (обычных врагов нет).
   minimap: {
-    radius: 34, margin: 8, range: 900, fps: 12, alpha: 0.6, bg: 0x000000, rim: 0xb0a0d0,
+    radius: 34, margin: 8, top: 18, range: 900, fps: 12, alpha: 0.6, bg: 0x000000, rim: 0xb0a0d0,
     dots: {
       player: 0xffffff, chest: 0xffd84a, food: 0x8cff6a, magnet: 0x7fd8ff, coin: 0xffb52e,
       elite: 0xff3d6e, boss: 0xff2020,

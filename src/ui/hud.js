@@ -2,7 +2,7 @@
 import { GAME_WIDTH, GAME_HEIGHT, HUD } from '../data/constants.js';
 import { t, hasKey } from '../i18n/index.js';
 import { textStyle, COLORS } from './style.js';
-import { addIcon, iconKeyFor } from './icons.js';
+import { addIcon, iconKeyFor, displayName } from './icons.js';
 import { getSetting } from './settings.js';
 import { computeScore } from '../services/leaderboard.js';
 
@@ -31,17 +31,16 @@ export class Hud {
     this.hpText = add(scene.add.text(58, 27, '', textStyle(8, '#ffffff', { stroke: '#000000', strokeThickness: 2 })).setOrigin(0.5));
 
     this.timeText = add(scene.add.text(GAME_WIDTH / 2, 24, '', textStyle(16, '#ffffff', { stroke: '#000000', strokeThickness: 4 })).setOrigin(0.5, 0.5));
-    this.killText = add(scene.add.text(GAME_WIDTH - 8, 20, '', textStyle(12, '#ffffff', { stroke: '#000000', strokeThickness: 3 })).setOrigin(1, 0));
-    // Счёт по формуле таблицы рекордов, считается на лету (монеты входят в него).
-    this.scoreText = add(scene.add.text(GAME_WIDTH - 8, 34, '', textStyle(12, '#ffd84a', { stroke: '#000000', strokeThickness: 3 })).setOrigin(1, 0));
-    // DPS-метр: как на экране итогов, по оружию и общий, среднее за HUD.dpsWindow секунд.
+    // Убийства и счёт слева под рядами оружия и пассивок. Счёт по формуле таблицы рекордов, на лету.
+    this.killText = add(scene.add.text(8, 82, '', textStyle(12, '#ffffff', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0, 0));
+    this.scoreText = add(scene.add.text(8, 96, '', textStyle(12, '#ffd84a', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0, 0));
+    // DPS-метр: панель в правом нижнем углу, по оружию и общий, среднее за HUD.dpsWindow секунд.
     // Настройка dps: full / transparent / off. Строки пересобираются вместе со слотами оружия.
     this.dpsMode = getSetting('dps');
     this.dpsAlpha = this.dpsMode === 'transparent' ? HUD.transparentAlpha : 1;
-    this.dpsY = touch ? HUD.dpsMeter.touchY : HUD.dpsMeter.y;
     this.dpsRows = [];
     this.dpsObjs = [];
-    // Миникарта: настройка minimap: full / transparent / off.
+    // Миникарта в правом верхнем углу: настройка minimap: full / transparent / off.
     this.mapMode = getSetting('minimap');
     this.map = add(scene.add.graphics()).setVisible(this.mapMode !== 'off')
         .setAlpha(this.mapMode === 'transparent' ? HUD.transparentAlpha : 1);
@@ -72,9 +71,12 @@ export class Hud {
     this.slotSig = '';
 
     if (touch) {
+      // под миникартой
       const x = GAME_WIDTH - 22;
-      const r = add(scene.add.rectangle(x, 80, 28, 28, 0x000000, 0.5).setStrokeStyle(2, 0xffffff));
-      add(scene.add.text(x, 80, t('hud.pause'), textStyle(14)).setOrigin(0.5));
+      const y = HUD.minimap.top + HUD.minimap.radius * 2 + 20;
+      this.pauseY = y;
+      const r = add(scene.add.rectangle(x, y, 28, 28, 0x000000, 0.5).setStrokeStyle(2, 0xffffff));
+      add(scene.add.text(x, y, t('hud.pause'), textStyle(14)).setOrigin(0.5));
       r.setInteractive();
       r.on('pointerdown', (p, lx, ly, ev) => { if (ev && ev.stopPropagation) ev.stopPropagation(); if (onPause) onPause(); });
       this.pauseRect = r;
@@ -83,7 +85,7 @@ export class Hud {
 
   // Область кнопки паузы (для ввода: тут джойстик не стартует).
   isOnPauseButton(x, y) {
-    return !!this.pauseRect && x > GAME_WIDTH - 40 && y > 62 && y < 98;
+    return !!this.pauseRect && x > GAME_WIDTH - 40 && y > this.pauseY - 18 && y < this.pauseY + 18;
   }
 
   // События sim этого шага (баннер босса).
@@ -124,7 +126,7 @@ export class Hud {
     const m = HUD.minimap;
     const g = this.map;
     const cx = GAME_WIDTH - m.margin - m.radius;
-    const cy = GAME_HEIGHT - m.margin - m.radius;
+    const cy = m.top + m.radius;
     const k = m.radius / m.range;
     const p = this.sim.player;
     g.clear();
@@ -152,39 +154,45 @@ export class Hud {
     g.fillStyle(m.dots.player, 1).fillRect(cx - 1, cy - 1, 2, 2);
   }
 
-  // Строки DPS-метра: общая сверху, затем по оружию в порядке слотов.
+  // Панель DPS-метра: рамка как у миникарты, строка общего DPS сверху, затем по оружию в порядке слотов.
   _rebuildDps() {
     for (const o of this.dpsObjs) o.destroy();
     this.dpsObjs = [];
     this.dpsRows = [];
     if (this.dpsMode === 'off') return;
     const m = HUD.dpsMeter;
-    const right = GAME_WIDTH - 8;
-    const left = right - m.width;
+    const weapons = this.sim.player.weapons;
+    const rows = weapons.length + 1;
+    const h = rows * m.rowH + m.pad * 2;
+    const left = GAME_WIDTH - m.margin - m.width;
+    const top = GAME_HEIGHT - m.margin - h;
     const add = (o) => {
       o.setScrollFactor(0).setDepth(D).setAlpha(this.dpsAlpha);
       this.dpsObjs.push(o);
       return o;
     };
-    const rows = this.sim.player.weapons.length + 1;
-    add(this.scene.add.rectangle(left - 4, this.dpsY - 2, m.width + 8, rows * m.rowH + 4,
-        0x000000, 0.45).setOrigin(0, 0));
+    const frame = add(this.scene.add.graphics());
+    frame.fillStyle(m.bg, m.alpha).fillRect(left, top, m.width, h);
+    frame.lineStyle(1, m.rim, 0.8).strokeRect(left + 0.5, top + 0.5, m.width - 1, h - 1);
+    const style = (color) => textStyle(8, color, { stroke: '#000000', strokeThickness: 2 });
     const row = (i, id) => {
-      const y = this.dpsY + i * m.rowH + m.rowH / 2;
-      if (id) add(addIcon(this.scene, left + m.icon / 2, y, iconKeyFor('weapon', id), m.icon, 'weapon', id));
-      else {
-        add(this.scene.add.text(left, y, t('hud.dps_label'),
-            textStyle(8, '#ffd84a', { stroke: '#000000', strokeThickness: 2 })).setOrigin(0, 0.5));
+      const y = top + m.pad + i * m.rowH;
+      const color = id ? m.colors[(i - 1) % m.colors.length] : m.total;
+      const bar = add(this.scene.add
+          .rectangle(left + m.pad, y + 1, 1, m.rowH - 2, color, m.barAlpha).setOrigin(0, 0));
+      const cy = y + m.rowH / 2;
+      if (id) {
+        add(addIcon(this.scene, left + m.pad + m.icon / 2 + 1, cy, iconKeyFor('weapon', id), m.icon, 'weapon', id));
+        add(this.scene.add.text(left + m.pad + m.icon + 5, cy, displayName('weapon', id), style('#ffffff'))
+            .setOrigin(0, 0.5));
+      } else {
+        add(this.scene.add.text(left + m.pad + 2, cy, t('hud.dps_label'), style('#ffd84a')).setOrigin(0, 0.5));
       }
-      const color = id ? m.color : m.total;
-      const bar = add(this.scene.add.rectangle(left + m.icon + 4, y, 1, m.barH, color)
-          .setOrigin(0, 0.5));
-      const num = add(this.scene.add.text(right, y, '',
-          textStyle(8, '#ffffff', { stroke: '#000000', strokeThickness: 2 })).setOrigin(1, 0.5));
+      const num = add(this.scene.add.text(left + m.width - m.pad - 2, cy, '', style('#ffffff')).setOrigin(1, 0.5));
       this.dpsRows.push({ id, bar, num });
     };
     row(0, null);
-    this.sim.player.weapons.forEach((w, i) => row(i + 1, w.id));
+    weapons.forEach((w, i) => row(i + 1, w.id));
     this.dpsShown = null;
   }
 
@@ -193,10 +201,11 @@ export class Hud {
     if (sim.dpsByWeapon === this.dpsShown) return; // sim меняет объект раз в секунду
     this.dpsShown = sim.dpsByWeapon;
     const m = HUD.dpsMeter;
+    const full = m.width - m.pad * 2;
     const total = sim.dps;
     for (const r of this.dpsRows) {
       const v = r.id ? (sim.dpsByWeapon[r.id] || 0) : total;
-      r.bar.width = Math.max(1, Math.round(m.bar * (total > 0 ? v / total : 0)));
+      r.bar.width = Math.max(1, Math.round(full * (total > 0 ? v / total : 0)));
       r.num.setText(String(Math.round(v)));
     }
   }
