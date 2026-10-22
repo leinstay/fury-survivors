@@ -6,6 +6,7 @@ export const PANEL = {
   fillFocus: COLORS.panelFocus,
   border: COLORS.stroke,
   borderFocus: COLORS.strokeFocus,
+  borderSelected: 0x8cff6a, // выбранный вариант (герой, сложность в лобби): зелёная рамка
   shadow: 0x000000,
 };
 

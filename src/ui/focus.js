@@ -1,7 +1,7 @@
 // Общая фокус-навигация меню: клавиатура (стрелки/WASD, Enter/Space, Esc), мышь, геймпад.
 import { textStyle, COLORS } from './style.js';
 import { playSfx } from '../audio/sfx.js';
-import { addPanel } from './panel.js';
+import { addPanel, PANEL } from './panel.js';
 
 // Состояние геймпада (первый подключённый) или null. Без Phaser-плагина: читаем Gamepad API напрямую.
 export function readPad() {
@@ -158,12 +158,17 @@ export class FocusNav {
 }
 
 // Кнопка-прямоугольник с текстом. Возвращает item (можно менять item.disabled и вызывать item.setLabel).
-export function addButton(scene, nav, { x, y, w, h, label, onSelect, size = 14, color = '#ffffff' }) {
+// selected: выбранный вариант из нескольких (сложность в лобби) — заливка фокуса и зелёная рамка, когда не в фокусе.
+export function addButton(scene, nav,
+    { x, y, w, h, label, onSelect, size = 14, color = '#ffffff', selected = false }) {
   const rect = addPanel(scene, x, y, w, h);
   const text = scene.add.text(x, y, label, textStyle(size, color)).setOrigin(0.5);
   const item = {
     x, y, w, h, onSelect, rect, text, disabled: false,
-    setFocus(f) { rect.setFocus(f); },
+    setFocus(f) {
+      if (!f && selected) rect.draw(PANEL.fillFocus, PANEL.borderSelected);
+      else rect.setFocus(f);
+    },
     setLabel(s) { text.setText(s); },
     setDisabled(d) {
       item.disabled = d;

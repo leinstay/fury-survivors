@@ -12,7 +12,7 @@ import { addIcon, iconKeyFor, displayName } from './icons.js';
 import { textStyle } from './style.js';
 import { spriteScale } from '../render/density.js';
 
-const SELECTED = 0x8cff6a; // рамка выбранного героя
+const SELECTED = PANEL.borderSelected;
 const PICKER_MAX_W = 600;  // ширина ряда карточек на экране 640
 const GRID_FROM = 3;       // с стольких героев карточки сменяются сеткой
 const TILE_GAP = 4;        // зазор между плитками сетки

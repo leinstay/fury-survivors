@@ -66,6 +66,16 @@ test('online co-op: lobby, connect by code, synced game, partner leaves', async 
   // героиня занята хостом: выбор отклоняется
   await guest.evaluate(() => window.__game.game.scene.getScene('Lobby').pickHero('heroine'));
   expect(await guest.evaluate(() => window.__game.game.scene.getScene('Lobby').hero)).toBe('mage');
+  // обмен: хост отпускает героиню повторным кликом, гость берёт её, хост берёт освободившуюся магессу
+  await host.evaluate(() => window.__game.game.scene.getScene('Lobby').pickHero('heroine'));
+  await guest.waitForFunction(() => window.__game.game.scene.getScene('Lobby').partnerHero === '',
+      null, { timeout: 5_000 });
+  await guest.evaluate(() => window.__game.game.scene.getScene('Lobby').pickHero('heroine'));
+  await host.waitForFunction(() => window.__game.game.scene.getScene('Lobby').partnerHero === 'heroine',
+      null, { timeout: 5_000 });
+  await host.evaluate(() => window.__game.game.scene.getScene('Lobby').pickHero('mage'));
+  await guest.waitForFunction(() => window.__game.game.scene.getScene('Lobby').partnerHero === 'mage',
+      null, { timeout: 5_000 });
   // лобби живёт дольше NET.dropAfter: после старта игра не должна тут же решить, что напарник пропал
   // (часы сцены в create() стоят на прошлом кадре); порог укорочен, чтобы не ждать 20 с
   for (const p of pages) {
@@ -94,7 +104,7 @@ test('online co-op: lobby, connect by code, synced game, partner leaves', async 
   expect(a.names).toEqual(['ANN', 'BOB']);
   expect(b.names).toEqual(['ANN', 'BOB']);
   expect(a.heroes).toEqual(b.heroes);
-  expect(b.heroes[1]).toBe('mage');
+  expect(b.heroes).toEqual(['mage', 'heroine']);
   expect(a.desynced || b.desynced).toBe(false);
   expect(Math.abs(a.tick - b.tick)).toBeLessThan(30);
   expect(a.tick).toBeGreaterThan(30);

@@ -2,6 +2,7 @@
 // Гость: joinRoom по коду, видит выбор хоста, ждёт старта. После соединения всё идёт по каналу:
 //   { type: 'hello', name, hero }  ник и герой, оба сразу после соединения
 //   { type: 'hero', id }           смена своего героя (каждый выбирает сам; герой напарника занят).
+//                                  id '' — герой отпущен (повторный клик по своему), его может взять напарник.
 //                                  Если оба оказались на одном (выбрали одновременно), уступает гость.
 //   { type: 'diff', id }           хост при смене сложности
 //   { type: 'start', seed, difficulty, names, heroes }   хост; оба стартуют Game с data.coop
@@ -23,6 +24,11 @@ import { addHeroPicker } from '../ui/hero-picker.js';
 const BTN_W = 120;
 const BTN_DX = 70;
 const LOBBY_GRID_W = 400; // сетка героев, когда их много: на всю ширину панели
+
+// Герой от напарника: '' — отпустил (никого не выбрал), иначе id из HEROES (неизвестный — по умолчанию)
+function heroOf(raw) {
+  return raw === '' ? '' : validHero(raw);
+}
 
 // Ник от напарника: по тем же правилам, что своё поле, иначе '?' (в таблицу такая пара не уйдёт)
 function nickOf(raw) {
@@ -141,12 +147,12 @@ export class LobbyScene extends Phaser.Scene {
     switch (m.type) {
       case 'hello':
         this.partner = nickOf(m.name);
-        this.partnerHero = validHero(m.hero);
+        this.partnerHero = heroOf(m.hero);
         this.resolveHeroes();
         this.renderButtons();
         break;
       case 'hero':
-        this.partnerHero = validHero(m.id);
+        this.partnerHero = heroOf(m.id);
         this.resolveHeroes();
         this.renderButtons();
         break;
@@ -175,23 +181,25 @@ export class LobbyScene extends Phaser.Scene {
   }
 
   heroes() {
-    const other = this.partnerHero || freeHero([this.hero]);
-    return this.role === 'host' ? [this.hero, other] : [other, this.hero];
+    const mine = this.hero || freeHero([this.partnerHero]);
+    const other = this.partnerHero || freeHero([mine]);
+    return this.role === 'host' ? [mine, other] : [other, mine];
   }
 
   // Два игрока на одном герое: гость берёт свободного и сообщает хосту.
   resolveHeroes() {
-    if (this.role !== 'guest' || this.hero !== this.partnerHero) return;
+    if (this.role !== 'guest' || !this.hero || this.hero !== this.partnerHero) return;
     this.hero = freeHero([this.partnerHero], this.hero);
     setSetting('hero', this.hero);
     if (this.conn) this.conn.send({ type: 'hero', id: this.hero });
   }
 
+  // Клик по своему выбранному герою отпускает его (напарник может взять), по другому — выбирает.
   pickHero(id) {
     if (validHero(id) !== id || id === this.partnerHero) return; // занят напарником
-    this.hero = id;
-    setSetting('hero', id);
-    if (this.conn) this.conn.send({ type: 'hero', id });
+    this.hero = id === this.hero ? '' : id;
+    if (this.hero) setSetting('hero', this.hero);
+    if (this.conn) this.conn.send({ type: 'hero', id: this.hero });
     this.renderButtons();
   }
 
@@ -202,8 +210,9 @@ export class LobbyScene extends Phaser.Scene {
     this.nav.clear();
     for (const o of this.objs) o.destroy();
     const before = new Set(this.children.list);
-    const me = `${this.nick} (${t('lobby.you')}) · ${t(`hero.${this.hero}.name`)}`;
-    const other = this.partner ? `${this.partner} · ${t(`hero.${validHero(this.partnerHero)}.name`)}` : '...';
+    const heroName = (id) => (id ? t(`hero.${id}.name`) : '?');
+    const me = `${this.nick} (${t('lobby.you')}) · ${heroName(this.hero)}`;
+    const other = this.partner ? `${this.partner} · ${heroName(this.partnerHero)}` : '...';
     const [a, b] = this.role === 'host' ? [me, other] : [other, me];
     this.players.setText(`${t('lobby.host')}: ${a}    ${t('lobby.guest')}: ${b}`);
 
@@ -224,16 +233,19 @@ export class LobbyScene extends Phaser.Scene {
       const cursed = id !== DEFAULT_DIFFICULTY;
       const sel = id === this.difficulty;
       const b = addButton(this, this.nav, {
-        x, y, w: BTN_W, h: 26, size: 12, label: (sel ? '> ' : '') + t(`difficulty.${id}.name`),
+        x, y, w: BTN_W, h: 26, size: 12, label: t(`difficulty.${id}.name`), selected: sel,
         color: cursed ? COLORS.cursed : '#ffffff',
         onSelect: () => this.pickDifficulty(id),
       });
-      if (this.role !== 'host') b.setDisabled(true);
+      if (this.role !== 'host') {
+        b.setDisabled(true);
+        if (sel) { b.rect.setAlpha(1); b.text.setAlpha(1); } // гость видит выбор хоста ярко
+      }
     });
     if (this.role !== 'host') {
       this.add.text(cx, 278, t('lobby.host_picks'), textStyle(9, '#aaaaaa')).setOrigin(0.5);
     }
-    const ready = !!(this.conn && this.partner && this.partnerHero) &&
+    const ready = !!(this.conn && this.partner && this.partnerHero && this.hero) &&
       this.partnerHero !== this.hero;
     if (this.role === 'host') {
       const start = addButton(this, this.nav, { x: cx - BTN_DX, y: 308, w: BTN_W, h: 28, label: t('lobby.start'), onSelect: () => this.start() });
@@ -254,7 +266,7 @@ export class LobbyScene extends Phaser.Scene {
 
   start() {
     if (this.role !== 'host' || !this.conn || !this.partner) return;
-    if (this.partnerHero === this.hero) return; // гость ещё не уступил
+    if (!this.hero || !this.partnerHero || this.partnerHero === this.hero) return; // кто-то без героя или гость не уступил
     const seed = (Date.now() ^ Math.floor(Math.random() * 0x7fffffff)) >>> 0;
     const names = this.names();
     const heroes = distinctHeroes(2, this.heroes());
