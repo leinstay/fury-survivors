@@ -5,7 +5,7 @@ export const phase = {
   update(e, sim, dt) {
     e.a -= dt;
     if (e.a <= 0) {
-      const pl = sim.player;
+      const pl = sim.target(e.x, e.y);
       const dx = pl.x - e.x;
       const dy = pl.y - e.y;
       const d = Math.sqrt(dx * dx + dy * dy) || 1;

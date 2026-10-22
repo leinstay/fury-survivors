@@ -32,6 +32,12 @@ export class LevelUpScene extends Phaser.Scene {
   create() {
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.7).setOrigin(0, 0);
     this.add.text(GAME_WIDTH / 2, 30, t('levelup.title'), textStyle(24, '#ffd84a', { stroke: '#000000', strokeThickness: 4 })).setOrigin(0.5);
+    if (this.sim.coop) {
+      // кооп: карточки выбирает игрок, чей ход (sim.levelUp.player); второй видит, чей сейчас выбор
+      const who = this.sim.levelUp.player;
+      const key = who === this.sim.local ? 'coop.your_pick' : 'coop.partner_pick';
+      this.add.text(GAME_WIDTH / 2, 52, t(key, { n: who + 1 }), textStyle(10, '#9ad0ff')).setOrigin(0.5);
+    }
     this.nav = new FocusNav(this, {
       onBack: () => {
         if (this.banishMode) {

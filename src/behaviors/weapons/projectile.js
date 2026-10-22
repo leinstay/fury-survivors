@@ -10,7 +10,7 @@ export const projectile = {
     w.cooldown -= dt;
     if (w.cooldown > 0) return;
     const P = w.params;
-    const pl = sim.player;
+    const pl = w.owner;
     const t = sim.nearestEnemy(pl.x, pl.y, TARGET_RANGE);
     if (!t) { w.cooldown = 0.1; return; }
     w.cooldown = P.cooldown;
@@ -19,6 +19,7 @@ export const projectile = {
     for (let i = 0; i < n; i++) {
       const a = base + (i - (n - 1) / 2) * SPREAD;
       const p = sim.addProjectile('player', w.def.sprite);
+      p.ws = w;
       p.x = pl.x; p.y = pl.y;
       p.angle = a;
       p.vx = Math.cos(a) * P.speed;

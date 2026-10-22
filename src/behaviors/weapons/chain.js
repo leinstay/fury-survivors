@@ -25,7 +25,7 @@ export const chain = {
     w.cooldown -= dt;
     if (w.cooldown > 0) return;
     const P = w.params;
-    const pl = sim.player;
+    const pl = w.owner;
     const first = sim.nearestEnemy(pl.x, pl.y, P.range);
     if (!first) { w.cooldown = 0.15; return; }
     w.cooldown = P.cooldown;
@@ -38,7 +38,7 @@ export const chain = {
       for (let j = 0; j <= P.jumps && cur; j++) {
         cur.mark = stamp;
         segment(sim, x, y, cur.x, cur.y, w.def.sprite);
-        sim.damageEnemy(cur, P.damage, w.id, P.knockback || 0, x, y);
+        sim.damageEnemy(cur, P.damage, w.id, P.knockback || 0, x, y, w.owner);
         x = cur.x; y = cur.y;
         cur = sim.nearestEnemy(x, y, P.area, stamp);
       }

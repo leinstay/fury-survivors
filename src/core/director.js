@@ -18,8 +18,8 @@ export function createDirector(stage, rng) {
   // овертайм: накопитель групп, индекс типа, таймеры кольца и элиты, предупреждение и приход жницы
   const otState = { acc: 0, next: 0, ring: 0, elite: 0, reaperWarned: false, reaper: false };
 
-  // Сложность (sim.diff.spawnMul): частота, минимумы и размеры разовых событий умножаются.
-  const mul = (sim, n) => Math.round(n * sim.diff.spawnMul);
+  // Сложность и кооп (sim.spawnMul): частота, минимумы и размеры разовых событий умножаются.
+  const mul = (sim, n) => Math.round(n * sim.spawnMul);
 
   function start(ev, sim) {
     switch (ev.type) {
@@ -29,7 +29,7 @@ export function createDirector(stage, rng) {
       case 'ring': {
         const n = mul(sim, ev.count || DIRECTOR.ringCount);
         const radius = ev.radius || SIM.spawnDistance - DIRECTOR.ringInset;
-        const p = sim.player;
+        const p = sim.view;
         const off = rng.next() * Math.PI * 2;
         for (let i = 0; i < n; i++) {
           if (!sim.canSpawn()) break;
@@ -40,14 +40,14 @@ export function createDirector(stage, rng) {
       }
       case 'elite': {
         const a = rng.next() * Math.PI * 2;
-        const p = sim.player;
+        const p = sim.view;
         sim.spawnEnemy(ev.enemy,
             p.x + Math.cos(a) * SIM.spawnDistance, p.y + Math.sin(a) * SIM.spawnDistance, true);
         break;
       }
       case 'burst': {
         const a = rng.next() * Math.PI * 2;
-        const p = sim.player;
+        const p = sim.view;
         const cx = p.x + Math.cos(a) * SIM.spawnDistance;
         const cy = p.y + Math.sin(a) * SIM.spawnDistance;
         for (let i = 0, n = mul(sim, ev.count); i < n; i++) {
@@ -67,7 +67,7 @@ export function createDirector(stage, rng) {
         const a = rng.next() * Math.PI * 2;          // откуда идёт
         const dist = SIM.spawnDistance + DIRECTOR.wallInset;
         const len = ev.length || DIRECTOR.wallLength;
-        const p = sim.player;
+        const p = sim.view;
         for (let i = 0; i < n; i++) {
           const s = (i / (n - 1 || 1) - 0.5) * len;
           const e = sim.spawnEnemy(ev.enemy,
@@ -82,7 +82,7 @@ export function createDirector(stage, rng) {
         // Пролёт стаи: кучка у края летит по случайному курсу мимо игрока (через точку рядом с ним) и улетает.
         const n = mul(sim, ev.count || DIRECTOR.ringCount);
         const a = rng.next() * Math.PI * 2;
-        const p = sim.player;
+        const p = sim.view;
         const cx = p.x + Math.cos(a) * SIM.spawnDistance;
         const cy = p.y + Math.sin(a) * SIM.spawnDistance;
         const miss = (rng.next() - 0.5) * DIRECTOR.flybyMiss;
@@ -113,7 +113,7 @@ export function createDirector(stage, rng) {
 
   // Группа врагов типа type у края экрана.
   function group(sim, type, count) {
-    const p = sim.player;
+    const p = sim.view;
     const ang = rng.next() * Math.PI * 2;
     const cx = p.x + Math.cos(ang) * SIM.spawnDistance;
     const cy = p.y + Math.sin(ang) * SIM.spawnDistance;
@@ -129,7 +129,7 @@ export function createDirector(stage, rng) {
   function overtime(sim, dt) {
     const s = sim.time - sim.overtime;
     const o = otState;
-    o.acc += (ot.rate + ot.rateRamp * s) * sim.diff.spawnMul * dt;
+    o.acc += (ot.rate + ot.rateRamp * s) * sim.spawnMul * dt;
     while (o.acc >= 1) {
       o.acc -= 1;
       group(sim, ot.enemies[o.next++ % ot.enemies.length], ot.group || 1);
@@ -181,13 +181,13 @@ export function createDirector(stage, rng) {
         }
         const k = (t - ev.at) / Math.max(0.001, until - ev.at);
         const rate = ev.rateEnd === undefined ? ev.rate : ev.rate + (ev.rateEnd - ev.rate) * k;
-        a.acc += rate * sim.diff.spawnMul * dt;
+        a.acc += rate * sim.spawnMul * dt;
         // Минимум как в Vampire Survivors: раз в полсекунды досыпаем группы, пока живых этого вида меньше min.
         a.check -= dt;
         if (ev.min !== undefined && a.check <= 0) {
           a.check = DIRECTOR.minCheckInterval;
           const base = ev.minEnd === undefined ? ev.min : ev.min + (ev.minEnd - ev.min) * k;
-          const min = base * sim.diff.spawnMul;
+          const min = base * sim.spawnMul;
           let alive = 0;
           for (let j = 0; j < sim.enemies.length; j++) {
             const o = sim.enemies[j];

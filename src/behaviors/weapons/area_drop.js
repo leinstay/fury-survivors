@@ -9,7 +9,7 @@ export const areaDrop = {
     w.cooldown -= dt;
     if (w.cooldown > 0) return;
     const P = w.params;
-    const pl = sim.player;
+    const pl = w.owner;
     if (!sim.nearestEnemy(pl.x, pl.y, TARGET_RANGE)) { w.cooldown = 0.15; return; }
     w.cooldown = P.cooldown;
     const stamp = sim.nextStamp();

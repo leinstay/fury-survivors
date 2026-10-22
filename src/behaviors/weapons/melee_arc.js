@@ -6,7 +6,7 @@ const ARC = WEAPON_BEHAVIOR.melee_arc;
 
 function swing(w, sim) {
   const P = w.params;
-  const pl = sim.player;
+  const pl = w.owner;
   if (w.n === 0) {
     const t = sim.nearestEnemy(pl.x, pl.y, P.area * ARC.aimRange);
     w.base = t ? Math.atan2(t.y - pl.y, t.x - pl.x) : (pl.facing > 0 ? 0 : Math.PI);
@@ -54,7 +54,7 @@ export const meleeArc = {
     }
   },
   moveProjectile(p, w, sim) {
-    p.x = sim.player.x + Math.cos(p.a) * p.b;
-    p.y = sim.player.y + Math.sin(p.a) * p.b;
+    p.x = w.owner.x + Math.cos(p.a) * p.b;
+    p.y = w.owner.y + Math.sin(p.a) * p.b;
   },
 };

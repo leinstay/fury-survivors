@@ -82,8 +82,9 @@ export class PauseScene extends Phaser.Scene {
     } else {
       addButton(this, this.nav, { x: cx, y: qy, w: 180, h: 28, label: t('pause.quit'), onSelect: () => this.quit() });
     }
-    addBuildList(this, 330, 44, this.sim.player);
-    addStatsBlock(this, 330, 232, this.sim.player);
+    const me = this.sim.players[this.sim.local];
+    addBuildList(this, 330, 44, me);
+    addStatsBlock(this, 330, 232, me);
 
     this.input.keyboard.on('keydown-P', () => this.resume());
   }

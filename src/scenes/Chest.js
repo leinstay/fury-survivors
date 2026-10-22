@@ -31,6 +31,11 @@ export class ChestScene extends Phaser.Scene {
   create() {
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.75).setOrigin(0, 0);
     this.add.text(GAME_WIDTH / 2, 34, t('chest.title'), textStyle(24, '#ffd84a', { stroke: '#000000', strokeThickness: 4 })).setOrigin(0.5);
+    if (this.sim.coop && this.choices.length) {
+      const who = this.sim.chest.player;
+      const key = who === this.sim.local ? 'coop.your_pick' : 'coop.partner_pick';
+      this.add.text(GAME_WIDTH / 2, 56, t(key, { n: who + 1 }), textStyle(10, '#9ad0ff')).setOrigin(0.5);
+    }
     this.nav = new FocusNav(this, {});
     this.startAt = this.time.now;
     const pad = readPad();

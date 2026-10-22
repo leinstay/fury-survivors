@@ -1,7 +1,7 @@
 // Летучая мышь: летит на игрока с боковым покачиванием (params.wobble px/с, wobbleFreq рад/с).
 export const swarm = {
   update(e, sim, dt) {
-    const pl = sim.player;
+    const pl = sim.target(e.x, e.y);
     const dx = pl.x - e.x;
     const dy = pl.y - e.y;
     const d = Math.sqrt(dx * dx + dy * dy) || 1;

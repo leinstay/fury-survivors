@@ -22,16 +22,16 @@ export const combo = {
         def: { sprite: part.sprite, behavior: part.behavior },
         beh: WEAPON_BEHAVIORS[part.behavior],
         params: {}, slot: w.slot + SLOT_STRIDE * i, cooldown: 0.3 + 0.2 * i, tint: part.tint || 0,
-        shields: null, p: null, t: 0, n: 0, q: 0, active: false, timer: 0,
+        shields: null, p: null, t: 0, n: 0, q: 0, active: false, timer: 0, owner: w.owner,
         get removed() { return w.removed; },
       };
-      refresh(sub, part, sim.player.stats);
+      refresh(sub, part, w.owner.stats);
       if (sub.beh.init) sub.beh.init(sub, sim);
       return sub;
     });
   },
   update(w, sim, dt) {
-    const st = sim.player.stats;
+    const st = w.owner.stats;
     for (let i = 0; i < w.parts.length; i++) {
       const sub = w.parts[i];
       refresh(sub, w.def.parts[i], st);

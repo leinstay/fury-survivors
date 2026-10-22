@@ -35,6 +35,7 @@ export function buildPool(player, banished) {
   const pool = [];
   const weapons = player.weapons;
   const passives = player.passives;
+  const slots = player.slots || SLOTS; // в коопе слотов на игрока меньше (data/coop.js)
   // Оружие, поглощённое супероружием игрока, больше не предлагается (как в VS).
   const consumed = new Set();
   for (const c of COMBOS) if (find(weapons, c.result)) for (const id of c.from) consumed.add(id);
@@ -44,7 +45,7 @@ export function buildPool(player, banished) {
     const own = find(weapons, id);
     const card = own
       ? (own.level < def.maxLevel ? { kind: 'weapon', id, level: own.level + 1, isNew: false, icon: def.icon } : null)
-      : (weapons.length < SLOTS.weapons ? { kind: 'weapon', id, level: 1, isNew: true, icon: def.icon } : null);
+      : (weapons.length < slots.weapons ? { kind: 'weapon', id, level: 1, isNew: true, icon: def.icon } : null);
     if (card && !(banished && banished.has(cardKey(card)))) pool.push(card);
   }
   for (const id in PASSIVES) {
@@ -53,7 +54,7 @@ export function buildPool(player, banished) {
     const own = find(passives, id);
     const card = own
       ? (own.level < max ? { kind: 'passive', id, level: own.level + 1, isNew: false, icon: def.icon } : null)
-      : (passives.length < SLOTS.passives ? { kind: 'passive', id, level: 1, isNew: true, icon: def.icon } : null);
+      : (passives.length < slots.passives ? { kind: 'passive', id, level: 1, isNew: true, icon: def.icon } : null);
     if (card && !(banished && banished.has(cardKey(card)))) pool.push(card);
   }
   return pool;

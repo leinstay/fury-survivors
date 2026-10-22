@@ -28,7 +28,8 @@ function volley(e, sim, a, k, dx, dy) {
       sim.spawnEnemyProjectile(e.x, e.y, start + (j / a.count) * TAU, a.speed, dmg, a.life);
     }
   } else if (a.type === 'slam') {
-    sim.addTelegraph(sim.player.x, sim.player.y, a.radius, a.delay, dmg);
+    const t = sim.target(e.x, e.y);
+    sim.addTelegraph(t.x, t.y, a.radius, a.delay, dmg);
   }
 }
 
@@ -71,7 +72,7 @@ export const boss = {
     }
     const cdMul = e.rage ? rage.cooldownMul : 1;
     const speedMul = e.rage && rage.speedMul ? rage.speedMul : 1;
-    const pl = sim.player;
+    const pl = sim.target(e.x, e.y);
     const dx = pl.x - e.x;
     const dy = pl.y - e.y;
     const d = Math.sqrt(dx * dx + dy * dy) || 1;

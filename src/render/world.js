@@ -27,6 +27,19 @@ function dropGlow(s) {
 
 // Мягкое круглое пятно (радиальный градиент) для свечения снарядов, белое: цвет задаёт tint.
 const HALO_SIZE = 64;
+const COFFIN_Y = 4; // гроб стоит чуть ниже точки игрока (дно спрайта)
+
+// Гроб игрока в коопе: деревянный ящик с крестом, 16×20 (генерируется, спрайта нет).
+function makeCoffin(scene) {
+  const g = scene.add.graphics();
+  g.fillStyle(0x3a2416, 1).fillRect(0, 0, 16, 20);
+  g.fillStyle(0x6b4423, 1).fillRect(1, 1, 14, 18);
+  g.fillStyle(0x8a5a2e, 1).fillRect(2, 2, 12, 2);
+  g.fillStyle(0xd9c7a0, 1).fillRect(7, 5, 2, 11).fillRect(4, 8, 8, 2);
+  g.generateTexture('fx_coffin', 16, 20);
+  g.destroy();
+}
+
 function makeHalo(scene) {
   const tex = scene.textures.createCanvas('fx_halo', HALO_SIZE, HALO_SIZE);
   const ctx = tex.getContext();
@@ -101,8 +114,15 @@ export class World {
     this.decor = new Decor(scene, sim.stageDef || { props: [] }, sim.roads);
 
     this.playerKey = sim.player.sprite || (sim.heroDef && sim.heroDef.sprite) || 'heroine';
-    this.player = scene.add.sprite(sim.player.x, sim.player.y, this._tex(this.playerKey), 0);
-    this._origin(this.player, this.playerKey);
+    if (!scene.textures.exists('fx_coffin')) makeCoffin(scene);
+    // спрайт на игрока (кооп: два, второй подкрашен p.tint); мёртвый игрок рисуется гробом
+    this.playerSprites = sim.players.map((p) => {
+      const sp = scene.add.sprite(p.x, p.y, this._tex(this.playerKey), 0);
+      this._origin(sp, this.playerKey);
+      sp.coffin = false;
+      return sp;
+    });
+    this.player = this.playerSprites[0];
 
     this.pools = {
       enemies: new Pool(scene),
@@ -181,11 +201,14 @@ export class World {
     if (s.spriteKey !== key) { s.spriteKey = key; this._origin(s, key); }
   }
 
-  _tint(s, flash, elite) {
+  // base: постоянная подкраска (цвет игрока в коопе), 0 — без неё
+  _tint(s, flash, elite, base = 0) {
     const state = flash ? 1 : 0;
-    if (s.tintState === state) return;
+    if (s.tintState === state && s.tintBase === base) return;
     s.tintState = state;
+    s.tintBase = base;
     if (state === 1) s.setTintFill(0xffffff);
+    else if (base && base !== 0xffffff) s.setTint(base);
     else s.clearTint();
   }
 
@@ -211,24 +234,46 @@ export class World {
     this.time += dt;
     const sim = this.sim;
     const time = this.time;
-    const p = sim.player;
+    const v = sim.view;
 
-    // игрок
-    const pl = this.player;
-    pl.baseScale = spriteScale(this.playerKey);
-    const lift = animateCharacter(pl, this.playerKey, p, time, 0);
-    pl.setPosition(Math.round(p.x), Math.round(p.y) + lift);
-    pl.setFlipX(p.facing < 0);
-    pl.setDepth(p.y);
-    pl.setAlpha(p.iframes > 0 && Math.floor(time * 16) % 2 === 0 ? 0.35 : 1);
-    this._tint(pl, p.hurtFlash > 0, false);
-
-    // камера и фон
+    // камера и фон: центр экрана — sim.view (игрок, в коопе середина между живыми)
     const cam = this.scene.cameras.main;
-    cam.scrollX = Math.round(p.x - GAME_WIDTH / 2) + this.shake.x;
-    cam.scrollY = Math.round(p.y - GAME_HEIGHT / 2) + this.shake.y;
+    cam.scrollX = Math.round(v.x - GAME_WIDTH / 2) + this.shake.x;
+    cam.scrollY = Math.round(v.y - GAME_HEIGHT / 2) + this.shake.y;
     this.shadowN = 0;
-    this._shadow(p.x, p.y, pl, cam);
+
+    // игроки
+    for (let i = 0; i < sim.players.length; i++) {
+      const p = sim.players[i];
+      const pl = this.playerSprites[i];
+      if (p.dead) {
+        if (!pl.coffin) {
+          pl.coffin = true;
+          pl.setTexture('fx_coffin', 0).setOrigin(0.5, 1).setScale(1).setFlipX(false).setAlpha(1);
+          pl.spriteKey = 'fx_coffin';
+          pl.tintState = -1;
+          pl.clearTint();
+        }
+        pl.setPosition(Math.round(p.x), Math.round(p.y) + COFFIN_Y);
+        pl.setDepth(p.y);
+        this._shadow(p.x, p.y, pl, cam);
+        continue;
+      }
+      if (pl.coffin) {
+        pl.coffin = false;
+        pl.setTexture(this._tex(this.playerKey), 0);
+        pl.spriteKey = this.playerKey;
+        this._origin(pl, this.playerKey);
+      }
+      pl.baseScale = spriteScale(this.playerKey);
+      const lift = animateCharacter(pl, this.playerKey, p, time, i);
+      pl.setPosition(Math.round(p.x), Math.round(p.y) + lift);
+      pl.setFlipX(p.facing < 0);
+      pl.setDepth(p.y);
+      pl.setAlpha(p.iframes > 0 && Math.floor(time * 16) % 2 === 0 ? 0.35 : 1);
+      this._tint(pl, p.hurtFlash > 0, false, sim.coop ? p.tint : 0);
+      this._shadow(p.x, p.y, pl, cam);
+    }
     this.bg.tilePositionX = cam.scrollX;
     this.bg.tilePositionY = cam.scrollY;
     if (this.roads) this.roads.update(cam);

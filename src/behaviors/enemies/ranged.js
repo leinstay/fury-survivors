@@ -5,7 +5,7 @@ export const ranged = {
   },
   update(e, sim, dt) {
     const P = e.params;
-    const pl = sim.player;
+    const pl = sim.target(e.x, e.y);
     const dx = pl.x - e.x;
     const dy = pl.y - e.y;
     const d = Math.sqrt(dx * dx + dy * dy) || 1;

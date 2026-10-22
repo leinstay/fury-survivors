@@ -23,7 +23,7 @@ export const aura = {
   },
   moveProjectile(p, w, sim) {
     if (w.removed) { p.life = 0; return; }
-    p.x = sim.player.x;
-    p.y = sim.player.y;
+    p.x = w.owner.x;
+    p.y = w.owner.y;
   },
 };

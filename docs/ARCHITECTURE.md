@@ -15,8 +15,10 @@ const sim = createSim({ hero: 'heroine', stage: 'forest', seed: 12345, difficult
 // hero: id из data/heroes.js; stage: id этапа (сейчас таблица STAGES = { forest } зашита в sim.js);
 // seed: тот же seed даёт тот же забег (core/rng.js), на этом стоят balance-тесты;
 // difficulty: id из data/difficulty.js (spawnMul для директора, xpMul для опыта), по умолчанию normal
+// players: 1 (по умолчанию) или 2 — кооп (data/coop.js), см. раздел «Кооп» ниже
 
 sim.step(dt, input);   // dt в секундах (Game.js режет до 1/20, sim сам до 0.1), input = { x, y } вектор движения длиной 0..1
+                       // кооп: input = { players: [{ x, y }, { x, y }] } по игрокам
                        // в состоянии 'levelup' / 'chest' / 'gameover' / 'victory' step ничего не делает
 ```
 
@@ -56,8 +58,8 @@ sim.roads       // сеть песчаных дорог (core/roads.js: distance
 sim.events      // события этого шага, очищаются в начале step():
                 //   { type: 'hit', x, y, amount, crit, weapon }
                 //   { type: 'kill', x, y, enemy, elite, boss, sprite, size }
-                //   { type: 'playerHurt', amount }
-                //   { type: 'pickup', kind }
+                //   { type: 'playerHurt', amount, player }
+                //   { type: 'pickup', kind, player }
                 //   { type: 'levelup', level }
                 //   { type: 'weaponFire', weapon }
                 //   { type: 'chest', items: [...] }          формат ниже
@@ -79,6 +81,33 @@ sim.damageByWeapon  // { weaponId: totalDamage }
 ```
 
 Все массивы сущностей живут дольше одного кадра: рендер сопоставляет спрайты по `uid` (создаёт новые, прячет пропавшие в пул).
+
+### Кооп (players: 2)
+
+Как local co-op в Vampire Survivors: один экран, общий опыт и уровень, карточки выбирают по очереди, смерть превращает
+игрока в гроб. Числа в `src/data/coop.js`.
+
+```js
+sim.coop           // true при players > 1
+sim.players        // [{ ...поля sim.player, id, slots: { weapons, passives }, dead, coffinT, revives, tint }]
+sim.player         // = sim.players[0]; общие опыт и уровень (xp, xpNext, level) лежат только у него
+sim.local          // индекс игрока за этим экраном (HUD и экраны выбора показывают его билд); сеть ставит 1 у гостя
+sim.view           // { x, y, dirX, dirY } центр экрана: середина между игроками (гробы тоже), в соло сам игрок
+sim.alive          // живые игроки
+sim.target(x, y)   // ближайший живой игрок к точке: цель врагов и снарядов (behaviors/enemies/*)
+sim.spawnMul       // множитель спавна директора: сложность × COOP.spawnMul
+sim.levelUp.player // чей ход выбирать карточки (по очереди через sim.levelTurn, мёртвые тоже выбирают)
+sim.chest.player   // кому достался сундук (тому, кто подобрал)
+sim.hurtPlayer(raw, pl)  // в коопе смерть: pl.dead = true, pl.coffinT = COOP.reviveTime; 'gameover' только когда мертвы все
+```
+
+Движение: игроки не могут разойтись дальше экрана минус `COOP.edge` с каждой стороны (`_clampToPartners`). Гроб: таймер
+идёт быстрее, пока напарник рядом (`allyRadius`, `allyBoost`), и медленнее, пока на гробу стоит враг (`enemySlow`);
+по истечении игрок встаёт с `reviveHp` HP и `reviveIframes` с неуязвимости. Враги: спавн × `spawnMul`, HP обычных × `enemyHpMul`.
+Слотов на игрока `COOP.slots` (меньше, чем `SLOTS`). Оружие знает владельца (`w.owner`), крит и статы берутся от него;
+удача для дропа — лучшая среди живых. События получают `player`: `playerHurt`, `playerDown { x, y }`, `revive { x, y }`,
+`pickup`, `chest`, `autoHeal`. Рендер: `render/world.js` рисует спрайт на игрока (второй подкрашен `tint`, мёртвый — гроб),
+камера на `sim.view`; HUD показывает полоску напарника с таймером оживления.
 
 ### Сундук
 

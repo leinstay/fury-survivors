@@ -83,7 +83,8 @@ export const HUD = {
   minimap: {
     radius: 34, margin: 8, top: 18, range: 900, fps: 12, alpha: 0.6, bg: 0x000000, rim: 0xb0a0d0,
     dots: {
-      player: 0xffffff, chest: 0xffd84a, food: 0x8cff6a, magnet: 0x7fd8ff, coin: 0xffb52e,
+      player: 0xffffff, coffin: 0x9a8a7a, chest: 0xffd84a, food: 0x8cff6a, magnet: 0x7fd8ff,
+      coin: 0xffb52e,
       elite: 0xff3d6e, boss: 0xff2020,
     },
   },

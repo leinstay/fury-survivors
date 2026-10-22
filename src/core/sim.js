@@ -1,6 +1,7 @@
 // Симуляция игры. Чистая логика: без Phaser, без DOM, без Math.random.
 // Контракт полей и методов описан в docs/ARCHITECTURE.md.
-import { SIM, PLAYER, COMBAT, XP, DROPS, LEVEL_UP, HUD } from '../data/constants.js';
+import { SIM, PLAYER, COMBAT, XP, DROPS, LEVEL_UP, HUD, SLOTS, GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
+import { COOP } from '../data/coop.js';
 import { HEROES } from '../data/heroes.js';
 import { WEAPONS } from '../data/weapons.js';
 import { ENEMIES } from '../data/enemies.js';
@@ -19,7 +20,7 @@ import * as UP from './upgrades.js';
 const STAGES = { forest };
 const EMPTY = {};
 const HIT_MEM = 24;      // память о поражённых целях у пробивающих снарядов
-const SLOT_COUNT = 16;   // слоты таймеров повторного попадания (по оружию)
+const SLOT_COUNT = 32;   // слоты таймеров повторного попадания (по оружию; на двоих до 12 оружий, части коллабов slot + 8)
 const NEVER = -1e9;
 
 // Кристаллы опыта от крупных к мелким.
@@ -120,10 +121,27 @@ class Sim {
     this.chunkX = NaN;
     this.chunkY = NaN;
 
-    const base = this.heroDef.stats;
-    const stats = computeStats(base, [], {});
-    this.player = {
-      x: 0, y: 0, hp: stats.maxHp, maxHp: stats.maxHp,
+    // Игроки: соло один, кооп COOP.players. Опыт и уровень общие и лежат у players[0] (this.player);
+    // оружие, пассивки, HP и гроб у каждого свои. this.view — центр экрана (середина между живыми).
+    this.coop = o.players > 1;
+    this.players = [];
+    const n = this.coop ? Math.min(o.players, COOP.players) : 1;
+    for (let i = 0; i < n; i++) this.players.push(this._makePlayer(i, n));
+    this.player = this.players[0];
+    this.view = { x: 0, y: 0, dirX: 1, dirY: 0 };
+    this.local = 0;         // индекс игрока за этим экраном (HUD, экраны выбора); сеть ставит 1 у гостя
+    this.levelTurn = 0;     // чей ход выбирать карточку (по очереди, индекс растёт с каждым уровнем)
+    this.levelUp.player = 0;
+    this.chest.player = 0;
+    this._syncBuild();
+    this._updateChunks();
+  }
+
+  _makePlayer(i, n) {
+    const stats = computeStats(this.heroDef.stats, [], {});
+    const slots = n > 1 ? COOP.slots : SLOTS;
+    return {
+      id: i, x: i * 24, y: 0, hp: stats.maxHp, maxHp: stats.maxHp,
       level: 1, xp: 0, xpNext: xpForLevel(1),
       facing: 1, moving: false, iframes: 0, hurtFlash: 0,
       weapons: [{ id: this.heroDef.startWeapon, level: 1 }],
@@ -131,9 +149,53 @@ class Sim {
       stats,
       dirX: 1, dirY: 0,
       radius: PLAYER.radius,
+      slots: { weapons: slots.weapons, passives: slots.passives },
+      dead: false, coffinT: 0, revives: 0,
+      tint: COOP.tints[i] || 0xffffff,
+      name: '',
     };
-    this._syncBuild();
-    this._updateChunks();
+  }
+
+  /** Множитель спавна: сложность × кооп. */
+  get spawnMul() {
+    return this.diff.spawnMul * (this.coop ? COOP.spawnMul : 1);
+  }
+
+  // Живые игроки (в соло всегда один).
+  get alive() {
+    return this.players.filter((p) => !p.dead);
+  }
+
+  // Цель для врагов и снарядов: ближайший живой игрок к точке (x, y); когда живых нет, первый игрок.
+  target(x, y) {
+    const ps = this.players;
+    if (ps.length === 1) return ps[0];
+    let best = null;
+    let bd = Infinity;
+    for (let i = 0; i < ps.length; i++) {
+      const p = ps[i];
+      if (p.dead) continue;
+      const dx = p.x - x;
+      const dy = p.y - y;
+      const d2 = dx * dx + dy * dy;
+      if (d2 < bd) { bd = d2; best = p; }
+    }
+    return best || ps[0];
+  }
+
+  // Центр экрана: середина между игроками, гробы тоже (их надо видеть, чтобы оживить); направление — среднее.
+  _updateView() {
+    const v = this.view;
+    const list = this.players;
+    let x = 0;
+    let y = 0;
+    let dx = 0;
+    let dy = 0;
+    for (const p of list) { x += p.x; y += p.y; dx += p.dirX; dy += p.dirY; }
+    v.x = x / list.length;
+    v.y = y / list.length;
+    const d = Math.sqrt(dx * dx + dy * dy);
+    if (d > 0.01) { v.dirX = dx / d; v.dirY = dy / d; }
   }
 
   // ---------- шаг ----------
@@ -162,7 +224,31 @@ class Sim {
       this.dps = sum / b.length;
     }
 
-    // движение игрока
+    // движение игроков: input — вектор первого, inputs[i] — по игрокам (кооп)
+    const inputs = input && input.players ? input.players : [input];
+    for (let i = 0; i < this.players.length; i++) {
+      this._movePlayer(this.players[i], inputs[i] || inputs[0], dt);
+    }
+    this._updateView();
+
+    this._updateChunks();
+    this.director.update(this, dt);
+    this._updateEnemies(dt);
+    this._buildGrid();
+    this._separate();
+    if (this.coop) this._updateCoffins(dt); // после сетки: индексы врагов прошлого шага устарели
+    this._updateWeapons(dt);
+    this._updateProjectiles(dt);
+    this._updateTelegraphs(dt);
+    this._contactDamage();
+    this._updatePickups(dt);
+    this._sweepProps();
+    this._sweepEnemies();
+    this._checkLevel();
+  }
+
+  _movePlayer(pl, input, dt) {
+    if (pl.dead) { pl.moving = false; return; }
     let ix = input && input.x ? input.x : 0;
     let iy = input && input.y ? input.y : 0;
     const len = Math.sqrt(ix * ix + iy * iy);
@@ -175,26 +261,60 @@ class Sim {
       if (ix > 0.05) pl.facing = 1; else if (ix < -0.05) pl.facing = -1;
       pl.dirX = ix / len;
       pl.dirY = iy / len;
+      if (this.coop) this._clampToPartners(pl);
     }
     if (pl.iframes > 0) pl.iframes -= dt;
     if (pl.hurtFlash > 0) pl.hurtFlash -= dt;
     if (pl.stats.regen > 0 && pl.hp < pl.maxHp) {
       pl.hp = Math.min(pl.maxHp, pl.hp + pl.stats.regen * dt);
     }
+  }
 
-    this._updateChunks();
-    this.director.update(this, dt);
-    this._updateEnemies(dt);
-    this._buildGrid();
-    this._separate();
-    this._updateWeapons(dt);
-    this._updateProjectiles(dt);
-    this._updateTelegraphs(dt);
-    this._contactDamage();
-    this._updatePickups(dt);
-    this._sweepProps();
-    this._sweepEnemies();
-    this._checkLevel();
+  // Общий экран: игрок не может уйти от напарника дальше, чем позволяет экран минус отступ (как в VS).
+  _clampToPartners(pl) {
+    const maxDx = GAME_WIDTH - 2 * COOP.edge;
+    const maxDy = GAME_HEIGHT - 2 * COOP.edge;
+    for (const o of this.players) {
+      if (o === pl) continue;
+      if (pl.x > o.x + maxDx) pl.x = o.x + maxDx;
+      else if (pl.x < o.x - maxDx) pl.x = o.x - maxDx;
+      if (pl.y > o.y + maxDy) pl.y = o.y + maxDy;
+      else if (pl.y < o.y - maxDy) pl.y = o.y - maxDy;
+    }
+  }
+
+  // Гроб: таймер идёт быстрее рядом с напарником и медленнее, пока на гробу стоит враг; по истечении оживление.
+  _updateCoffins(dt) {
+    for (const pl of this.players) {
+      if (!pl.dead) continue;
+      let k = 1;
+      for (const o of this.players) {
+        if (o === pl || o.dead) continue;
+        const dx = o.x - pl.x;
+        const dy = o.y - pl.y;
+        if (dx * dx + dy * dy <= COOP.allyRadius * COOP.allyRadius) k *= COOP.allyBoost;
+      }
+      const cnt = this.grid.query(pl.x, pl.y, COOP.coffinRadius + this.maxSize, this.qbuf);
+      for (let c = 0; c < cnt; c++) {
+        const e = this.enemies[this.qbuf[c]];
+        if (e.dead) continue;
+        const dx = e.x - pl.x;
+        const dy = e.y - pl.y;
+        const r = COOP.coffinRadius + e.size;
+        if (dx * dx + dy * dy <= r * r) { k *= COOP.enemySlow; break; }
+      }
+      pl.coffinT -= dt * k;
+      if (pl.coffinT <= 0) this._revive(pl);
+    }
+  }
+
+  _revive(pl) {
+    pl.dead = false;
+    pl.coffinT = 0;
+    pl.hp = Math.max(1, Math.round(pl.maxHp * COOP.reviveHp));
+    pl.iframes = COOP.reviveIframes;
+    pl.revives++;
+    this.events.push({ type: 'revive', player: pl.id, x: pl.x, y: pl.y });
   }
 
   // ---------- враги ----------
@@ -205,7 +325,7 @@ class Sim {
 
   // Освободить место для элиты или босса: убрать самого далёкого обычного врага (без дропа).
   _evictOne() {
-    const pl = this.player;
+    const pl = this.view;
     let worst = null;
     let wd = -1;
     for (let i = 0; i < this.enemies.length; i++) {
@@ -239,7 +359,7 @@ class Sim {
     }
     const mins = this.time / 60;
     const sc = this.stageDef.scaling || EMPTY;
-    let hpScale = 1 + (sc.hpPerMinute || 0) * mins;
+    let hpScale = (1 + (sc.hpPerMinute || 0) * mins) * (this.coop && !isBoss ? COOP.enemyHpMul : 1);
     let dmgScale = 1 + (sc.damagePerMinute || 0) * mins;
     if (this.overtime >= 0) {
       const ot = this.stageDef.overtime;
@@ -278,7 +398,8 @@ class Sim {
 
   spawnBoss(id) {
     const pl = this.player;
-    const e = this.spawnEnemy(id, pl.x + pl.dirX * 300, pl.y + pl.dirY * 300, false, true);
+    const v = this.view;
+    const e = this.spawnEnemy(id, v.x + v.dirX * 300, v.y + v.dirY * 300, false, true);
     // Правило VS: HP босса = hpPerLevel × уровень игрока при появлении (без роста со временем).
     // Без hpPerLevel работает прежний путь: hp × рост этапа.
     if (e && e.def.hpPerLevel) {
@@ -314,7 +435,7 @@ class Sim {
 
   _updateEnemies(dt) {
     const en = this.enemies;
-    const pl = this.player;
+    const pl = this.view;
     const n = en.length;
     const decay = Math.max(0, 1 - COMBAT.knockbackDecay * dt);
     const far2 = SIM.despawnDistance * SIM.despawnDistance;
@@ -340,7 +461,7 @@ class Sim {
 
   // Отставший враг переносится вперёд по ходу игрока.
   _teleportAhead(e) {
-    const pl = this.player;
+    const pl = this.view;
     const a = Math.atan2(pl.dirY, pl.dirX) + (this.rng.next() - 0.5) * 2.2;
     e.x = pl.x + Math.cos(a) * SIM.spawnDistance;
     e.y = pl.y + Math.sin(a) * SIM.spawnDistance;
@@ -389,15 +510,15 @@ class Sim {
   }
 
   // Итоговый шанс крита: стат crit × удача (пассивка Luck обещает «больше критов», как и лучший дроп).
-  critChance() {
-    const st = this.player.stats;
+  critChance(pl = this.player) {
+    const st = pl.stats;
     return Math.min(1, st.crit * st.luck);
   }
 
-  // Урон врагу. (sx, sy) — источник для направления отбрасывания.
-  damageEnemy(e, dmg, wid, kb, sx, sy) {
+  // Урон врагу. (sx, sy) — источник для направления отбрасывания; by — игрок-владелец оружия (крит по его статам).
+  damageEnemy(e, dmg, wid, kb, sx, sy, by = this.player) {
     if (e.dead || e.def.invulnerable) return; // жница: урон не проходит, чисел урона нет
-    const crit = this.rng.next() < this.critChance();
+    const crit = this.rng.next() < this.critChance(by);
     const amount = crit ? dmg * COMBAT.critMul : dmg;
     const dealt = amount < e.hp ? amount : e.hp;
     e.hp -= amount;
@@ -416,11 +537,18 @@ class Sim {
     if (e.hp <= 0) this._killEnemy(e);
   }
 
+  // Удача для дропа: лучшая среди живых игроков.
+  luck() {
+    let best = 0;
+    for (const p of this.players) if (!p.dead && p.stats.luck > best) best = p.stats.luck;
+    return best || this.player.stats.luck;
+  }
+
   _killEnemy(e) {
     e.dead = true;
     this.deadN++;
     this.kills++;
-    const luck = this.player.stats.luck;
+    const luck = this.luck();
     this.events.push({ type: 'kill', x: e.x, y: e.y, enemy: e.type, elite: e.elite, boss: e.boss, final: !!(e.boss && e.def.final), sprite: e.sprite, size: e.size });
     if (e.xp > 0) this.dropPickup(xpTierFor(e.xp), e.x, e.y, e.xp);
     if (e.boss) {
@@ -454,7 +582,7 @@ class Sim {
     const h = this.stageDef.chestHorde;
     if (!h) return;
     const off = this.rng.next() * Math.PI * 2;
-    const n = Math.round(h.count * this.diff.spawnMul);
+    const n = Math.round(h.count * this.spawnMul);
     for (let i = 0; i < n; i++) {
       if (!this.canSpawn()) break;
       const a = off + (i / n) * Math.PI * 2;
@@ -478,37 +606,45 @@ class Sim {
   }
 
   _contactDamage() {
-    const pl = this.player;
-    if (pl.iframes > 0) return;
     const en = this.enemies;
-    const cnt = this.grid.query(pl.x, pl.y, pl.radius + this.maxSize, this.qbuf);
-    for (let c = 0; c < cnt; c++) {
-      const e = en[this.qbuf[c]];
-      if (e.dead) continue;
-      const dx = e.x - pl.x;
-      const dy = e.y - pl.y;
-      const r = e.size * 0.8 + pl.radius;
-      if (dx * dx + dy * dy <= r * r) {
-        this.hurtPlayer(e.damage);
-        return;
+    for (const pl of this.players) {
+      if (pl.dead || pl.iframes > 0) continue;
+      const cnt = this.grid.query(pl.x, pl.y, pl.radius + this.maxSize, this.qbuf);
+      for (let c = 0; c < cnt; c++) {
+        const e = en[this.qbuf[c]];
+        if (e.dead) continue;
+        const dx = e.x - pl.x;
+        const dy = e.y - pl.y;
+        const r = e.size * 0.8 + pl.radius;
+        if (dx * dx + dy * dy <= r * r) {
+          this.hurtPlayer(e.damage, pl);
+          break;
+        }
       }
     }
   }
 
-  hurtPlayer(raw) {
-    const pl = this.player;
-    if (pl.iframes > 0 || this.state !== 'running') return;
+  // Урон игроку (по умолчанию первому). В коопе смерть превращает игрока в гроб (оживёт по таймеру),
+  // забег кончается, когда мертвы все.
+  hurtPlayer(raw, pl = this.player) {
+    if (pl.dead || pl.iframes > 0 || this.state !== 'running') return;
     const amount = Math.max(COMBAT.armorMinDamage, raw - pl.stats.armor);
     pl.hp -= amount;
     pl.iframes = PLAYER.iframes;
     pl.hurtFlash = PLAYER.hurtFlash;
-    this.events.push({ type: 'playerHurt', amount });
-    if (pl.hp <= 0) {
-      pl.hp = 0;
-      if (this.won) { this._win(); return; }
-      this.state = 'gameover';
-      this.events.push({ type: 'gameover' });
+    this.events.push({ type: 'playerHurt', amount, player: pl.id });
+    if (pl.hp > 0) return;
+    pl.hp = 0;
+    if (this.coop) {
+      pl.dead = true;
+      pl.coffinT = COOP.reviveTime;
+      pl.moving = false;
+      this.events.push({ type: 'playerDown', player: pl.id, x: pl.x, y: pl.y });
+      if (this.alive.length > 0) return;
     }
+    if (this.won) { this._win(); return; }
+    this.state = 'gameover';
+    this.events.push({ type: 'gameover' });
   }
 
   _win() {
@@ -525,12 +661,15 @@ class Sim {
   // ---------- оружие и снаряды ----------
 
   _updateWeapons(dt) {
-    const ws = this.player.weapons;
-    for (let i = 0; i < ws.length; i++) {
-      const w = ws[i];
-      // цвет снарядов супероружия (weapons.js tint; у частей коллаба свой, см. behaviors/weapons/combo.js)
-      this.projTint = w.def.tint || 0;
-      w.beh.update(w, this, dt);
+    for (const pl of this.players) {
+      if (pl.dead) continue;
+      const ws = pl.weapons;
+      for (let i = 0; i < ws.length; i++) {
+        const w = ws[i];
+        // цвет снарядов супероружия (weapons.js tint; у частей коллаба свой, см. behaviors/weapons/combo.js)
+        this.projTint = w.def.tint || 0;
+        w.beh.update(w, this, dt);
+      }
     }
     this.projTint = 0;
   }
@@ -584,14 +723,16 @@ class Sim {
 
   _updateTelegraphs(dt) {
     const arr = this.telegraphs;
-    const pl = this.player;
     for (let i = arr.length - 1; i >= 0; i--) {
       const tg = arr[i];
       tg.t += dt;
       if (tg.t < tg.delay) continue;
-      const dx = pl.x - tg.x;
-      const dy = pl.y - tg.y;
-      if (dx * dx + dy * dy <= tg.radius * tg.radius) this.hurtPlayer(tg.dmg);
+      for (const pl of this.players) {
+        if (pl.dead) continue;
+        const dx = pl.x - tg.x;
+        const dy = pl.y - tg.y;
+        if (dx * dx + dy * dy <= tg.radius * tg.radius) this.hurtPlayer(tg.dmg, pl);
+      }
       this.events.push({ type: 'slam', x: tg.x, y: tg.y, radius: tg.radius });
       arr[i] = arr[arr.length - 1];
       arr.pop();
@@ -600,7 +741,6 @@ class Sim {
 
   _updateProjectiles(dt) {
     const arr = this.projectiles;
-    const pl = this.player;
     for (let i = arr.length - 1; i >= 0; i--) {
       const p = arr[i];
       if (p.bk) {
@@ -614,12 +754,16 @@ class Sim {
         if (p.owner === 'player') {
           this._projectileHits(p);
         } else {
-          const dx = p.x - pl.x;
-          const dy = p.y - pl.y;
-          const r = p.radius + pl.radius;
-          if (dx * dx + dy * dy <= r * r) {
-            this.hurtPlayer(p.dmg);
-            p.life = 0;
+          for (const t of this.players) {
+            if (t.dead) continue;
+            const dx = p.x - t.x;
+            const dy = p.y - t.y;
+            const r = p.radius + t.radius;
+            if (dx * dx + dy * dy <= r * r) {
+              this.hurtPlayer(p.dmg, t);
+              p.life = 0;
+              break;
+            }
           }
         }
       }
@@ -657,7 +801,7 @@ class Sim {
         if (this._seen(p, e.uid)) continue;
         this._remember(p, e.uid);
       }
-      this.damageEnemy(e, p.dmg, p.wid, p.kb, p.x, p.y);
+      this.damageEnemy(e, p.dmg, p.wid, p.kb, p.x, p.y, p.ws ? p.ws.owner : this.player);
       if (!p.once && --p.pierce < 0) { p.life = 0; break; }
     }
     // разрушаемые объекты
@@ -725,7 +869,7 @@ class Sim {
   // ---------- объекты ----------
 
   _updateChunks() {
-    const pl = this.player;
+    const pl = this.view;
     const cs = SIM.chunkSize;
     const cx = Math.floor(pl.x / cs);
     const cy = Math.floor(pl.y / cs);
@@ -798,7 +942,7 @@ class Sim {
     if (o.hp > 0) return;
     o.dead = true;
     this.events.push({ type: 'propBreak', x: o.x, y: o.y, sprite: o.sprite });
-    const luck = this.player.stats.luck;
+    const luck = this.luck();
     const roll = this.rng.next();
     let acc = 0;
     for (const id in o.drop) {
@@ -821,39 +965,51 @@ class Sim {
     if (!def) return null;
     const pk = {
       uid: ++this.uid, type: id, sprite: def.sprite, x, y, kind: def.kind,
-      value: value === undefined ? (def.value || 0) : value, pulled: false, gone: false,
+      value: value === undefined ? (def.value || 0) : value, pulled: false, gone: false, to: -1,
     };
     this.pickups.push(pk);
     return pk;
   }
 
+  // Предметы: кристаллы и монеты тянутся к игроку, в чей радиус подбора попали (pk.to), остальное по касанию.
   _updatePickups(dt) {
-    const pl = this.player;
     const arr = this.pickups;
-    const pr = PLAYER.pickupRadius * pl.stats.pickup;
-    const pr2 = pr * pr;
-    const touch = PLAYER.touchRadius + 0;
-    const touch2 = touch * touch;
+    const ps = this.players;
+    const touch2 = PLAYER.touchRadius * PLAYER.touchRadius;
     const spd = PLAYER.magnetSpeed;
     let xpCount = 0;
     for (let i = arr.length - 1; i >= 0; i--) {
       const pk = arr[i];
-      const dx = pl.x - pk.x;
-      const dy = pl.y - pk.y;
-      const d2 = dx * dx + dy * dy;
-      let take = false;
       const pullable = pk.kind === 'xp' || pk.kind === 'coin';
-      if (pullable && !pk.pulled && d2 <= pr2) pk.pulled = true;
+      let take = null;
       if (pk.pulled) {
-        const d = Math.sqrt(d2);
+        // цель притяжения: назначенный игрок, если он жив, иначе ближайший живой
+        let pl = pk.to >= 0 ? ps[pk.to] : null;
+        if (!pl || pl.dead) pl = this.target(pk.x, pk.y);
+        const dx = pl.x - pk.x;
+        const dy = pl.y - pk.y;
+        const d = Math.sqrt(dx * dx + dy * dy);
         const step = spd * dt;
-        if (d <= step + 3) take = true;
+        if (d <= step + 3) take = pl;
         else { pk.x += (dx / d) * step; pk.y += (dy / d) * step; }
-      } else if (!pullable && d2 <= touch2) {
-        take = true;
+      } else {
+        for (let j = 0; j < ps.length; j++) {
+          const pl = ps[j];
+          if (pl.dead) continue;
+          const dx = pl.x - pk.x;
+          const dy = pl.y - pk.y;
+          const d2 = dx * dx + dy * dy;
+          if (pullable) {
+            const pr = PLAYER.pickupRadius * pl.stats.pickup;
+            if (d2 <= pr * pr) { pk.pulled = true; pk.to = j; break; }
+          } else if (d2 <= touch2) {
+            take = pl;
+            break;
+          }
+        }
       }
       if (take) {
-        this._collect(pk);
+        this._collect(pk, take);
         arr[i] = arr[arr.length - 1];
         arr.pop();
       } else if (pk.kind === 'xp') {
@@ -867,11 +1023,11 @@ class Sim {
     }
   }
 
-  _collect(pk) {
-    const pl = this.player;
+  _collect(pk, by = this.player) {
+    const pl = by;
     switch (pk.kind) {
       case 'xp':
-        pl.xp += pk.value;
+        this.player.xp += pk.value; // опыт общий, лежит у первого игрока
         break;
       case 'heal':
         pl.hp = Math.min(pl.maxHp, pl.hp + pk.value);
@@ -883,27 +1039,29 @@ class Sim {
         this.coins += pk.value;
         break;
       case 'chest':
-        this._openChest();
+        this._openChest(pl);
         break;
       default:
         break;
     }
-    this.events.push({ type: 'pickup', kind: pk.kind });
+    this.events.push({ type: 'pickup', kind: pk.kind, player: pl.id });
   }
 
-  _openChest() {
+  // Сундук достаётся тому, кто его подобрал (pl): его супероружия, его апгрейды.
+  _openChest(pl = this.player) {
     // Несколько готовых супероружий: игрок выбирает сам (state 'chest', рендер открывает экран сундука с выбором).
-    const choices = UP.chestChoices(this.player, this.rng);
+    const choices = UP.chestChoices(pl, this.rng);
     if (choices.length && this.state === 'running') {
       this.state = 'chest';
       this.chest.cards = choices;
-      this.events.push({ type: 'chest', items: [], choice: true });
+      this.chest.player = pl.id;
+      this.events.push({ type: 'chest', items: [], choice: true, player: pl.id });
       return;
     }
-    const items = UP.chestItems(this.player, this.rng);
-    for (const it of items) this._applyCard(it);
+    const items = UP.chestItems(pl, this.rng);
+    for (const it of items) this._applyCard(it, pl);
     this._syncBuild();
-    this.events.push({ type: 'chest', items });
+    this.events.push({ type: 'chest', items, player: pl.id });
   }
 
   // Выбор супероружия из сундука (state 'chest'); потом отложенные уровни.
@@ -918,24 +1076,25 @@ class Sim {
   // @return {!Array<!Object>} применённые карточки (рендер показывает их)
   skipChest() {
     if (this.state !== 'chest') return [];
-    const items = UP.chestItems(this.player, this.rng, true);
+    const items = UP.chestItems(this.players[this.chest.player], this.rng, true);
     this._closeChest(items);
     return items;
   }
 
   _closeChest(items) {
-    for (const it of items) this._applyCard(it);
+    const pl = this.players[this.chest.player];
+    for (const it of items) this._applyCard(it, pl);
     this._syncBuild();
     this.chest.cards = [];
     this.state = 'running';
-    this.events.push({ type: 'chest', items, applied: true });
+    this.events.push({ type: 'chest', items, applied: true, player: pl.id });
     this._checkLevel();
   }
 
   // Слияние далёких кристаллов опыта, когда их слишком много.
   _mergeXp() {
     const pk = this.pickups;
-    const pl = this.player;
+    const pl = this.view;
     const g = this.pgrid;
     g.clear();
     const minD2 = XP.mergeMinPlayerDistance * XP.mergeMinPlayerDistance;
@@ -999,17 +1158,25 @@ class Sim {
 
   // Набор карточек на очередной уровень. Если выбирать нечего (всё на максимуме), drawCards даёт одну карточку
   // лечения: она применяется сама, без экрана, чтобы прокачанный билд не останавливал игру на каждом уровне.
+  // Чей ход выбирать карточку: по очереди (как в VS), мёртвые тоже выбирают (гроб оживёт с новым оружием).
+  _chooser() {
+    return this.players[this.levelTurn % this.players.length];
+  }
+
   _offerCards() {
     while (this.pendingLevels > 0) {
-      const cards = UP.drawCards(this.player, this.rng, this.banished);
+      const pl = this._chooser();
+      const cards = UP.drawCards(pl, this.rng, this.banished);
       if (!(cards.length === 1 && cards[0].kind === 'heal')) {
         this.state = 'levelup';
         this.levelUp.cards = cards;
+        this.levelUp.player = pl.id;
         return;
       }
-      this._applyCard(cards[0]);
+      this._applyCard(cards[0], pl);
       this.pendingLevels--;
-      this.events.push({ type: 'autoHeal' });
+      this.levelTurn++;
+      this.events.push({ type: 'autoHeal', player: pl.id });
     }
     this.levelUp.cards = [];
     this.state = 'running';
@@ -1017,23 +1184,23 @@ class Sim {
 
   _afterChoice() {
     this.pendingLevels--;
+    this.levelTurn++;
     this._offerCards();
   }
 
-  _applyCard(card) {
+  _applyCard(card, pl = this.player) {
     if (card.kind === 'heal') {
-      const pl = this.player;
       pl.hp = Math.min(pl.maxHp, pl.hp + pl.maxHp * LEVEL_UP.healFraction);
       return;
     }
-    UP.applyCard(this.player, card);
+    UP.applyCard(pl, card);
   }
 
   chooseCard(i) {
     if (this.state !== 'levelup') return;
     const card = this.levelUp.cards[i];
     if (!card) return;
-    this._applyCard(card);
+    this._applyCard(card, this._chooser());
     this._syncBuild();
     this._afterChoice();
   }
@@ -1041,7 +1208,7 @@ class Sim {
   reroll() {
     if (this.state !== 'levelup' || this.levelUp.rerolls <= 0) return false;
     this.levelUp.rerolls--;
-    this.levelUp.cards = UP.drawCards(this.player, this.rng, this.banished);
+    this.levelUp.cards = UP.drawCards(this._chooser(), this.rng, this.banished);
     return true;
   }
 
@@ -1059,7 +1226,7 @@ class Sim {
     if (!card || card.kind === 'heal') return false;
     this.levelUp.banishes--;
     this.banished.add(UP.cardKey(card));
-    const repl = UP.drawCards(this.player, this.rng, this.banished, 1, cards);
+    const repl = UP.drawCards(this._chooser(), this.rng, this.banished, 1, cards);
     if (repl.length) cards[i] = repl[0];
     else cards.splice(i, 1);
     if (cards.length === 0) cards.push(UP.healCard());
@@ -1070,13 +1237,17 @@ class Sim {
 
   // Создаёт состояние новых оружий, пересчитывает статы и параметры оружия.
   _syncBuild() {
-    const pl = this.player;
+    for (const pl of this.players) this._syncPlayer(pl);
+  }
+
+  _syncPlayer(pl) {
     const ws = pl.weapons;
     for (let i = 0; i < ws.length; i++) {
       const w = ws[i];
       if (w.def) continue;
       w.def = WEAPONS[w.id];
       w.beh = WEAPON_BEHAVIORS[w.def.behavior];
+      w.owner = pl;
       w.params = {};
       w.cooldown = COMBAT.weaponStartCooldown;
       w.removed = false;
@@ -1095,11 +1266,17 @@ class Sim {
     for (let i = 0; i < ws.length; i++) this._refreshWeapon(ws[i]);
   }
 
+  // Свободный слот таймеров повторного попадания среди оружия всех игроков.
   _freeSlot() {
-    const ws = this.player.weapons;
     for (let s = 0; s < SLOT_COUNT; s++) {
       let used = false;
-      for (let i = 0; i < ws.length; i++) if (ws[i].def && ws[i].slot === s) { used = true; break; }
+      for (const pl of this.players) {
+        const ws = pl.weapons;
+        for (let i = 0; i < ws.length; i++) {
+          if (ws[i].def && ws[i].slot === s) { used = true; break; }
+        }
+        if (used) break;
+      }
       if (!used) return s;
     }
     return 0;
@@ -1109,14 +1286,15 @@ class Sim {
     const lv = w.def.levels[Math.min(w.level, w.def.levels.length) - 1];
     const p = w.params;
     for (const k in lv) p[k] = lv[k];
-    const st = this.player.stats;
+    const st = w.owner.stats;
     p.damage = lv.damage * st.atk;
     p.cooldown = lv.cooldown / st.haste;
   }
 }
 
 /**
- * @param {{hero: (string|undefined), stage: (string|undefined), seed: (number|undefined)}=} opts
+ * @param {{hero: (string|undefined), stage: (string|undefined), seed: (number|undefined),
+ *     difficulty: (string|undefined), players: (number|undefined)}=} opts players: 2 — кооп
  * @return {!Sim} новая симуляция забега
  */
 export function createSim(opts) {

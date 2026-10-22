@@ -29,6 +29,17 @@ export class Hud {
         .setOrigin(0, 0).setStrokeStyle(1, 0x000000));
     this.hpFill = add(scene.add.rectangle(8, 21, 100, 12, COLORS.hp).setOrigin(0, 0));
     this.hpText = add(scene.add.text(58, 27, '', textStyle(8, '#ffffff', { stroke: '#000000', strokeThickness: 2 })).setOrigin(0.5));
+    // кооп: полоска HP напарника под своей (цвет его подкраски), на гробу — таймер оживления
+    this.allyFill = null;
+    if (sim.coop) {
+      const ally = sim.players[1 - sim.local];
+      const color = ally.tint === 0xffffff ? COLORS.hp : ally.tint;
+      add(scene.add.rectangle(6, 36, 104, 11, 0x000000, 0.7).setOrigin(0, 0)
+          .setStrokeStyle(1, 0x000000));
+      this.allyFill = add(scene.add.rectangle(8, 38, 100, 7, color).setOrigin(0, 0));
+      this.allyText = add(scene.add.text(58, 41, '',
+          textStyle(8, '#ffffff', { stroke: '#000000', strokeThickness: 2 })).setOrigin(0.5));
+    }
 
     this.timeText = add(scene.add.text(GAME_WIDTH / 2, 24, '', textStyle(16, '#ffffff', { stroke: '#000000', strokeThickness: 4 })).setOrigin(0.5, 0.5));
     // Счёт по формуле таблицы рекордов, на лету: по центру под миникартой. Убийств в HUD нет, они на итогах.
@@ -127,7 +138,7 @@ export class Hud {
     const cx = GAME_WIDTH - m.margin - m.radius;
     const cy = m.top + m.radius;
     const k = m.radius / m.range;
-    const p = this.sim.player;
+    const p = this.sim.view;
     g.clear();
     g.fillStyle(m.bg, m.alpha).fillCircle(cx, cy, m.radius);
     g.lineStyle(1, m.rim, 0.8).strokeCircle(cx, cy, m.radius);
@@ -150,7 +161,7 @@ export class Hud {
       if (e.boss) dot(e.x, e.y, m.dots.boss, 4);
       else if (e.elite) dot(e.x, e.y, m.dots.elite, 3);
     }
-    g.fillStyle(m.dots.player, 1).fillRect(cx - 1, cy - 1, 2, 2);
+    for (const pl of this.sim.players) dot(pl.x, pl.y, pl.dead ? m.dots.coffin : m.dots.player, 2);
   }
 
   // Панель DPS-метра: рамка как у миникарты, строка общего DPS сверху, затем до maxRows строк оружия,
@@ -161,7 +172,7 @@ export class Hud {
     this.dpsRows = [];
     if (this.dpsMode === 'off') return;
     const m = HUD.dpsMeter;
-    const n = Math.min(m.maxRows, this.sim.player.weapons.length);
+    const n = Math.min(m.maxRows, this._weaponIds().length);
     const h = (n + 1) * m.rowH + m.pad * 2;
     const left = GAME_WIDTH - m.margin - m.width;
     const top = GAME_HEIGHT - m.margin - h;
@@ -199,7 +210,7 @@ export class Hud {
     const full = m.width - m.pad * 2;
     const total = sim.dps;
     const byW = sim.dpsByWeapon;
-    const order = sim.player.weapons.map((w) => w.id).sort((a, b) => (byW[b] || 0) - (byW[a] || 0));
+    const order = this._weaponIds().sort((a, b) => (byW[b] || 0) - (byW[a] || 0));
     if (this.dpsRows.length !== Math.min(m.maxRows, order.length) + 1) this._rebuildDps();
     this.dpsRows.forEach((r, i) => {
       const id = i ? order[i - 1] : null;
@@ -218,11 +229,20 @@ export class Hud {
     });
   }
 
+  // Оружия всех игроков без повторов (DPS считается по id оружия, у напарников оно может совпадать).
+  _weaponIds() {
+    const ids = [];
+    for (const pl of this.sim.players) {
+      for (const w of pl.weapons) if (!ids.includes(w.id)) ids.push(w.id);
+    }
+    return ids;
+  }
+
   _rebuildSlots() {
     for (const s of this.slots) s.destroy();
     this.slots = [];
     this._rebuildDps();
-    const p = this.sim.player;
+    const p = this.sim.players[this.sim.local];
     const row = (list, kind, y) => {
       list.forEach((it, i) => {
         const x = 14 + i * 28;
@@ -231,17 +251,27 @@ export class Hud {
         for (const o of [c, lv]) { o.setScrollFactor(0).setDepth(D); this.slots.push(o); }
       });
     };
-    row(p.weapons, 'weapon', 48);
-    row(p.passives, 'passive', 68);
+    const dy = this.allyFill ? 14 : 0; // в коопе под полоской напарника
+    row(p.weapons, 'weapon', 48 + dy);
+    row(p.passives, 'passive', 68 + dy);
   }
 
   update() {
     const sim = this.sim;
-    const p = sim.player;
-    this.xpFill.width = Math.round(GAME_WIDTH * Math.min(1, p.xp / Math.max(1, p.xpNext)));
-    this.levelText.setText(t('hud.level', { n: p.level }));
+    const p = sim.players[sim.local];
+    const shared = sim.player; // опыт и уровень общие
+    const xpK = Math.min(1, shared.xp / Math.max(1, shared.xpNext));
+    this.xpFill.width = Math.round(GAME_WIDTH * xpK);
+    this.levelText.setText(t('hud.level', { n: shared.level }));
     this.hpFill.width = Math.round(100 * Math.max(0, Math.min(1, p.hp / Math.max(1, p.maxHp))));
     this.hpText.setText(`${Math.ceil(Math.max(0, p.hp))}/${Math.ceil(p.maxHp)}`);
+    if (this.allyFill) {
+      const a = sim.players[1 - sim.local];
+      const k = Math.max(0, Math.min(1, a.hp / Math.max(1, a.maxHp)));
+      this.allyFill.width = Math.round(100 * k);
+      const hp = `${Math.ceil(Math.max(0, a.hp))}/${Math.ceil(a.maxHp)}`;
+      this.allyText.setText(a.dead ? t('hud.revive', { s: Math.ceil(a.coffinT) }) : hp);
+    }
     this.timeText.setText(formatTime(sim.time));
     const score = computeScore({
       time: sim.time, kills: sim.kills, coins: sim.coins, victory: sim.won,

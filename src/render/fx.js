@@ -95,7 +95,7 @@ export class Fx {
   }
 
   onEvents(events) {
-    const pl = this.scene.sim.player;
+    const sim = this.scene.sim;
     for (const ev of events) {
       switch (ev.type) {
         case 'hit': this._hit(ev); break;
@@ -103,7 +103,18 @@ export class Fx {
         case 'playerHurt': this.shake(...FX.shake.hurt); break;
         case 'bossSpawn': this.shake(...FX.shake.boss); break;
         case 'bossRage': this.shake(...FX.shake.boss); break;
-        case 'pickup': this._burst(pl.x, pl.y - 6, FX.pickupSpark.count, FX.pickupSpark.speed, FX.pickupSpark.life, [FX.pickupSpark.color], 1); break;
+        case 'pickup': {
+          const pl = sim.players[ev.player] || sim.player;
+          const sp = FX.pickupSpark;
+          this._burst(pl.x, pl.y - 6, sp.count, sp.speed, sp.life, [sp.color], 1);
+          break;
+        }
+        case 'playerDown': this.shake(...FX.shake.boss); break;
+        case 'revive': {
+          const sp = FX.pickupSpark;
+          this._burst(ev.x, ev.y - 6, sp.count * 3, sp.speed, sp.life, [sp.color], 1);
+          break;
+        }
         case 'levelup': this.pendingLevelup = true; break; // играется после закрытия меню (resume)
         default: break;
       }
@@ -284,7 +295,7 @@ export class Fx {
       s.setAlpha(1 - k);
     }
 
-    const pl = this.scene.sim.player;
+    const pl = this.scene.sim.view;
     for (const r of this.rings.items) {
       if (r.life <= 0) continue;
       r.life -= dt;

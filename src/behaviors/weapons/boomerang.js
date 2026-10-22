@@ -12,7 +12,7 @@ export const boomerang = {
     w.cooldown -= dt;
     if (w.cooldown > 0) return;
     const P = w.params;
-    const pl = sim.player;
+    const pl = w.owner;
     const t = sim.nearestEnemy(pl.x, pl.y, TARGET_RANGE);
     if (!t) { w.cooldown = 0.1; return; }
     w.cooldown = P.cooldown;
@@ -49,7 +49,7 @@ export const boomerang = {
       p.a += sp * dt;
       if (p.a >= w.params.area) { p.c = 1; p.hitN = 0; }
     } else {
-      const pl = sim.player;
+      const pl = w.owner;
       const dx = pl.x - p.x;
       const dy = pl.y - p.y;
       const d = Math.sqrt(dx * dx + dy * dy);
