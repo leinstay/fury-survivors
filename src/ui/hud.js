@@ -134,7 +134,8 @@ export class Hud {
       const dy = y - p.y;
       if (dx * dx + dy * dy > r2) return;
       const h = size >> 1;
-      g.fillStyle(color, 1).fillRect(Math.round(cx + dx * k) - h, Math.round(cy + dy * k) - h, size, size);
+      g.fillStyle(color, 1)
+          .fillRect(Math.round(cx + dx * k) - h, Math.round(cy + dy * k) - h, size, size);
     };
     for (const pk of this.sim.pickups) {
       if (pk.kind === 'xp') continue;

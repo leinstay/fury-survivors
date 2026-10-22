@@ -90,6 +90,7 @@ class Sim {
     this.stamp = 0;
     this.frame = 0;
     this.pendingLevels = 0;
+    this.chest = { cards: [] };   // выбор супероружия из сундука (state 'chest'), см. chooseChest
     this.banished = new Set();
     this.levelUp = {
       cards: [],
@@ -805,10 +806,30 @@ class Sim {
   }
 
   _openChest() {
+    // Несколько готовых супероружий: игрок выбирает сам (state 'chest', рендер открывает экран сундука с выбором).
+    const choices = UP.chestChoices(this.player);
+    if (choices.length && this.state === 'running') {
+      this.state = 'chest';
+      this.chest.cards = choices;
+      this.events.push({ type: 'chest', items: [], choice: true });
+      return;
+    }
     const items = UP.chestItems(this.player, this.rng);
     for (const it of items) this._applyCard(it);
     this._syncBuild();
     this.events.push({ type: 'chest', items });
+  }
+
+  // Выбор супероружия из сундука (state 'chest'); потом отложенные уровни.
+  chooseChest(i) {
+    if (this.state !== 'chest') return;
+    const card = this.chest.cards[i];
+    if (!card) return;
+    this._applyCard(card);
+    this._syncBuild();
+    this.chest.cards = [];
+    this.state = 'running';
+    this._checkLevel();
   }
 
   // Слияние далёких кристаллов опыта, когда их слишком много.

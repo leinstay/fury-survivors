@@ -62,6 +62,8 @@ export const en = {
   'chest.new': 'NEW!',
   'chest.evolution': 'EVOLUTION!',
   'chest.continue': 'Continue',
+  'chest.choose': 'Choose an evolution',
+  'chest.confirm': 'Confirm',
   'chest.open': 'Opening...',
 
   // Статы игрока

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildPool, drawCards, applyCard, findEvolution, evolutionCard, chestItems, cardKey } from '../../src/core/upgrades.js';
+import { buildPool, drawCards, applyCard, findEvolution, evolutionCard, chestItems, chestChoices, cardKey } from '../../src/core/upgrades.js';
 import { createRng } from '../../src/core/rng.js';
 import { WEAPONS } from '../../src/data/weapons.js';
 import { PASSIVES } from '../../src/data/passives.js';
@@ -97,6 +97,19 @@ test('upgrades: evolution needs both parts maxed, then replaces them', () => {
     assert.deepEqual(p.weapons.map((w) => w.id), [combo.result]);
     assert.equal(findEvolution(p), null);
   }
+});
+
+test('upgrades: chestChoices lists every ready evolution, only when there are several', () => {
+  const p = {
+    weapons: [{ id: 'blade_arc', level: WEAPONS.blade_arc.maxLevel }, { id: 'war_axe', level: WEAPONS.war_axe.maxLevel }],
+    passives: [{ id: 'attack', level: 1 }],
+  };
+  // blade_arc + war_axe, blade_arc + attack, war_axe + crit (нет crit) → две
+  const choices = chestChoices(p);
+  assert.deepEqual(choices.map((c) => c.id).sort(), ['crimson_arc', 'reaper_crescent']);
+  assert.ok(choices.every((c) => c.evolved && c.from.length === 2));
+  p.passives = [];
+  assert.deepEqual(chestChoices(p), []);
 });
 
 test('upgrades: chest without evolution upgrades an owned weapon', () => {

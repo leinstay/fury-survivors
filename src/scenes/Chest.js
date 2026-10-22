@@ -8,8 +8,12 @@ import { spriteScale } from '../render/density.js';
 
 const SHAKE_MS = 600;
 const INPUT_GUARD_MS = 250; // клавиши движения, зажатые в момент открытия, не должны закрывать экран
+const CHOICE_W = 148;       // карточка выбора супероружия (до 4 в ряд)
+const CHOICE_H = 96;
+const CHOICE_GAP = 8;
 
-// Экран сундука поверх замороженной Game. data: { sim, items }.
+// Экран сундука поверх замороженной Game. data: { sim, items } — предметы уже применены, показ;
+// { sim, choices } — несколько готовых супероружий (sim.state === 'chest'): выбор карточки и подтверждение.
 export class ChestScene extends Phaser.Scene {
   constructor() {
     super('Chest');
@@ -18,6 +22,8 @@ export class ChestScene extends Phaser.Scene {
   init(data) {
     this.sim = data.sim;
     this.items = (data.items && data.items.length ? data.items : []);
+    this.choices = (data.choices && data.choices.length ? data.choices : []);
+    this.picked = -1;
     this.revealed = false;
     this.closed = false;
   }
@@ -51,7 +57,8 @@ export class ChestScene extends Phaser.Scene {
         if (this.time.now - this.startAt > INPUT_GUARD_MS) this.reveal();
         return;
       }
-      if (this.time.now - this.revealAt > INPUT_GUARD_MS) this.close();
+      // при выборе клавиши идут в навигацию (FocusNav), экран закрывает только подтверждение
+      if (!this.choices.length && this.time.now - this.revealAt > INPUT_GUARD_MS) this.close();
     };
     this.input.keyboard.on('keydown', this.keyHandler);
     this.input.on('pointerdown', () => this.advance());
@@ -60,13 +67,13 @@ export class ChestScene extends Phaser.Scene {
   advance() {
     if (this.closed) return;
     if (!this.revealed) this.reveal();
-    else if (this.time.now - this.revealAt > 120) this.close();
+    else if (!this.choices.length && this.time.now - this.revealAt > 120) this.close();
   }
 
   update(time) {
     const pad = readPad();
     const a = !!(pad && pad.a);
-    if (a && !this.padA) this.advance();
+    if (a && !this.padA && !(this.revealed && this.choices.length)) this.advance();
     this.padA = a;
     this.nav.update(time);
   }
@@ -78,6 +85,8 @@ export class ChestScene extends Phaser.Scene {
     if (this.revealTimer) this.revealTimer.remove(false);
     this.tweens.killTweensOf(this.chest);
     this.chest.destroy();
+
+    if (this.choices.length) { this.drawChoices(); return; }
 
     const items = this.items;
     const gap = 16;
@@ -95,27 +104,77 @@ export class ChestScene extends Phaser.Scene {
     return it.kind === 'evolution' || !!it.evolved || (Array.isArray(it.from) && it.from.length > 0);
   }
 
+  // Ряд «A + B > C» шириной 180 × k px по центру (px, py): иконки 28, 28, 44, знаки по 12, промежутки 14.
+  drawCombo(it, px, py, kind, k = 1) {
+    const icon = (id, size, x, y) =>
+      addIcon(this, x, y, iconKeyFor(kind, id), Math.round(size * k), kind, id);
+    const from = it.from || [];
+    if (from.length >= 2) {
+      icon(from[0], 28, px - 76 * k, py);
+      this.add.text(px - 42 * k, py, '+', textStyle(Math.round(16 * k))).setOrigin(0.5);
+      icon(from[1], 28, px - 8 * k, py);
+      this.add.text(px + 26 * k, py, '>', textStyle(Math.round(18 * k), '#ffd84a')).setOrigin(0.5);
+      icon(it.id, 44, px + 68 * k, py);
+    } else {
+      icon(it.id, 44, px, py);
+    }
+  }
+
+  // Выбор: карточки в ряд, клик или Enter выбирает (описание ниже), Confirm применяет.
+  // Enter на уже выбранной карточке тоже подтверждает.
+  drawChoices() {
+    const cards = this.choices;
+    this.add.text(GAME_WIDTH / 2, 62, t('chest.choose'), textStyle(14, '#d8d0f0')).setOrigin(0.5);
+    const total = cards.length * CHOICE_W + (cards.length - 1) * CHOICE_GAP;
+    const x0 = (GAME_WIDTH - total) / 2 + CHOICE_W / 2;
+    const cy = 134;
+    this.marks = [];
+    cards.forEach((it, i) => {
+      const x = x0 + i * (CHOICE_W + CHOICE_GAP);
+      const panel = addPanel(this, x, cy, CHOICE_W, CHOICE_H);
+      this.add.text(x, cy - CHOICE_H / 2 + 12, t('chest.evolution'),
+          textStyle(12, '#ffd84a', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5);
+      this.drawCombo(it, x, cy - 6, 'weapon', 0.72);
+      this.add.text(x, cy + 24, displayName('weapon', it.id),
+          textStyle(11, '#ffffff', { align: 'center', wordWrap: { width: CHOICE_W - 10 } })).setOrigin(0.5, 0);
+      const mark = this.add.rectangle(x, cy, CHOICE_W + 4, CHOICE_H + 4)
+          .setStrokeStyle(2, 0xffd84a).setVisible(false);
+      this.marks.push(mark);
+      this.nav.add({
+        x, y: cy, w: CHOICE_W, h: CHOICE_H,
+        setFocus: (f) => panel.setFocus(f),
+        onSelect: () => { if (this.picked === i) this.confirm(); else this.pick(i); },
+      });
+    });
+    this.desc = this.add.text(GAME_WIDTH / 2, 206, '', textStyle(11, '#d8d0f0', { align: 'center', wordWrap: { width: 420 } })).setOrigin(0.5, 0);
+    this.confirmBtn = addButton(this, this.nav, { x: GAME_WIDTH / 2, y: 290, w: 150, h: 30, label: t('chest.confirm'), onSelect: () => this.confirm() });
+    this.confirmBtn.setDisabled(true);
+    this.nav.focus(0);
+  }
+
+  pick(i) {
+    this.picked = i;
+    this.marks.forEach((m, j) => m.setVisible(j === i));
+    const it = this.choices[i];
+    this.desc.setText(`${displayName('weapon', it.id)}: ${t(`weapon.${it.id}.desc`)}`);
+    this.confirmBtn.setDisabled(false);
+  }
+
+  confirm() {
+    if (this.picked < 0 || this.closed) return;
+    this.sim.chooseChest(this.picked);
+    this.close();
+  }
+
   drawItem(x, y, w, h, it) {
     const evo = this.isEvolution(it);
     const kind = it.kind === 'evolution' ? 'weapon' : it.kind;
     const panel = addPanel(this, x, y, w, h);
     panel.setFocus(true);
-    const icon = (id, size, px, py) => addIcon(this, px, py, iconKeyFor(kind, id), size, kind, id);
 
     if (evo) {
       this.add.text(x, y - h / 2 + 14, t('chest.evolution'), textStyle(16, '#ffd84a', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5);
-      const from = it.from || [];
-      const iy = y - 22;
-      if (from.length >= 2) {
-        // ряд «A + B > C» по центру карточки: ширина 180 px (иконки 28, 28, 44, знаки по 12, промежутки 14)
-        icon(from[0], 28, x - 76, iy);
-        this.add.text(x - 42, iy, '+', textStyle(16)).setOrigin(0.5);
-        icon(from[1], 28, x - 8, iy);
-        this.add.text(x + 26, iy, '>', textStyle(18, '#ffd84a')).setOrigin(0.5);
-        icon(it.id, 44, x + 68, iy);
-      } else {
-        icon(it.id, 44, x, iy);
-      }
+      this.drawCombo(it, x, y - 22, kind);
       this.add.text(x, y + 12, displayName(kind, it.id), textStyle(14, '#ffffff', { align: 'center' })).setOrigin(0.5);
       const desc = t(`weapon.${it.id}.desc`);
       this.add.text(x, y + 26, desc, textStyle(10, '#d8d0f0', { align: 'center', wordWrap: { width: w - 28 } }))
@@ -123,7 +182,7 @@ export class ChestScene extends Phaser.Scene {
       return;
     }
 
-    icon(it.id, 40, x, y - 42);
+    addIcon(this, x, y - 42, iconKeyFor(kind, it.id), 40, kind, it.id);
     const name = it.kind === 'heal' ? t('card.heal.name') : displayName(kind, it.id);
     this.add.text(x, y - 12, name, textStyle(14, '#ffffff', { align: 'center', wordWrap: { width: w - 16 } })).setOrigin(0.5, 0);
     if (it.kind !== 'heal') {

@@ -145,7 +145,8 @@ export function runBot(opts) {
   const marks = [60, 120, 180, 240, 300, 360, 420, 480, 540, 600, 720, 840];
   let mi = 0;
   let nextSecond = 1;
-  while (sim.time < until && (sim.state === 'running' || sim.state === 'levelup')) {
+  while (sim.time < until && (sim.state === 'running' || sim.state === 'levelup' || sim.state === 'chest')) {
+    if (sim.state === 'chest') { sim.chooseChest(0); continue; }
     if (sim.state === 'levelup') {
       if (upgrades) sim.chooseCard(pickBest(sim.levelUp.cards, sim.player.weapons.length, preset));
       else sim.skip();

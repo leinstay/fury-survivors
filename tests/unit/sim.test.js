@@ -305,3 +305,21 @@ test('sim: step stays fast with 400 enemies', () => {
   assert.ok(avg < 3, `avg step ${avg.toFixed(2)} ms`);
   assert.ok(worst < 30, `worst step ${worst.toFixed(2)} ms`);
 });
+
+test('sim: chest with several ready evolutions waits for the choice', () => {
+  const sim = createSim({ seed: 21 });
+  const pl = sim.player;
+  pl.weapons = [{ id: 'blade_arc', level: 7 }, { id: 'war_axe', level: 7 }];
+  pl.passives = [{ id: 'attack', level: 1 }];
+  sim._syncBuild();
+  sim.dropPickup('chest', pl.x, pl.y);
+  sim.step(1 / 60, { x: 0, y: 0 });
+  assert.equal(sim.state, 'chest');
+  assert.equal(sim.chest.cards.length, 2);
+  assert.ok(sim.events.some((e) => e.type === 'chest' && e.choice));
+  const want = sim.chest.cards[1].id;
+  sim.chooseChest(1);
+  assert.equal(sim.state, 'running');
+  assert.ok(sim.player.weapons.some((w) => w.id === want));
+  assert.equal(sim.chest.cards.length, 0);
+});

@@ -55,7 +55,7 @@ export class GameScene extends Phaser.Scene {
     this.fx.onEvents(events);
     this.hud.onEvents(events);
     // два сундука за кадр: sim уже выдал оба, показываем всё вместе
-    for (const ev of events) if (ev.type === 'chest') this.pendingChest = (this.pendingChest || []).concat(ev.items || []);
+    for (const ev of events) if (ev.type === 'chest' && !ev.choice) this.pendingChest = (this.pendingChest || []).concat(ev.items || []);
     handleSimEvents(this, events);
     const h = FX.hitstop;
     let stop = 0;
@@ -99,6 +99,9 @@ export class GameScene extends Phaser.Scene {
       // сундук первым; LevelUp (sim.state === 'levelup') откроется в следующем кадре после resume
       this.scene.pause('Game');
       this.scene.launch('Chest', { sim, items: chest });
+    } else if (sim.state === 'chest') {
+      this.scene.pause('Game');
+      this.scene.launch('Chest', { sim, choices: sim.chest.cards });
     } else if (sim.state === 'levelup') {
       this.scene.pause('Game');
       this.scene.launch('LevelUp', { sim });

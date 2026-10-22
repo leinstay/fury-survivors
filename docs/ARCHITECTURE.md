@@ -16,13 +16,13 @@ const sim = createSim({ hero: 'heroine', stage: 'forest', seed: 12345 });
 // seed: тот же seed даёт тот же забег (core/rng.js), на этом стоят balance-тесты
 
 sim.step(dt, input);   // dt в секундах (Game.js режет до 1/20, sim сам до 0.1), input = { x, y } вектор движения длиной 0..1
-                       // в состоянии 'levelup' / 'gameover' / 'victory' step ничего не делает
+                       // в состоянии 'levelup' / 'chest' / 'gameover' / 'victory' step ничего не делает
 ```
 
 ### Состояние (только чтение для рендера)
 
 ```js
-sim.state      // 'running' | 'levelup' | 'gameover' | 'victory'
+sim.state      // 'running' | 'levelup' | 'chest' | 'gameover' | 'victory'
 sim.won        // финальный босс убит: забег закончится победой (в овертайме смерть даёт 'victory', не 'gameover')
 sim.overtime   // время начала овертайма (stage.overtime: бесконечные крепнущие волны ради очков) или -1
 sim.finishOvertime()  // закончить овертайм досрочно: state = 'victory'
@@ -85,6 +85,8 @@ sim.damageByWeapon  // { weaponId: totalDamage }
 ```
 
 Содержимое: супероружие, если готова запись из `combos.js` (оружие на maxLevel + второе оружие на maxLevel или пассивка любого уровня); иначе +1 уровень случайного оружия; иначе +1 уровень пассивки; иначе лечение.
+
+Если готово несколько супероружий, сундук ничего не применяет: `sim.state = 'chest'`, карточки в `sim.chest.cards`, событие `{ type: 'chest', items: [], choice: true }`. Рендер показывает выбор, `sim.chooseChest(i)` применяет карточку и возвращает `'running'` (отложенные уровни откроются следом).
 
 ### Улучшения уровня
 

@@ -128,16 +128,26 @@ function ready(player, id) {
 
 /**
  * @param {!Object} player данные игрока
- * @return {?Object} готовая к слиянию запись из COMBOS или null
+ * @return {!Array<!Object>} все готовые к слиянию записи из COMBOS (в порядке файла)
  */
-export function findEvolution(player) {
+export function findEvolutions(player) {
+  const out = [];
   for (const c of COMBOS) {
     if (ready(player, c.from[0]) && ready(player, c.from[1]) &&
         !find(player.weapons, c.result)) {
-      return c;
+      out.push(c);
     }
   }
-  return null;
+  return out;
+}
+
+/**
+ * @param {!Object} player данные игрока
+ * @return {?Object} первая готовая к слиянию запись из COMBOS или null
+ */
+export function findEvolution(player) {
+  const all = findEvolutions(player);
+  return all.length ? all[0] : null;
 }
 
 /**
@@ -146,6 +156,16 @@ export function findEvolution(player) {
  */
 export function evolutionCard(combo) {
   return { kind: 'weapon', id: combo.result, level: 1, isNew: true, evolved: true, from: combo.from.slice(), icon: WEAPONS[combo.result].icon };
+}
+
+/**
+ * Выбор в сундуке: карточки всех готовых супероружий, если их больше одного (sim.state = 'chest').
+ * @param {!Object} player данные игрока
+ * @return {!Array<!Object>} карточки или пустой массив, если выбирать не из чего
+ */
+export function chestChoices(player) {
+  const all = findEvolutions(player);
+  return all.length > 1 ? all.map(evolutionCard) : [];
 }
 
 /**
