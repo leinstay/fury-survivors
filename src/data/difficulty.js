@@ -8,6 +8,6 @@
 // (старые записи без поля считаются normal).
 export const DIFFICULTIES = {
   normal: { spawnMul: 1, xpMul: 1 },
-  cursed: { spawnMul: 1.5, xpMul: 1.25 },
+  cursed: { spawnMul: 1.5, xpMul: 1 },   // только больше врагов, опыт с врага как на normal
 };
 export const DEFAULT_DIFFICULTY = 'normal';

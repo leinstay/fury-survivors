@@ -148,7 +148,7 @@ export const en = {
   'difficulty.normal.desc': 'The forest as it is.',
   'difficulty.cursed.name': 'Cursed',
   'difficulty.cursed.short': 'Cursed',
-  'difficulty.cursed.desc': '+50% enemies, +25% experience.',
+  'difficulty.cursed.desc': '+50% enemies.',
 
   // Герои
   'hero.heroine.name': 'Hero',

@@ -413,7 +413,7 @@ test('director: wall and flyby cross the screen on a straight course and vanish,
   assert.ok(sim.events.some((e) => e.type === 'horde'));
 });
 
-test('difficulty: cursed spawns more and gives more xp', () => {
+test('difficulty: cursed spawns more, xp per enemy unchanged', () => {
   const count = (difficulty) => {
     const sim = createSim({ seed: 41, difficulty });
     sim.player.hp = 1e9;
@@ -429,7 +429,7 @@ test('difficulty: cursed spawns more and gives more xp', () => {
   const n = count('normal');
   const c = count('cursed');
   assert.ok(c.spawned > n.spawned * 1.3, `normal ${n.spawned}, cursed ${c.spawned}`);
-  assert.equal(c.xp, n.xp * 1.25);
+  assert.equal(c.xp, n.xp);
   assert.equal(createSim({ seed: 1, difficulty: 'nope' }).difficulty, 'normal');
 });
 
