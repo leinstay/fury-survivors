@@ -2,6 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createSim } from '../../src/core/sim.js';
 import { COOP } from '../../src/data/coop.js';
+import { DEFAULT_HERO } from '../../src/data/heroes.js';
+import { validHero, freeHero, distinctHeroes, heroIds } from '../../src/core/heroes.js';
 import { SLOTS, GAME_WIDTH } from '../../src/data/constants.js';
 
 const DT = 1 / 60;
@@ -25,8 +27,8 @@ test('coop: two players share xp and level, each has own weapons and fewer slots
   const solo = createSim({ seed: 1 });
   assert.equal(solo.coop, false);
   assert.deepEqual(solo.player.slots, SLOTS);
-  // герои по игрокам: хост героиня (Blade Arc), гость маг (Storm Chain)
-  assert.deepEqual(sim.players.map((p) => p.hero), COOP.heroes);
+  // герои по умолчанию: первые два из data/heroes.js, разные
+  assert.deepEqual(sim.players.map((p) => p.hero), heroIds().slice(0, 2));
   assert.deepEqual(sim.players.map((p) => p.weapons[0].id), ['blade_arc', 'storm_chain']);
   assert.notEqual(sim.players[0].stats, sim.players[1].stats);
 });
@@ -159,18 +161,30 @@ test('coop: same seed and inputs give the same run', () => {
   assert.equal(snap(a), snap(b));
 });
 
-test('heroes: solo hero choice and per-player heroes in co-op, same hero tinted', () => {
+test('heroes: solo hero choice, distinct heroes per player in co-op', () => {
   const solo = createSim({ seed: 1, hero: 'mage' });
   assert.equal(solo.player.hero, 'mage');
   assert.equal(solo.player.sprite, 'mage');
   assert.equal(solo.player.weapons[0].id, 'storm_chain');
   assert.equal(solo.player.maxHp, 80);
+  assert.equal(createSim({ seed: 1, hero: 'nope' }).player.hero, DEFAULT_HERO);
   const swap = createSim({ seed: 1, players: 2, heroes: ['mage', 'heroine'] });
   assert.deepEqual(swap.players.map((p) => p.weapons[0].id), ['storm_chain', 'blade_arc']);
-  assert.ok(swap.players.every((p) => p.tint === 0xffffff));
+  // один герой на двоих не бывает: второму достаётся первый свободный
   const same = createSim({ seed: 1, players: 2, heroes: ['mage', 'mage'] });
-  assert.equal(same.players[0].tint, 0xffffff);
-  assert.equal(same.players[1].tint, COOP.tints[1]);
+  assert.deepEqual(same.players.map((p) => p.hero), ['mage', 'heroine']);
   const bad = createSim({ seed: 1, players: 2, heroes: ['nope', 'mage'] });
-  assert.equal(bad.players[0].hero, 'heroine');
+  assert.deepEqual(bad.players.map((p) => p.hero), [DEFAULT_HERO, 'mage']);
+  const none = createSim({ seed: 1, players: 2 });
+  assert.notEqual(none.players[0].hero, none.players[1].hero);
+});
+
+test('heroes: core helpers', () => {
+  assert.equal(validHero('mage'), 'mage');
+  assert.equal(validHero('x'), DEFAULT_HERO);
+  assert.equal(validHero(undefined), DEFAULT_HERO);
+  assert.equal(freeHero(['heroine'], 'heroine'), 'mage');
+  assert.equal(freeHero([], 'mage'), 'mage');
+  assert.deepEqual(distinctHeroes(2, ['mage', 'mage']), ['mage', 'heroine']);
+  assert.deepEqual(distinctHeroes(2), heroIds().slice(0, 2));
 });

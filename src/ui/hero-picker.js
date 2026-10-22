@@ -8,21 +8,28 @@ import { textStyle } from './style.js';
 import { spriteScale } from '../render/density.js';
 
 const SELECTED = 0x8cff6a; // рамка выбранного героя
+const PICKER_MAX_W = 600;  // ширина ряда карточек на экране 640
+const ICON = 14;           // иконка стартового оружия
+const ICON_GAP = 4;
 
 /**
  * @param {!Phaser.Scene} scene
  * @param {?Object} nav FocusNav; null — карточки только показываются (выбор напарника)
  * @param {{x: number, y: number, w: (number|undefined), h: (number|undefined), gap: (number|undefined),
- *     selected: string, onPick: function(string), compact: (boolean|undefined), mark: (boolean|undefined)}} o
+ *     selected: string, onPick: function(string), compact: (boolean|undefined), mark: (boolean|undefined),
+ *     taken: (Array<string>|undefined), maxWidth: (number|undefined)}} o
+ *     taken — герои, занятые напарником: карточка тусклая с подписью, выбрать её нельзя
  *     x, y — центр ряда карточек; compact — без строки статов (лобби); mark — отмечать выбранную
  *     (лобби: выбор остаётся на экране); без mark selected только ставит начальный фокус
  * @return {{select: function(string), objects: !Array<!Object>}}
  */
 export function addHeroPicker(scene, nav, o) {
   const ids = Object.keys(HEROES);
-  const w = o.w || 120;
-  const h = o.h || 150;
   const gap = o.gap || 16;
+  // карточки ужимаются, чтобы ряд влез в maxWidth при любом числе героев
+  const fit = Math.floor(((o.maxWidth || PICKER_MAX_W) - gap * (ids.length - 1)) / ids.length);
+  const w = Math.min(o.w || 120, fit);
+  const h = o.h || 150;
   const total = ids.length * w + (ids.length - 1) * gap;
   const before = new Set(scene.children.list);
   const panels = {};
@@ -61,15 +68,24 @@ export function addHeroPicker(scene, nav, o) {
     const nameY = top + h * (o.compact ? 0.7 : 0.62);
     scene.add.text(x, nameY, t(`hero.${id}.name`), textStyle(o.compact ? 11 : 13)).setOrigin(0.5, 0);
     const wy = nameY + (o.compact ? 18 : 22);
-    addIcon(scene, x - w / 2 + 16, wy, iconKeyFor('weapon', def.startWeapon), 14, 'weapon', def.startWeapon);
-    scene.add.text(x - w / 2 + 28, wy, displayName('weapon', def.startWeapon), textStyle(9, '#d8d0f0'))
+    // иконка и название оружия одной группой по центру карточки
+    const label = scene.add.text(0, wy, displayName('weapon', def.startWeapon), textStyle(9, '#d8d0f0'))
         .setOrigin(0, 0.5);
+    const group = ICON + ICON_GAP + label.width;
+    const gx = Math.round(x - group / 2);
+    addIcon(scene, gx + ICON / 2, wy, iconKeyFor('weapon', def.startWeapon), ICON, 'weapon', def.startWeapon);
+    label.x = gx + ICON + ICON_GAP;
     if (!o.compact) {
       const st = def.stats;
       scene.add.text(x, wy + 16, `${t('stat.hp')} ${st.maxHp}   ${t('stat.spd')} ${st.speed}`,
           textStyle(9, '#aaaaaa')).setOrigin(0.5, 0);
     }
-    if (nav) {
+    const taken = (o.taken || []).includes(id);
+    if (taken) {
+      scene.add.rectangle(x, o.y, w - 2, h - 2, 0x000000, 0.55);
+      scene.add.text(x, top + 8, t('lobby.taken'), textStyle(9, '#ff8080')).setOrigin(0.5, 0);
+    }
+    if (nav && !taken) {
       nav.add({
         x, y: o.y, w, h,
         setFocus: (f) => paint(id, f),

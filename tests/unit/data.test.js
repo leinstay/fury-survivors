@@ -4,7 +4,7 @@ import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { SPRITES } from '../../assets/sprites/manifest.js';
-import { HEROES } from '../../src/data/heroes.js';
+import { HEROES, DEFAULT_HERO } from '../../src/data/heroes.js';
 import { WEAPONS } from '../../src/data/weapons.js';
 import { PASSIVES } from '../../src/data/passives.js';
 import { COMBOS } from '../../src/data/combos.js';
@@ -46,6 +46,21 @@ test('data: combos reference existing weapons (second part may be a passive)', (
 
 test('data: hero start weapons exist', () => {
   for (const [id, h] of Object.entries(HEROES)) assert.ok(WEAPONS[h.startWeapon], `${id}: unknown startWeapon`);
+});
+
+test('data: every hero is complete (sprites, menu art, name, full stats), default hero exists', () => {
+  assert.ok(HEROES[DEFAULT_HERO], 'DEFAULT_HERO');
+  const stats = Object.keys(HEROES[DEFAULT_HERO].stats).sort();
+  for (const [id, h] of Object.entries(HEROES)) {
+    assert.ok(SPRITES[h.sprite] && SPRITES[h.sprite].frames > 1, `${id}: walk strip`);
+    assert.ok(SPRITES[h.portrait], `${id}: portrait`);
+    if (h.menu) {
+      assert.ok(SPRITES[h.menu.art], `${id}: menu art`);
+      assert.ok(['left', 'right'].includes(h.menu.side), `${id}: menu side`);
+    }
+    assert.ok(en[`hero.${id}.name`], `${id}: i18n hero.${id}.name`);
+    assert.deepEqual(Object.keys(h.stats).sort(), stats, `${id}: stats`);
+  }
 });
 
 test('stage: timeline sorted and references known enemies', () => {

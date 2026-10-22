@@ -151,10 +151,11 @@ export const en = {
   'difficulty.cursed.desc': '+50% enemies, +25% experience.',
 
   // Герои
-  'hero.heroine.name': 'Heroine',
+  'hero.heroine.name': 'Hero',
   'hero.mage.name': 'Mage',
   'hero.title': 'Choose your hero',
   'lobby.your_hero': 'Your hero',
+  'lobby.taken': 'Partner',
 
   // Оружие
   'weapon.blade_arc.name': 'Blade Arc',

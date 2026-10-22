@@ -23,7 +23,7 @@ export class GameScene extends Phaser.Scene {
   // data.coop: сетевой кооп из лобби { net, local, seed, difficulty, names } (net: services/net.js)
   init(data) {
     this.difficulty = data && data.difficulty;
-    this.hero = (data && data.hero) || 'heroine';
+    this.hero = data && data.hero; // id из data/heroes.js; sim заменит неизвестный на DEFAULT_HERO
     this.givenSim = data && data.sim;
     this.coop = (data && data.coop) || null;
   }
@@ -32,8 +32,7 @@ export class GameScene extends Phaser.Scene {
     const co = this.coop;
     if (co) {
       this.sim = createSim({
-        hero: 'heroine', stage: 'forest', seed: co.seed, difficulty: co.difficulty, players: 2,
-        heroes: co.heroes,
+        stage: 'forest', seed: co.seed, difficulty: co.difficulty, players: 2, heroes: co.heroes,
       });
       this.sim.local = co.local;
       this.sim.players.forEach((p, i) => { p.name = (co.names && co.names[i]) || ''; });

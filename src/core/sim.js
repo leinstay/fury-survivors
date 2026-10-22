@@ -3,6 +3,7 @@
 import { SIM, PLAYER, COMBAT, XP, DROPS, LEVEL_UP, HUD, SLOTS, GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
 import { COOP } from '../data/coop.js';
 import { HEROES } from '../data/heroes.js';
+import { validHero, distinctHeroes } from './heroes.js';
 import { WEAPONS } from '../data/weapons.js';
 import { ENEMIES } from '../data/enemies.js';
 import { BOSSES } from '../data/bosses.js';
@@ -64,10 +65,10 @@ function maxEnemySize() {
 class Sim {
   constructor(opts) {
     const o = opts || {};
-    // герои по игрокам: соло o.hero, кооп o.heroes или COOP.heroes; неизвестный id заменяется героиней
-    const ok = (h) => (HEROES[h] ? h : 'heroine');
+    // герои по игрокам: соло o.hero, кооп o.heroes (лобби); у каждого свой, неизвестный или занятый
+    // id заменяется первым свободным (core/heroes.js)
     this.heroes = o.players > 1 ?
-      (o.heroes || COOP.heroes).map(ok) : [ok(o.hero)];
+      distinctHeroes(Math.min(o.players, COOP.players), o.heroes || []) : [validHero(o.hero)];
     this.heroDef = HEROES[this.heroes[0]];
     this.stageDef = STAGES[o.stage || 'forest'];
     this.difficulty = DIFFICULTIES[o.difficulty] ? o.difficulty : DEFAULT_DIFFICULTY;
@@ -142,7 +143,7 @@ class Sim {
   }
 
   _makePlayer(i, n) {
-    const hero = this.heroes[i] || 'heroine';
+    const hero = this.heroes[i];
     const heroDef = HEROES[hero];
     const stats = computeStats(heroDef.stats, [], {});
     const slots = n > 1 ? COOP.slots : SLOTS;
@@ -158,9 +159,6 @@ class Sim {
       radius: PLAYER.radius,
       slots: { weapons: slots.weapons, passives: slots.passives },
       dead: false, coffinT: 0, revives: 0,
-      // одинаковые герои различаются подкраской второго
-      tint: i > 0 && this.players[0] && this.players[0].hero === hero ?
-        COOP.tints[i] || 0xffffff : 0xffffff,
       name: '',
     };
   }

@@ -32,8 +32,7 @@ export class Hud {
     // кооп: полоска HP напарника под своей (цвет его подкраски), на гробу — таймер оживления
     this.allyFill = null;
     if (sim.coop) {
-      const ally = sim.players[1 - sim.local];
-      const color = ally.tint === 0xffffff ? COLORS.hp : ally.tint;
+      const color = HUD.allyHp;
       add(scene.add.rectangle(6, 36, 104, 11, 0x000000, 0.7).setOrigin(0, 0)
           .setStrokeStyle(1, 0x000000));
       this.allyFill = add(scene.add.rectangle(8, 38, 100, 7, color).setOrigin(0, 0));

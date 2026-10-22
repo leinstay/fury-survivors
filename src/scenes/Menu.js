@@ -16,11 +16,14 @@ import { validateNick } from '../core/nick.js';
 import { cleanCode } from '../services/net.js';
 import { readNick, writeNick } from '../services/nick-store.js';
 import { HEROES } from '../data/heroes.js';
+import { validHero } from '../core/heroes.js';
 import { addHeroPicker } from '../ui/hero-picker.js';
 
-// Картинки героинь по бокам меню: мечница справа, магесса слева отражённой; внутренний край каждой на одном
-// расстоянии от центра (MENU_ART_GAP), ноги на одной линии (MENU_ART_Y).
+// Картинки героев по бокам меню (HEROES[id].menu): справа как есть, слева отражённые; внутренний край первой
+// на каждой стороне на MENU_ART_GAP от центра, следующие на той же стороне дальше через MENU_ART_STEP,
+// ноги на одной линии (MENU_ART_Y).
 const MENU_ART_GAP = 135;
+const MENU_ART_STEP = 6;
 const MENU_ART_Y = 318;
 
 export class MenuScene extends Phaser.Scene {
@@ -61,20 +64,27 @@ export class MenuScene extends Phaser.Scene {
     this.scene.start('Game', { difficulty, hero: this.hero() });
   }
 
-  // Выбранный герой (последний выбор, по умолчанию героиня).
+  // Выбранный герой (последний выбор, по умолчанию DEFAULT_HERO).
   hero() {
-    const h = getSetting('hero');
-    return HEROES[h] ? h : 'heroine';
+    return validHero(getSetting('hero'));
   }
 
-  // Картинка героини у меню: right — справа от кнопок, иначе слева и отражённой.
-  menuArt(key, right) {
-    if (!this.textures.exists(key)) return;
+  // Картинки героев у кнопок меню по HEROES[id].menu.
+  menuArt() {
     const cx = GAME_WIDTH / 2;
-    const img = this.add.image(0, MENU_ART_Y, key).setOrigin(0.5, 1).setScale(spriteScale(key));
-    const half = img.displayWidth / 2;
-    img.x = right ? cx + MENU_ART_GAP + half : cx - MENU_ART_GAP - half;
-    img.setFlipX(!right);
+    const edge = { right: MENU_ART_GAP, left: MENU_ART_GAP }; // расстояние от центра до следующей картинки
+    for (const def of Object.values(HEROES)) {
+      const m = def.menu;
+      if (!m || !this.textures.exists(m.art)) continue;
+      const right = m.side !== 'left';
+      const side = right ? 'right' : 'left';
+      const img = this.add.image(0, MENU_ART_Y, m.art).setOrigin(0.5, 1)
+          .setScale(spriteScale(m.art));
+      const half = img.displayWidth / 2;
+      img.x = right ? cx + edge[side] + half : cx - edge[side] - half;
+      img.setFlipX(!right);
+      edge[side] += img.displayWidth + MENU_ART_STEP;
+    }
   }
 
   show(view) {
@@ -88,8 +98,7 @@ export class MenuScene extends Phaser.Scene {
     this.add.text(cx, 62, t('game.title'), textStyle(32, COLORS.accent, { stroke: '#000000', strokeThickness: 6 })).setOrigin(0.5);
 
     if (view === 'main') {
-      this.menuArt('heroine_menu', true);
-      this.menuArt('mage_menu', false);
+      this.menuArt();
       const bw = 160;
       const bh = 30;
       addButton(this, this.nav, { x: cx, y: 140, w: bw, h: bh, label: t('menu.play'), onSelect: () => this.show('hero') });

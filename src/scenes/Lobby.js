@@ -1,7 +1,8 @@
 // Лобби сетевого коопа. Хост: createRoom, показывает код, ждёт гостя, выбирает сложность, Start.
 // Гость: joinRoom по коду, видит выбор хоста, ждёт старта. После соединения всё идёт по каналу:
 //   { type: 'hello', name, hero }  ник и герой, оба сразу после соединения
-//   { type: 'hero', id }           смена своего героя (каждый выбирает сам)
+//   { type: 'hero', id }           смена своего героя (каждый выбирает сам; герой напарника занят).
+//                                  Если оба оказались на одном (выбрали одновременно), уступает гость.
 //   { type: 'diff', id }           хост при смене сложности
 //   { type: 'start', seed, difficulty, names, heroes }   хост; оба стартуют Game с data.coop
 //   { type: 'leave' }              выход из лобби
@@ -14,8 +15,12 @@ import { addPanel } from '../ui/panel.js';
 import { getSetting, setSetting } from '../ui/settings.js';
 import { createRoom, joinRoom } from '../services/net.js';
 import { stopMusic } from '../audio/sfx.js';
-import { HEROES } from '../data/heroes.js';
+import { validHero, freeHero, distinctHeroes } from '../core/heroes.js';
 import { addHeroPicker } from '../ui/hero-picker.js';
+
+// Колонки лобби: кнопки сложности, Start/Cancel и карточки героев одной ширины, центры на cx ± BTN_DX.
+const BTN_W = 120;
+const BTN_DX = 70;
 
 export class LobbyScene extends Phaser.Scene {
   constructor() {
@@ -31,7 +36,7 @@ export class LobbyScene extends Phaser.Scene {
     this.room = null;
     this.partner = '';
     this.difficulty = DIFFICULTIES[getSetting('difficulty')] ? getSetting('difficulty') : DEFAULT_DIFFICULTY;
-    this.hero = HEROES[getSetting('hero')] ? getSetting('hero') : 'heroine';
+    this.hero = validHero(getSetting('hero'));
     this.partnerHero = '';
     this.started = false;
     this.alive = true;
@@ -128,11 +133,14 @@ export class LobbyScene extends Phaser.Scene {
     switch (m.type) {
       case 'hello':
         this.partner = typeof m.name === 'string' ? m.name.slice(0, 6) : '?';
-        this.partnerHero = HEROES[m.hero] ? m.hero : 'heroine';
+        this.partnerHero = validHero(m.hero);
+        this.resolveHeroes();
         this.renderButtons();
         break;
       case 'hero':
-        if (HEROES[m.id]) { this.partnerHero = m.id; this.renderButtons(); }
+        this.partnerHero = validHero(m.id);
+        this.resolveHeroes();
+        this.renderButtons();
         break;
       case 'diff':
         if (this.role === 'guest' && DIFFICULTIES[m.id]) { this.difficulty = m.id; this.renderButtons(); }
@@ -140,8 +148,7 @@ export class LobbyScene extends Phaser.Scene {
       case 'start':
         if (this.role === 'guest' && DIFFICULTIES[m.difficulty] && Number.isFinite(m.seed)) {
           const names = Array.isArray(m.names) ? m.names : [this.partner, this.nick];
-          const heroes = Array.isArray(m.heroes) && m.heroes.every((h) => HEROES[h]) ?
-            m.heroes : this.heroes();
+          const heroes = distinctHeroes(2, Array.isArray(m.heroes) ? m.heroes : this.heroes());
           this.startGame(m.seed, m.difficulty, names, heroes);
         }
         break;
@@ -159,12 +166,20 @@ export class LobbyScene extends Phaser.Scene {
   }
 
   heroes() {
-    const other = this.partnerHero || 'heroine';
+    const other = this.partnerHero || freeHero([this.hero]);
     return this.role === 'host' ? [this.hero, other] : [other, this.hero];
   }
 
+  // Два игрока на одном герое: гость берёт свободного и сообщает хосту.
+  resolveHeroes() {
+    if (this.role !== 'guest' || this.hero !== this.partnerHero) return;
+    this.hero = freeHero([this.partnerHero], this.hero);
+    setSetting('hero', this.hero);
+    if (this.conn) this.conn.send({ type: 'hero', id: this.hero });
+  }
+
   pickHero(id) {
-    if (!HEROES[id]) return;
+    if (validHero(id) !== id || id === this.partnerHero) return; // занят напарником
     this.hero = id;
     setSetting('hero', id);
     if (this.conn) this.conn.send({ type: 'hero', id });
@@ -179,25 +194,28 @@ export class LobbyScene extends Phaser.Scene {
     for (const o of this.objs) o.destroy();
     const before = new Set(this.children.list);
     const me = `${this.nick} (${t('lobby.you')}) · ${t(`hero.${this.hero}.name`)}`;
-    const other = this.partner ? `${this.partner} · ${t(`hero.${this.partnerHero || 'heroine'}.name`)}` : '...';
+    const other = this.partner ? `${this.partner} · ${t(`hero.${validHero(this.partnerHero)}.name`)}` : '...';
     const [a, b] = this.role === 'host' ? [me, other] : [other, me];
     this.players.setText(`${t('lobby.host')}: ${a}    ${t('lobby.guest')}: ${b}`);
 
     // свой герой: карточки, выбор сразу уходит напарнику
     this.add.text(cx, 136, t('lobby.your_hero'), textStyle(9, '#aaaaaa')).setOrigin(0.5);
     addHeroPicker(this, this.nav, {
-      x: cx, y: 190, w: 110, h: 92, gap: 12, compact: true, mark: true, selected: this.hero,
+      // ширина и шаг как у кнопок ниже (BTN_W, BTN_DX): карточки стоят ровно над ними
+      x: cx, y: 190, w: BTN_W, h: 92, gap: 2 * BTN_DX - BTN_W, compact: true, mark: true,
+      selected: this.hero, taken: this.partnerHero ? [this.partnerHero] : [],
+      maxWidth: 2 * BTN_DX + BTN_W,
       onPick: (id) => this.pickHero(id),
     });
 
     const ids = Object.keys(DIFFICULTIES);
     const y = 256;
     ids.forEach((id, i) => {
-      const x = cx - 70 + i * 140;
+      const x = cx - BTN_DX + i * 2 * BTN_DX;
       const cursed = id !== DEFAULT_DIFFICULTY;
       const sel = id === this.difficulty;
       const b = addButton(this, this.nav, {
-        x, y, w: 120, h: 26, size: 12, label: (sel ? '> ' : '') + t(`difficulty.${id}.name`),
+        x, y, w: BTN_W, h: 26, size: 12, label: (sel ? '> ' : '') + t(`difficulty.${id}.name`),
         color: cursed ? COLORS.cursed : '#ffffff',
         onSelect: () => this.pickDifficulty(id),
       });
@@ -206,12 +224,13 @@ export class LobbyScene extends Phaser.Scene {
     if (this.role !== 'host') {
       this.add.text(cx, 278, t('lobby.host_picks'), textStyle(9, '#aaaaaa')).setOrigin(0.5);
     }
-    const ready = !!(this.conn && this.partner);
+    const ready = !!(this.conn && this.partner && this.partnerHero) &&
+      this.partnerHero !== this.hero;
     if (this.role === 'host') {
-      const start = addButton(this, this.nav, { x: cx - 70, y: 308, w: 120, h: 28, label: t('lobby.start'), onSelect: () => this.start() });
+      const start = addButton(this, this.nav, { x: cx - BTN_DX, y: 308, w: BTN_W, h: 28, label: t('lobby.start'), onSelect: () => this.start() });
       start.setDisabled(!ready);
     }
-    addButton(this, this.nav, { x: this.role === 'host' ? cx + 70 : cx, y: 308, w: 120, h: 28, label: t('lobby.cancel'), onSelect: () => this.leave() });
+    addButton(this, this.nav, { x: this.role === 'host' ? cx + BTN_DX : cx, y: 308, w: BTN_W, h: 28, label: t('lobby.cancel'), onSelect: () => this.leave() });
     this.objs = this.children.list.filter((o) => !before.has(o) && o.type !== 'Zone');
     this.nav.focus(Math.max(0, Math.min(keep, this.nav.items.length - 1)));
   }
@@ -226,9 +245,10 @@ export class LobbyScene extends Phaser.Scene {
 
   start() {
     if (this.role !== 'host' || !this.conn || !this.partner) return;
+    if (this.partnerHero === this.hero) return; // гость ещё не уступил
     const seed = (Date.now() ^ Math.floor(Math.random() * 0x7fffffff)) >>> 0;
     const names = this.names();
-    const heroes = this.heroes();
+    const heroes = distinctHeroes(2, this.heroes());
     this.conn.send({ type: 'start', seed, difficulty: this.difficulty, names, heroes });
     this.startGame(seed, this.difficulty, names, heroes);
   }

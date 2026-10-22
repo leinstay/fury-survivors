@@ -1,12 +1,12 @@
 // Настройки в localStorage. Громкость 0..1 (положение ползунка; реальная громкость ещё умножается
 // на AUDIO.gain в sfx.js), shake — тряска экрана вкл/выкл, остальное — варианты из OPTIONS.
 // v2: шкала сменилась, старые сохранения не переносим.
-import { HEROES } from '../data/heroes.js';
+import { HEROES, DEFAULT_HERO } from '../data/heroes.js';
 
 const KEY = 'fury-survivors.settings.v2';
 const DEFAULTS = {
   music: 1, sfx: 1, shake: true, quality: null, minimap: 'full', dps: 'full', difficulty: 'normal',
-  hero: 'heroine',
+  hero: DEFAULT_HERO,
 };
 // Допустимые значения строковых настроек; порядок = порядок переключения кнопкой.
 export const OPTIONS = {

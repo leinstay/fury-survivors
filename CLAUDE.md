@@ -29,6 +29,7 @@ src/
     upgrades.js            генерация карточек улучшений, reroll/skip/banish
     director.js            спавн волн по таймлайну этапа
     rng.js                 сидируемый RNG
+    heroes.js              выбор героя: validHero, freeHero, distinctHeroes (в коопе герои разные)
   behaviors/
     weapons/<type>.js      melee_arc, projectile, orbit, aura, boomerang, chain, area_drop
     enemies/<type>.js      chase, dash, ranged, swarm, phase, drift (стена и пролёт: прямой курс, исчезает за краем)

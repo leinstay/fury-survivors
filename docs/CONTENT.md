@@ -43,11 +43,14 @@ Behavior: `melee_arc`, `projectile`, `orbit`, `aura`, `boomerang`, `chain`, `are
 
 ## Герой
 
-1. `src/data/heroes.js`: `sprite`, `portrait`, `startWeapon` (id из `weapons.js`), `stats` с полным набором `maxHp, atk, speed, crit, pickup, haste, luck, armor, regen`.
-2. manifest: спрайт героя `girl('<id>', 56, '#цвет')` (один кадр стойки, ходьба процедурная; рисунок добавляется в общий лист `roster`, см. `docs/ASSETS.md`) и портрет (`heroine_portrait`, 48×48).
+Герои перечислены только в `src/data/heroes.js`. Меню (картинки у кнопок), карточки выбора в соло и в лобби коопа, сим и тесты читают этот список сами, правок в сценах не нужно.
+
+1. `src/data/heroes.js`: запись `id: { sprite, portrait, menu?, startWeapon, stats }`. `stats` с полным набором `maxHp, atk, speed, crit, pickup, haste, luck, armor, regen`. `menu: { art, side }` необязательно: картинка у кнопок главного меню, `side: 'left'` рисуется отражённой, несколько на одной стороне встают дальше от кнопок по порядку. Порядок записей = порядок карточек выбора.
+2. Спрайты в `assets/sprites/manifest.js`: лента ходьбы (как `heroine`/`mage`: 9 кадров, `walk: WALK_LOOP`, `density: HD`, `origin: FEET`, кадр 0 стойка), портрет 48×48 и картинка меню. Как сделать ленту того же размера пикселя: `docs/ASSETS.md` (PixelLab, `hd-frames.mjs`, пример магессы).
 3. i18n: `hero.<id>.name`.
-4. Выбор героя: меню героя пока нет. `createSim({ hero, stage, seed })` принимает id, но `src/scenes/Game.js` передаёт `'heroine'` строкой. Для второго героя нужна правка `Game.js` и меню (чужие файлы, не только data).
-5. Тесты: `data: hero start weapons exist`, `data: sprites referenced by content exist in manifest`. Пассивки сверяются по набору статов первого героя.
+4. Тест `data: every hero is complete` проверяет спрайты, картинку меню, имя и набор статов; `data: hero start weapons exist` проверяет оружие.
+
+Правила выбора (`src/core/heroes.js`): неизвестный id заменяется `DEFAULT_HERO`; в коопе у каждого игрока свой герой (`distinctHeroes`), в лобби герой напарника занят, при одновременном выборе одного героя уступает гость.
 
 ## Враг
 

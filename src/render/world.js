@@ -113,7 +113,7 @@ export class World {
     this.roads = sim.roads ? new Roads(scene, sim.roads) : null;
     this.decor = new Decor(scene, sim.stageDef || { props: [] }, sim.roads);
 
-    this.playerKey = sim.player.sprite || (sim.heroDef && sim.heroDef.sprite) || 'heroine';
+    this.playerKey = sim.player.sprite;
     if (!scene.textures.exists('fx_coffin')) makeCoffin(scene);
     // спрайт на игрока (кооп: у каждого свой герой, p.sprite); мёртвый игрок рисуется гробом
     this.playerSprites = sim.players.map((p) => {
@@ -274,7 +274,7 @@ export class World {
       pl.setFlipX(p.facing < 0);
       pl.setDepth(p.y);
       pl.setAlpha(p.iframes > 0 && Math.floor(time * 16) % 2 === 0 ? 0.35 : 1);
-      this._tint(pl, p.hurtFlash > 0, false, sim.coop ? p.tint : 0);
+      this._tint(pl, p.hurtFlash > 0, false);
       this._shadow(p.x, p.y, pl, cam);
     }
     this.bg.tilePositionX = cam.scrollX;
