@@ -449,3 +449,20 @@ test('roads: continuous lanes, props keep off the road, road props sit on it', (
   const ground = sim.placeProp({ sprite: 'x', big: true }, 0, 0, () => rnd.next());
   if (ground) assert.ok(sim.roads.distance(ground.x, ground.y) > cfg.width / 2 + 28);
 });
+
+test('luck multiplies the crit chance', () => {
+  const sim = createSim({ seed: 61 });
+  const base = sim.critChance();
+  sim.player.passives = [{ id: 'luck', level: 5 }];
+  sim._syncBuild();
+  assert.ok(Math.abs(sim.critChance() - base * 1.5) < 1e-9, `${base} -> ${sim.critChance()}`);
+  sim.player.passives.push({ id: 'crit', level: 5 });
+  sim._syncBuild();
+  assert.ok(Math.abs(sim.critChance() - (base + 0.25) * 1.5) < 1e-9);
+  // статистика: при шансе 100% каждый удар крит
+  sim.player.stats.crit = 1;
+  const e = sim.spawnEnemy('slime', 0, 0); e.hp = e.maxHp = 1e9;
+  let crits = 0;
+  for (let i = 0; i < 50; i++) { sim.damageEnemy(e, 1, 'blade_arc', 0, 0, 0); if (sim.events.at(-1).crit) crits++; }
+  assert.equal(crits, 50);
+});

@@ -15,7 +15,7 @@ export const PASSIVES = {
   crit:    { icon: 'icon_crit', stat: 'crit',   mode: 'add', levels: [0.05, 0.10, 0.15, 0.20, 0.25] },
   pickup:  { icon: 'icon_pickup', stat: 'pickup', mode: 'mul', levels: [0.25, 0.50, 0.75, 1.00, 1.25] },
   haste:   { icon: 'icon_haste', stat: 'haste',  mode: 'mul', levels: [0.08, 0.16, 0.24, 0.32, 0.40] },
-  luck:    { icon: 'icon_luck', stat: 'luck',   mode: 'mul', levels: [0.10, 0.20, 0.30, 0.40, 0.50] },
+  luck:    { icon: 'icon_luck', stat: 'luck',   mode: 'mul', levels: [0.10, 0.20, 0.30, 0.40, 0.50] }, // × шансы дропа и × шанс крита
   armor:   { icon: 'icon_armor', stat: 'armor',  mode: 'add', levels: [1, 2, 3, 4, 5] },
   regen:   { icon: 'icon_regen', stat: 'regen',  mode: 'add', levels: [0.2, 0.4, 0.6, 0.8, 1.0] },
 };

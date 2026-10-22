@@ -388,10 +388,16 @@ class Sim {
     }
   }
 
+  // Итоговый шанс крита: стат crit × удача (пассивка Luck обещает «больше критов», как и лучший дроп).
+  critChance() {
+    const st = this.player.stats;
+    return Math.min(1, st.crit * st.luck);
+  }
+
   // Урон врагу. (sx, sy) — источник для направления отбрасывания.
   damageEnemy(e, dmg, wid, kb, sx, sy) {
     if (e.dead) return;
-    const crit = this.rng.next() < this.player.stats.crit;
+    const crit = this.rng.next() < this.critChance();
     const amount = crit ? dmg * COMBAT.critMul : dmg;
     const dealt = amount < e.hp ? amount : e.hp;
     e.hp -= amount;
