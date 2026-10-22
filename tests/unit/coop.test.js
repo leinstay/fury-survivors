@@ -25,7 +25,9 @@ test('coop: two players share xp and level, each has own weapons and fewer slots
   const solo = createSim({ seed: 1 });
   assert.equal(solo.coop, false);
   assert.deepEqual(solo.player.slots, SLOTS);
-  for (const p of sim.players) assert.deepEqual(p.weapons.map((w) => w.id), ['blade_arc']);
+  // герои по игрокам: хост героиня (Blade Arc), гость маг (Storm Chain)
+  assert.deepEqual(sim.players.map((p) => p.hero), COOP.heroes);
+  assert.deepEqual(sim.players.map((p) => p.weapons[0].id), ['blade_arc', 'storm_chain']);
   assert.notEqual(sim.players[0].stats, sim.players[1].stats);
 });
 
@@ -77,6 +79,7 @@ test('coop: a dead player becomes a coffin and revives, the run ends only when b
   const sim = coop(7);
   const [a, b] = sim.players;
   a.x = 0; b.x = 300;
+  b.iframes = 1e9; // напарник стоит на месте и не должен умереть раньше, чем оживёт гроб
   sim.hurtPlayer(1e9, a);
   assert.equal(sim.state, 'running');
   assert.ok(a.dead && a.coffinT === COOP.reviveTime);
@@ -88,6 +91,7 @@ test('coop: a dead player becomes a coffin and revives, the run ends only when b
   let t = 0;
   while (a.dead && t < COOP.reviveTime / COOP.enemySlow + 1) {
     if (sim.state === 'levelup') sim.chooseCard(0);
+    if (sim.state === 'chest') sim.skipChest();
     sim.step(DT, both);
     t += DT;
   }
@@ -124,7 +128,7 @@ test('coop: level-up cards alternate between players and apply to the chooser', 
   const before = build(a);
   sim.chooseCard(0);
   assert.notEqual(build(a), before);
-  assert.equal(build(b), JSON.stringify([[['blade_arc', 1]], []]));
+  assert.equal(build(b), JSON.stringify([[['storm_chain', 1]], []]));
   sim.player.xp = sim.player.xpNext;
   sim.step(DT, { players: [idle, idle] });
   assert.equal(sim.levelUp.player, 1);

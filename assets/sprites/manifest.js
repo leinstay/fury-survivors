@@ -61,6 +61,9 @@ export const SPRITES = Object.fromEntries([
   // Героиня: кадры PixelLab в исходной детализации, плавно уменьшены в 0.4 (tools/hd-frames.mjs), показ 1:1 на холсте.
   art('heroine', 77, 102, { frames: 9, walk: WALK_LOOP, density: HD, origin: FEET, color: '#e0603a', shape: 'humanoid' }),
   item('heroine_portrait', 48, 48, '#e0603a', 'rect'),
+  // маг: заглушка того же кадра, что героиня (tools/placeholders.mjs), настоящий спрайт позже
+  art('mage', 77, 102, { frames: 9, walk: WALK_LOOP, density: HD, origin: FEET, color: '#6a5cff', shape: 'humanoid' }),
+  item('mage_portrait', 48, 48, '#6a5cff', 'rect'),
   // Героиня в меню: вырезана из сырого листа в исходном разрешении модели (tools/crop-raw.mjs), пиксель картинки = пиксель холста.
   art('heroine_menu', 139, 261, { density: HD, origin: FEET }),
 

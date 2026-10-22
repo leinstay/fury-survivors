@@ -60,7 +60,8 @@ test('online co-op: lobby, connect by code, synced game, partner leaves', async 
   expect(await guest.evaluate(() => window.__game.game.scene.getScene('Lobby').partner)).toBe('ANN');
 
   await host.evaluate(() => window.__game.game.scene.getScene('Lobby').pickDifficulty('cursed'));
-  await guest.waitForFunction(() => window.__game.game.scene.getScene('Lobby').difficulty === 'cursed', null, { timeout: 5_000 });
+  await guest.waitForFunction(() => window.__game.game.scene.getScene('Lobby').difficulty === 'cursed',
+      null, { timeout: 5_000 });
   await host.evaluate(() => window.__game.game.scene.getScene('Lobby').start());
   for (const p of pages) await p.waitForFunction(() => window.__game.debug().scene === 'Game', null, { timeout: 5_000 });
   await host.evaluate(() => { window.__game.game.scene.getScene('Game').gameInput.read = () => ({ x: -1, y: 0 }); });

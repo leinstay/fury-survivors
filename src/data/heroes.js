@@ -18,4 +18,15 @@ export const HEROES = {
       haste: 1, luck: 1, armor: 0, regen: 0,
     },
   },
+  // Маг: второй игрок в коопе (COOP.heroes). Стартует с молнией (Storm Chain), хрупче и быстрее.
+  // Спрайт пока заглушка (assets/sprites/mage.png из tools/placeholders.mjs), кадр как у героини.
+  mage: {
+    sprite: 'mage',
+    portrait: 'mage_portrait',
+    startWeapon: 'storm_chain',
+    stats: {
+      maxHp: 80, atk: 1.1, speed: 95, crit: 0.05, pickup: 1,
+      haste: 1.1, luck: 1, armor: 0, regen: 0,
+    },
+  },
 };

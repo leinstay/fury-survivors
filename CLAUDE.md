@@ -69,7 +69,7 @@ tests/
   unit/                    node --test: grid, stats, upgrades, data-валидация
   balance/                 node --test: headless-бот играет 10 мин на core/sim (players: 2 — кооп)
   smoke/                   Playwright: запуск, старт, 30 с игры, нет ошибок, fps; coop.spec.js два окна по WebRTC
-docs/                      CONTENT.md, ARCHITECTURE.md, ASSETS.md, LEADERBOARD.md
+docs/                      CONTENT.md, ARCHITECTURE.md, ASSETS.md, LEADERBOARD.md, COOP.md (сводка коопа: сделано, руками, ограничения)
 references/                референсы, НЕ в git (скриншоты чужих игр)
 .secrets/                  ключи, НЕ в git, никогда не читать в коде игры
 ```

@@ -13,6 +13,7 @@ import { addPanel } from '../ui/panel.js';
 import { getSetting, setSetting } from '../ui/settings.js';
 import { createRoom, joinRoom } from '../services/net.js';
 import { stopMusic } from '../audio/sfx.js';
+import { COOP } from '../data/coop.js';
 
 export class LobbyScene extends Phaser.Scene {
   constructor() {
@@ -157,7 +158,8 @@ export class LobbyScene extends Phaser.Scene {
     const me = `${this.nick} (${t('lobby.you')})`;
     const other = this.partner || '...';
     const [a, b] = this.role === 'host' ? [me, other] : [other, me];
-    this.players.setText(`${t('lobby.host')}: ${a}    ${t('lobby.guest')}: ${b}`);
+    const hero = (i) => t(`hero.${COOP.heroes[i]}.name`);
+    this.players.setText(`${t('lobby.host')}: ${a} · ${hero(0)}    ${t('lobby.guest')}: ${b} · ${hero(1)}`);
 
     const ids = Object.keys(DIFFICULTIES);
     const y = 214;

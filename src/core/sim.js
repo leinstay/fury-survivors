@@ -65,6 +65,8 @@ class Sim {
   constructor(opts) {
     const o = opts || {};
     this.heroDef = HEROES[o.hero || 'heroine'];
+    // герои по игрокам: соло o.hero, кооп o.heroes или COOP.heroes (хост героиня, гость маг)
+    this.heroes = o.players > 1 ? (o.heroes || COOP.heroes) : [o.hero || 'heroine'];
     this.stageDef = STAGES[o.stage || 'forest'];
     this.difficulty = DIFFICULTIES[o.difficulty] ? o.difficulty : DEFAULT_DIFFICULTY;
     this.diff = DIFFICULTIES[this.difficulty];
@@ -138,13 +140,16 @@ class Sim {
   }
 
   _makePlayer(i, n) {
-    const stats = computeStats(this.heroDef.stats, [], {});
+    const hero = this.heroes[i] && HEROES[this.heroes[i]] ? this.heroes[i] : this.heroes[0];
+    const heroDef = HEROES[hero];
+    const stats = computeStats(heroDef.stats, [], {});
     const slots = n > 1 ? COOP.slots : SLOTS;
     return {
-      id: i, x: i * 24, y: 0, hp: stats.maxHp, maxHp: stats.maxHp,
+      id: i, hero, heroDef, sprite: heroDef.sprite,
+      x: i * 24, y: 0, hp: stats.maxHp, maxHp: stats.maxHp,
       level: 1, xp: 0, xpNext: xpForLevel(1),
       facing: 1, moving: false, iframes: 0, hurtFlash: 0,
-      weapons: [{ id: this.heroDef.startWeapon, level: 1 }],
+      weapons: [{ id: heroDef.startWeapon, level: 1 }],
       passives: [],
       stats,
       dirX: 1, dirY: 0,
@@ -1259,7 +1264,7 @@ class Sim {
       if (w.beh.init) w.beh.init(w, this);
     }
     const old = pl.maxHp;
-    computeStats(this.heroDef.stats, pl.passives, pl.stats);
+    computeStats(pl.heroDef.stats, pl.passives, pl.stats);
     pl.maxHp = pl.stats.maxHp;
     if (pl.maxHp > old) pl.hp += pl.maxHp - old;
     if (pl.hp > pl.maxHp) pl.hp = pl.maxHp;

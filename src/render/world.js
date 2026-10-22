@@ -115,10 +115,12 @@ export class World {
 
     this.playerKey = sim.player.sprite || (sim.heroDef && sim.heroDef.sprite) || 'heroine';
     if (!scene.textures.exists('fx_coffin')) makeCoffin(scene);
-    // спрайт на игрока (кооп: два, второй подкрашен p.tint); мёртвый игрок рисуется гробом
+    // спрайт на игрока (кооп: у каждого свой герой, p.sprite); мёртвый игрок рисуется гробом
     this.playerSprites = sim.players.map((p) => {
-      const sp = scene.add.sprite(p.x, p.y, this._tex(this.playerKey), 0);
-      this._origin(sp, this.playerKey);
+      const key = p.sprite || this.playerKey;
+      const sp = scene.add.sprite(p.x, p.y, this._tex(key), 0);
+      sp.heroKey = key;
+      this._origin(sp, key);
       sp.coffin = false;
       return sp;
     });
@@ -259,14 +261,15 @@ export class World {
         this._shadow(p.x, p.y, pl, cam);
         continue;
       }
+      const key = pl.heroKey;
       if (pl.coffin) {
         pl.coffin = false;
-        pl.setTexture(this._tex(this.playerKey), 0);
-        pl.spriteKey = this.playerKey;
-        this._origin(pl, this.playerKey);
+        pl.setTexture(this._tex(key), 0);
+        pl.spriteKey = key;
+        this._origin(pl, key);
       }
-      pl.baseScale = spriteScale(this.playerKey);
-      const lift = animateCharacter(pl, this.playerKey, p, time, i);
+      pl.baseScale = spriteScale(key);
+      const lift = animateCharacter(pl, key, p, time, i);
       pl.setPosition(Math.round(p.x), Math.round(p.y) + lift);
       pl.setFlipX(p.facing < 0);
       pl.setDepth(p.y);
