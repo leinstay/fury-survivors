@@ -31,9 +31,11 @@ export class Hud {
     this.hpText = add(scene.add.text(58, 27, '', textStyle(8, '#ffffff', { stroke: '#000000', strokeThickness: 2 })).setOrigin(0.5));
 
     this.timeText = add(scene.add.text(GAME_WIDTH / 2, 24, '', textStyle(16, '#ffffff', { stroke: '#000000', strokeThickness: 4 })).setOrigin(0.5, 0.5));
-    // Убийства и счёт слева под рядами оружия и пассивок. Счёт по формуле таблицы рекордов, на лету.
-    this.killText = add(scene.add.text(8, 82, '', textStyle(12, '#ffffff', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0, 0));
-    this.scoreText = add(scene.add.text(8, 96, '', textStyle(12, '#ffd84a', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0, 0));
+    // Счёт по формуле таблицы рекордов, на лету: под таймером; пока жив босс, уходит под его имя.
+    // Убийства мелко под миникартой.
+    this.scoreText = add(scene.add.text(GAME_WIDTH / 2, HUD.scoreY, '', textStyle(12, '#ffd84a', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5, 0));
+    this.killText = add(scene.add.text(GAME_WIDTH - HUD.minimap.margin, HUD.minimap.top + HUD.minimap.radius * 2 + 4, '',
+        textStyle(10, '#cccccc', { stroke: '#000000', strokeThickness: 3 })).setOrigin(1, 0));
     // DPS-метр: панель в правом нижнем углу, по оружию и общий, среднее за HUD.dpsWindow секунд.
     // Настройка dps: full / transparent / off. Строки пересобираются вместе со слотами оружия.
     this.dpsMode = getSetting('dps');
@@ -240,6 +242,7 @@ export class Hud {
       time: sim.time, kills: sim.kills, coins: sim.coins, victory: sim.won,
     });
     this.scoreText.setText(t('hud.score', { n: score }));
+    this.scoreText.y = this.bossShown ? HUD.scoreYBoss : HUD.scoreY;
     if (this.dpsMode !== 'off') this._updateDps();
     if (this.mapMode !== 'off' && sim.time >= this.mapNext) {
       this.mapNext = sim.time + 1 / HUD.minimap.fps;
