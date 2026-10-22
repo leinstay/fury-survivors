@@ -4,7 +4,7 @@ import { createSim } from '../../src/core/sim.js';
 import { COOP } from '../../src/data/coop.js';
 import { DEFAULT_HERO } from '../../src/data/heroes.js';
 import { validHero, freeHero, distinctHeroes, heroIds } from '../../src/core/heroes.js';
-import { SLOTS, GAME_WIDTH } from '../../src/data/constants.js';
+import { SLOTS, GAME_WIDTH, SIM } from '../../src/data/constants.js';
 
 const DT = 1 / 60;
 const idle = { x: 0, y: 0 };
@@ -117,13 +117,13 @@ test('coop: a partner next to the coffin speeds up the revive', () => {
   assert.ok(near.players[0].coffinT < far.players[0].coffinT - 1);
 });
 
-// Кооп: после выбора мир стоит COOP.resumeDelay (state 'resume') — шагаем, пока игра не пойдёт.
+// Кооп: после выбора мир стоит SIM.resumeDelay (state 'resume') — шагаем, пока игра не пойдёт.
 function settle(sim) {
   for (let i = 0; i < 120 && sim.state === 'resume'; i++) sim.step(DT, { players: [idle, idle] });
   assert.equal(sim.state, 'running');
 }
 
-test('coop: after a choice the world waits COOP.resumeDelay before it moves again', () => {
+test('coop: after a choice the world waits SIM.resumeDelay before it moves again', () => {
   const sim = coop(13);
   sim.player.xp = sim.player.xpNext;
   sim.step(DT, { players: [idle, idle] });
@@ -133,7 +133,7 @@ test('coop: after a choice the world waits COOP.resumeDelay before it moves agai
   let n = 0;
   while (sim.state === 'resume' && n < 200) { sim.step(DT, { players: [idle, idle] }); n++; }
   assert.equal(sim.time, t0, 'time stands still while resuming');
-  assert.ok(Math.abs(n * DT - COOP.resumeDelay) < 2 * DT, `${n} ticks`);
+  assert.ok(Math.abs(n * DT - SIM.resumeDelay) < 2 * DT, `${n} ticks`);
 });
 
 test('coop: a chest is shown to both with the world stopped, the owner can end the show', () => {

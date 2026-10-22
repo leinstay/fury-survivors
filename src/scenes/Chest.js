@@ -6,6 +6,7 @@ import { addPanel, PANEL } from '../ui/panel.js';
 import { textStyle } from '../ui/style.js';
 import { spriteScale } from '../render/density.js';
 import { createActions } from '../core/actions.js';
+import { fadeOutAndStop, resetFade } from '../ui/fade.js';
 
 const SHAKE_MS = 600;
 const INPUT_GUARD_MS = 250; // клавиши движения, зажатые в момент открытия, не должны закрывать экран
@@ -31,6 +32,7 @@ export class ChestScene extends Phaser.Scene {
   }
 
   create() {
+    resetFade(this);
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.75).setOrigin(0, 0);
     this.add.text(GAME_WIDTH / 2, 34, t('chest.title'), textStyle(24, '#ffd84a', { stroke: '#000000', strokeThickness: 4 })).setOrigin(0.5);
     if (this.sim.coop && this.choices.length) {
@@ -255,7 +257,10 @@ export class ChestScene extends Phaser.Scene {
   close() {
     if (this.closed) return;
     this.closed = true;
-    if (!this.act.coop) this.scene.resume('Game');
-    this.scene.stop();
+    if (!this.act.coop) {
+      this.act.hold();
+      this.scene.resume('Game');
+    }
+    fadeOutAndStop(this);
   }
 }

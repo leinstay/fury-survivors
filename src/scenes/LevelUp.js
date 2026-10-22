@@ -6,6 +6,7 @@ import { displayName } from '../ui/icons.js';
 import { textStyle } from '../ui/style.js';
 import { addPanel } from '../ui/panel.js';
 import { createActions } from '../core/actions.js';
+import { fadeOutAndStop, resetFade } from '../ui/fade.js';
 
 const CARD_W = 140;
 const CARD_H = 180;
@@ -34,6 +35,7 @@ export class LevelUpScene extends Phaser.Scene {
   }
 
   create() {
+    resetFade(this);
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.7).setOrigin(0, 0);
     this.add.text(GAME_WIDTH / 2, 30, t('levelup.title'), textStyle(24, '#ffd84a', { stroke: '#000000', strokeThickness: 4 })).setOrigin(0.5);
     this.nav = new FocusNav(this, {
@@ -68,8 +70,11 @@ export class LevelUpScene extends Phaser.Scene {
   close() {
     if (this.closed) return;
     this.closed = true;
-    if (!this.act.coop) this.scene.resume('Game');
-    this.scene.stop();
+    if (!this.act.coop) {
+      this.act.hold();
+      this.scene.resume('Game');
+    }
+    fadeOutAndStop(this);
   }
 
   render() {
@@ -144,7 +149,7 @@ export class LevelUpScene extends Phaser.Scene {
   // Соло: sim уже изменился, закрываемся или рисуем новый набор. Кооп: ждём применения команды в update().
   after() {
     if (this.act.coop) return;
-    if (this.sim.state === 'running') this.close();
+    if (this.sim.state !== 'levelup') this.close();
     else this.render();
   }
 }

@@ -101,7 +101,7 @@ test('lockstep: card choice is a command applied on the same tick by both, only 
     if (tickA < 0 && a.sim.state !== 'levelup') tickA = a.tick;
     if (tickB < 0 && b.sim.state !== 'levelup') tickB = b.tick;
   });
-  assert.equal(a.sim.state, 'resume'); // мир трогается через COOP.resumeDelay
+  assert.equal(a.sim.state, 'resume'); // мир трогается через SIM.resumeDelay
   assert.equal(tickA, tickB);
   assert.equal(hashSim(a.sim), hashSim(b.sim));
   assert.deepEqual(desyncs, []);
@@ -125,7 +125,7 @@ test('lockstep: pause stops the sim on both, resume continues, ticks keep flowin
   a.command({ k: 'resume' });
   run(6);
   assert.ok(!a.paused && !b.paused);
-  run(45); // после паузы мир стоит ещё COOP.resumeDelay
+  run(45); // после паузы мир стоит ещё SIM.resumeDelay
   assert.ok(a.sim.time > t0 && a.sim.time === b.sim.time);
 });
 

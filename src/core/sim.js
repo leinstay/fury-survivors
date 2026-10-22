@@ -135,7 +135,7 @@ class Sim {
     this.local = 0;         // индекс игрока за этим экраном (HUD, экраны выбора); сеть ставит 1 у гостя
     this.levelTurn = 0;     // чей ход выбирать карточку (по очереди, индекс растёт с каждым уровнем)
     this.picker = 0;        // индекс игрока, который выбирает сейчас (state 'levelup')
-    this.resumeT = 0;       // кооп: сколько ещё стоит мир после выбора (state 'resume')
+    this.resumeT = 0;       // сколько ещё стоит мир после выбора (state 'resume')
     this.chest.player = 0;
     this._syncBuild();
     this._updateChunks();
@@ -225,9 +225,12 @@ class Sim {
   step(dt, input) {
     this.events.length = 0;
     if (this.state === 'resume') {
-      // кооп: короткая пауза после выбора напарника, мир ещё стоит
+      // короткая пауза после выбора или паузы, мир ещё стоит
       if (dt > 0) this.resumeT -= dt;
-      if (this.resumeT <= 0) this.state = 'running';
+      if (this.resumeT <= 0) {
+        this.state = 'running';
+        this._checkLevel(); // уровень, набранный до паузы, открывается сразу
+      }
       return;
     }
     if (this.state === 'reveal') {
@@ -1140,12 +1143,12 @@ class Sim {
     this.resumeDelay();
   }
 
-  // Кооп: игра после выбора идёт не сразу, а через COOP.resumeDelay (state 'resume'): напарник не знает,
-  // когда другой нажмёт карточку, и не должен попасть под врагов в тот же миг.
+  // Игра после выбора и паузы идёт не сразу, а через SIM.resumeDelay (state 'resume'): экран выбора успевает
+  // погаснуть, а в коопе напарник не знает, когда другой нажмёт карточку, и не попадает под врагов в тот же миг.
   resumeDelay() {
-    if (!this.coop || this.state !== 'running') return;
+    if (this.state !== 'running') return;
     this.state = 'resume';
-    this.resumeT = COOP.resumeDelay;
+    this.resumeT = SIM.resumeDelay;
   }
 
   // Выбор супероружия из сундука (state 'chest'); потом отложенные уровни.

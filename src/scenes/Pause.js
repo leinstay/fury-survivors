@@ -7,6 +7,7 @@ import { textStyle } from '../ui/style.js';
 import { addPanel } from '../ui/panel.js';
 import { playSfx } from '../audio/sfx.js';
 import { createActions } from '../core/actions.js';
+import { fadeOutAndStop, resetFade } from '../ui/fade.js';
 
 // Билд в две колонки (оружие слева, пассивки справа): 6+6 строк не налезают на кнопки.
 export function addBuildList(scene, x, y, player) {
@@ -66,6 +67,7 @@ export class PauseScene extends Phaser.Scene {
   }
 
   create() {
+    resetFade(this);
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.75).setOrigin(0, 0);
     this.add.text(GAME_WIDTH / 2, 28, t('pause.title'), textStyle(24, '#ffd84a', { stroke: '#000000', strokeThickness: 4 })).setOrigin(0.5);
     this.nav = new FocusNav(this, { onBack: () => this.resume() });
@@ -110,8 +112,11 @@ export class PauseScene extends Phaser.Scene {
   close() {
     if (this.closed) return;
     this.closed = true;
-    if (!this.act.coop) this.scene.resume('Game');
-    this.scene.stop();
+    if (!this.act.coop) {
+      this.act.hold();
+      this.scene.resume('Game');
+    }
+    fadeOutAndStop(this);
   }
 
   finish() {

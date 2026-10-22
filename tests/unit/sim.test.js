@@ -93,7 +93,7 @@ test('sim: level up flow, step is frozen while choosing', () => {
   assert.equal(sim.time, t);
   assert.equal(sim.events.length, 0);
   sim.chooseCard(0);
-  assert.equal(sim.state, 'running');
+  assert.equal(sim.state, 'resume'); // мир ещё SIM.resumeDelay стоит, экран гаснет
   const owned = [...sim.player.weapons, ...sim.player.passives]
       .some((x) => x.id === card.id && x.level === card.level);
   assert.ok(owned);
@@ -112,12 +112,12 @@ test('sim: reroll, banish, skip use their limits', () => {
   assert.ok(sim.levelUp.cards.every((c) => !(c.kind === victim.kind && c.id === victim.id)));
   assert.ok(sim.skip());
   assert.equal(sim.levelUp.skips, LEVEL_UP.skips - 1);
-  assert.equal(sim.state, 'running');
+  assert.equal(sim.state, 'resume');
   assert.ok(first);
   // лимиты исчерпываются
   sim.levelUp.rerolls = 0;
   sim.player.xp = sim.player.xpNext;
-  sim.step(DT, idle);
+  for (let i = 0; i < 60 && sim.state !== 'levelup'; i++) sim.step(DT, idle);
   assert.equal(sim.reroll(), false);
 });
 
@@ -129,7 +129,11 @@ test('sim: several pending levels give several card sets', () => {
   sim.chooseCard(0);
   assert.equal(sim.state, 'levelup');
   sim.chooseCard(0);
+  assert.equal(sim.state, 'resume');
+  const t = sim.time;
+  for (let i = 0; i < 40 && sim.state === 'resume'; i++) sim.step(DT, idle);
   assert.equal(sim.state, 'running');
+  assert.equal(sim.time, t, 'the hold does not advance game time');
 });
 
 test('sim: xp curve', () => {

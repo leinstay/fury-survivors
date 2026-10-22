@@ -235,7 +235,7 @@ class Lockstep {
         if (c.cmd.k === 'pause') this.paused = true;
         else if (c.cmd.k === 'resume' && this.paused) {
           this.paused = false;
-          this.sim.resumeDelay(); // мир трогается через COOP.resumeDelay, как после выбора карточки
+          this.sim.resumeDelay(); // мир трогается через SIM.resumeDelay, как после выбора карточки
         }
         else applyCommand(this.sim, c.who, c.cmd);
       }
