@@ -17,7 +17,16 @@ export class Roads {
     this.roads = roads;
     this.size = SIM.chunkSize;
     this.chunks = new Map(); // "cx,cy" -> image | null (нет дороги)
-    this.queue = [];
+    // текстуры живут в менеджере Phaser, а не в сцене: при рестарте забега чистим их сами
+    scene.events.once('shutdown', () => this.destroy());
+  }
+
+  destroy() {
+    for (const [key, img] of this.chunks) {
+      const [cx, cy] = key.split(',').map(Number);
+      if (img) { img.destroy(); this.scene.textures.remove(this._key(cx, cy)); }
+    }
+    this.chunks.clear();
   }
 
   _key(cx, cy) {
@@ -33,6 +42,8 @@ export class Roads {
     const c = ROADS;
     const half = r.cfg.width / 2;
     const key = this._key(cx, cy);
+    // createCanvas возвращает null, если ключ занят (текстура прошлого забега): убираем её
+    if (this.scene.textures.exists(key)) this.scene.textures.remove(key);
     const tex = this.scene.textures.createCanvas(key, S, S);
     const ctx = tex.getContext();
     const img = ctx.createImageData(S, S);
