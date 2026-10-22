@@ -205,7 +205,6 @@ export class GameScene extends Phaser.Scene {
       this.acc -= STEP;
       this.handleEvents(this.sim.events);
     }
-    this._predict();
     this._netStats(now, rawDt, stalled, d);
     // ожидание по часам сцены, не по тикам: при низком fps тики за кадр не набегают
     if (!stalled) this.waitSince = -1;
@@ -232,12 +231,29 @@ export class GameScene extends Phaser.Scene {
     this.stats = null;
   }
 
-  // Свой герой рисуется с вводом, который отправлен, но ещё не применён (NET.inputDelay): отклик сразу.
-  _predict() {
-    const p = this.sim.players[this.sim.local];
-    const on = this.sim.state === 'running' && !this.ls.paused && !p.dead;
-    const off = on ? this.ls.predictOffset(p.stats.speed, STEP) : null;
-    this.world.predict = off ? { i: this.sim.local, x: off.x, y: off.y, face: off.face } : null;
+  // Рендер между тиками. world.alpha — доля следующего шага (сущности рисуются между прошлым и текущим
+  // тиком). Свой герой рисуется по своему вводу: ввод, отправленный, но ещё не применённый симом (кооп,
+  // NET.inputDelay), плюс текущий ввод на долю шага. Так он отзывается сразу и двигается ровно, как бы ни
+  // ложились тики на кадры; шаг и разворот тоже по вводу.
+  _predict(input) {
+    const sim = this.sim;
+    const p = sim.players[sim.local];
+    const live = sim.state === 'running' && !(this.ls && this.ls.paused);
+    const a = live && this.hitstop <= 0 ? Math.min(1, this.acc / STEP) : 1;
+    this.world.alpha = a;
+    if (!live || p.dead || this.hitstop > 0) { this.world.predict = null; return; }
+    const pend = this.ls ? this.ls.predictOffset(p.stats.speed, STEP) : { x: 0, y: 0, face: 0 };
+    let ix = input && input.x ? input.x : 0;
+    let iy = input && input.y ? input.y : 0;
+    const len = Math.sqrt(ix * ix + iy * iy);
+    const moving = len > 0.05;
+    if (len > 1) { ix /= len; iy /= len; }
+    const k = moving ? p.stats.speed * STEP * a : 0;
+    const face = ix > 0.05 ? 1 : ix < -0.05 ? -1 : pend.face;
+    this.world.predict = {
+      i: sim.local, x: pend.x + ix * k, y: pend.y + iy * k, face,
+      moving: moving || pend.x !== 0 || pend.y !== 0,
+    };
   }
 
   update(time, delta) {
@@ -253,6 +269,7 @@ export class GameScene extends Phaser.Scene {
     const input = this.gameInput.read();
     if (this.ls) this._stepCoop(delta / 1000, input);
     else this._stepSolo(dt, input);
+    this._predict(input);
     this.hitCool -= dt;
     this.fx.update(dt);
     this.world.shake = { x: this.fx.offsetX, y: this.fx.offsetY };

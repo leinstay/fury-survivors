@@ -15,6 +15,6 @@ export const RTC = {
   channel: 'fury',            // имя DataChannel; ordered + reliable, lockstep этого требует
   // TURN (посредник, когда напрямую нельзя: строгий NAT, CGNAT, закрытый UDP): адрес Cloudflare Worker
   // (tools/turn-worker.js), который отдаёт { iceServers } с временными учётными данными. '' — без TURN.
-  turnUrl: '',
+  turnUrl: 'https://fury-turn.leinstay.workers.dev',
   turnTimeoutMs: 3000,        // не ответил за столько — соединяемся без TURN
 };

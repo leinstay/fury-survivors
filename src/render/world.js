@@ -9,6 +9,8 @@ import { spriteScale } from './density.js';
 import { Zones } from './zones.js';
 import { lowQuality } from '../ui/settings.js';
 
+const LERP_MAX = 40; // px за тик: дальше — перенос (спавн, телепорт), такое не сглаживаем
+
 const PICKUP_DEPTH = -100000;
 const PROJ_DEPTH = 200000;
 const GROUND_DEPTH = -150000; // зоны на земле: над цветами и травой, под предметами и персонажами
@@ -149,7 +151,11 @@ export class World {
     this.zones = new Zones(scene, GROUND_DEPTH);
     if (!scene.textures.exists('fx_halo')) makeHalo(scene);
     this.shake = { x: 0, y: 0 }; // смещение камеры от fx (тряска)
-    this.predict = null;         // кооп: { i, x, y, face } — свой герой со сдвигом ещё не применённого ввода (Game)
+    this.predict = null;         // { i, x, y, face, moving } — свой герой по своему вводу (Game._predict)
+    this.alpha = 1;              // доля шага между прошлым и текущим тиком: сущности рисуются между ними
+    this.ix = 0;                 // результат _lerp
+    this.iy = 0;
+    this.localView = {};         // свой герой для анимации: moving по вводу, а не по симу
   }
 
   // Тень у ног: тёмный эллипс под спрайтом, пул по порядку обхода за кадр.
@@ -233,15 +239,43 @@ export class World {
     return out;
   }
 
+  // Позиция e между прошлым тиком и текущим (this.ix, this.iy). Созданные в последнем шаге и перенесённые
+  // далеко (спавн за краем, телепорт) рисуются на месте.
+  _lerp(e) {
+    const a = this.alpha;
+    this.ix = e.x;
+    this.iy = e.y;
+    if (a >= 1 || e.pf !== this.sim.frame) return;
+    const dx = e.x - e.px;
+    const dy = e.y - e.py;
+    if (dx * dx + dy * dy > LERP_MAX * LERP_MAX) return;
+    this.ix = e.px + dx * a;
+    this.iy = e.py + dy * a;
+  }
+
+  // Где рисовать игрока i: свой — позиция сима плюс ввод, который сим ещё не применил (Game._predict),
+  // остальные — между тиками.
+  _playerPos(p, i) {
+    const pr = this.predict;
+    if (pr && pr.i === i) {
+      this.ix = p.x + pr.x;
+      this.iy = p.y + pr.y;
+    } else {
+      this._lerp(p);
+    }
+  }
+
   update(dt) {
     this.time += dt;
     const sim = this.sim;
     const time = this.time;
-    const v = sim.view;
     const pr = this.predict;
-    // центр экрана — среднее игроков: сдвиг своего героя двигает его на свою долю
-    const vx = v.x + (pr ? pr.x / sim.players.length : 0);
-    const vy = v.y + (pr ? pr.y / sim.players.length : 0);
+    // центр экрана — среднее нарисованных игроков (как sim.view, но с их видимыми позициями)
+    let vx = 0;
+    let vy = 0;
+    sim.players.forEach((p, i) => { this._playerPos(p, i); vx += this.ix; vy += this.iy; });
+    vx /= sim.players.length;
+    vy /= sim.players.length;
 
     // камера и фон: центр экрана — sim.view (игрок, в коопе середина между игроками)
     const cam = this.scene.cameras.main;
@@ -261,9 +295,10 @@ export class World {
           pl.tintState = -1;
           pl.clearTint();
         }
-        pl.setPosition(Math.round(p.x), Math.round(p.y) + COFFIN_Y);
-        pl.setDepth(p.y);
-        this._shadow(p.x, p.y, pl, cam);
+        this._lerp(p);
+        pl.setPosition(Math.round(this.ix), Math.round(this.iy) + COFFIN_Y);
+        pl.setDepth(this.iy);
+        this._shadow(this.ix, this.iy, pl, cam);
         continue;
       }
       const key = pl.heroKey;
@@ -274,9 +309,12 @@ export class World {
         this._origin(pl, key);
       }
       pl.baseScale = spriteScale(key);
-      const lift = animateCharacter(pl, key, p, time, i);
-      const px = p.x + (pr && pr.i === i ? pr.x : 0);
-      const py = p.y + (pr && pr.i === i ? pr.y : 0);
+      const mine = pr && pr.i === i;
+      const view = mine ? Object.assign(this.localView, p, { moving: pr.moving }) : p;
+      const lift = animateCharacter(pl, key, view, time, i);
+      this._playerPos(p, i);
+      const px = this.ix;
+      const py = this.iy;
       pl.setPosition(Math.round(px), Math.round(py) + lift);
       const face = pr && pr.i === i && pr.face ? pr.face : p.facing;
       pl.setFlipX(face < 0);
@@ -296,10 +334,13 @@ export class World {
       s.baseScale = (e.elite ? (e.def?.elite?.sizeMul ?? 1) : 1) * spriteScale(key);
       const lift2 = animateCharacter(s, key, e, time, e.uid);
       applyHitSquash(s, e.hitFlash);
-      s.setPosition(Math.round(e.x), Math.round(e.y) + lift2);
-      this._shadow(e.x, e.y, s, cam);
+      this._lerp(e);
+      const ex = this.ix;
+      const ey = this.iy;
+      s.setPosition(Math.round(ex), Math.round(ey) + lift2);
+      this._shadow(ex, ey, s, cam);
       s.setFlipX(e.facing < 0);
-      s.setDepth(e.y);
+      s.setDepth(ey);
       s.setAlpha(e.alpha == null ? 1 : e.alpha);
       this._tint(s, e.hitFlash > 0, e.elite);
       if (e.elite) this._glow(s, e, time);
@@ -313,7 +354,8 @@ export class World {
     this.pools.halos.sync(this._elites(sim.enemies), () => 'fx_halo', (s, e, isNew) => {
       if (isNew) s.setBlendMode(Phaser.BlendModes.ADD);
       const ed = ENEMIES[e.type] && ENEMIES[e.type].elite;
-      s.setPosition(Math.round(e.x), Math.round(e.y) - Math.round(e.size * 0.5));
+      this._lerp(e);
+      s.setPosition(Math.round(this.ix), Math.round(this.iy) - Math.round(e.size * 0.5));
       s.setScale((e.size * halo.size) / HALO_SIZE);
       s.setTint(ed && ed.glow !== undefined ? ed.glow : ELITE_GLOW.color).setAlpha(halo.alpha);
       s.setDepth(e.y - 1);
@@ -334,8 +376,11 @@ export class World {
       const ang = e.angle || 0;
       const off = e.drawOff || 0;
       const lift = e.drawLift || 0;
-      const px = e.x + Math.cos(ang) * off;
-      const py = e.y + Math.sin(ang) * off - lift;
+      this._lerp(e);
+      // оружие своего героя рисуется вместе с ним (он показан по вводу, впереди сима)
+      const own = pr && e.ws && e.ws.owner && e.ws.owner.id === pr.i;
+      const px = this.ix + (own ? pr.x : 0) + Math.cos(ang) * off;
+      const py = this.iy + (own ? pr.y : 0) + Math.sin(ang) * off - lift;
       s.setPosition(Math.round(px), Math.round(py));
       s.setRotation(ang);
       s.setScale((e.scale == null ? 1 : e.scale) * spriteScale(e.sprite));
@@ -351,7 +396,9 @@ export class World {
     this.pools.glows.sync(this._glowing(sim.projectiles), () => 'fx_halo', (s, e, isNew) => {
       const g = glow[e.sprite];
       if (isNew) s.setBlendMode(Phaser.BlendModes.ADD);
-      s.setPosition(Math.round(e.x), Math.round(e.y));
+      this._lerp(e);
+      const own = pr && e.ws && e.ws.owner && e.ws.owner.id === pr.i;
+      s.setPosition(Math.round(this.ix + (own ? pr.x : 0)), Math.round(this.iy + (own ? pr.y : 0)));
       s.setScale((g.size * (e.scale == null ? 1 : e.scale)) / HALO_SIZE);
       s.setTint(e.tint || g.color).setAlpha(g.alpha * (e.alpha == null ? 1 : e.alpha));
       s.setDepth(PROJ_DEPTH + e.y - 0.5);
@@ -361,8 +408,9 @@ export class World {
     this.pools.pickups.sync(sim.pickups, (e) => e.sprite, (s, e) => {
       this._setKey(s, e.sprite);
       s.setScale(spriteScale(e.sprite));
-      s.setPosition(Math.round(e.x), Math.round(e.y));
-      s.setDepth(PICKUP_DEPTH + e.y);
+      this._lerp(e);
+      s.setPosition(Math.round(this.ix), Math.round(this.iy));
+      s.setDepth(PICKUP_DEPTH + this.iy);
     });
 
     this.pools.props.sync(sim.props, (e) => e.sprite, (s, e) => {

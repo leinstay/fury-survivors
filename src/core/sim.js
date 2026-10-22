@@ -224,6 +224,7 @@ class Sim {
     if (dt > 0.1) dt = 0.1;
     this.time += dt;
     this.frame++;
+    this._markPrev();
     const pl = this.player;
     while (this.time >= this.dpsNext) {
       this.dpsNext++;
@@ -521,6 +522,18 @@ class Sim {
   critChance(pl = this.player) {
     const st = pl.stats;
     return Math.min(1, st.crit * st.luck);
+  }
+
+  // Позиции до шага: рендер рисует между ними и текущими (сглаживание между тиками). Только для показа:
+  // в хеш и в логику не входят. pf — номер тика, на котором записаны (у созданных в этом шаге его нет).
+  _markPrev() {
+    const f = this.frame;
+    for (const list of [this.players, this.enemies, this.projectiles, this.pickups]) {
+      for (let i = 0; i < list.length; i++) {
+        const e = list[i];
+        e.px = e.x; e.py = e.y; e.pf = f;
+      }
+    }
   }
 
   // Окно DPS (HUD.dpsWindow секунд) для o: всего забега (sim) или одного игрока — у обоих те же поля.
