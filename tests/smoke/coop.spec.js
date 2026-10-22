@@ -66,6 +66,12 @@ test('online co-op: lobby, connect by code, synced game, partner leaves', async 
   // героиня занята хостом: выбор отклоняется
   await guest.evaluate(() => window.__game.game.scene.getScene('Lobby').pickHero('heroine'));
   expect(await guest.evaluate(() => window.__game.game.scene.getScene('Lobby').hero)).toBe('mage');
+  // лобби живёт дольше NET.dropAfter: после старта игра не должна тут же решить, что напарник пропал
+  // (часы сцены в create() стоят на прошлом кадре); порог укорочен, чтобы не ждать 20 с
+  for (const p of pages) {
+    await p.evaluate(async () => { (await import('/src/data/constants.js')).NET.dropAfter = 3; });
+  }
+  await host.waitForTimeout(4000);
   await host.evaluate(() => window.__game.game.scene.getScene('Lobby').pickDifficulty('cursed'));
   await guest.waitForFunction(() => window.__game.game.scene.getScene('Lobby').difficulty === 'cursed',
       null, { timeout: 5_000 });

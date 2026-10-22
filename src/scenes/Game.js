@@ -42,9 +42,11 @@ export class GameScene extends Phaser.Scene {
         send: (msg) => this.net.send(msg),
         onDesync: () => { this.desynced = true; },
       });
-      this.net.onMessage((msg) => this.ls.receive(msg, this.time.now / 1000));
+      // часы: game.loop.time, не scene.time.now (тот обновляется только в preUpdate, а в create() стоит
+      // на прошлом кадре прошлого запуска: после долгого лобби тишина сразу превышала NET.dropAfter)
+      this.net.onMessage((msg) => this.ls.receive(msg, this.now()));
       this.net.onClose(() => { this.lost = true; });
-      this.ls.lastRemoteT = this.time.now / 1000;
+      this.ls.lastRemoteT = this.now();
     } else {
       this.sim = this.givenSim || createSim({
         hero: this.hero, stage: 'forest', seed: Date.now(), difficulty: this.difficulty,
@@ -147,9 +149,14 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  /** Время по часам игры, с (одни и те же для create, приёма сообщений и update). */
+  now() {
+    return this.game.loop.time / 1000;
+  }
+
   _stepCoop(dt, input) {
     const ls = this.ls;
-    const now = this.time.now / 1000;
+    const now = this.now();
     this.acc = Math.min(this.acc + dt, STEP * SIM.maxTicksPerFrame);
     let stalled = false;
     while (this.acc >= STEP) {
