@@ -26,7 +26,8 @@ export function hashSim(sim) {
   const r = (v) => Math.round(v * 1000);
   const parts = [sim.frame, r(sim.time), sim.kills, sim.coins, sim.state, sim.rng.state, sim.uid,
     sim.enemies.length, sim.projectiles.length, sim.pickups.length, sim.pendingLevels,
-    sim.levelTurn];
+    sim.levelTurn, sim.levelUp.rerolls, sim.levelUp.skips, sim.levelUp.banishes, sim.banished.size,
+    r(sim.overtime)];
   for (const p of sim.players) {
     parts.push(r(p.x), r(p.y), r(p.hp), p.level, r(p.xp), p.dead ? 1 : 0, r(p.coffinT));
     for (const w of p.weapons) parts.push(w.id, w.level);

@@ -759,7 +759,8 @@ class Sim {
       p.life -= dt;
       if (p.life > 0 && p.dmg > 0) {
         if (p.owner === 'player') {
-          this._projectileHits(p);
+          // снаряды лежащего в гробу не бьют: аура и щиты вокруг гроба не делают его турелью
+          if (!(p.ws && p.ws.owner.dead)) this._projectileHits(p);
         } else {
           for (const t of this.players) {
             if (t.dead) continue;
@@ -1197,7 +1198,9 @@ class Sim {
 
   _applyCard(card, pl = this.player) {
     if (card.kind === 'heal') {
-      pl.hp = Math.min(pl.maxHp, pl.hp + pl.maxHp * LEVEL_UP.healFraction);
+      // лечение гробу пропало бы (оживание ставит свой HP): достаётся живому напарнику
+      const to = pl.dead ? this.players.find((p) => !p.dead) || pl : pl;
+      to.hp = Math.min(to.maxHp, to.hp + to.maxHp * LEVEL_UP.healFraction);
       return;
     }
     UP.applyCard(pl, card);

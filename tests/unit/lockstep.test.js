@@ -60,13 +60,20 @@ test('lockstep: two clients with random inputs over a lagged channel stay identi
 });
 
 test('lockstep: a tick waits for the partner input and continues when it arrives', () => {
-  const { a, pump } = pair(3, { delay: 2, lag: 1 });
+  const { a, b, pump } = pair(3, { delay: 2, lag: 1 });
   // напарник молчит: после delay тиков клиент 0 встаёт
   for (let i = 0; i < 5; i++) a.advance({ x: 1, y: 0 }, DT);
   assert.equal(a.tick, 2);
   assert.ok(a.waitT > 0);
   pump();
   assert.equal(a.tick, 2); // ввод от b ещё не приходил: b не вызывал advance
+  // напарник ожил: его ввод доходит, оба идут дальше
+  for (let i = 0; i < 6; i++) {
+    b.advance({ x: 0, y: 1 }, DT); pump();
+    a.advance({ x: 1, y: 0 }, DT); pump();
+  }
+  assert.ok(a.tick > 2 && b.tick > 2);
+  assert.equal(a.waitT, 0);
 });
 
 test('lockstep: card choice is a command applied on the same tick by both, only by the chooser', () => {

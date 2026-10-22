@@ -51,6 +51,7 @@ export const areaDrop = {
     boom.once = true;
     boom.pierce = 1e9;
     boom.wid = w.id;
+    boom.ws = w;
     const fire = sim.addProjectile('player', w.def.sprite);
     fire.x = p.a; fire.y = p.b;
     fire.life = fire.life0 = P.duration;
@@ -62,5 +63,6 @@ export const areaDrop = {
     fire.pierce = 1e9;
     fire.wid = w.id;
     fire.slot = w.slot;
+    fire.ws = w;
   },
 };

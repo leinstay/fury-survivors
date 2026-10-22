@@ -15,7 +15,8 @@ const sim = createSim({ hero: 'heroine', stage: 'forest', seed: 12345, difficult
 // hero: id из data/heroes.js; stage: id этапа (сейчас таблица STAGES = { forest } зашита в sim.js);
 // seed: тот же seed даёт тот же забег (core/rng.js), на этом стоят balance-тесты;
 // difficulty: id из data/difficulty.js (spawnMul для директора, xpMul для опыта), по умолчанию normal
-// players: 1 (по умолчанию) или 2 — кооп (data/coop.js), см. раздел «Кооп» ниже
+// players: 1 (по умолчанию) или 2 — кооп (data/coop.js), см. раздел «Кооп» ниже;
+// heroes: ['heroine', 'mage'] — герои по индексам игроков в коопе (одинаковые заменяются, core/heroes.js)
 
 sim.step(dt, input);   // dt в секундах (Game.js режет до 1/20, sim сам до 0.1), input = { x, y } вектор движения длиной 0..1
                        // кооп: input = { players: [{ x, y }, { x, y }] } по игрокам
@@ -187,9 +188,10 @@ sim.banish(i)       // убрать карточку i из пула до кон
   `send(obj)`, `onMessage(fn)` (без обработчика сообщения копятся: лобби передаёт канал в Game), `onClose(fn)`,
   `close()`. STUN Google, TURN нет: за симметричным NAT соединение может не пройти (`lobby.failed`).
   Числа в `src/data/net.js`; для smoke-тестов сигналинг подменяется через `globalThis.__furySignal`.
-- `src/scenes/Lobby.js`: хост видит код и ждёт, гость входит по коду; после соединения обмен `hello` (ники),
-  `diff` (сложность, выбирает хост), `start { seed, difficulty, names }`; оба стартуют `Game` с
-  `data.coop = { net, local, seed, difficulty, names }` (хост — игрок 0). Меню: вид «Co-op» с полями ника и кода.
+- `src/scenes/Lobby.js`: хост видит код и ждёт, гость входит по коду; после соединения обмен `hello { name, hero }`,
+  `hero { id }` (смена своего героя; герой напарника занят, при совпадении уступает гость), `diff` (сложность,
+  выбирает хост), `start { seed, difficulty, names, heroes }`, `leave`; оба стартуют `Game` с
+  `data.coop = { net, local, seed, difficulty, names, heroes }` (хост — игрок 0). Меню: вид «Co-op» с полями ника и кода.
 - `src/scenes/Game.js` в коопе: фиксированный шаг через `ls.advance`, хитстоп выключен (остановил бы тики у одного),
   потеря канала (`onClose` или `NET.dropAfter` с тишины) завершает забег экраном итогов с пометкой `lost`.
 - Детерминизм: `Math.sin/cos/atan2` могут отличаться между движками JS в последних битах; на практике Chrome и

@@ -129,10 +129,10 @@ node tools/slice-sheet.mjs <sheet> [--report]
 |---|---|---|---|---|
 | `heroine` | 77×102 | 9 | 2 | `assets/raw/heroine_walk_pixellab/` (PixelLab, tools/hd-frames.mjs) |
 | `heroine_portrait` | 48×48 | 1 | 1 | заглушка (tools/placeholders.mjs) |
-| `heroine_menu` | 139×261 | 1 | 2 | tools/crop-raw.mjs |
 | `mage` | 110×110 | 9 | 2 | `assets/raw/mage_walk_pixellab/` (PixelLab по `assets/raw/mage.png`, tools/hd-frames.mjs ×0.4282) |
-| `mage_portrait` | 48×48 | 1 | 1 | заглушка (tools/placeholders.mjs) |
 | `mage_menu` | 205×279 | 1 | 2 | `assets/raw/roster/mage.png`: вырезка из `assets/raw/mage.png` (tools/crop-raw.mjs), уменьшена ×261/637 по копии героини на том же листе |
+| `mage_portrait` | 48×48 | 1 | 1 | заглушка (tools/placeholders.mjs) |
+| `heroine_menu` | 139×261 | 1 | 2 | tools/crop-raw.mjs |
 | `catgirl` | 77×102 | 9 | 2 | `assets/raw/catgirl_walk_pixellab/` (PixelLab, tools/hd-frames.mjs) |
 | `foxgirl` | 77×102 | 9 | 2 | `assets/raw/foxgirl_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
 | `succubus` | 77×102 | 9 | 2 | `assets/raw/succubus_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |

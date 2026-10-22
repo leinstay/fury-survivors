@@ -151,7 +151,7 @@ export async function createRoom(opts = {}) {
   await pc.setLocalDescription(offer);
   await gathered(pc);
   const sdp = pc.localDescription.sdp;
-  if (sdp.length > ROOMS.sdpMax) throw new Error('failed');
+  if (sdp.length >= ROOMS.sdpMax) throw new Error('failed');
   const code = makeCode();
   await signal.create(code, sdp);
   status('waiting');

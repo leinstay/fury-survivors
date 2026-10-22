@@ -20,7 +20,7 @@ export class GameScene extends Phaser.Scene {
 
   // data.difficulty: id из data/difficulty.js (Menu, Retry на экране итогов); data.sim: готовый sim
   // (только для плейтестов и скриншотов: забег, прокрученный ботом headless);
-  // data.coop: сетевой кооп из лобби { net, local, seed, difficulty, names } (net: services/net.js)
+  // data.coop: сетевой кооп из лобби { net, local, seed, difficulty, names, heroes } (net: services/net.js)
   init(data) {
     this.difficulty = data && data.difficulty;
     this.hero = data && data.hero; // id из data/heroes.js; sim заменит неизвестный на DEFAULT_HERO
@@ -53,6 +53,7 @@ export class GameScene extends Phaser.Scene {
     }
     this.act = createActions(this.sim, this.ls);
     this.acc = 0;
+    this.waitSince = -1; // кооп: момент (с), с которого ждём ввод напарника; -1 — не ждём
     this.overlay = null; // открытый поверх экран (кооп: Game не ставится на паузу)
     this.lost = false;
     this.desynced = false;
@@ -150,12 +151,20 @@ export class GameScene extends Phaser.Scene {
     const ls = this.ls;
     const now = this.time.now / 1000;
     this.acc = Math.min(this.acc + dt, STEP * SIM.maxTicksPerFrame);
+    let stalled = false;
     while (this.acc >= STEP) {
-      if (!ls.advance(input, STEP, now)) { this.acc = Math.min(this.acc, STEP); break; }
+      if (!ls.advance(input, STEP, now)) {
+        this.acc = Math.min(this.acc, STEP);
+        stalled = true;
+        break;
+      }
       this.acc -= STEP;
       this.handleEvents(this.sim.events);
     }
-    this.hud.setWaiting(ls.waitT > NET.waitWarn);
+    // ожидание по часам сцены, не по тикам: при низком fps тики за кадр не набегают
+    if (!stalled) this.waitSince = -1;
+    else if (this.waitSince < 0) this.waitSince = now;
+    this.hud.setWaiting(this.waitSince >= 0 && now - this.waitSince > NET.waitWarn);
     if (!this.lost && ls.silence(now) > NET.dropAfter) this.lost = true;
   }
 
