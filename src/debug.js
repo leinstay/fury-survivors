@@ -1,8 +1,38 @@
 // window.__game.debug() отдаёт JSON состояния для тестов и агентов.
+// Ошибки: копятся в errors, последняя пишется в localStorage (LAST_ERROR_KEY, с состоянием игры) и показывается
+// красной строкой поверх игры, чтобы игрок мог прислать скриншот: Phaser останавливает цикл кадров на
+// необработанном исключении, и без этого зависание выглядит как «просто повисло».
 const errors = [];
+const LAST_ERROR_KEY = 'fury-survivors.lastError';
+let banner = null;
 
-window.addEventListener('error', (e) => errors.push(String(e.message || e)));
-window.addEventListener('unhandledrejection', (e) => errors.push(String(e.reason)));
+function showError(text) {
+  if (typeof document === 'undefined') return;
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:20;padding:6px 10px;background:#7a1020;color:#fff;'
+      + 'font:12px monospace;white-space:pre-wrap;word-break:break-all;max-height:40%;overflow:auto;';
+    banner.addEventListener('click', () => banner.remove());
+    document.body.appendChild(banner);
+  }
+  banner.textContent = `Error (tap to hide): ${text}`;
+}
+
+function record(err, stack) {
+  const text = String(err);
+  errors.push(text);
+  let state = null;
+  try { state = window.__game && window.__game.debug(); } catch { /* состояние недоступно */ }
+  try {
+    localStorage.setItem(LAST_ERROR_KEY, JSON.stringify({
+      at: new Date().toISOString(), error: text, stack: stack || null, state,
+    }));
+  } catch { /* localStorage недоступен */ }
+  showError(`${text}\n${(stack || '').split('\n').slice(1, 3).join('\n')}`);
+}
+
+window.addEventListener('error', (e) => record(e.message || e, e.error && e.error.stack));
+window.addEventListener('unhandledrejection', (e) => record(e.reason, e.reason && e.reason.stack));
 
 export function installDebug(game) {
   window.__game = {
@@ -36,6 +66,10 @@ export function installDebug(game) {
         weapons: sim ? sim.player.weapons.map((w) => ({ id: w.id, level: w.level })) : [],
         errors: errors.slice(),
       };
+    },
+    // Последняя записанная ошибка (localStorage) или null.
+    lastError() {
+      try { return JSON.parse(localStorage.getItem(LAST_ERROR_KEY)); } catch { return null; }
     },
   };
 }

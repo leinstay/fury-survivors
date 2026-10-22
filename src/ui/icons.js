@@ -52,7 +52,7 @@ export function addIcon(scene, x, y, iconKey, size, kind, id) {
     c.add(img);
   } else {
     const box = scene.add.rectangle(0, 0, size, size, colorFor(id || 'x')).setStrokeStyle(1, 0x000000);
-    const letter = displayName(kind, id).charAt(0).toUpperCase();
+    const letter = String(displayName(kind, id) || '?').charAt(0).toUpperCase();
     const txt = scene.add.text(0, 0, letter, textStyle(Math.max(8, Math.round(size * 0.6)), '#ffffff', { stroke: '#000000', strokeThickness: 2 })).setOrigin(0.5);
     c.add([box, txt]);
   }

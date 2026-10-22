@@ -200,8 +200,10 @@ export class Hud {
     const total = sim.dps;
     const byW = sim.dpsByWeapon;
     const order = sim.player.weapons.map((w) => w.id).sort((a, b) => (byW[b] || 0) - (byW[a] || 0));
+    if (this.dpsRows.length !== Math.min(m.maxRows, order.length) + 1) this._rebuildDps();
     this.dpsRows.forEach((r, i) => {
       const id = i ? order[i - 1] : null;
+      if (i && !id) return;
       const v = i ? (byW[id] || 0) : total;
       r.bar.width = Math.max(1, Math.round(full * (total > 0 ? v / total : 0)));
       r.num.setText(String(Math.round(v)));
@@ -245,6 +247,12 @@ export class Hud {
       time: sim.time, kills: sim.kills, coins: sim.coins, victory: sim.won,
     });
     this.scoreText.setText(t('hud.score', { n: score }));
+    // слоты и строки DPS пересобираются раньше обновления DPS: после эволюции оружия стало меньше, чем строк
+    const sig = p.weapons.map((w) => `${w.id}${w.level}`).join() + '|' + p.passives.map((w) => `${w.id}${w.level}`).join();
+    if (sig !== this.slotSig) {
+      this.slotSig = sig;
+      this._rebuildSlots();
+    }
     if (this.dpsMode !== 'off') this._updateDps();
     if (sim.time >= this.mapNext) {
       this.mapNext = sim.time + 1 / HUD.minimap.fps;
@@ -254,10 +262,5 @@ export class Hud {
     const showBanner = sim.time < this.bannerUntil;
     this.banner.setVisible(showBanner && Math.floor((sim.time - this.bannerStart) * 3) % 2 === 0);
     this.bannerSub.setVisible(showBanner && this.bannerSub.text !== '');
-    const sig = p.weapons.map((w) => `${w.id}${w.level}`).join() + '|' + p.passives.map((w) => `${w.id}${w.level}`).join();
-    if (sig !== this.slotSig) {
-      this.slotSig = sig;
-      this._rebuildSlots();
-    }
   }
 }
