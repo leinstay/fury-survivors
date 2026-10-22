@@ -71,10 +71,9 @@ export class Hud {
     this.slotSig = '';
 
     if (touch) {
-      // под миникартой
-      const x = GAME_WIDTH - 22;
-      const y = HUD.minimap.top + HUD.minimap.radius * 2 + 20;
-      this.pauseY = y;
+      // левый нижний угол: справа внизу DPS-панель, справа вверху радар и счёт
+      const x = 22;
+      const y = GAME_HEIGHT - 22;
       const r = add(scene.add.rectangle(x, y, 28, 28, 0x000000, 0.5).setStrokeStyle(2, 0xffffff));
       add(scene.add.text(x, y, t('hud.pause'), textStyle(14)).setOrigin(0.5));
       r.setInteractive();
@@ -85,7 +84,7 @@ export class Hud {
 
   // Область кнопки паузы (для ввода: тут джойстик не стартует).
   isOnPauseButton(x, y) {
-    return !!this.pauseRect && x > GAME_WIDTH - 40 && y > this.pauseY - 18 && y < this.pauseY + 18;
+    return !!this.pauseRect && x < 44 && y > GAME_HEIGHT - 44;
   }
 
   // События sim этого шага (баннер босса).
