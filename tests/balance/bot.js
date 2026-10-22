@@ -70,8 +70,18 @@ export function pickBest(cards, nW = 0, preset = 'greedy') {
 }
 
 // Вектор движения: уйти от ближайших врагов, иначе собрать кристаллы, иначе кружить.
-function steer(sim, out, t) {
-  const p = sim.player;
+// pl — управляемый игрок (кооп: у каждого свой вектор); гроб напарника тянет к себе, чтобы оживить.
+function steer(sim, out, t, pl = sim.player) {
+  const p = pl;
+  if (sim.coop) {
+    const coffin = sim.players.find((o) => o !== pl && o.dead);
+    if (coffin) {
+      const dx = coffin.x - p.x;
+      const dy = coffin.y - p.y;
+      const d = Math.sqrt(dx * dx + dy * dy) || 1;
+      if (d > 20) { out.x = dx / d; out.y = dy / d; return; }
+    }
+  }
   let ax = 0;
   let ay = 0;
   let threat = 0;
@@ -128,15 +138,18 @@ function steer(sim, out, t) {
 }
 
 // opts: { seed, preset ('greedy' | 'idle' | 'kite' | 'tank'), upgrades (bool), until (с), dt, difficulty,
-//         onSecond(sim), onEvents(events) }
+//         players (1 | 2: кооп, оба игрока ведутся одним пресетом), onSecond(sim), onEvents(events) }
 // res.bosses: { id: { at, hp, level, killed } } — время появления, HP и уровень игрока при появлении, время убийства.
 // res.victoryTime — убийство финального босса (начало овертайма); забег после него идёт до смерти или until.
 export function runBot(opts) {
-  const { seed = 1, preset = 'greedy', upgrades = true, until = 910, dt = 1 / 60, difficulty } = opts;
+  const {
+    seed = 1, preset = 'greedy', upgrades = true, until = 910, dt = 1 / 60, difficulty, players = 1,
+  } = opts;
   const idle = preset === 'idle';
-  const sim = createSim({ hero: 'heroine', stage: 'forest', seed, difficulty });
+  const sim = createSim({ hero: 'heroine', stage: 'forest', seed, difficulty, players });
   if (!upgrades) sim.levelUp.skips = 1e9;
-  const input = { x: 0, y: 0 };
+  const inputs = sim.players.map(() => ({ x: 0, y: 0 }));
+  const input = players > 1 ? { players: inputs } : inputs[0];
   const res = {
     sim, levelAt: {}, maxEnemies: 0, deathTime: null, victoryTime: null,
     levelTimes: [], evolutions: 0, bosses: {},
@@ -149,11 +162,16 @@ export function runBot(opts) {
   while (sim.time < until && (sim.state === 'running' || sim.state === 'levelup' || sim.state === 'chest')) {
     if (sim.state === 'chest') { sim.chooseChest(0); continue; }
     if (sim.state === 'levelup') {
-      if (upgrades) sim.chooseCard(pickBest(sim.levelUp.cards, sim.player.weapons.length, preset));
+      const who = sim.players[sim.levelUp.player];
+      if (upgrades) sim.chooseCard(pickBest(sim.levelUp.cards, who.weapons.length, preset));
       else sim.skip();
       continue;
     }
-    if (idle) { input.x = 0; input.y = 0; } else if (step % 3 === 0) steer(sim, input, sim.time);
+    if (idle) {
+      for (const inp of inputs) { inp.x = 0; inp.y = 0; }
+    } else if (step % 3 === 0) {
+      for (let i = 0; i < inputs.length; i++) steer(sim, inputs[i], sim.time, sim.players[i]);
+    }
     sim.step(dt, input);
     step++;
     if (opts.onSecond && sim.time >= nextSecond) { opts.onSecond(sim); nextSecond++; }

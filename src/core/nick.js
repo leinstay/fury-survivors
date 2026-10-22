@@ -1,5 +1,5 @@
 // Проверка ника для таблицы рекордов. Чистая функция, без DOM.
-import { NICK } from '../data/leaderboard.js';
+import { NICK, PAIR } from '../data/leaderboard.js';
 
 /**
  * Обрезаются только края. Длина проверяется до набора символов. Принятый ник возвращается
@@ -14,4 +14,31 @@ export function validateNick(raw) {
   if (value.length > NICK.max) return { ok: false, error: 'long' };
   if (!NICK.re.test(value)) return { ok: false, error: 'chars' };
   return { ok: true, value: value.toUpperCase() };
+}
+
+/**
+ * Имя пары для таблицы коопа: оба ника проходят validateNick, хост первым.
+ * @param {*} host
+ * @param {*} guest
+ * @return {{ok: boolean, value: (string|undefined), error: (string|undefined)}}
+ */
+export function pairName(host, guest) {
+  const a = validateNick(host);
+  if (!a.ok) return a;
+  const b = validateNick(guest);
+  if (!b.ok) return b;
+  return { ok: true, value: `${a.value}${PAIR.sep}${b.value}` };
+}
+
+/**
+ * Проверка имени записи в таблице: соло — ник, кооп — пара.
+ * @param {*} raw
+ * @param {string=} mode 'solo' | 'coop'
+ * @return {{ok: boolean, value: (string|undefined), error: (string|undefined)}}
+ */
+export function validateName(raw, mode = 'solo') {
+  if (mode !== 'coop') return validateNick(raw);
+  const parts = String(raw ?? '').split(PAIR.sep);
+  if (parts.length !== 2) return { ok: false, error: 'chars' };
+  return pairName(parts[0], parts[1]);
 }

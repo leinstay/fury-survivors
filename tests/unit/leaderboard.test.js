@@ -5,6 +5,8 @@ import {
 } from '../../src/services/leaderboard.js';
 import { SCORE_FORMULA } from '../../src/data/leaderboard.js';
 
+const noIp = async () => '';
+
 const run = (extra = {}) => ({ name: 'lein', score: 1500, time: 100, kills: 500, level: 8, victory: false, ...extra });
 
 function fake({ rows = [], failTop = null, failAdd = null } = {}) {
@@ -77,7 +79,9 @@ test('errors: offline, denied, invalid, cooldown', async () => {
 test('submit writes a normalized document; failed write does not start cooldown', async () => {
   const f = fake();
   let now = 5;
-  const lb = createLeaderboard({ loadBackend: f.loadBackend, now: () => (now += 100000) });
+  const lb = createLeaderboard({
+    loadBackend: f.loadBackend, now: () => (now += 100000), getIp: noIp,
+  });
   await lb.submitScore(run({ victory: true, time: 12.7 }));
   assert.deepEqual(f.added[0], { name: 'LEIN', score: 1500, time: 12, kills: 500, level: 8, victory: true, difficulty: 'normal' });
   await lb.submitScore(run({ difficulty: 'cursed' }));
@@ -122,4 +126,38 @@ test('submit after a timeout waits for the same write instead of adding a second
   assert.equal(added.length, 1);
   clock += 1;
   await assert.rejects(lb.submitScore(run()), { message: 'cooldown' });
+});
+
+test('topTen: same ip keeps only the best row whatever the name; rows without ip untouched', () => {
+  const rows = [
+    { name: 'ann', score: 100, ip: '1.1.1.1' },
+    { name: 'bob', score: 90, ip: '1.1.1.1' },
+    { name: 'bob', score: 80, ip: '2.2.2.2' },
+    { name: 'cat', score: 70 },
+    { name: 'ann', score: 60, ip: '3.3.3.3' },
+  ];
+  const top = topTen(rows);
+  assert.deepEqual(top.map((r) => [r.name, r.score]), [['ANN', 100], ['BOB', 80], ['CAT', 70]]);
+  assert.ok(!('ip' in top[0]));
+});
+
+test('coop board: pair names, ip written when known', async () => {
+  const f = fake();
+  let clock = 0;
+  const lb = createLeaderboard({
+    mode: 'coop', loadBackend: f.loadBackend, now: () => (clock += 100000), getIp: async () => '5.6.7.8',
+  });
+  await lb.submitScore(run({ name: 'ann+bob' }));
+  assert.equal(f.added[0].name, 'ANN+BOB');
+  assert.equal(f.added[0].ip, '5.6.7.8');
+  await assert.rejects(lb.submitScore(run({ name: 'ann' })), { message: 'invalid' });
+  await assert.rejects(lb.submitScore(run({ name: 'ann+bo' })), { message: 'invalid' });
+  const solo = createLeaderboard({
+    loadBackend: f.loadBackend, now: () => (clock += 100000), getIp: noIp,
+  });
+  await assert.rejects(solo.submitScore(run({ name: 'ann+bob' })), { message: 'invalid' });
+  // через модульный шов: coop отдельно от solo
+  __setBackendForTests({ mode: 'coop', loadBackend: fake({ rows: [{ name: 'a1+b2', score: 5 }] }).loadBackend });
+  assert.equal((await fetchTop10('coop'))[0].name, 'A1+B2');
+  __setBackendForTests({ mode: 'coop' });
 });

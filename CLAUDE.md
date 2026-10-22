@@ -35,7 +35,8 @@ src/
   render/                  Phaser-слой: синхронизирует спрайты с sim, анимация, эффекты; decor.js декор с логикой расстановки, roads.js песок дорог по чанкам
     anim.js                процедурная ходьба/покачивание/наклон/вспышка/смерть
     fx.js                  частицы, числа урона, тряска, хитстоп
-  scenes/                  Boot, Menu, Game, LevelUp, Pause, GameOver, Victory
+  scenes/                  Boot, Menu (вид Co-op), Lobby (код, сложность, старт), Game, LevelUp, Pause, GameOver, Victory
+  services/                leaderboard.js (таблицы соло и коопа, ip), net.js (WebRTC + сигналинг через Firestore rooms), firebase.js, nick-store.js
   ui/                      фокус-навигация (клава/мышь/геймпад), HUD (счёт, DPS, миникарта), экранный джойстик; settings.js настройки (качество графики, миникарта, DPS); text-align.js центрует текст по пикселям; fullscreen.js полный экран на телефоне (кнопка Play и настройка, не любое касание)
   audio/sfx.js             воспроизведение звуков, рандом тона, лимит одновременных
   i18n/                    en.js + index.js (t('key')). Все строки UI только через t()
@@ -66,8 +67,8 @@ tools/                     локальные скрипты Node, в игру �
   gen-ledger.json          учёт трат на генерацию
 tests/
   unit/                    node --test: grid, stats, upgrades, data-валидация
-  balance/                 node --test: headless-бот играет 10 мин на core/sim
-  smoke/                   Playwright: запуск, старт, 30 с игры, нет ошибок, fps
+  balance/                 node --test: headless-бот играет 10 мин на core/sim (players: 2 — кооп)
+  smoke/                   Playwright: запуск, старт, 30 с игры, нет ошибок, fps; coop.spec.js два окна по WebRTC
 docs/                      CONTENT.md, ARCHITECTURE.md, ASSETS.md, LEADERBOARD.md
 references/                референсы, НЕ в git (скриншоты чужих игр)
 .secrets/                  ключи, НЕ в git, никогда не читать в коде игры
@@ -79,6 +80,7 @@ references/                референсы, НЕ в git (скриншоты �
 - `src/core/` не импортирует Phaser и не трогает DOM.
 - Новое оружие или враг с существующим behavior: только запись в data + спрайт. Новое поведение: новый файл в `behaviors/`, регистрируется по имени.
 - Строки UI только через `t()` из `src/i18n/`.
+- Сетевой кооп: сим детерминирован, клиенты обмениваются только вводом (`core/lockstep.js`). В `core/sim.js` ничего недетерминированного (Math.random, Date, порядок обхода Map по вставке ок).
 - Состояние для проверки: `window.__game.debug()` возвращает JSON (сцена, fps, врагов, hp, уровень, оружие, ошибки). Необработанная ошибка показывается красной строкой поверх игры и пишется в localStorage (`window.__game.lastError()`): Phaser на ней останавливает цикл кадров.
 - Тесты и стиль: `npm run lint` (ESLint, подмножество Google JS Style Guide), `npm test` (unit + balance), `npm run smoke` (Playwright). Перед коммитом все три зелёные.
 - Только именованные экспорты (`export default` запрещён линтером, кроме `*.config.js`).

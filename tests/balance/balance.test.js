@@ -129,3 +129,20 @@ test('balance: bosses are not immortal: each takes damage within 3 minutes of ap
   assert.ok(r.sim.won);
   for (const id of ['kitsune_empress', 'harpy_queen', 'dryad_queen']) assert.ok(seen[id] && seen[id].min < 1, id);
 });
+
+test('balance: co-op pair with upgrades reaches the first boss on at least 4 of 8 seeds and kills more than solo', () => {
+  const seeds = [1, 2, 3, 4, 5, 6, 7, 8];
+  let alive = 0;
+  const killsCoop = [];
+  const killsSolo = [];
+  for (const seed of seeds) {
+    const c = runBot({ seed, preset: 'greedy', players: 2, until: 301 });
+    const s = runBot({ seed, preset: 'greedy', until: 301 });
+    if (c.state !== 'gameover') alive++;
+    killsCoop.push(c.sim.kills);
+    killsSolo.push(s.sim.kills);
+  }
+  const median = (a) => a.slice().sort((x, y) => x - y)[a.length >> 1];
+  assert.ok(alive >= 4, `co-op alive at 5:00 on ${alive}/8 seeds`);
+  assert.ok(median(killsCoop) > median(killsSolo), `kills co-op ${median(killsCoop)} vs solo ${median(killsSolo)}`);
+});

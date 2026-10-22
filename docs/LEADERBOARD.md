@@ -12,11 +12,12 @@
 
 | Файл | Что |
 |---|---|
-| `src/data/leaderboard.js` | FIREBASE_CONFIG (публичный), FIRESTORE_DB_ID, коллекция, ник, формула очков, диапазоны, лимиты (readLimit, rows, cooldown, timeout) |
-| `src/services/leaderboard.js` | сервис: `fetchTop10`, `submitScore`, `isOnline`, `topTen`, `rankOf`, `computeScore`, `__setBackendForTests`. Без Phaser и DOM на импорте, SDK грузится ленивым `import()` с gstatic (12.19.0, firestore-lite) |
+| `src/data/leaderboard.js` | FIREBASE_CONFIG (публичный), FIRESTORE_DB_ID, коллекции соло и коопа (`MODES`), ник, пара (`PAIR`), поле ip (`IP_FIELD`), формула очков, диапазоны, лимиты (readLimit, rows, cooldown, timeout) |
+| `src/services/leaderboard.js` | сервис: `fetchTop10(mode)`, `submitScore(run, mode)`, `isOnline`, `topTen`, `rankOf`, `computeScore`, `fetchIp`, `__setBackendForTests`. Без Phaser и DOM на импорте, SDK грузится ленивым `import()` с gstatic (12.19.0, firestore-lite) через `src/services/firebase.js` |
+| `src/services/net.js`, `src/data/net.js` | сигналинг коопа: документ `rooms/<код>` с offer/answer (см. `docs/ARCHITECTURE.md`, «Сетевой кооп») |
 | `src/services/nick-store.js` | ник в localStorage, ключ `fury-survivors.nick` |
-| `src/core/nick.js` | `validateNick`: 3-6 `[A-Za-z0-9]`, результат в верхнем регистре |
-| `src/scenes/Leaderboard.js` | сцена топ-10 (LOADING / OFFLINE / пусто / таблица), вход из меню |
+| `src/core/nick.js` | `validateNick`: 3-6 `[A-Za-z0-9]`, результат в верхнем регистре; `pairName`, `validateName(raw, mode)` для пары коопа |
+| `src/scenes/Leaderboard.js` | сцена топ-10 (LOADING / OFFLINE / пусто / таблица), вкладки Solo / Co-op, вход из меню |
 | `src/ui/results.js` | экран итогов: очки, DOM-поле ника поверх холста, Submit, статус и место |
 | `firestore.rules` | правила базы, публикуются вручную |
 
@@ -24,8 +25,11 @@
 
 ## Данные
 
-- Проект `fury-survivors`, база `(default)` (`FIRESTORE_DB_ID = null`), коллекция `fury_scores`.
-- Документ: `{ name, score, time, kills, level, victory, difficulty, createdAt }`. `time` целые секунды, `createdAt` серверное время, `difficulty` `'normal' | 'cursed'` (`src/data/difficulty.js`); записи без поля (до появления сложности) читаются как `normal`, правила допускают его отсутствие.
+- Проект `fury-survivors`, база `(default)` (`FIRESTORE_DB_ID = null`), коллекции `fury_scores` (соло) и `fury_scores_coop` (кооп, своя таблица).
+- Документ: `{ name, score, time, kills, level, victory, difficulty, ip, createdAt }`. `time` целые секунды, `createdAt` серверное время, `difficulty` `'normal' | 'cursed'` (`src/data/difficulty.js`); записи без поля (до появления сложности) читаются как `normal`, правила допускают его отсутствие.
+- `name`: в соло ник, в коопе пара `HOST+GUEST` (хост первым; пара с другими никами это другая запись). Отправить может любой из двоих, лучшая запись пары остаётся.
+- `ip`: публичный IP отправителя (запрос к `api.ipify.org` при отправке, до 3 с; не вышло — поля нет). При чтении `topTen` сначала оставляет на каждый IP только лучшую запись (под любым ником), потом лучшую на имя. Записи без `ip` (старые) участвуют только во второй проверке.
+- Лобби коопа: коллекция `rooms`, документ на лобби (id = код из 5 символов): `{ offer, createdAt }` пишет хост, `{ answer, answeredAt }` один раз дописывает гость; после соединения хост документ удаляет. Брошенные лобби можно чистить TTL-политикой по `createdAt` (Firestore → TTL, необязательно).
 - Формула: `score = floor(time) * 10 + kills * 1 + coins * 10 + (victory ? 5000 : 0)` (монеты пока ничего не покупают и дают только очки), числа в `SCORE_FORMULA`. Правила проверяют только диапазоны, а не равенство формуле: менять формулу можно без публикации правил, но клиент может прислать любые числа в диапазоне (защиты от подделки нет, как и в Fruit Madness).
 - Запрос: `orderBy('score','desc').limit(50)`, затем `topTen` оставляет лучший результат каждого игрока (имя без учёта регистра) и режет до 10. Индекс автоматический.
 - Диапазоны (дублируются в `LIMITS` и в правилах): score 1..9999999, time 0..86400, kills 0..1000000, level 1..999.
@@ -48,6 +52,7 @@ DOM `<input>` создаётся поверх холста при открыти
 1. Firestore → вкладка **Rules**.
 2. Заменить содержимое целиком текстом `firestore.rules` из репозитория → **Publish**.
 3. Проверка: забег, ник, Submit; в Data появится коллекция `fury_scores` с документом, в меню Leaderboard покажет строку.
+4. Кооп: после публикации правил с `rooms` и `fury_scores_coop` создать лобби из меню Co-op, второй игрок входит по коду; коллекции появятся при первой записи.
 
 Коллекцию создавать руками не нужно, она появится при первой записи. Индекс для запроса автоматический.
 

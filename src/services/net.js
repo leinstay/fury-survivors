@@ -64,6 +64,10 @@ function firestoreSignal() {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// Сигналинг по умолчанию: Firestore; smoke-тесты подменяют его через globalThis.__furySignal
+// (два окна одного origin, обмен через localStorage), чтобы гонять WebRTC без сети.
+const defaultSignal = (opts) => opts.signal || globalThis.__furySignal || firestoreSignal();
+
 // Ждём сбор ICE-кандидатов (без trickle: весь SDP одним куском в документе).
 function gathered(pc) {
   if (pc.iceGatheringState === 'complete') return Promise.resolve();
@@ -75,11 +79,13 @@ function gathered(pc) {
   });
 }
 
-// Обёртка DataChannel в Conn.
+// Обёртка DataChannel в Conn. Пока обработчика нет (onMessage(null)), сообщения копятся и отдаются
+// следующему обработчику: лобби передаёт канал сцене Game, а первые тики уже летят.
 function wrap(pc, ch) {
-  let onMessage = () => {};
+  let onMessage = null;
   let onClose = () => {};
   let closed = false;
+  const queue = [];
   const fail = () => {
     if (closed) return;
     closed = true;
@@ -89,7 +95,8 @@ function wrap(pc, ch) {
   ch.onmessage = (e) => {
     let obj = null;
     try { obj = JSON.parse(e.data); } catch (err) { return; }
-    if (obj && typeof obj === 'object') onMessage(obj);
+    if (!obj || typeof obj !== 'object') return;
+    if (onMessage) onMessage(obj); else queue.push(obj);
   };
   ch.onclose = fail;
   ch.onerror = fail;
@@ -102,8 +109,11 @@ function wrap(pc, ch) {
       if (closed || ch.readyState !== 'open') return;
       ch.send(JSON.stringify(obj));
     },
-    onMessage(fn) { onMessage = fn; },
-    onClose(fn) { onClose = fn; },
+    onMessage(fn) {
+      onMessage = fn || null;
+      if (fn) while (queue.length) fn(queue.shift());
+    },
+    onClose(fn) { onClose = fn || (() => {}); },
     close: fail,
     get closed() { return closed; },
   };
@@ -132,7 +142,7 @@ function peer(opts) {
  *     статусы: 'creating' | 'waiting' | 'connecting' | 'connected' | 'failed' | 'cancelled'
  */
 export async function createRoom(opts = {}) {
-  const signal = opts.signal || firestoreSignal();
+  const signal = defaultSignal(opts);
   const status = opts.onStatus || (() => {});
   const pc = peer(opts);
   const ch = pc.createDataChannel(RTC.channel, { ordered: true });
@@ -190,7 +200,7 @@ export async function createRoom(opts = {}) {
  * @return {!Promise<!Object>} Conn; ошибки: 'notfound' (нет лобби или уже занято), 'failed', 'timeout'
  */
 export async function joinRoom(code, opts = {}) {
-  const signal = opts.signal || firestoreSignal();
+  const signal = defaultSignal(opts);
   const status = opts.onStatus || (() => {});
   status('connecting');
   const d = await signal.read(code);

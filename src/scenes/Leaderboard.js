@@ -10,8 +10,9 @@ import { fetchTop10 } from '../services/leaderboard.js';
 import { DEFAULT_DIFFICULTY } from '../data/difficulty.js';
 
 const COL = { place: 110, name: 140, score: 318, time: 392, kills: 464, mode: 540 };
-const ROW0 = 82;
-const ROW_H = 19;
+const HEAD_Y = 76;
+const ROW0 = 92;
+const ROW_H = 18;
 
 export class LeaderboardScene extends Phaser.Scene {
   constructor() {
@@ -26,21 +27,36 @@ export class LeaderboardScene extends Phaser.Scene {
     this.events.once('shutdown', () => { this.alive = false; });
 
     this.add.text(cx, 24, t('lb.title'), textStyle(22, COLORS.accent, { stroke: '#000000', strokeThickness: 4 })).setOrigin(0.5);
-    addPanel(this, cx, 176, 460, 252);
+    // Вкладки: соло и кооп (своя коллекция, имя — пара ников)
+    this.mode = 'solo';
+    this.tabs = {};
+    for (const [i, m] of ['solo', 'coop'].entries()) {
+      this.tabs[m] = addButton(this, this.nav, {
+        x: cx - 60 + i * 120, y: 46, w: 110, h: 20, size: 11, label: t(`lb.tab.${m}`),
+        onSelect: () => this.setMode(m),
+      });
+    }
+    addPanel(this, cx, 186, 460, 232);
     const head = textStyle(10, COLORS.dim);
-    this.add.text(COL.place, 62, '#', head);
-    this.add.text(COL.name, 62, t('lb.col.name'), head);
-    this.add.text(COL.score, 62, t('lb.col.score'), head).setOrigin(1, 0);
-    this.add.text(COL.time, 62, t('lb.col.time'), head).setOrigin(1, 0);
-    this.add.text(COL.kills, 62, t('lb.col.kills'), head).setOrigin(1, 0);
-    this.add.text(COL.mode, 62, t('lb.col.mode'), head).setOrigin(1, 0);
+    this.add.text(COL.place, HEAD_Y, '#', head);
+    this.add.text(COL.name, HEAD_Y, t('lb.col.name'), head);
+    this.add.text(COL.score, HEAD_Y, t('lb.col.score'), head).setOrigin(1, 0);
+    this.add.text(COL.time, HEAD_Y, t('lb.col.time'), head).setOrigin(1, 0);
+    this.add.text(COL.kills, HEAD_Y, t('lb.col.kills'), head).setOrigin(1, 0);
+    this.add.text(COL.mode, HEAD_Y, t('lb.col.mode'), head).setOrigin(1, 0);
 
     this.rowObjs = [];
-    this.status = this.add.text(cx, 176, '', textStyle(14, COLORS.dim)).setOrigin(0.5);
+    this.status = this.add.text(cx, 186, '', textStyle(14, COLORS.dim)).setOrigin(0.5);
 
     addButton(this, this.nav, { x: cx - 70, y: 328, w: 120, h: 28, label: t('lb.refresh'), onSelect: () => this.refresh() });
     addButton(this, this.nav, { x: cx + 70, y: 328, w: 120, h: 28, label: t('lb.back'), onSelect: () => this.back() });
-    this.nav.focus(1);
+    this.nav.focus(3);
+    this.setMode('solo');
+  }
+
+  setMode(mode) {
+    this.mode = mode;
+    for (const m in this.tabs) this.tabs[m].setDisabled(m === mode);
     this.refresh();
   }
 
@@ -63,7 +79,7 @@ export class LeaderboardScene extends Phaser.Scene {
     this.status.setText(t('lb.loading'));
     let rows = null;
     try {
-      rows = await fetchTop10();
+      rows = await fetchTop10(this.mode);
     } catch {
       rows = null;
     }

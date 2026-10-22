@@ -8,6 +8,13 @@ import { spriteScale } from '../render/density.js';
 import { requestFullscreen } from '../ui/fullscreen.js';
 import { DIFFICULTIES, DEFAULT_DIFFICULTY } from '../data/difficulty.js';
 import { getSetting, setSetting } from '../ui/settings.js';
+import { createTextInput } from '../ui/dom-input.js';
+import { addPanel } from '../ui/panel.js';
+import { NICK } from '../data/leaderboard.js';
+import { ROOMS } from '../data/net.js';
+import { validateNick } from '../core/nick.js';
+import { cleanCode } from '../services/net.js';
+import { readNick, writeNick } from '../services/nick-store.js';
 
 export class MenuScene extends Phaser.Scene {
   constructor() {
@@ -30,6 +37,14 @@ export class MenuScene extends Phaser.Scene {
 
   update(time) {
     this.nav.update(time);
+    if (this.inputs) for (const i of this.inputs) i.place();
+  }
+
+  // DOM-поля (ник, код) живут только в виде coop: убираем при смене вида и при выходе из сцены.
+  _dropInputs() {
+    if (!this.inputs) return;
+    for (const i of this.inputs) i.destroy();
+    this.inputs = null;
   }
 
   // На телефоне Play разворачивает игру на весь экран (нужен жест пользователя, нажатие кнопки им и является).
@@ -42,6 +57,7 @@ export class MenuScene extends Phaser.Scene {
   show(view) {
     this.view = view;
     this.nav.clear();
+    this._dropInputs();
     for (const o of this.objs) o.destroy();
     const before = new Set(this.children.list);
     const cx = GAME_WIDTH / 2;
@@ -52,9 +68,10 @@ export class MenuScene extends Phaser.Scene {
       if (this.textures.exists('heroine_menu')) this.add.image(cx + 170, 318, 'heroine_menu').setOrigin(0.5, 1).setScale(spriteScale('heroine_menu'));
       const bw = 160;
       const bh = 30;
-      addButton(this, this.nav, { x: cx, y: 150, w: bw, h: bh, label: t('menu.play'), onSelect: () => this.show('difficulty') });
-      addButton(this, this.nav, { x: cx, y: 190, w: bw, h: bh, label: t('menu.leaderboard'), onSelect: () => this.scene.start('Leaderboard') });
-      addButton(this, this.nav, { x: cx, y: 230, w: bw, h: bh, label: t('menu.settings'), onSelect: () => this.show('settings') });
+      addButton(this, this.nav, { x: cx, y: 140, w: bw, h: bh, label: t('menu.play'), onSelect: () => this.show('difficulty') });
+      addButton(this, this.nav, { x: cx, y: 178, w: bw, h: bh, label: t('menu.coop'), onSelect: () => this.show('coop') });
+      addButton(this, this.nav, { x: cx, y: 216, w: bw, h: bh, label: t('menu.leaderboard'), onSelect: () => this.scene.start('Leaderboard') });
+      addButton(this, this.nav, { x: cx, y: 254, w: bw, h: bh, label: t('menu.settings'), onSelect: () => this.show('settings') });
       this.add.text(cx, GAME_HEIGHT - 14, t('menu.hint'), textStyle(10, '#dddddd', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5);
     } else if (view === 'difficulty') {
       // Выбор сложности перед забегом; последний выбор запоминается и стоит в фокусе.
@@ -74,6 +91,9 @@ export class MenuScene extends Phaser.Scene {
       this.objs = this.children.list.filter((o) => !before.has(o) && o.type !== 'Zone');
       this.nav.focus(Math.max(0, ids.indexOf(last)));
       return;
+    } else if (view === 'coop') {
+      this.showCoop(cx, before);
+      return;
     } else {
       this.add.text(cx, 100, t('settings.title'), textStyle(16)).setOrigin(0.5);
       const gap = 28;
@@ -82,5 +102,66 @@ export class MenuScene extends Phaser.Scene {
     }
     this.objs = this.children.list.filter((o) => !before.has(o) && o.type !== 'Zone');
     this.nav.focus(0);
+  }
+
+  // Сетевой кооп: ник, «Создать лобби» (хост) или код и «Подключиться» (гость). Оба уходят в сцену Lobby.
+  showCoop(cx, before) {
+    this.add.text(cx, 96, t('coop.title'), textStyle(16)).setOrigin(0.5);
+    this.add.text(cx, 114, t('coop.note'), textStyle(9, '#dddddd', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5);
+    const status = this.add.text(cx, 300, '', textStyle(10, '#ff8080')).setOrigin(0.5);
+    const say = (key) => status.setText(key ? t(key) : '');
+
+    // поля и кнопки в одном столбце: стрелки фокуса ходят сверху вниз (Name → Create → Code → Back)
+    this.add.text(cx - 85, 146, t('coop.name'), textStyle(11, '#aaaaaa')).setOrigin(1, 0.5);
+    const nameRect = { x: cx, y: 146, w: 150, h: 24 };
+    const namePanel = addPanel(this, nameRect.x, nameRect.y, nameRect.w, nameRect.h);
+    const name = createTextInput(this, nameRect, { maxLength: NICK.max, placeholder: t('result.nick_hint') });
+    name.el.value = readNick();
+    this.nav.add({
+      x: nameRect.x, y: nameRect.y, w: nameRect.w, h: nameRect.h,
+      setFocus: (f) => namePanel.setFocus(f), onSelect: () => name.el.focus(),
+    });
+    const nick = () => {
+      const v = validateNick(name.el.value);
+      if (!v.ok) { say('coop.need_name'); name.el.focus(); return ''; }
+      writeNick(v.value);
+      return v.value;
+    };
+
+    addButton(this, this.nav, {
+      x: cx, y: 186, w: 220, h: 30, label: t('coop.create'),
+      onSelect: () => { const n = nick(); if (n) this.lobby({ role: 'host', nick: n }); },
+    });
+
+    this.add.text(cx - 95, 230, t('coop.code_hint'), textStyle(11, '#aaaaaa')).setOrigin(1, 0.5);
+    const codeRect = { x: cx - 30, y: 230, w: 100, h: 24 };
+    const codePanel = addPanel(this, codeRect.x, codeRect.y, codeRect.w, codeRect.h);
+    const code = createTextInput(this, codeRect, { maxLength: ROOMS.codeLength, placeholder: '•••••' });
+    this.nav.add({
+      x: codeRect.x, y: codeRect.y, w: codeRect.w, h: codeRect.h,
+      setFocus: (f) => codePanel.setFocus(f), onSelect: () => code.el.focus(),
+    });
+    const connect = () => {
+      const n = nick();
+      if (!n) return;
+      const c = cleanCode(code.el.value);
+      if (!c) { say('coop.need_code'); code.el.focus(); return; }
+      this.lobby({ role: 'guest', nick: n, code: c });
+    };
+    addButton(this, this.nav, { x: cx + 95, y: 230, w: 110, h: 26, size: 12, label: t('coop.connect'), onSelect: connect });
+    code.el.addEventListener('nick-enter', connect);
+    name.el.addEventListener('nick-enter', () => code.el.focus());
+
+    addButton(this, this.nav, { x: cx, y: 272, w: 120, h: 28, label: t('settings.back'), onSelect: () => this.show('main') });
+    this.inputs = [name, code];
+    this.events.once('shutdown', () => this._dropInputs());
+    this.objs = this.children.list.filter((o) => !before.has(o) && o.type !== 'Zone');
+    this.nav.focus(name.el.value ? 1 : 0);
+  }
+
+  lobby(data) {
+    this._dropInputs();
+    requestFullscreen();
+    this.scene.start('Lobby', data);
   }
 }

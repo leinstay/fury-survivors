@@ -16,6 +16,15 @@ export const FIREBASE_CONFIG = {
 // Имя базы не входит в web-конфиг. null = база (default).
 export const FIRESTORE_DB_ID = null;
 export const COLLECTION = 'fury_scores';
+// Кооп: своя таблица. Имя записи — пара ников через PAIR.sep (хост первым), пара с другими никами уникальна.
+export const COLLECTION_COOP = 'fury_scores_coop';
+export const PAIR = { sep: '+' };
+// Режимы таблицы: коллекция и как читать поле name.
+export const MODES = { solo: { collection: COLLECTION }, coop: { collection: COLLECTION_COOP } };
+// Публичный IP отправителя в документе (ip): при одинаковом IP в таблице остаётся только лучшая запись
+// (один человек под разными никами не занимает несколько строк). Берётся с ipify при отправке; если не
+// удалось за timeoutMs, поле не пишется. Правила допускают его отсутствие.
+export const IP_FIELD = { key: 'ip', max: 45, url: 'https://api.ipify.org?format=json', timeoutMs: 3000 };
 export const SDK_URL = 'https://www.gstatic.com/firebasejs/12.19.0';
 
 // Ник: 3-6 символов [A-Za-z0-9], хранится в верхнем регистре. Зеркалит firestore.rules.

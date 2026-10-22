@@ -7,10 +7,11 @@ export class GameOverScene extends Phaser.Scene {
 
   init(data) {
     this.sim = data.sim;
+    this.lost = !!(data && data.lost);
   }
 
   create() {
-    this.nav = buildResults(this, this.sim, { titleKey: 'gameover.title', titleColor: '#ff4040' });
+    this.nav = buildResults(this, this.sim, { titleKey: 'gameover.title', titleColor: '#ff4040', lost: this.lost });
   }
 
   update(time) {

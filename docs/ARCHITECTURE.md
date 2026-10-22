@@ -167,9 +167,37 @@ sim.banish(i)       // убрать карточку i из пула до кон
 
 Директор (`src/core/director.js`) исполняет `timeline` этапа: `spawn` (поддерживает минимум живых врагов через `min`/`minEnd`), `ring`, `elite`, `burst`, `boss`; за `stage.bossWarning` секунд до события `boss` шлёт `bossWarning`. Масштабирование врагов по времени: `stage.scaling`.
 
+## Сетевой кооп
+
+Два игрока в одном мире, P2P по WebRTC DataChannel, без игрового сервера. Всё держится на детерминизме sim:
+оба клиента крутят одну и ту же симуляцию (общий seed) по тикам фиксированного шага и обмениваются только вводом.
+
+- `src/core/lockstep.js` (без Phaser): `createLockstep({ sim, local, send, onDesync })`. `advance(input, dt)` записывает
+  свой ввод на тик `tick + NET.inputDelay`, шлёт его напарнику (`{ t, x, y, c? }`) и считает тик, только когда ввод
+  напарника на него уже пришёл (иначе `false`, HUD показывает «ждём напарника»). Выборы экранов (карточка, реролл,
+  сундук, пауза, конец овертайма) идут командами в том же сообщении и применяются у обоих на одном тике
+  (`applyCommand`: карточку применяет только тот, чей ход, сундук тот, кому он достался). Раз в `NET.hashEvery` тиков
+  хеш состояния (`hashSim`) сравнивается с хешем напарника; расхождение — `onDesync` (Game только помечает).
+- `src/core/actions.js`: `createActions(sim, ls)` — один интерфейс действий для экранов: соло зовёт sim сразу, кооп
+  отправляет команды. Экраны `LevelUp`, `Chest`, `Pause` не ждут результата, а следят за `sim.state` в `update()` и
+  закрываются, когда sim ушёл из состояния выбора; в коопе Game под ними не ставится на паузу (lockstep крутится,
+  сим сам стоит в `levelup`/`chest`), а общая пауза это флаг `ls.paused` по команде `pause`/`resume`.
+- `src/services/net.js`: `createRoom()` (хост: offer в документ Firestore `rooms/<код>`, опрос ответа),
+  `joinRoom(code)` (гость: answer в тот же документ), дальше только DataChannel (ordered, reliable). `Conn`:
+  `send(obj)`, `onMessage(fn)` (без обработчика сообщения копятся: лобби передаёт канал в Game), `onClose(fn)`,
+  `close()`. STUN Google, TURN нет: за симметричным NAT соединение может не пройти (`lobby.failed`).
+  Числа в `src/data/net.js`; для smoke-тестов сигналинг подменяется через `globalThis.__furySignal`.
+- `src/scenes/Lobby.js`: хост видит код и ждёт, гость входит по коду; после соединения обмен `hello` (ники),
+  `diff` (сложность, выбирает хост), `start { seed, difficulty, names }`; оба стартуют `Game` с
+  `data.coop = { net, local, seed, difficulty, names }` (хост — игрок 0). Меню: вид «Co-op» с полями ника и кода.
+- `src/scenes/Game.js` в коопе: фиксированный шаг через `ls.advance`, хитстоп выключен (остановил бы тики у одного),
+  потеря канала (`onClose` или `NET.dropAfter` с тишины) завершает забег экраном итогов с пометкой `lost`.
+- Детерминизм: `Math.sin/cos/atan2` могут отличаться между движками JS в последних битах; на практике Chrome и
+  Android Chrome совпадают, расхождение ловит хеш. Балансные числа коопа в `src/data/coop.js`.
+
 ## Рендер
 
-`src/scenes/Game.js` создаёт sim, каждый кадр читает ввод (`src/ui/input.js`: клавиатура, геймпад, экранный джойстик), вызывает `sim.step`, затем `handleEvents(sim.events)` (хитстоп, эффекты, звук), `src/render/world.js` синхронизирует спрайты, `src/ui/hud.js` обновляет HUD. При `levelup`, сундуке, `gameover` и `victory` Game ставится на паузу (`scene.pause('Game')`) и поверх запускается `LevelUp`, `Chest`, `GameOver` или `Victory`; `Pause` запускается по кнопке.
+`src/scenes/Game.js` создаёт sim, каждый кадр читает ввод (`src/ui/input.js`: клавиатура, геймпад, экранный джойстик), копит время и шагает sim фиксированным шагом `1 / SIM.tickRate` (не больше `SIM.maxTicksPerFrame` за кадр), затем `handleEvents(sim.events)` (хитстоп, эффекты, звук), `src/render/world.js` синхронизирует спрайты, `src/ui/hud.js` обновляет HUD. При `levelup`, сундуке, `gameover` и `victory` Game ставится на паузу (`scene.pause('Game')`) и поверх запускается `LevelUp`, `Chest`, `GameOver` или `Victory`; `Pause` запускается по кнопке. Экраны получают `{ sim, act }` (`core/actions.js`) и сами закрываются, когда `sim.state` сменился.
 
 Файлы `src/render/`: `world.js` (спрайты по uid, тени, камера, свечение элиты (glow) цветом `elite.glow`), `anim.js` (процедурная анимация), `fx.js` (частицы, числа урона, тряска), `decor.js` (декор этапа по чанкам), `density.js` (масштаб спрайта).
 

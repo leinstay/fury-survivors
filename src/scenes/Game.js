@@ -194,9 +194,11 @@ export class GameScene extends Phaser.Scene {
       this.ended = true;
       fadeOutMusic();
       if (this.net) this.net.close();
+      if (this.overlay) { this.scene.stop(this.overlay); this.overlay = null; }
       this.scene.pause('Game');
+      const over = sim.state === 'gameover' || sim.state === 'victory';
       this.scene.launch(sim.state === 'victory' ? 'Victory' : 'GameOver', {
-        sim, coop: this.coop, lost: this.lost && sim.state === 'running',
+        sim, coop: this.coop, lost: this.lost && !over,
       });
     }
   }

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validateNick } from '../../src/core/nick.js';
+import { validateNick, pairName, validateName } from '../../src/core/nick.js';
 
 test('nick: 3-6 ASCII letters/digits, returned in capitals', () => {
   assert.deepEqual(validateNick('  Lein  '), { ok: true, value: 'LEIN' });
@@ -24,4 +24,13 @@ test('nick: edge cases', () => {
   assert.deepEqual(validateNick('\t Lein\n'), { ok: true, value: 'LEIN' });
   assert.equal(validateNick('a b c d').error, 'long');
   assert.equal(validateNick('a  b').error, 'chars');
+});
+
+test('pair name for the co-op board: host first, both nicks valid', () => {
+  assert.deepEqual(pairName(' ann ', 'bob'), { ok: true, value: 'ANN+BOB' });
+  assert.equal(pairName('an', 'bob').error, 'short');
+  assert.equal(pairName('ann', 'b o').error, 'chars');
+  assert.deepEqual(validateName('ann+bob', 'coop'), { ok: true, value: 'ANN+BOB' });
+  assert.equal(validateName('ann', 'coop').error, 'chars');
+  assert.deepEqual(validateName('ann', 'solo'), { ok: true, value: 'ANN' });
 });
