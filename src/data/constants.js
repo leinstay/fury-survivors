@@ -109,12 +109,12 @@ export const FX = {
   levelup: { ringTime: 0.5, ringRadius: 70, ringColor: 0xffe88a }, // белая вспышка на весь экран убрана
   pickupSpark: { count: 2, color: 0x7fd8ff, life: 0.25, speed: 40 },
   // Мягкое свечение под снарядами, чтобы их было видно на траве: спрайт → цвет, диаметр px мира, яркость.
-  // Аддитивное наложение; у снаряда с tint (супероружие) свечение берёт его цвет.
+  // Аддитивное наложение; у снаряда с tint (супероружие) свечение берёт его цвет. У звеньев молнии свечения нет:
+  // их десятки на цепь, и перекрывающиеся ореолы тормозили телефоны.
   projGlow: {
     proj_enemy: { color: 0xff4a4a, size: 26, alpha: 0.75 },
     proj_dagger: { color: 0xbfe6ff, size: 18, alpha: 0.35 },
     proj_axe: { color: 0xffd9a0, size: 30, alpha: 0.3 },
-    proj_chain: { color: 0x9fd8ff, size: 30, alpha: 0.4 },
     proj_firebomb: { color: 0xffa040, size: 28, alpha: 0.4 },
     proj_shield: { color: 0xfff0a0, size: 28, alpha: 0.3 },
   },

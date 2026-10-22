@@ -1,11 +1,13 @@
 // Storm Chain: молния бьёт ближайшего врага и перескакивает на соседей. Урон мгновенный, снаряды только для вида.
-const VISUAL_LIFE = 0.14;
+import { WEAPON_BEHAVIOR } from '../../data/weapons.js';
+
+const { visualLife: VISUAL_LIFE, linkStep: LINK_STEP, maxLinks: MAX_LINKS } = WEAPON_BEHAVIOR.chain;
 
 function segment(sim, x0, y0, x1, y1, sprite) {
   const dx = x1 - x0;
   const dy = y1 - y0;
   const len = Math.sqrt(dx * dx + dy * dy);
-  const n = Math.min(12, Math.max(1, Math.ceil(len / 10)));
+  const n = Math.min(MAX_LINKS, Math.max(1, Math.ceil(len / LINK_STEP)));
   const ang = Math.atan2(dy, dx);
   for (let i = 1; i <= n; i++) {
     const p = sim.addProjectile('player', sprite);

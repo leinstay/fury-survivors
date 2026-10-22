@@ -39,6 +39,8 @@ export const WEAPON_BEHAVIOR = {
   projectile: { targetRange: 360, hitRadius: 5 },
   boomerang: { targetRange: 320, hitRadius: 10 },
   area_drop: { targetRange: 300, flight: 0.5, fireTick: 0.5 }, // flight — полёт бомбы, fireTick — период урона огня
+  // молния рисуется звеньями-спрайтами: одно на linkStep px отрезка, не больше maxLinks, живут visualLife с
+  chain: { visualLife: 0.14, linkStep: 18, maxLinks: 7 },
   orbit: { hitRadius: 10, rehit: 0.5 },                        // hitRadius по умолчанию (перекрывается params.hitRadius), rehit — повторный удар щита
   // swingGap — пауза между взмахами серии, swingLife — время жизни взмаха, aimRange — дальность выбора цели (× area).
   // Удар конусом из героя: длина arcRadius × area, половина угла arcSpan° вокруг направления удара.
