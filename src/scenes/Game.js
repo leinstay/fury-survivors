@@ -2,7 +2,7 @@ import { createSim } from '../core/sim.js';
 import { createLockstep } from '../core/lockstep.js';
 import { createActions } from '../core/actions.js';
 import { GameInput } from '../ui/input.js';
-import { Hud } from '../ui/hud.js';
+import { Hud, formatTime } from '../ui/hud.js';
 import { readPad } from '../ui/focus.js';
 import { World } from '../render/world.js';
 import { Fx } from '../render/fx.js';
@@ -187,11 +187,14 @@ export class GameScene extends Phaser.Scene {
 
   // Кооп: часы lockstep по настоящему времени кадра. Пока ждём ввод напарника, время копится (до NET.backlog),
   // потом догоняем до NET.maxCatchUp тиков за кадр: иначе отставший теряет время, напарник упирается в его
-  // ввод, и оба по очереди дёргаются. Опередив напарника (ls.drift), свои часы чуть замедляем.
+  // ввод, и оба по очереди дёргаются. Часы подстраиваются под напарника (ls.drift, в тиках): впереди —
+  // медленнее, позади — быстрее, пропорционально расхождению (старт у гостя позже на загрузку сцены).
   _stepCoop(rawDt, input) {
     const ls = this.ls;
     const now = this.now();
-    const rate = ls.drift() > NET.syncSlack ? 1 - NET.syncSlow : 1;
+    const d = ls.drift();
+    const rate = Math.abs(d) <= NET.syncSlack ? 1 :
+      1 - Math.max(-NET.syncMax, Math.min(NET.syncMax, d * NET.syncGain));
     this.acc = Math.min(this.acc + rawDt * rate, NET.backlog);
     let stalled = false;
     for (let n = 0; this.acc >= STEP && n < NET.maxCatchUp; n++) {
@@ -203,12 +206,30 @@ export class GameScene extends Phaser.Scene {
       this.handleEvents(this.sim.events);
     }
     this._predict();
+    this._netStats(now, rawDt, stalled, d);
     // ожидание по часам сцены, не по тикам: при низком fps тики за кадр не набегают
     if (!stalled) this.waitSince = -1;
     else if (this.waitSince < 0) this.waitSince = now;
     const waiting = this.waitSince >= 0 && now - this.waitSince > NET.waitWarn;
     this.hud.setNotice(this.desynced ? 'coop.desync' : waiting ? 'coop.waiting' : null);
     if (!this.lost && ls.silence(now) > NET.dropAfter) this.lost = true;
+  }
+
+  // Статистика сети раз в NET.statsEvery с в консоль: доля кадров в ожидании напарника, тиков в секунду
+  // (норма 60), fps, самый долгий кадр, расхождение часов и опережение (≈ задержка сети в тиках).
+  _netStats(now, rawDt, stalled, drift) {
+    if (!this.stats) this.stats = { t0: now, tick0: this.ls.tick, frames: 0, stalls: 0, maxDt: 0 };
+    const s = this.stats;
+    s.frames++;
+    if (stalled) s.stalls++;
+    s.maxDt = Math.max(s.maxDt, rawDt);
+    const span = now - s.t0;
+    if (span < NET.statsEvery) return;
+    netLog('stats', `stalled ${Math.round(100 * s.stalls / s.frames)}% of frames,`,
+        `ticks/s ${((this.ls.tick - s.tick0) / span).toFixed(1)}, fps ${(s.frames / span).toFixed(0)},`,
+        `longest frame ${Math.round(s.maxDt * 1000)}ms, drift ${drift.toFixed(1)},`,
+        `lead ${this.ls.advantage()} ticks (partner ${this.ls.remoteAdv}), sim ${formatTime(this.sim.time)}`);
+    this.stats = null;
   }
 
   // Свой герой рисуется с вводом, который отправлен, но ещё не применён (NET.inputDelay): отклик сразу.

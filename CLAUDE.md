@@ -66,6 +66,7 @@ tools/                     локальные скрипты Node, в игру �
   demouth.mjs              убирает рот, который PixelLab дорисовывает на кадрах анимации (assets/raw/*_pixellab)
   trim-wisps.mjs           стирает лишние язычки пламени на кадрах жницы (зоны кадра), лента потом через hd-frames
   pixellab-anim.mjs        анимация по первому кадру через PixelLab (ключ только в env PL_KEY)
+  turn-worker.js           Cloudflare Worker: временные учётные данные TURN для коопа (docs/COOP.md)
   make-grass.mjs           процедурный тайл травы
   make-slash.mjs           процедурный взмах клинка (гладкий полумесяц, proj_blade_arc)
   sprite-table.mjs         таблица спрайтов в docs/ASSETS.md из manifest и sheets.json

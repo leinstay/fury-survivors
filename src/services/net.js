@@ -177,10 +177,32 @@ function openChannel(ch) {
   });
 }
 
-function peer(opts) {
+// Серверы ICE: STUN из RTC.iceServers и, если настроен RTC.turnUrl, TURN с временными учётными данными от
+// воркера. Воркер недоступен — без TURN (в одной сети и при мягком NAT это не мешает).
+async function iceServers(opts) {
+  if (opts.iceServers) return opts.iceServers;
+  if (!RTC.turnUrl || globalThis.__furySignal) return RTC.iceServers; // smoke-тесты без сети
+  const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timer = setTimeout(() => ctl && ctl.abort(), RTC.turnTimeoutMs);
+  try {
+    const r = await fetch(RTC.turnUrl, { signal: ctl ? ctl.signal : undefined, cache: 'no-store' });
+    if (!r.ok) throw new Error(`http ${r.status}`);
+    const d = await r.json();
+    const turn = Array.isArray(d.iceServers) ? d.iceServers : [];
+    netLog('turn servers', turn.map((s) => [].concat(s.urls).length).reduce((a, b) => a + b, 0), 'urls');
+    return RTC.iceServers.concat(turn);
+  } catch (e) {
+    netLog('turn unavailable, direct only:', e && (e.name === 'AbortError' ? 'timeout' : e.message));
+    return RTC.iceServers;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function peer(opts) {
   const PC = (opts && opts.RTCPeerConnection) || globalThis.RTCPeerConnection;
   if (!PC) throw new Error('unsupported');
-  return new PC({ iceServers: RTC.iceServers });
+  return new PC({ iceServers: await iceServers(opts || {}) });
 }
 
 /**
@@ -193,7 +215,7 @@ function peer(opts) {
 export async function createRoom(opts = {}) {
   const signal = defaultSignal(opts);
   const status = opts.onStatus || (() => {});
-  const pc = peer(opts);
+  const pc = await peer(opts);
   const ch = pc.createDataChannel(RTC.channel, { ordered: true });
   status('creating');
   const offer = await pc.createOffer();
@@ -280,7 +302,7 @@ export async function joinRoom(code, opts = {}) {
     throw new Error('notfound');
   }
   netLog('guest', 'room', code, 'offer candidates', candidateSummary(d.offer));
-  const pc = peer(opts);
+  const pc = await peer(opts);
   watchPeer(pc, 'guest');
   const chP = new Promise((resolve) => { pc.ondatachannel = (e) => resolve(e.channel); });
   try {
