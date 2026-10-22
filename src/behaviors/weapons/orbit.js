@@ -14,6 +14,7 @@ function addShield(w, sim) {
   p.kb = w.params.knockback || 0;
   p.pierce = 1e9;
   p.rehit = REHIT;
+  p.rehitOwn = true; // каждый щит бьёт цель по своему таймеру, как книги в VS
   p.wid = w.id;
   p.slot = w.slot;
   p.ws = w;
