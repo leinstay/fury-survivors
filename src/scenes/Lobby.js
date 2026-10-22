@@ -21,6 +21,7 @@ import { addHeroPicker } from '../ui/hero-picker.js';
 // Колонки лобби: кнопки сложности, Start/Cancel и карточки героев одной ширины, центры на cx ± BTN_DX.
 const BTN_W = 120;
 const BTN_DX = 70;
+const LOBBY_GRID_W = 400; // сетка героев, когда их много: на всю ширину панели
 
 export class LobbyScene extends Phaser.Scene {
   constructor() {
@@ -204,7 +205,7 @@ export class LobbyScene extends Phaser.Scene {
       // ширина и шаг как у кнопок ниже (BTN_W, BTN_DX): карточки стоят ровно над ними
       x: cx, y: 190, w: BTN_W, h: 92, gap: 2 * BTN_DX - BTN_W, compact: true, mark: true,
       selected: this.hero, taken: this.partnerHero ? [this.partnerHero] : [],
-      maxWidth: 2 * BTN_DX + BTN_W,
+      maxWidth: 2 * BTN_DX + BTN_W, gridWidth: LOBBY_GRID_W,
       onPick: (id) => this.pickHero(id),
     });
 
