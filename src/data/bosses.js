@@ -73,11 +73,11 @@ export const BOSSES = {
     final: true,
     drop: 'chest',
   },
-  // Банши-жница: Смерть овертайма (как Death в VS). Приходит через stage.overtime.reaperAt секунд овертайма,
+  // Банши-жница: Смерть овертайма (как Death в VS), в полтора раза выше боссов. Приходит через stage.overtime.reaperAt секунд овертайма,
   // неуязвима, летит быстрее героини (90) и не отстаёт, коса снимает damage за касание (растёт с этапом и овертаймом:
   // на 20:00 это ~100 HP). Уйти нельзя, можно только протянуть секунды ради очков.
   reaper: {
-    sprite: 'reaper', behavior: 'chase', hp: 1, speed: 112, damage: 18, xp: 0, size: 30, knockbackResist: 1,
+    sprite: 'reaper', behavior: 'chase', hp: 1, speed: 112, damage: 18, xp: 0, size: 45, knockbackResist: 1,
     attacks: [], invulnerable: true,
   },
 };

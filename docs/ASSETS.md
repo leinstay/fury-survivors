@@ -137,7 +137,7 @@ node tools/slice-sheet.mjs <sheet> [--report]
 | `lamia` | 77×102 | 9 | 2 | `assets/raw/lamia_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
 | `kitsune_empress` | 192×256 | 9 | 2 | `assets/raw/kitsune_empress_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
 | `harpy_queen` | 192×256 | 9 | 2 | `assets/raw/harpy_queen_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
-| `reaper` | 208×256 | 1 | 2 | `assets/raw/reaper.png` |
+| `reaper` | 304×384 | 1 | 2 | `assets/raw/reaper.png` |
 | `dryad_queen` | 192×256 | 9 | 2 | `assets/raw/dryad_queen_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
 | `xp_small` | 20×24 | 1 | 2 | `assets/raw/items.png` |
 | `xp_medium` | 24×30 | 1 | 2 | `assets/raw/items.png` |
