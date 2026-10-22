@@ -132,13 +132,14 @@ export const WEAPONS = {
   },
   storm_chain: {
     // VS Lightning Ring: L1 15 × 2 удара / 4.5 с; L8 65 × 6 / 4.5 с (~87 DPS на всю толпу).
-    // Молния бьёт (1 + jumps) врагов, всего amount × (1 + jumps) ударов за cooldown.
+    // Молния бьёт (1 + jumps) врагов, всего amount × (1 + jumps) ударов за cooldown. Ранние уровни сильнее VS:
+    // стартовое оружие магессы, L1 с её атакой (×1.25) убивает первых врагов (кошка 16 HP) с одного удара.
     icon: 'icon_storm_chain', sprite: 'proj_chain', behavior: 'chain', maxLevel: 7,
     levels: [
-      { damage: 12, cooldown: 3.5, amount: 1, jumps: 1, area: 90, range: 230, knockback: 20 },
-      { damage: 12, cooldown: 3.4, amount: 1, jumps: 2, area: 95, range: 240, knockback: 20 },
-      { damage: 16, cooldown: 3.3, amount: 1, jumps: 2, area: 100, range: 250, knockback: 25 },
-      { damage: 16, cooldown: 3.2, amount: 2, jumps: 2, area: 105, range: 260, knockback: 25 },
+      { damage: 16, cooldown: 3.5, amount: 1, jumps: 1, area: 90, range: 230, knockback: 20 },
+      { damage: 16, cooldown: 3.4, amount: 1, jumps: 2, area: 95, range: 240, knockback: 20 },
+      { damage: 18, cooldown: 3.3, amount: 1, jumps: 2, area: 100, range: 250, knockback: 25 },
+      { damage: 18, cooldown: 3.2, amount: 2, jumps: 2, area: 105, range: 260, knockback: 25 },
       { damage: 21, cooldown: 3.1, amount: 2, jumps: 3, area: 110, range: 270, knockback: 30 },
       { damage: 24, cooldown: 3.0, amount: 2, jumps: 3, area: 115, range: 280, knockback: 30 },
       { damage: 28, cooldown: 3.0, amount: 2, jumps: 4, area: 120, range: 290, knockback: 35 },

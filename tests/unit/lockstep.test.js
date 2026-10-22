@@ -87,7 +87,7 @@ test('lockstep: card choice is a command applied on the same tick by both, only 
   run(5);
   assert.equal(a.sim.state, 'levelup');
   assert.equal(b.sim.state, 'levelup');
-  assert.equal(a.sim.levelUp.player, 0);
+  assert.equal(a.sim.picker, 0);
   // выбор не того игрока игнорируется
   b.command({ k: 'card', i: 1 });
   run(8);
@@ -149,4 +149,27 @@ test('lockstep: applyCommand respects whose turn and chest owner', () => {
   assert.equal(applyCommand(sim, 0, { k: 'card', i: 0 }), true);
   assert.equal(sim.state, 'running');
   assert.equal(applyCommand(sim, 0, { k: 'nope' }), false);
+});
+
+test('lockstep: own sent-but-unapplied input predicts the local hero offset', () => {
+  const { a } = pair(2, { delay: 4, lag: 1 });
+  // тики 0..3 пустые с начала; три шага отправили ввод на 4..6, но применены только 0..2
+  for (let i = 0; i < 3; i++) a.advance({ x: 1, y: 0 }, DT);
+  const off = a.predictOffset(90, DT);
+  assert.equal(a.tick, 3);
+  assert.ok(Math.abs(off.x - 3 * 90 * DT) < 1e-9, `ticks 4..6 are pending: ${off.x}`);
+  assert.equal(off.y, 0);
+  assert.equal(off.face, 1);
+});
+
+test('lockstep: drift shows whose clock runs ahead', () => {
+  const { a, b, pump } = pair(3, { delay: 3, lag: 1 });
+  const idle = { x: 0, y: 0 };
+  for (let i = 0; i < 20; i++) { a.advance(idle, DT); b.advance(idle, DT); pump(); }
+  assert.ok(Math.abs(a.drift()) <= 1 && Math.abs(b.drift()) <= 1, `${a.drift()} ${b.drift()}`);
+  // b пропускает кадры: a уходит вперёд, пока не упрётся в ввод b
+  for (let i = 0; i < 10; i++) { a.advance(idle, DT); pump(); }
+  b.advance(idle, DT); pump(); a.advance(idle, DT); pump();
+  assert.ok(a.drift() > 0, `a ahead: ${a.drift()}`);
+  assert.ok(b.drift() < 0, `b behind: ${b.drift()}`);
 });

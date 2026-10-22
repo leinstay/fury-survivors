@@ -68,7 +68,7 @@ test('coop: spawns more enemies with more hp than solo', () => {
   // шаг с открытым экраном карточек не идёт: ждём ровно 30 игровых секунд в обоих забегах
   const play = (x) => {
     for (let i = 0; i < 60 * 60 && x.time < 30; i++) {
-      if (x.state === 'levelup') x.chooseCard(0);
+      if (x.state === 'levelup') x.chooseCard(0, x.picker);
       if (x.state === 'chest') x.skipChest();
       x.step(DT, idle);
     }
@@ -92,7 +92,7 @@ test('coop: a dead player becomes a coffin and revives, the run ends only when b
   assert.ok(a.dead, 'still a coffin halfway');
   let t = 0;
   while (a.dead && t < COOP.reviveTime / COOP.enemySlow + 1) {
-    if (sim.state === 'levelup') sim.chooseCard(0);
+    if (sim.state === 'levelup') sim.chooseCard(0, sim.picker);
     if (sim.state === 'chest') sim.skipChest();
     sim.step(DT, both);
     t += DT;
@@ -123,20 +123,53 @@ test('coop: level-up cards alternate between players and apply to the chooser', 
   sim.player.xp = sim.player.xpNext;
   sim.step(DT, { players: [idle, idle] });
   assert.equal(sim.state, 'levelup');
-  assert.equal(sim.levelUp.player, 0);
+  assert.equal(sim.picker, 0);
   const build = (p) => JSON.stringify([
     p.weapons.map((w) => [w.id, w.level]), p.passives.map((q) => [q.id, q.level]),
   ]);
   const before = build(a);
-  sim.chooseCard(0);
+  sim.chooseCard(0, 1); // не его ход: ничего
+  assert.equal(sim.state, 'levelup');
+  sim.chooseCard(0, 0);
   assert.notEqual(build(a), before);
   assert.equal(build(b), JSON.stringify([[['storm_chain', 1]], []]));
   sim.player.xp = sim.player.xpNext;
   sim.step(DT, { players: [idle, idle] });
-  assert.equal(sim.levelUp.player, 1);
+  assert.equal(sim.picker, 1);
   const b0 = build(b);
-  sim.chooseCard(0);
+  sim.chooseCard(0, 1);
   assert.notEqual(build(b), b0);
+});
+
+test('coop: each player has an own pool: banished cards and reroll/skip/banish budgets', () => {
+  const sim = coop(11);
+  const [a, b] = sim.players;
+  const lvl = () => { sim.player.xp = sim.player.xpNext; sim.step(DT, { players: [idle, idle] }); };
+  lvl();
+  assert.equal(sim.picker, 0);
+  const victim = a.levelUp.cards[0];
+  assert.ok(sim.banish(0, 0));
+  assert.ok(sim.reroll(0));
+  assert.equal(sim.reroll(1), false, 'partner cannot spend my rerolls');
+  assert.ok(a.levelUp.banished.has(`${victim.kind}:${victim.id}`));
+  assert.equal(b.levelUp.banished.size, 0);
+  assert.ok(sim.skip(0));
+  assert.equal(sim.state, 'running');
+  lvl();
+  assert.equal(sim.picker, 1);
+  assert.equal(b.levelUp.rerolls, a.levelUp.rerolls + 1);
+  assert.equal(b.levelUp.banishes, a.levelUp.banishes + 1);
+  assert.equal(b.levelUp.skips, a.levelUp.skips + 1);
+  assert.ok(!a.levelUp.cards.length && b.levelUp.cards.length > 0);
+});
+
+test('coop: damage and DPS are counted per player', () => {
+  const sim = coop(12);
+  const [a, b] = sim.players;
+  const e = sim.spawnEnemy('slime', 40, 0);
+  sim.damageEnemy(e, 3, 'storm_chain', 0, 0, 0, b);
+  assert.ok(b.damageByWeapon.storm_chain >= 3); // крит магессы может удвоить
+  assert.equal(a.damageByWeapon.storm_chain, undefined);
 });
 
 test('coop: the chest goes to whoever picked it up', () => {

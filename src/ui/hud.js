@@ -205,13 +205,14 @@ export class Hud {
   }
 
   _updateDps() {
-    const sim = this.sim;
-    if (sim.dpsByWeapon === this.dpsShown) return; // sim меняет объект раз в секунду
-    this.dpsShown = sim.dpsByWeapon;
+    // свой игрок (в коопе урон напарника не показываем, как в соло)
+    const me = this.sim.players[this.sim.local];
+    if (me.dpsByWeapon === this.dpsShown) return; // sim меняет объект раз в секунду
+    this.dpsShown = me.dpsByWeapon;
     const m = HUD.dpsMeter;
     const full = m.width - m.pad * 2;
-    const total = sim.dps;
-    const byW = sim.dpsByWeapon;
+    const total = me.dps;
+    const byW = me.dpsByWeapon;
     const order = this._weaponIds().sort((a, b) => (byW[b] || 0) - (byW[a] || 0));
     if (this.dpsRows.length !== Math.min(m.maxRows, order.length) + 1) this._rebuildDps();
     this.dpsRows.forEach((r, i) => {
@@ -231,13 +232,9 @@ export class Hud {
     });
   }
 
-  // Оружия всех игроков без повторов (DPS считается по id оружия, у напарников оно может совпадать).
+  // Оружия своего игрока.
   _weaponIds() {
-    const ids = [];
-    for (const pl of this.sim.players) {
-      for (const w of pl.weapons) if (!ids.includes(w.id)) ids.push(w.id);
-    }
-    return ids;
+    return this.sim.players[this.sim.local].weapons.map((w) => w.id);
   }
 
   _rebuildSlots() {

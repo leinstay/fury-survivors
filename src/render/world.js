@@ -149,6 +149,7 @@ export class World {
     this.zones = new Zones(scene, GROUND_DEPTH);
     if (!scene.textures.exists('fx_halo')) makeHalo(scene);
     this.shake = { x: 0, y: 0 }; // смещение камеры от fx (тряска)
+    this.predict = null;         // кооп: { i, x, y, face } — свой герой со сдвигом ещё не применённого ввода (Game)
   }
 
   // Тень у ног: тёмный эллипс под спрайтом, пул по порядку обхода за кадр.
@@ -237,11 +238,15 @@ export class World {
     const sim = this.sim;
     const time = this.time;
     const v = sim.view;
+    const pr = this.predict;
+    // центр экрана — среднее игроков: сдвиг своего героя двигает его на свою долю
+    const vx = v.x + (pr ? pr.x / sim.players.length : 0);
+    const vy = v.y + (pr ? pr.y / sim.players.length : 0);
 
-    // камера и фон: центр экрана — sim.view (игрок, в коопе середина между живыми)
+    // камера и фон: центр экрана — sim.view (игрок, в коопе середина между игроками)
     const cam = this.scene.cameras.main;
-    cam.scrollX = Math.round(v.x - GAME_WIDTH / 2) + this.shake.x;
-    cam.scrollY = Math.round(v.y - GAME_HEIGHT / 2) + this.shake.y;
+    cam.scrollX = Math.round(vx - GAME_WIDTH / 2) + this.shake.x;
+    cam.scrollY = Math.round(vy - GAME_HEIGHT / 2) + this.shake.y;
     this.shadowN = 0;
 
     // игроки
@@ -270,12 +275,15 @@ export class World {
       }
       pl.baseScale = spriteScale(key);
       const lift = animateCharacter(pl, key, p, time, i);
-      pl.setPosition(Math.round(p.x), Math.round(p.y) + lift);
-      pl.setFlipX(p.facing < 0);
-      pl.setDepth(p.y);
+      const px = p.x + (pr && pr.i === i ? pr.x : 0);
+      const py = p.y + (pr && pr.i === i ? pr.y : 0);
+      pl.setPosition(Math.round(px), Math.round(py) + lift);
+      const face = pr && pr.i === i && pr.face ? pr.face : p.facing;
+      pl.setFlipX(face < 0);
+      pl.setDepth(py);
       pl.setAlpha(p.iframes > 0 && Math.floor(time * 16) % 2 === 0 ? 0.35 : 1);
       this._tint(pl, p.hurtFlash > 0, false);
-      this._shadow(p.x, p.y, pl, cam);
+      this._shadow(px, py, pl, cam);
     }
     this.bg.tilePositionX = cam.scrollX;
     this.bg.tilePositionY = cam.scrollY;

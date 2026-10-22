@@ -137,17 +137,18 @@ function steer(sim, out, t, pl = sim.player) {
   out.y = ay / l;
 }
 
-// opts: { seed, preset ('greedy' | 'idle' | 'kite' | 'tank'), upgrades (bool), until (с), dt, difficulty,
+// opts: { seed, preset ('greedy' | 'idle' | 'kite' | 'tank'), upgrades (bool), until (с), dt, difficulty, hero,
 //         players (1 | 2: кооп, оба игрока ведутся одним пресетом), onSecond(sim), onEvents(events) }
 // res.bosses: { id: { at, hp, level, killed } } — время появления, HP и уровень игрока при появлении, время убийства.
 // res.victoryTime — убийство финального босса (начало овертайма); забег после него идёт до смерти или until.
 export function runBot(opts) {
   const {
     seed = 1, preset = 'greedy', upgrades = true, until = 910, dt = 1 / 60, difficulty, players = 1,
+    hero = 'heroine',
   } = opts;
   const idle = preset === 'idle';
-  const sim = createSim({ hero: 'heroine', stage: 'forest', seed, difficulty, players });
-  if (!upgrades) sim.levelUp.skips = 1e9;
+  const sim = createSim({ hero, stage: 'forest', seed, difficulty, players });
+  if (!upgrades) for (const p of sim.players) p.levelUp.skips = 1e9;
   const inputs = sim.players.map(() => ({ x: 0, y: 0 }));
   const input = players > 1 ? { players: inputs } : inputs[0];
   const res = {
@@ -162,9 +163,9 @@ export function runBot(opts) {
   while (sim.time < until && (sim.state === 'running' || sim.state === 'levelup' || sim.state === 'chest')) {
     if (sim.state === 'chest') { sim.chooseChest(0); continue; }
     if (sim.state === 'levelup') {
-      const who = sim.players[sim.levelUp.player];
-      if (upgrades) sim.chooseCard(pickBest(sim.levelUp.cards, who.weapons.length, preset));
-      else sim.skip();
+      const who = sim.players[sim.picker];
+      if (upgrades) sim.chooseCard(pickBest(who.levelUp.cards, who.weapons.length, preset), who.id);
+      else sim.skip(who.id);
       continue;
     }
     if (idle) {

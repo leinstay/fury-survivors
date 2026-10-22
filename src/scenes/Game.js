@@ -154,26 +154,38 @@ export class GameScene extends Phaser.Scene {
     return this.game.loop.time / 1000;
   }
 
-  _stepCoop(dt, input) {
+  // Кооп: часы lockstep по настоящему времени кадра. Пока ждём ввод напарника, время копится (до NET.backlog),
+  // потом догоняем до NET.maxCatchUp тиков за кадр: иначе отставший теряет время, напарник упирается в его
+  // ввод, и оба по очереди дёргаются. Опередив напарника (ls.drift), свои часы чуть замедляем.
+  _stepCoop(rawDt, input) {
     const ls = this.ls;
     const now = this.now();
-    this.acc = Math.min(this.acc + dt, STEP * SIM.maxTicksPerFrame);
+    const rate = ls.drift() > NET.syncSlack ? 1 - NET.syncSlow : 1;
+    this.acc = Math.min(this.acc + rawDt * rate, NET.backlog);
     let stalled = false;
-    while (this.acc >= STEP) {
+    for (let n = 0; this.acc >= STEP && n < NET.maxCatchUp; n++) {
       if (!ls.advance(input, STEP, now)) {
-        this.acc = Math.min(this.acc, STEP);
         stalled = true;
         break;
       }
       this.acc -= STEP;
       this.handleEvents(this.sim.events);
     }
+    this._predict();
     // ожидание по часам сцены, не по тикам: при низком fps тики за кадр не набегают
     if (!stalled) this.waitSince = -1;
     else if (this.waitSince < 0) this.waitSince = now;
     const waiting = this.waitSince >= 0 && now - this.waitSince > NET.waitWarn;
     this.hud.setNotice(this.desynced ? 'coop.desync' : waiting ? 'coop.waiting' : null);
     if (!this.lost && ls.silence(now) > NET.dropAfter) this.lost = true;
+  }
+
+  // Свой герой рисуется с вводом, который отправлен, но ещё не применён (NET.inputDelay): отклик сразу.
+  _predict() {
+    const p = this.sim.players[this.sim.local];
+    const on = this.sim.state === 'running' && !this.ls.paused && !p.dead;
+    const off = on ? this.ls.predictOffset(p.stats.speed, STEP) : null;
+    this.world.predict = off ? { i: this.sim.local, x: off.x, y: off.y, face: off.face } : null;
   }
 
   update(time, delta) {
@@ -187,7 +199,7 @@ export class GameScene extends Phaser.Scene {
     if (!this.scene.isActive('Game')) return;
 
     const input = this.gameInput.read();
-    if (this.ls) this._stepCoop(dt, input);
+    if (this.ls) this._stepCoop(delta / 1000, input);
     else this._stepSolo(dt, input);
     this.hitCool -= dt;
     this.fx.update(dt);

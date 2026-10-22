@@ -36,12 +36,6 @@ export class LevelUpScene extends Phaser.Scene {
   create() {
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.7).setOrigin(0, 0);
     this.add.text(GAME_WIDTH / 2, 30, t('levelup.title'), textStyle(24, '#ffd84a', { stroke: '#000000', strokeThickness: 4 })).setOrigin(0.5);
-    if (this.sim.coop) {
-      // кооп: карточки выбирает игрок, чей ход (sim.levelUp.player); второй видит, чей сейчас выбор
-      const who = this.sim.levelUp.player;
-      const key = who === this.sim.local ? 'coop.your_pick' : 'coop.partner_pick';
-      this.add.text(GAME_WIDTH / 2, 52, t(key, { n: who + 1 }), textStyle(10, '#9ad0ff')).setOrigin(0.5);
-    }
     this.nav = new FocusNav(this, {
       onBack: () => {
         if (this.banishMode) {
@@ -54,16 +48,21 @@ export class LevelUpScene extends Phaser.Scene {
     this.render();
   }
 
-  // Чей ход: в коопе карточки выбирает sim.levelUp.player, второй только смотрит.
+  // Чей ход: в коопе карточки выбирает sim.picker, второй только смотрит.
   get mine() {
-    return !this.act.coop || this.sim.levelUp.player === this.act.local;
+    return !this.act.coop || this.sim.picker === this.act.local;
+  }
+
+  // Набор карточек того, кто выбирает (его пул, его reroll/skip/banish).
+  get lu() {
+    return this.sim.players[this.sim.picker].levelUp;
   }
 
   update(time) {
     this.nav.update(time);
     // соло: sim меняется сразу в pick(); кооп: команда применяется через lockstep позже
     if (this.sim.state !== 'levelup') { this.close(); return; }
-    if (this.sim.levelUp.cards !== this.shown) this.render();
+    if (this.lu.cards !== this.shown) this.render();
   }
 
   close() {
@@ -78,7 +77,14 @@ export class LevelUpScene extends Phaser.Scene {
     this.nav.clear();
     for (const o of this.objs) o.destroy();
     const before = new Set(this.children.list);
-    const lu = this.sim.levelUp;
+    if (this.sim.coop) {
+      // кооп: карточки выбирает игрок, чей ход (sim.picker), из своего пула; второй видит, чей сейчас выбор.
+      // Здесь, а не в create: при нескольких уровнях подряд ход переходит, пока экран открыт
+      const who = this.sim.picker;
+      const key = who === this.sim.local ? 'coop.your_pick' : 'coop.partner_pick';
+      this.add.text(GAME_WIDTH / 2, 52, t(key, { n: who + 1 }), textStyle(10, '#9ad0ff')).setOrigin(0.5);
+    }
+    const lu = this.lu;
     const cards = lu.cards;
     this.shown = cards;
     const mine = this.mine;

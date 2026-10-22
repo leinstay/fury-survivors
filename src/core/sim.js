@@ -104,13 +104,6 @@ class Sim {
     this.frame = 0;
     this.pendingLevels = 0;
     this.chest = { cards: [], applied: [] }; // выбор супероружия (state 'chest'); applied — что выдал последний выбор
-    this.banished = new Set();
-    this.levelUp = {
-      cards: [],
-      rerolls: LEVEL_UP.rerolls,
-      skips: LEVEL_UP.skips,
-      banishes: LEVEL_UP.banishes,
-    };
 
     this.grid = new Grid(SIM.gridCellSize, 7, 1024);
     this.pgrid = new Grid(XP.mergeRadius * 2, 7, 2048);
@@ -127,7 +120,8 @@ class Sim {
     this.chunkY = NaN;
 
     // Игроки: соло один, кооп COOP.players. Опыт и уровень общие и лежат у players[0] (this.player);
-    // оружие, пассивки, HP и гроб у каждого свои. this.view — центр экрана (середина между живыми).
+    // оружие, пассивки, HP, гроб, урон по оружию и выбор карточек (свой набор, reroll/skip/banish, изгнанные)
+    // у каждого свои. this.view — центр экрана (середина между живыми).
     this.coop = o.players > 1;
     this.players = [];
     const n = this.coop ? Math.min(o.players, COOP.players) : 1;
@@ -136,7 +130,7 @@ class Sim {
     this.view = { x: 0, y: 0, dirX: 1, dirY: 0 };
     this.local = 0;         // индекс игрока за этим экраном (HUD, экраны выбора); сеть ставит 1 у гостя
     this.levelTurn = 0;     // чей ход выбирать карточку (по очереди, индекс растёт с каждым уровнем)
-    this.levelUp.player = 0;
+    this.picker = 0;        // индекс игрока, который выбирает сейчас (state 'levelup')
     this.chest.player = 0;
     this._syncBuild();
     this._updateChunks();
@@ -160,7 +154,23 @@ class Sim {
       slots: { weapons: slots.weapons, passives: slots.passives },
       dead: false, coffinT: 0, revives: 0,
       name: '',
+      // свои карточки и пул: набор текущего уровня (done — не его ход или уже выбрал), изгнанные, лимиты
+      levelUp: {
+        cards: [], done: true, banished: new Set(),
+        rerolls: LEVEL_UP.rerolls, skips: LEVEL_UP.skips, banishes: LEVEL_UP.banishes,
+      },
+      // урон своим оружием: за забег и окно DPS (HUD и итоги показывают своего игрока)
+      damageByWeapon: {}, dps: 0, dpsByWeapon: {}, dpsAcc: {}, dpsBuckets: [],
     };
+  }
+
+  /** Выбор карточек первого игрока (соло). */
+  get levelUp() {
+    return this.players[0].levelUp;
+  }
+
+  get banished() {
+    return this.players[0].levelUp.banished;
   }
 
   /** Множитель спавна: сложность × кооп. */
@@ -217,18 +227,8 @@ class Sim {
     const pl = this.player;
     while (this.time >= this.dpsNext) {
       this.dpsNext++;
-      const b = this.dpsBuckets;
-      b.push(this.dpsAcc);
-      this.dpsAcc = {};
-      if (b.length > HUD.dpsWindow) b.shift();
-      const byW = {};
-      let sum = 0;
-      for (let i = 0; i < b.length; i++) {
-        for (const wid in b[i]) { byW[wid] = (byW[wid] || 0) + b[i][wid]; sum += b[i][wid]; }
-      }
-      for (const wid in byW) byW[wid] /= b.length;
-      this.dpsByWeapon = byW;
-      this.dps = sum / b.length;
+      this._closeDpsSecond(this);
+      for (const p of this.players) this._closeDpsSecond(p);
     }
 
     // движение игроков: input — вектор первого, inputs[i] — по игрокам (кооп)
@@ -522,6 +522,22 @@ class Sim {
     return Math.min(1, st.crit * st.luck);
   }
 
+  // Окно DPS (HUD.dpsWindow секунд) для o: всего забега (sim) или одного игрока — у обоих те же поля.
+  _closeDpsSecond(o) {
+    const b = o.dpsBuckets;
+    b.push(o.dpsAcc);
+    o.dpsAcc = {};
+    if (b.length > HUD.dpsWindow) b.shift();
+    const byW = {};
+    let sum = 0;
+    for (let i = 0; i < b.length; i++) {
+      for (const wid in b[i]) { byW[wid] = (byW[wid] || 0) + b[i][wid]; sum += b[i][wid]; }
+    }
+    for (const wid in byW) byW[wid] /= b.length;
+    o.dpsByWeapon = byW;
+    o.dps = sum / b.length;
+  }
+
   // Урон врагу. (sx, sy) — источник для направления отбрасывания; by — игрок-владелец оружия (крит по его статам).
   damageEnemy(e, dmg, wid, kb, sx, sy, by = this.player) {
     if (e.dead || e.def.invulnerable) return; // жница: урон не проходит, чисел урона нет
@@ -532,6 +548,8 @@ class Sim {
     e.hitFlash = COMBAT.hitFlash;
     this.damageByWeapon[wid] = (this.damageByWeapon[wid] || 0) + dealt;
     this.dpsAcc[wid] = (this.dpsAcc[wid] || 0) + dealt;
+    by.damageByWeapon[wid] = (by.damageByWeapon[wid] || 0) + dealt;
+    by.dpsAcc[wid] = (by.dpsAcc[wid] || 0) + dealt;
     this.events.push({ type: 'hit', x: e.x, y: e.y, amount: Math.max(1, Math.round(amount)), crit, weapon: wid });
     if (kb > 0 && e.resist < 1 && !e.boss) {
       const dx = e.x - sx;
@@ -1165,9 +1183,10 @@ class Sim {
     if (this.pendingLevels > 0 && this.state === 'running') this._offerCards();
   }
 
-  // Набор карточек на очередной уровень. Если выбирать нечего (всё на максимуме), drawCards даёт одну карточку
-  // лечения: она применяется сама, без экрана, чтобы прокачанный билд не останавливал игру на каждом уровне.
-  // Чей ход выбирать карточку: по очереди (как в VS), мёртвые тоже выбирают (гроб оживёт с новым оружием).
+  // Набор карточек на очередной уровень. Опыт общий, карточки выбирают по очереди (как в VS, для баланса:
+  // на двоих столько же улучшений, сколько у одного), но у каждого свой пул: свои изгнанные и свои
+  // reroll/skip/banish (pl.levelUp). Мёртвые тоже выбирают (гроб оживёт с новым оружием). Если выбирать
+  // нечего (всё на максимуме), drawCards даёт одну карточку лечения: она применяется сама, без экрана.
   _chooser() {
     return this.players[this.levelTurn % this.players.length];
   }
@@ -1175,11 +1194,13 @@ class Sim {
   _offerCards() {
     while (this.pendingLevels > 0) {
       const pl = this._chooser();
-      const cards = UP.drawCards(pl, this.rng, this.banished);
+      const lu = pl.levelUp;
+      const cards = UP.drawCards(pl, this.rng, lu.banished);
       if (!(cards.length === 1 && cards[0].kind === 'heal')) {
         this.state = 'levelup';
-        this.levelUp.cards = cards;
-        this.levelUp.player = pl.id;
+        this.picker = pl.id;
+        lu.cards = cards;
+        lu.done = false;
         return;
       }
       this._applyCard(cards[0], pl);
@@ -1187,11 +1208,12 @@ class Sim {
       this.levelTurn++;
       this.events.push({ type: 'autoHeal', player: pl.id });
     }
-    this.levelUp.cards = [];
     this.state = 'running';
   }
 
-  _afterChoice() {
+  _afterChoice(pl) {
+    pl.levelUp.cards = [];
+    pl.levelUp.done = true;
     this.pendingLevels--;
     this.levelTurn++;
     this._offerCards();
@@ -1207,37 +1229,51 @@ class Sim {
     UP.applyCard(pl, card);
   }
 
-  chooseCard(i) {
-    if (this.state !== 'levelup') return;
-    const card = this.levelUp.cards[i];
+  // Выбирает ли сейчас игрок who (state 'levelup' и его ход).
+  choosing(who = 0) {
+    return this.state === 'levelup' && this.picker === who && !!this.players[who];
+  }
+
+  chooseCard(i, who = 0) {
+    if (!this.choosing(who)) return;
+    const pl = this.players[who];
+    const card = pl.levelUp.cards[i];
     if (!card) return;
-    this._applyCard(card, this._chooser());
+    this._applyCard(card, pl);
     this._syncBuild();
-    this._afterChoice();
+    this._afterChoice(pl);
   }
 
-  reroll() {
-    if (this.state !== 'levelup' || this.levelUp.rerolls <= 0) return false;
-    this.levelUp.rerolls--;
-    this.levelUp.cards = UP.drawCards(this._chooser(), this.rng, this.banished);
+  reroll(who = 0) {
+    if (!this.choosing(who)) return false;
+    const pl = this.players[who];
+    const lu = pl.levelUp;
+    if (lu.rerolls <= 0) return false;
+    lu.rerolls--;
+    lu.cards = UP.drawCards(pl, this.rng, lu.banished);
     return true;
   }
 
-  skip() {
-    if (this.state !== 'levelup' || this.levelUp.skips <= 0) return false;
-    this.levelUp.skips--;
-    this._afterChoice();
+  skip(who = 0) {
+    if (!this.choosing(who)) return false;
+    const pl = this.players[who];
+    if (pl.levelUp.skips <= 0) return false;
+    pl.levelUp.skips--;
+    this._afterChoice(pl);
     return true;
   }
 
-  banish(i) {
-    if (this.state !== 'levelup' || this.levelUp.banishes <= 0) return false;
-    const cards = this.levelUp.cards;
+  banish(i, who = 0) {
+    if (!this.choosing(who)) return false;
+    const pl = this.players[who];
+    const lu = pl.levelUp;
+    if (lu.banishes <= 0) return false;
+    const cards = lu.cards;
     const card = cards[i];
     if (!card || card.kind === 'heal') return false;
-    this.levelUp.banishes--;
-    this.banished.add(UP.cardKey(card));
-    const repl = UP.drawCards(this._chooser(), this.rng, this.banished, 1, cards);
+    lu.banishes--;
+    lu.banished.add(UP.cardKey(card));
+    const repl = UP.drawCards(pl, this.rng, lu.banished, 1, cards);
     if (repl.length) cards[i] = repl[0];
     else cards.splice(i, 1);
     if (cards.length === 0) cards.push(UP.healCard());

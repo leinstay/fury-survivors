@@ -67,7 +67,9 @@ export function buildResults(scene, sim,
   scene.add.text(cx + 90, 111, String(score), textStyle(16, '#ffd84a')).setOrigin(1, 0);
 
   scene.add.text(cx, 138, t('result.damage'), textStyle(11, '#ffd84a')).setOrigin(0.5, 0);
-  const dmg = Object.entries(sim.damageByWeapon || {}).sort((a, b) => b[1] - a[1]).slice(0, 4);
+  const me = sim.players[sim.local] || sim.player; // урон своим оружием (в коопе без напарника)
+  const dmg = Object.entries(me.damageByWeapon || sim.damageByWeapon || {})
+      .sort((a, b) => b[1] - a[1]).slice(0, 4);
   const max = Math.max(1, ...dmg.map((d) => d[1]));
   dmg.forEach(([id, v], i) => {
     const y = 156 + i * 17;

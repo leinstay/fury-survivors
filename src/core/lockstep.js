@@ -26,10 +26,11 @@ export function hashSim(sim) {
   const r = (v) => Math.round(v * 1000);
   const parts = [sim.frame, r(sim.time), sim.kills, sim.coins, sim.state, sim.rng.state, sim.uid,
     sim.enemies.length, sim.projectiles.length, sim.pickups.length, sim.pendingLevels,
-    sim.levelTurn, sim.levelUp.rerolls, sim.levelUp.skips, sim.levelUp.banishes, sim.banished.size,
-    r(sim.overtime)];
+    sim.levelTurn, sim.picker, r(sim.overtime)];
   for (const p of sim.players) {
-    parts.push(r(p.x), r(p.y), r(p.hp), p.level, r(p.xp), p.dead ? 1 : 0, r(p.coffinT));
+    const lu = p.levelUp;
+    parts.push(r(p.x), r(p.y), r(p.hp), p.level, r(p.xp), p.dead ? 1 : 0, r(p.coffinT),
+        lu.rerolls, lu.skips, lu.banishes, lu.banished.size);
     for (const w of p.weapons) parts.push(w.id, w.level);
     for (const q of p.passives) parts.push(q.id, q.level);
   }
@@ -46,7 +47,7 @@ export function hashSim(sim) {
 
 /**
  * Применить команду экрана к симуляции. who — индекс игрока, отправившего её: карточки выбирает только тот,
- * чей ход, сундук — тот, кому он достался; остальные команды общие.
+ * чей ход (из своего пула), сундук — тот, кому он достался; остальные команды общие.
  * @param {!Object} sim
  * @param {number} who
  * @param {{k: string, i: (number|undefined)}} cmd
@@ -55,18 +56,15 @@ export function hashSim(sim) {
 export function applyCommand(sim, who, cmd) {
   switch (cmd.k) {
     case 'card':
-      if (sim.state !== 'levelup' || sim.levelUp.player !== who) return false;
-      sim.chooseCard(cmd.i);
+      if (!sim.choosing(who)) return false;
+      sim.chooseCard(cmd.i, who);
       return true;
     case 'reroll':
-      if (sim.state !== 'levelup' || sim.levelUp.player !== who) return false;
-      return sim.reroll();
+      return sim.reroll(who);
     case 'skip':
-      if (sim.state !== 'levelup' || sim.levelUp.player !== who) return false;
-      return sim.skip();
+      return sim.skip(who);
     case 'banish':
-      if (sim.state !== 'levelup' || sim.levelUp.player !== who) return false;
-      return sim.banish(cmd.i);
+      return sim.banish(cmd.i, who);
     case 'chest':
       if (sim.state !== 'chest' || sim.chest.player !== who) return false;
       sim.chooseChest(cmd.i);
@@ -111,6 +109,8 @@ class Lockstep {
     this.waitT = 0;                // с подряд в ожидании ввода напарника
     this.lastRemoteT = 0;          // время по монотонным часам (сек), когда пришло последнее сообщение
     this.pendingCmds = [];         // свои команды, ждущие отправки с ближайшим вводом
+    this.remoteMax = this.delay - 1; // последний тик, на который пришёл ввод напарника
+    this.remoteAdv = 0;            // опережение напарника (его advantage()), приходит с его вводом
     // первые delay тиков обоих ничем не заняты: ввод на них пустой
     for (let t = 0; t < this.delay; t++) {
       this.inputs[0].set(t, IDLE);
@@ -145,7 +145,7 @@ class Lockstep {
     if (!mine.has(at)) {
       const inp = this._quant(input);
       mine.set(at, inp);
-      const msg = { t: at, x: inp.x, y: inp.y };
+      const msg = { t: at, x: inp.x, y: inp.y, a: this.advantage() };
       if (this.pendingCmds.length) {
         msg.c = this.pendingCmds;
         this._addCmds(at, this.local, this.pendingCmds);
@@ -223,7 +223,53 @@ class Lockstep {
     const x = Math.round((+msg.x || 0) * q) / q;
     const y = Math.round((+msg.y || 0) * q) / q;
     this.inputs[this.remote].set(msg.t, x === 0 && y === 0 ? IDLE : { x, y });
+    if (msg.t > this.remoteMax) this.remoteMax = msg.t;
+    if (Number.isFinite(msg.a)) this.remoteAdv = msg.a;
     if (Array.isArray(msg.c) && msg.c.length) this._addCmds(msg.t, this.remote, msg.c);
+  }
+
+  /**
+   * Насколько мой тик впереди последнего известного тика напарника (его тик = последний ввод - delay).
+   * При равных часах это задержка сети в тиках у обоих; разница с напарником — рассинхрон часов.
+   * @return {number}
+   */
+  advantage() {
+    return this.tick - (this.remoteMax - this.delay);
+  }
+
+  /**
+   * На сколько тиков мои часы впереди напарника: (моё опережение - его) / 2. Больше нуля — мне притормозить,
+   * иначе я упираюсь в его ввод и стою (рывки), а он потом догоняет.
+   * @return {number}
+   */
+  drift() {
+    return (this.advantage() - this.remoteAdv) / 2;
+  }
+
+  /**
+   * Сдвиг своего игрока за ввод, который уже отправлен, но ещё не применён (delay тиков вперёд). Рендер
+   * рисует своего героя с этим сдвигом: управление откликается сразу, сим не меняется (при применении
+   * ввода сим приходит туда же, расходится только в упоре в напарника).
+   * @param {number} speed px/с
+   * @param {number} dt шаг тика
+   * @return {{x: number, y: number, face: number}} face: 1 / -1 по последнему вводу с горизонталью, 0 — нет
+   */
+  predictOffset(speed, dt) {
+    let x = 0;
+    let y = 0;
+    let face = 0;
+    const mine = this.inputs[this.local];
+    for (let t = this.tick; t < this.tick + this.delay; t++) {
+      const inp = mine.get(t);
+      if (!inp) continue;
+      const len = Math.sqrt(inp.x * inp.x + inp.y * inp.y);
+      if (len <= 0.05) continue;
+      const k = (len > 1 ? 1 / len : 1) * speed * dt;
+      x += inp.x * k;
+      y += inp.y * k;
+      if (inp.x > 0.05) face = 1; else if (inp.x < -0.05) face = -1;
+    }
+    return { x, y, face };
   }
 
   /** Сколько секунд напарник молчит. */

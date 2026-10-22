@@ -36,6 +36,9 @@ export class FocusNav {
     this.padDir = '';
     this.padNext = 0;
     this.padActive = false;
+    // мышь ушла с пункта в фокусе: рамку не рисуем (иначе жёлтая «залипает» на последнем наведённом и
+    // возвращается при каждой перерисовке экрана); индекс помним, клавиши и геймпад показывают его снова
+    this.mouseOut = false;
 
     this._onKey = (ev) => this._key(ev);
     scene.input.keyboard.on('keydown', this._onKey);
@@ -46,9 +49,19 @@ export class FocusNav {
   add(item) {
     const zone = this.scene.add.zone(item.x, item.y, item.w, item.h)
         .setInteractive({ useHandCursor: true });
-    zone.on('pointerover', () => { if (!item.disabled) this.focus(this.items.indexOf(item)); });
+    zone.on('pointerover', () => {
+      if (item.disabled) return;
+      this.mouseOut = false;
+      this.focus(this.items.indexOf(item));
+    });
+    zone.on('pointerout', () => {
+      if (this.items[this.index] !== item) return;
+      this.mouseOut = true;
+      item.setFocus(false);
+    });
     zone.on('pointerdown', (p) => {
       if (item.disabled) return;
+      this.mouseOut = false;
       this.focus(this.items.indexOf(item));
       if (item.onPointer) item.onPointer(p);
       else if (item.onSelect) { playSfx(this.scene, 'ui_select'); item.onSelect(); }
@@ -71,14 +84,14 @@ export class FocusNav {
     if (this.index >= 0 && this.items[this.index]) this.items[this.index].setFocus(false);
     const changed = this.index >= 0 && this.index !== i;
     this.index = i;
-    this.items[i].setFocus(true);
+    this.items[i].setFocus(!this.mouseOut);
     if (changed && this.items.length > 1 && !this.silent) playSfx(this.scene, 'ui_move');
   }
 
   // Если фокус стоит на отключённом пункте, переносит на ближайший живой.
   refocus() {
     const cur = this.items[this.index];
-    if (cur && !cur.disabled) { cur.setFocus(true); return; }
+    if (cur && !cur.disabled) { cur.setFocus(!this.mouseOut); return; }
     const i = this.items.findIndex((it) => !it.disabled);
     if (i >= 0) this.focus(i);
   }
@@ -102,11 +115,22 @@ export class FocusNav {
   }
 
   select() {
+    if (this._wake()) return;
     const it = this.items[this.index];
     if (it && !it.disabled && it.onSelect) { playSfx(this.scene, 'ui_select'); it.onSelect(); }
   }
 
+  // Клавиши и геймпад после мыши: сначала просто показать, где фокус, без шага.
+  _wake() {
+    if (!this.mouseOut) return false;
+    this.mouseOut = false;
+    const it = this.items[this.index];
+    if (it) it.setFocus(true);
+    return !!it;
+  }
+
   _dir(dx, dy) {
+    if (this._wake()) return;
     const it = this.items[this.index];
     if (it && it.onAdjust && dx !== 0 && !it.disabled) { it.onAdjust(dx); return; }
     this.move(dx, dy);
