@@ -66,6 +66,7 @@ sim.events      // события этого шага, очищаются в н�
                 //   { type: 'bossBlink', x, y }              босс появился после телепорта
                 //   { type: 'bossRage', x, y }               босс упал ниже bosses[id].rage.hpFraction HP (один раз);
                 //                                            fx: тряска, звук: boss_spawn ниже тоном
+                //   { type: 'horde', x, y, enemy }           убита элита: вокруг её сундука кольцо врагов (stage.chestHorde)
                 //   { type: 'overtime' }                     финальный босс убит, начался овертайм (hud: баннер)
                 //   { type: 'gameover' } | { type: 'victory' }  victory: смерть или finishOvertime в овертайме
                 //                                            (без stage.overtime приходит сразу после kill босса)

@@ -14,6 +14,7 @@ import { ranged } from './enemies/ranged.js';
 import { swarm } from './enemies/swarm.js';
 import { phase } from './enemies/phase.js';
 import { boss } from './enemies/boss.js';
+import { drift } from './enemies/drift.js';
 
 export const WEAPON_BEHAVIORS = {
   melee_arc: meleeArc,
@@ -26,4 +27,4 @@ export const WEAPON_BEHAVIORS = {
   combo,
 };
 
-export const ENEMY_BEHAVIORS = { chase, dash, ranged, swarm, phase, boss };
+export const ENEMY_BEHAVIORS = { chase, dash, ranged, swarm, phase, boss, drift };

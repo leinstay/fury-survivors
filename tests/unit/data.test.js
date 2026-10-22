@@ -159,7 +159,7 @@ test('data: pickups, props drops and timeline are consistent', () => {
   assert.equal(last.type, 'boss');
   assert.equal(last.at, forest.duration);
   for (const ev of forest.timeline) {
-    assert.ok(['spawn', 'ring', 'elite', 'burst', 'boss'].includes(ev.type), `event type ${ev.type}`);
+    assert.ok(['spawn', 'ring', 'elite', 'burst', 'boss', 'wall', 'flyby'].includes(ev.type), `event type ${ev.type}`);
     if (ev.until !== undefined) assert.ok(ev.until > ev.at);
   }
 });

@@ -2,15 +2,15 @@ import { t } from '../i18n/index.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
 import { FocusNav, addButton, readPad } from '../ui/focus.js';
 import { addIcon, displayName, iconKeyFor } from '../ui/icons.js';
-import { addPanel } from '../ui/panel.js';
+import { addPanel, PANEL } from '../ui/panel.js';
 import { textStyle } from '../ui/style.js';
 import { spriteScale } from '../render/density.js';
 
 const SHAKE_MS = 600;
 const INPUT_GUARD_MS = 250; // клавиши движения, зажатые в момент открытия, не должны закрывать экран
-const CHOICE_W = 148;       // карточка выбора супероружия (до 4 в ряд)
-const CHOICE_H = 96;
-const CHOICE_GAP = 8;
+const CHOICE_W = 420;       // строка выбора супероружия: ряд «A + B > C» слева, название и описание справа
+const CHOICE_H = 70;        // до CHEST.maxChoices (3) строк столбиком
+const CHOICE_GAP = 6;
 
 // Экран сундука поверх замороженной Game. data: { sim, items } — предметы уже применены, показ;
 // { sim, choices } — несколько готовых супероружий (sim.state === 'chest'): выбор карточки и подтверждение.
@@ -120,44 +120,50 @@ export class ChestScene extends Phaser.Scene {
     }
   }
 
-  // Выбор: карточки в ряд, клик или Enter выбирает (описание ниже), Confirm применяет.
-  // Enter на уже выбранной карточке тоже подтверждает.
+  // Выбор: строки-карточки столбиком (как показ одной эволюции), первая выбрана сразу; клик или Enter
+  // выбирает строку, Continue применяет (Enter на уже выбранной строке тоже).
   drawChoices() {
     const cards = this.choices;
-    this.add.text(GAME_WIDTH / 2, 62, t('chest.choose'), textStyle(14, '#d8d0f0')).setOrigin(0.5);
-    const total = cards.length * CHOICE_W + (cards.length - 1) * CHOICE_GAP;
-    const x0 = (GAME_WIDTH - total) / 2 + CHOICE_W / 2;
-    const cy = 134;
-    this.marks = [];
+    const w = CHOICE_W;
+    const h = CHOICE_H;
+    const y0 = 58 + h / 2;
+    const x = GAME_WIDTH / 2;
+    this.panels = [];
     cards.forEach((it, i) => {
-      const x = x0 + i * (CHOICE_W + CHOICE_GAP);
-      const panel = addPanel(this, x, cy, CHOICE_W, CHOICE_H);
-      this.add.text(x, cy - CHOICE_H / 2 + 12, t('chest.evolution'),
-          textStyle(12, '#ffd84a', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5);
-      this.drawCombo(it, x, cy - 6, 'weapon', 0.72);
-      this.add.text(x, cy + 24, displayName('weapon', it.id),
-          textStyle(11, '#ffffff', { align: 'center', wordWrap: { width: CHOICE_W - 10 } })).setOrigin(0.5, 0);
-      const mark = this.add.rectangle(x, cy, CHOICE_W + 4, CHOICE_H + 4)
-          .setStrokeStyle(2, 0xffd84a).setVisible(false);
-      this.marks.push(mark);
+      const y = y0 + i * (h + CHOICE_GAP);
+      const panel = addPanel(this, x, y, w, h);
+      this.panels.push(panel);
+      this.drawCombo(it, x - 100, y, 'weapon', 0.8);
+      this.add.text(x + 4, y - h / 2 + 10, t('chest.evolution'),
+          textStyle(11, '#ffd84a', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0, 0);
+      this.add.text(x + 4, y - 7, displayName('weapon', it.id), textStyle(13, '#ffffff')).setOrigin(0, 0);
+      this.add.text(x + 4, y + 11, t(`weapon.${it.id}.desc`),
+          textStyle(9, '#d8d0f0', { wordWrap: { width: w / 2 - 20 } })).setOrigin(0, 0);
       this.nav.add({
-        x, y: cy, w: CHOICE_W, h: CHOICE_H,
-        setFocus: (f) => panel.setFocus(f),
+        x, y, w, h,
+        setFocus: (f) => this.paintRow(i, f),
         onSelect: () => { if (this.picked === i) this.confirm(); else this.pick(i); },
       });
     });
-    this.desc = this.add.text(GAME_WIDTH / 2, 206, '', textStyle(11, '#d8d0f0', { align: 'center', wordWrap: { width: 420 } })).setOrigin(0.5, 0);
-    this.confirmBtn = addButton(this, this.nav, { x: GAME_WIDTH / 2, y: 290, w: 150, h: 30, label: t('chest.confirm'), onSelect: () => this.confirm() });
-    this.confirmBtn.setDisabled(true);
+    const by = y0 + cards.length * (h + CHOICE_GAP) - h / 2 + 18;
+    this.confirmBtn = addButton(this, this.nav, { x, y: by, w: 140, h: 28, label: t('chest.continue'), onSelect: () => this.confirm() });
+    this.picked = 0;
+    this.paintRow(0, false);
     this.nav.focus(0);
   }
 
+  // Выбранная строка жёлтая и при потере фокуса, фокус на остальных обычный.
+  paintRow(i, focused) {
+    const p = this.panels[i];
+    if (i === this.picked) p.draw(PANEL.fillFocus, PANEL.borderFocus);
+    else p.setFocus(focused);
+  }
+
   pick(i) {
+    const prev = this.picked;
     this.picked = i;
-    this.marks.forEach((m, j) => m.setVisible(j === i));
-    const it = this.choices[i];
-    this.desc.setText(`${displayName('weapon', it.id)}: ${t(`weapon.${it.id}.desc`)}`);
-    this.confirmBtn.setDisabled(false);
+    if (prev >= 0) this.paintRow(prev, false);
+    this.paintRow(i, true);
   }
 
   confirm() {

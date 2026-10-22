@@ -221,7 +221,7 @@ class Sim {
         uid: 0, type: '', sprite: '', x: 0, y: 0, hp: 0, maxHp: 0, size: 0, facing: 1, elite: false, boss: false,
         hitFlash: 0, moving: false, pose: 'idle', rage: false, alpha: 1,
         vx: 0, vy: 0, kx: 0, ky: 0, speed: 0, damage: 0, xp: 0, st: 0, a: 0, b: 0, t: 0, mark: 0,
-        dead: false, def: null, params: EMPTY, beh: null, resist: 0,
+        dead: false, def: null, params: EMPTY, beh: null, resist: 0, transient: false,
         hitAt: new Float64Array(SLOT_COUNT),
       };
     }
@@ -253,6 +253,7 @@ class Sim {
     e.xp = (def.xp || 0) * (ed ? ed.xpMul || 1 : 1);
     e.pose = 'idle'; e.alpha = 1; e.rage = false; e.st = 0; e.a = 0; e.b = 0; e.t = this.rng.next() * 6.2832; e.mark = 0;
     e.dead = false;
+    e.transient = false;
     e.def = def;
     e.params = def.params || EMPTY;
     e.resist = def.knockbackResist || 0;
@@ -318,7 +319,10 @@ class Sim {
       e.beh.update(e, this, dt);
       const dx = e.x - pl.x;
       const dy = e.y - pl.y;
-      if (!e.boss && dx * dx + dy * dy > far2) this._teleportAhead(e);
+      if (!e.boss && dx * dx + dy * dy > far2) {
+        // стена и пролёт (transient) уходят за край и исчезают без дропа, остальные догоняют игрока
+        if (e.transient) { e.dead = true; this.deadN++; } else this._teleportAhead(e);
+      }
     }
   }
 
@@ -419,11 +423,25 @@ class Sim {
     }
     if (e.elite) {
       this.dropPickup(e.def.elite.drop || 'chest', e.x, e.y);
+      this._chestHorde(e);
     } else {
       const r = this.rng.next();
       if (r < DROPS.coinChance * luck) this.dropPickup('coin', e.x, e.y);
       else if (r < (DROPS.coinChance + DROPS.foodChance) * luck) this.dropPickup('food', e.x, e.y);
     }
+  }
+
+  // Мини-орда вокруг сундука элиты (stage.chestHorde): кольцо врагов её типа, за сундуком надо пробиться.
+  _chestHorde(e) {
+    const h = this.stageDef.chestHorde;
+    if (!h) return;
+    const off = this.rng.next() * Math.PI * 2;
+    for (let i = 0; i < h.count; i++) {
+      if (!this.canSpawn()) break;
+      const a = off + (i / h.count) * Math.PI * 2;
+      this.spawnEnemy(e.type, e.x + Math.cos(a) * h.radius, e.y + Math.sin(a) * h.radius, false);
+    }
+    this.events.push({ type: 'horde', x: e.x, y: e.y, enemy: e.type });
   }
 
   _sweepEnemies() {
@@ -807,7 +825,7 @@ class Sim {
 
   _openChest() {
     // Несколько готовых супероружий: игрок выбирает сам (state 'chest', рендер открывает экран сундука с выбором).
-    const choices = UP.chestChoices(this.player);
+    const choices = UP.chestChoices(this.player, this.rng);
     if (choices.length && this.state === 'running') {
       this.state = 'chest';
       this.chest.cards = choices;

@@ -31,6 +31,10 @@ export const DIRECTOR = {
   burstJitter: 80,         // разброс врагов события burst, px (полная ширина)
   ringCount: 20,           // врагов в кольце ring, если у события нет count
   ringInset: 60,           // кольцо ring без radius: spawnDistance минус это
+  wallCount: 24,           // врагов в стене wall, если у события нет count
+  wallLength: 440,         // длина шеренги wall, px (экран 640x360 по диагонали ~ 734; стена шире высоты экрана)
+  wallInset: 40,           // стена появляется на spawnDistance плюс это
+  flybyMiss: 240,          // пролёт flyby целится в точку в пределах ±половины этого от игрока, px (полная ширина)
 };
 
 export const PLAYER = {
@@ -95,6 +99,9 @@ export const DROPS = {
 };
 
 export const SLOTS = { weapons: 6, passives: 6 };
+
+// Сундук с несколькими готовыми супероружиями: показывает не больше maxChoices случайных (src/core/upgrades.js).
+export const CHEST = { maxChoices: 3 };
 
 export const LEVEL_UP = {
   cards: 4,

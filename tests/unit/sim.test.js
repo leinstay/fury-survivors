@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import { createSim, xpForLevel } from '../../src/core/sim.js';
 import { SIM, XP, LEVEL_UP } from '../../src/data/constants.js';
 import { PICKUPS } from '../../src/data/pickups.js';
+import { createDirector } from '../../src/core/director.js';
+import { ENEMY_BEHAVIORS } from '../../src/behaviors/index.js';
+import { forest } from '../../src/data/stages/forest.js';
 
 const DT = 1 / 60;
 const idle = { x: 0, y: 0 };
@@ -322,4 +325,41 @@ test('sim: chest with several ready evolutions waits for the choice', () => {
   assert.equal(sim.state, 'running');
   assert.ok(sim.player.weapons.some((w) => w.id === want));
   assert.equal(sim.chest.cards.length, 0);
+});
+
+test('director: wall and flyby cross the screen on a straight course and vanish, horde rings the elite chest', () => {
+  const sim = createSim({ seed: 31 });
+  sim.player.hp = 1e9;
+  const dir = createDirector({ timeline: [
+    { at: 0, type: 'wall', enemy: 'slime', count: 10 },
+    { at: 0, type: 'flyby', enemy: 'harpy', count: 8 },
+  ], duration: 100 }, sim.rng);
+  dir.update(sim, 0);
+  const wall = sim.enemies.filter((e) => e.type === 'slime');
+  const fly = sim.enemies.filter((e) => e.type === 'harpy');
+  assert.equal(wall.length, 10);
+  assert.equal(fly.length, 8);
+  assert.ok(wall.every((e) => e.transient && e.beh === ENEMY_BEHAVIORS.drift));
+  // шеренга: все на одном расстоянии от игрока вдоль курса, растянуты поперёк
+  const a = wall[0].a;
+  const along = wall.map((e) => e.x * Math.cos(a) + e.y * Math.sin(a));
+  const across = wall.map((e) => -e.x * Math.sin(a) + e.y * Math.cos(a));
+  assert.ok(Math.max(...along) - Math.min(...along) < 1);
+  assert.ok(Math.max(...across) - Math.min(...across) > 300);
+  // идут прямо, не к игроку: через 2 с курс тот же, а дистанция до игрока меняется монотонно
+  const d0 = Math.hypot(wall[0].x, wall[0].y);
+  for (let i = 0; i < 120; i++) sim._updateEnemies(1 / 60);
+  assert.ok(Math.hypot(wall[0].x, wall[0].y) < d0);
+  // через 40 с все ушли за край и исчезли, игрок на месте
+  for (let i = 0; i < 40 * 60; i++) { sim._updateEnemies(1 / 60); sim._sweepEnemies(); }
+  assert.equal(sim.enemies.filter((e) => e.transient).length, 0);
+
+  // орда: убийство элиты окружает сундук врагами её типа
+  const elite = sim.spawnEnemy('catgirl', 200, 200, true);
+  sim.damageEnemy(elite, 1e9, 'blade_arc', 0, 0, 0);
+  const horde = sim.enemies.filter((e) => e.type === 'catgirl' && !e.dead);
+  assert.equal(horde.length, forest.chestHorde.count);
+  assert.ok(horde.every((e) =>
+    Math.abs(Math.hypot(e.x - 200, e.y - 200) - forest.chestHorde.radius) < 1));
+  assert.ok(sim.events.some((e) => e.type === 'horde'));
 });

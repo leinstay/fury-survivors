@@ -30,7 +30,7 @@ src/
     rng.js                 сидируемый RNG
   behaviors/
     weapons/<type>.js      melee_arc, projectile, orbit, aura, boomerang, chain, area_drop
-    enemies/<type>.js      chase, dash, ranged, swarm, phase
+    enemies/<type>.js      chase, dash, ranged, swarm, phase, drift (стена и пролёт: прямой курс, исчезает за краем)
   render/                  Phaser-слой: синхронизирует спрайты с sim, анимация, эффекты
     anim.js                процедурная ходьба/покачивание/наклон/вспышка/смерть
     fx.js                  частицы, числа урона, тряска, хитстоп

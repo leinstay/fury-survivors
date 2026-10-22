@@ -3,7 +3,7 @@
 import { WEAPONS } from '../data/weapons.js';
 import { PASSIVES } from '../data/passives.js';
 import { COMBOS } from '../data/combos.js';
-import { SLOTS, LEVEL_UP } from '../data/constants.js';
+import { SLOTS, LEVEL_UP, CHEST } from '../data/constants.js';
 
 /**
  * @param {{kind: string, id: string}} c карточка
@@ -159,13 +159,20 @@ export function evolutionCard(combo) {
 }
 
 /**
- * Выбор в сундуке: карточки всех готовых супероружий, если их больше одного (sim.state = 'chest').
+ * Выбор в сундуке: карточки готовых супероружий, если их больше одного (sim.state = 'chest'),
+ * не больше CHEST.maxChoices случайных.
  * @param {!Object} player данные игрока
+ * @param {{int: function(number): number}} rng
  * @return {!Array<!Object>} карточки или пустой массив, если выбирать не из чего
  */
-export function chestChoices(player) {
+export function chestChoices(player, rng) {
   const all = findEvolutions(player);
-  return all.length > 1 ? all.map(evolutionCard) : [];
+  if (all.length < 2) return [];
+  const out = [];
+  while (out.length < CHEST.maxChoices && all.length) {
+    out.push(all.splice(rng.int(all.length), 1)[0]);
+  }
+  return out.map(evolutionCard);
 }
 
 /**

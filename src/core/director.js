@@ -1,5 +1,6 @@
 // Директор: спавн врагов и событий по таймлайну этапа.
 import { SIM, DIRECTOR } from '../data/constants.js';
+import { ENEMY_BEHAVIORS } from '../behaviors/index.js';
 
 /**
  * Директор: спавн врагов и событий по таймлайну этапа.
@@ -56,9 +57,54 @@ export function createDirector(stage, rng) {
       case 'boss':
         sim.spawnBoss(ev.boss);
         break;
+      case 'wall': {
+        // Стена (как в VS): шеренга врагов во весь экран за краем, идёт сквозь игрока прямым курсом и исчезает.
+        const n = ev.count || DIRECTOR.wallCount;
+        const a = rng.next() * Math.PI * 2;          // откуда идёт
+        const dist = SIM.spawnDistance + DIRECTOR.wallInset;
+        const len = ev.length || DIRECTOR.wallLength;
+        const p = sim.player;
+        for (let i = 0; i < n; i++) {
+          const s = (i / (n - 1 || 1) - 0.5) * len;
+          const e = sim.spawnEnemy(ev.enemy,
+              p.x + Math.cos(a) * dist - Math.sin(a) * s,
+              p.y + Math.sin(a) * dist + Math.cos(a) * s, false);
+          if (!e) break;
+          drift(e, a + Math.PI, ev.speed);
+        }
+        break;
+      }
+      case 'flyby': {
+        // Пролёт стаи: кучка у края летит по случайному курсу мимо игрока (через точку рядом с ним) и улетает.
+        const n = ev.count || DIRECTOR.ringCount;
+        const a = rng.next() * Math.PI * 2;
+        const p = sim.player;
+        const cx = p.x + Math.cos(a) * SIM.spawnDistance;
+        const cy = p.y + Math.sin(a) * SIM.spawnDistance;
+        const miss = (rng.next() - 0.5) * DIRECTOR.flybyMiss;
+        const tx = p.x - Math.sin(a) * miss;
+        const ty = p.y + Math.cos(a) * miss;
+        const course = Math.atan2(ty - cy, tx - cx);
+        for (let i = 0; i < n; i++) {
+          const e = sim.spawnEnemy(ev.enemy,
+              cx + (rng.next() - 0.5) * DIRECTOR.burstJitter,
+              cy + (rng.next() - 0.5) * DIRECTOR.burstJitter, false);
+          if (!e) break;
+          drift(e, course, ev.speed);
+        }
+        break;
+      }
       default:
         break;
     }
+  }
+
+  // Прямой курс для стены и пролёта: поведение drift поверх родного, за краем мира враг исчезает.
+  function drift(e, angle, speed) {
+    e.beh = ENEMY_BEHAVIORS.drift;
+    e.a = angle;
+    e.transient = true;
+    if (speed) e.speed = speed;
   }
 
   // Группа врагов типа type у края экрана.
@@ -128,7 +174,8 @@ export function createDirector(stage, rng) {
           const min = ev.minEnd === undefined ? ev.min : ev.min + (ev.minEnd - ev.min) * k;
           let alive = 0;
           for (let j = 0; j < sim.enemies.length; j++) {
-            if (sim.enemies[j].type === ev.enemy) alive++;
+            const o = sim.enemies[j];
+            if (o.type === ev.enemy && !o.transient && !o.dead) alive++; // стена и пролёт не в счёт
           }
           const missing = Math.ceil((min - alive) / (ev.group || 1));
           if (missing > 0) a.acc += Math.min(missing, DIRECTOR.minGroupsCap);

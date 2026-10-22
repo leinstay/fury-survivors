@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildPool, drawCards, applyCard, findEvolution, evolutionCard, chestItems, chestChoices, cardKey } from '../../src/core/upgrades.js';
 import { createRng } from '../../src/core/rng.js';
+import { CHEST } from '../../src/data/constants.js';
 import { WEAPONS } from '../../src/data/weapons.js';
 import { PASSIVES } from '../../src/data/passives.js';
 import { COMBOS } from '../../src/data/combos.js';
@@ -105,11 +106,17 @@ test('upgrades: chestChoices lists every ready evolution, only when there are se
     passives: [{ id: 'attack', level: 1 }],
   };
   // blade_arc + war_axe, blade_arc + attack, war_axe + crit (нет crit) → две
-  const choices = chestChoices(p);
+  const choices = chestChoices(p, createRng(1));
   assert.deepEqual(choices.map((c) => c.id).sort(), ['crimson_arc', 'reaper_crescent']);
   assert.ok(choices.every((c) => c.evolved && c.from.length === 2));
   p.passives = [];
-  assert.deepEqual(chestChoices(p), []);
+  assert.deepEqual(chestChoices(p, createRng(1)), []);
+  // четыре готовых: показываются не больше CHEST.maxChoices, все разные
+  p.weapons.push({ id: 'holy_ground', level: WEAPONS.holy_ground.maxLevel });
+  p.passives = [{ id: 'attack', level: 1 }];
+  const four = chestChoices(p, createRng(2));
+  assert.equal(four.length, CHEST.maxChoices);
+  assert.equal(new Set(four.map((c) => c.id)).size, four.length);
 });
 
 test('upgrades: chest without evolution upgrades an owned weapon', () => {
