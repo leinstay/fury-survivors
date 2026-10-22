@@ -159,15 +159,15 @@ export function evolutionCard(combo) {
 }
 
 /**
- * Выбор в сундуке: карточки готовых супероружий, если их больше одного (sim.state = 'chest'),
- * не больше CHEST.maxChoices случайных.
+ * Выбор в сундуке (sim.state = 'chest'): карточки готовых супероружий, не больше CHEST.maxChoices случайных.
+ * Даже одно супероружие идёт через выбор: игрок может его пропустить (sim.skipChest) ради обычного апгрейда.
  * @param {!Object} player данные игрока
  * @param {{int: function(number): number}} rng
- * @return {!Array<!Object>} карточки или пустой массив, если выбирать не из чего
+ * @return {!Array<!Object>} карточки или пустой массив, если готовых супероружий нет
  */
 export function chestChoices(player, rng) {
   const all = findEvolutions(player);
-  if (all.length < 2) return [];
+  if (!all.length) return [];
   const out = [];
   while (out.length < CHEST.maxChoices && all.length) {
     out.push(all.splice(rng.int(all.length), 1)[0]);
@@ -179,10 +179,11 @@ export function chestChoices(player, rng) {
  * Содержимое сундука: супероружие, иначе апгрейд случайного оружия, иначе пассивки, иначе лечение.
  * @param {!Object} player данные игрока
  * @param {{int: function(number): number}} rng
+ * @param {boolean=} skipEvolution не предлагать супероружие (игрок пропустил выбор)
  * @return {!Array<!Object>} одна карточка
  */
-export function chestItems(player, rng) {
-  const combo = findEvolution(player);
+export function chestItems(player, rng, skipEvolution = false) {
+  const combo = skipEvolution ? null : findEvolution(player);
   if (combo) return [evolutionCard(combo)];
   const ups = [];
   for (const w of player.weapons) {

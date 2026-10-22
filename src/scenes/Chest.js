@@ -87,7 +87,10 @@ export class ChestScene extends Phaser.Scene {
     this.chest.destroy();
 
     if (this.choices.length) { this.drawChoices(); return; }
+    this.drawItems();
+  }
 
+  drawItems() {
     const items = this.items;
     const gap = 16;
     const w = items.some((it) => this.isEvolution(it)) ? 290 : 190;
@@ -123,6 +126,7 @@ export class ChestScene extends Phaser.Scene {
   // Выбор: строки-карточки столбиком (как показ одной эволюции), первая выбрана сразу; клик или Enter
   // выбирает строку, Continue применяет (Enter на уже выбранной строке тоже).
   drawChoices() {
+    const before = new Set(this.children.list);
     const cards = this.choices;
     const w = CHOICE_W;
     const h = CHOICE_H;
@@ -146,10 +150,25 @@ export class ChestScene extends Phaser.Scene {
       });
     });
     const by = y0 + cards.length * (h + CHOICE_GAP) - h / 2 + 18;
-    this.confirmBtn = addButton(this, this.nav, { x, y: by, w: 140, h: 28, label: t('chest.continue'), onSelect: () => this.confirm() });
+    this.confirmBtn = addButton(this, this.nav, { x: x - 78, y: by, w: 140, h: 28, label: t('chest.continue'), onSelect: () => this.confirm() });
+    addButton(this, this.nav, { x: x + 78, y: by, w: 140, h: 28, size: 12, label: t('chest.skip'), onSelect: () => this.skip() });
     this.picked = 0;
     this.paintRow(0, false);
     this.nav.focus(0);
+    this.choiceObjs = this.children.list.filter((o) => !before.has(o) && o.type !== 'Zone');
+  }
+
+  // Пропуск супероружия: sim выдаёт обычный предмет, показываем его как обычный сундук.
+  skip() {
+    if (this.closed) return;
+    const items = this.sim.skipChest();
+    this.choices = [];
+    this.items = items;
+    this.nav.clear();
+    for (const o of this.choiceObjs) o.destroy();
+    this.choiceObjs = [];
+    this.revealAt = this.time.now;
+    this.drawItems();
   }
 
   // Выбранная строка жёлтая и при потере фокуса, фокус на остальных обычный.

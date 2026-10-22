@@ -258,7 +258,11 @@ test('sim: evolution from chest when both parts are maxed', () => {
   sim._syncBuild();
   sim.dropPickup('chest', sim.player.x, sim.player.y);
   sim.step(DT, idle);
+  assert.equal(sim.state, 'chest');
+  assert.deepEqual(sim.chest.cards.map((c) => c.id), ['aegis_storm']);
+  sim.chooseChest(0);
   assert.deepEqual(sim.player.weapons.map((w) => w.id), ['aegis_storm']);
+  assert.ok(sim.events.some((e) => e.type === 'chest' && e.applied && e.items[0].id === 'aegis_storm'));
   run(sim, 5);
   assert.ok(sim.projectiles.some((p) => p.sprite === 'proj_crescent'), 'evolved shields orbit');
 });
@@ -325,6 +329,24 @@ test('sim: chest with several ready evolutions waits for the choice', () => {
   assert.equal(sim.state, 'running');
   assert.ok(sim.player.weapons.some((w) => w.id === want));
   assert.equal(sim.chest.cards.length, 0);
+});
+
+test('sim: skipping the evolution gives an ordinary chest item instead', () => {
+  const sim = createSim({ seed: 22 });
+  const pl = sim.player;
+  pl.weapons = [{ id: 'blade_arc', level: 7 }, { id: 'war_axe', level: 3 }];
+  pl.passives = [{ id: 'attack', level: 1 }];
+  sim._syncBuild();
+  sim.dropPickup('chest', pl.x, pl.y);
+  sim.step(DT, idle);
+  assert.equal(sim.state, 'chest');
+  const items = sim.skipChest();
+  assert.equal(sim.state, 'running');
+  assert.equal(items.length, 1);
+  assert.ok(!items[0].evolved);
+  assert.deepEqual(pl.weapons.map((w) => w.id), ['blade_arc', 'war_axe']);
+  assert.equal(pl.weapons[1].level, 4); // единственное оружие не на максимуме
+  assert.ok(sim.events.some((e) => e.type === 'chest' && e.applied));
 });
 
 test('director: wall and flyby cross the screen on a straight course and vanish, horde rings the elite chest', () => {

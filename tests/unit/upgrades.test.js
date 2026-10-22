@@ -100,7 +100,7 @@ test('upgrades: evolution needs both parts maxed, then replaces them', () => {
   }
 });
 
-test('upgrades: chestChoices lists every ready evolution, only when there are several', () => {
+test('upgrades: chestChoices lists ready evolutions, chestItems can skip them', () => {
   const p = {
     weapons: [{ id: 'blade_arc', level: WEAPONS.blade_arc.maxLevel }, { id: 'war_axe', level: WEAPONS.war_axe.maxLevel }],
     passives: [{ id: 'attack', level: 1 }],
@@ -110,7 +110,14 @@ test('upgrades: chestChoices lists every ready evolution, only when there are se
   assert.deepEqual(choices.map((c) => c.id).sort(), ['crimson_arc', 'reaper_crescent']);
   assert.ok(choices.every((c) => c.evolved && c.from.length === 2));
   p.passives = [];
+  // одно готовое супероружие тоже идёт через выбор (его можно пропустить); без готовых — пусто
+  assert.equal(chestChoices(p, createRng(1)).length, 1);
+  p.weapons[1].level = 1;
   assert.deepEqual(chestChoices(p, createRng(1)), []);
+  // пропуск: обычное содержимое без супероружия
+  p.weapons[1].level = WEAPONS.war_axe.maxLevel;
+  const skipped = chestItems(p, createRng(1), true);
+  assert.ok(!skipped[0].evolved);
   // четыре готовых: показываются не больше CHEST.maxChoices, все разные
   p.weapons.push({ id: 'holy_ground', level: WEAPONS.holy_ground.maxLevel });
   p.passives = [{ id: 'attack', level: 1 }];

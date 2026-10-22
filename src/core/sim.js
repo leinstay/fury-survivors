@@ -853,10 +853,24 @@ class Sim {
     if (this.state !== 'chest') return;
     const card = this.chest.cards[i];
     if (!card) return;
-    this._applyCard(card);
+    this._closeChest([card]);
+  }
+
+  // Пропустить супероружие: обычное содержимое сундука, как будто готовых супероружий не было.
+  // @return {!Array<!Object>} применённые карточки (рендер показывает их)
+  skipChest() {
+    if (this.state !== 'chest') return [];
+    const items = UP.chestItems(this.player, this.rng, true);
+    this._closeChest(items);
+    return items;
+  }
+
+  _closeChest(items) {
+    for (const it of items) this._applyCard(it);
     this._syncBuild();
     this.chest.cards = [];
     this.state = 'running';
+    this.events.push({ type: 'chest', items, applied: true });
     this._checkLevel();
   }
 

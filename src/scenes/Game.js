@@ -60,7 +60,10 @@ export class GameScene extends Phaser.Scene {
     this.fx.onEvents(events);
     this.hud.onEvents(events);
     // два сундука за кадр: sim уже выдал оба, показываем всё вместе
-    for (const ev of events) if (ev.type === 'chest' && !ev.choice) this.pendingChest = (this.pendingChest || []).concat(ev.items || []);
+    // choice: экран выбора откроется по sim.state === 'chest'; applied: выбор уже показан на этом экране
+    for (const ev of events) {
+      if (ev.type === 'chest' && !ev.choice && !ev.applied) this.pendingChest = (this.pendingChest || []).concat(ev.items || []);
+    }
     handleSimEvents(this, events);
     const h = FX.hitstop;
     let stop = 0;

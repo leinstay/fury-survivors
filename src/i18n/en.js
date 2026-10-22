@@ -63,7 +63,7 @@ export const en = {
   'chest.evolution': 'EVOLUTION!',
   'chest.continue': 'Continue',
   'chest.choose': 'Choose an evolution',
-  'chest.confirm': 'Confirm',
+  'chest.skip': 'Skip evolution',
   'chest.open': 'Opening...',
 
   // Статы игрока

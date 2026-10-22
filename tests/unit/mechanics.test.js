@@ -67,7 +67,9 @@ for (const combo of COMBOS) {
     sim._syncBuild();
     sim.dropPickup('chest', sim.player.x, sim.player.y);
     sim.step(DT, idle);
-    const ev = sim.events.find((e) => e.type === 'chest');
+    assert.equal(sim.state, 'chest', 'chest waits for the choice');
+    sim.chooseChest(0);
+    const ev = sim.events.find((e) => e.type === 'chest' && e.applied);
     assert.ok(ev, 'chest event');
     const it = ev.items[0];
     assert.equal(it.id, combo.result);
