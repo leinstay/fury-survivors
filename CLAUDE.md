@@ -6,7 +6,8 @@
 ## Где что лежит
 
 ```
-index.html                 точка входа, грузит vendor/phaser.min.js и src/main.js (ES-модули)
+index.html                 точка входа, грузит vendor/phaser.min.js и src/main.js (ES-модули), регистрирует sw.js
+sw.js                      service worker: каждый запрос перепроверяется на сервере (ETag), кэш только для офлайна
 eslint.config.js           правила стиля (npm run lint)
 vendor/phaser.min.js       Phaser 3.90.0, лежит в репо, не CDN
 src/

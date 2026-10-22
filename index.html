@@ -15,5 +15,7 @@
   <div id="game"></div>
   <script src="vendor/phaser.min.js"></script>
   <script type="module" src="src/main.js"></script>
+  <!-- sw.js: каждый файл перепроверяется на сервере, после деплоя достаточно перезагрузить страницу -->
+  <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});</script>
 </body>
 </html>
