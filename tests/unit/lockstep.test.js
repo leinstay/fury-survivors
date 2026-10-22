@@ -177,14 +177,15 @@ test('lockstep: drift shows whose clock runs ahead', () => {
 test('lockstep: game version fingerprint is stable and changes with game data', async () => {
   const { simFingerprint } = await import('../../src/core/lockstep.js');
   const { HEROES } = await import('../../src/data/heroes.js');
-  const f = simFingerprint();
+  const f = simFingerprint(true);
   assert.equal(simFingerprint(), f);
   const atk = HEROES.mage.stats.atk;
   HEROES.mage.stats.atk = atk + 0.5;
   try {
-    assert.notEqual(simFingerprint(), f);
+    assert.notEqual(simFingerprint(true), f);
   } finally {
     HEROES.mage.stats.atk = atk;
+    simFingerprint(true);
   }
 });
 

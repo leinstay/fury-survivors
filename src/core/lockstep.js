@@ -76,12 +76,25 @@ export function hashSim(sim) {
  * Отпечаток версии игры: хеш всех игровых данных (баланс, враги, этап, константы) и короткого забега на двоих
  * с фиксированным вводом (ловит изменения логики sim). Совпадает у двух клиентов только при одной версии:
  * лобби сравнивает его, иначе забег разошёлся бы сразу.
+ * @param {boolean=} fresh посчитать заново (тесты меняют данные)
  * @return {number}
  */
-export function simFingerprint() {
+let fingerprint = null; // считается один раз (~50 мс): меню и лобби берут готовый
+
+export function simFingerprint(fresh = false) {
+  if (fingerprint !== null && !fresh) return fingerprint;
   const data = JSON.stringify([CONSTANTS, HEROES, HERO_BASE, WEAPONS, WEAPON_BEHAVIOR, PASSIVES,
     COMBOS, ENEMIES, BOSS, BOSSES, PICKUPS, COOP, DIFFICULTIES, forest]);
-  return fnv(`${data}|${runFingerprint()}`);
+  fingerprint = fnv(`${data}|${runFingerprint()}`);
+  return fingerprint;
+}
+
+/**
+ * Версия игры для показа: отпечаток шестью hex-символами (у двух игроков в лобби должна совпадать).
+ * @return {string}
+ */
+export function versionTag() {
+  return simFingerprint().toString(16).padStart(8, '0').slice(0, 6);
 }
 
 function runFingerprint() {

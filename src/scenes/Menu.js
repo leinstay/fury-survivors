@@ -18,6 +18,7 @@ import { readNick, writeNick } from '../services/nick-store.js';
 import { HEROES } from '../data/heroes.js';
 import { validHero } from '../core/heroes.js';
 import { addHeroPicker } from '../ui/hero-picker.js';
+import { versionTag } from '../core/lockstep.js';
 
 // Картинки героев по бокам меню (HEROES[id].menu): справа как есть, слева отражённые; внутренний край первой
 // на каждой стороне на MENU_ART_GAP от центра, следующие на той же стороне дальше через MENU_ART_STEP,
@@ -40,6 +41,9 @@ export class MenuScene extends Phaser.Scene {
       const img = this.textures.get('menu_bg').getSourceImage();
       this.add.image(Math.floor((GAME_WIDTH - img.width * k) / 2), Math.floor((GAME_HEIGHT - img.height * k) / 2), 'menu_bg').setOrigin(0, 0).setScale(k);
     }
+    // версия игры (отпечаток данных и логики): в коопе у обоих должна совпадать
+    this.add.text(GAME_WIDTH - 4, GAME_HEIGHT - 3, t('menu.version', { v: versionTag() }),
+        textStyle(8, '#bbbbbb', { stroke: '#000000', strokeThickness: 2 })).setOrigin(1, 1).setAlpha(0.8);
     this.show('main');
     // В меню тишина: музыка играет только в забеге (выход из паузы в меню её обрывает).
     stopMusic();

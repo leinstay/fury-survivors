@@ -68,6 +68,7 @@ export const en = {
   'lobby.code_copy': 'Code (tap to copy)',
   'lobby.copied': 'Copied!',
   'lobby.version': 'Different game version: both reload the page',
+  'menu.version': 'v {v}',
   'lobby.creating': 'Creating lobby...',
   'lobby.waiting': 'Waiting for a partner... share the code',
   'lobby.connecting': 'Connecting...',
