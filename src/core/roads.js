@@ -4,14 +4,19 @@
 //
 // Полоса k горизонтальная: y(x) = (k + 0.5) * spacing + wobble * sin(x / wave + p1) + wobble * 0.4 * sin(x / wave2 + p2);
 // вертикальные симметрично x(y). Фазы p1, p2 и само наличие полосы (chance) выводятся из сида и номера полосы.
-// Пересечения горизонтальных и вертикальных полос дают перекрёстки сами собой.
+// Полоса либо магистраль (trunkChance: сплошная), либо ветка: отрезки между соседними перпендикулярными
+// магистралями, каждый есть с шансом segmentChance. Конец ветки всегда лежит на магистрали, поэтому тупиков
+// нет, а на стыках получаются тройники (T), перекрёстки (X) и повороты.
 import { hashSeed } from './rng.js';
 
 const SALT_H = 1;
 const SALT_V = 2;
 
+const TRUNK_SEARCH = 12; // сколько перпендикулярных полос просматривать в поисках магистрали
+
 /**
- * @param {{spacing: number, width: number, chance: number, wobble: number, wave: number, wave2: number}} cfg
+ * @param {{spacing: number, width: number, chance: number, trunkChance: number, segmentChance: number,
+ *     wobble: number, wave: number, wave2: number}} cfg
  * @param {number} seed
  * @return {!Object} roads
  */
@@ -24,8 +29,10 @@ export function createRoads(cfg, seed) {
     if (!l) {
       l = {
         on: unit(salt, k, 0) < cfg.chance,
+        trunk: unit(salt, k, 3) < cfg.trunkChance,
         p1: unit(salt, k, 1) * 6.2832,
         p2: unit(salt, k, 2) * 6.2832,
+        segs: new Map(),
       };
       lanes.set(key, l);
     }
@@ -36,6 +43,58 @@ export function createRoads(cfg, seed) {
     cfg.wobble * Math.sin(s / cfg.wave + l.p1) + cfg.wobble * 0.4 * Math.sin(s / cfg.wave2 + l.p2);
   const slope = (l, s) => (cfg.wobble / cfg.wave) * Math.cos(s / cfg.wave + l.p1) +
     (cfg.wobble * 0.4 / cfg.wave2) * Math.cos(s / cfg.wave2 + l.p2);
+
+  // Ближайшая перпендикулярная магистраль от полосы m в сторону dir (±1) или null.
+  const trunkFrom = (perpSalt, m, dir) => {
+    for (let i = 0; i < TRUNK_SEARCH; i++) {
+      const j = m + dir * i;
+      const t = lane(perpSalt, j);
+      if (t.on && t.trunk) return j;
+    }
+    return null;
+  };
+
+  // Отрезок ветки между перпендикулярными магистралями left и right (индексы): есть ли он и его границы
+  // вдоль полосы с заходом на полширины дороги в магистраль. across — координата поперёк полосы.
+  const segment = (salt, k, l, perp, left, right, across) => {
+    let on = l.segs.get(left);
+    if (on === undefined) {
+      on = unit(salt, k, 100 + left) < cfg.segmentChance;
+      l.segs.set(left, on);
+    }
+    const half = cfg.width / 2;
+    return {
+      on,
+      s0: center(lane(perp, left), left, across) - half,
+      s1: center(lane(perp, right), right, across) + half,
+    };
+  };
+
+  // Есть ли полотно полосы (salt, k) в точке s вдоль неё. У магистрали всегда; у ветки отрезок между соседними
+  // перпендикулярными магистралями есть с шансом segmentChance. Магистрали извилистые, поэтому отрезок ищется
+  // по их реальному положению: сначала по индексу, затем сосед, если точка за его границей.
+  const covers = (salt, k, l, s) => {
+    if (l.trunk) return true;
+    const perp = salt === SALT_H ? SALT_V : SALT_H;
+    const across = center(l, k, s);
+    const m = Math.floor(s / cfg.spacing - 0.5);
+    let left = trunkFrom(perp, m, -1);
+    let right = trunkFrom(perp, m + 1, 1);
+    if (left === null || right === null) return true; // магистралей рядом нет: ветка идёт сплошной
+    let seg = segment(salt, k, l, perp, left, right, across);
+    if (s < seg.s0) {
+      right = left;
+      left = trunkFrom(perp, left - 1, -1);
+      if (left === null) return true;
+      seg = segment(salt, k, l, perp, left, right, across);
+    } else if (s > seg.s1) {
+      left = right;
+      right = trunkFrom(perp, right + 1, 1);
+      if (right === null) return true;
+      seg = segment(salt, k, l, perp, left, right, across);
+    }
+    return seg.on && s >= seg.s0 && s <= seg.s1;
+  };
 
   const roads = {
     cfg,
@@ -49,14 +108,14 @@ export function createRoads(cfg, seed) {
       const kh = Math.floor(y / cfg.spacing);
       for (let k = kh - 1; k <= kh + 1; k++) {
         const l = lane(SALT_H, k);
-        if (!l.on) continue;
+        if (!l.on || !covers(SALT_H, k, l, x)) continue;
         const d = Math.abs(y - center(l, k, x));
         if (d < best) { best = d; angle = Math.atan(slope(l, x)); }
       }
       const kv = Math.floor(x / cfg.spacing);
       for (let k = kv - 1; k <= kv + 1; k++) {
         const l = lane(SALT_V, k);
-        if (!l.on) continue;
+        if (!l.on || !covers(SALT_V, k, l, y)) continue;
         const d = Math.abs(x - center(l, k, y));
         if (d < best) { best = d; angle = Math.PI / 2 - Math.atan(slope(l, y)); }
       }
@@ -88,7 +147,9 @@ export function createRoads(cfg, seed) {
         if (!l.on) continue;
         const x = x0 + rnd() * size;
         const y = center(l, k, x);
-        if (y >= y0 && y < y0 + size) cand.push({ x, y, angle: Math.atan(slope(l, x)) });
+        if (y >= y0 && y < y0 + size && covers(SALT_H, k, l, x)) {
+          cand.push({ x, y, angle: Math.atan(slope(l, x)) });
+        }
       }
       const kv0 = Math.floor((x0 - cfg.wobble * 1.4) / cfg.spacing);
       const kv1 = Math.floor((x0 + size + cfg.wobble * 1.4) / cfg.spacing);
@@ -97,7 +158,7 @@ export function createRoads(cfg, seed) {
         if (!l.on) continue;
         const y = y0 + rnd() * size;
         const x = center(l, k, y);
-        if (x >= x0 && x < x0 + size) {
+        if (x >= x0 && x < x0 + size && covers(SALT_V, k, l, y)) {
           cand.push({ x, y, angle: Math.PI / 2 - Math.atan(slope(l, y)) });
         }
       }
@@ -118,7 +179,9 @@ export function createRoads(cfg, seed) {
         const l = lane(SALT_H, k);
         if (!l.on) continue;
         const t = new Float32Array(w);
-        for (let i = 0; i < w; i++) t[i] = center(l, k, x0 + i);
+        for (let i = 0; i < w; i++) {
+          t[i] = covers(SALT_H, k, l, x0 + i) ? center(l, k, x0 + i) : 1e9;
+        }
         out.h.push(t);
       }
       const kv1 = Math.floor((x0 + w + pad) / cfg.spacing);
@@ -126,7 +189,9 @@ export function createRoads(cfg, seed) {
         const l = lane(SALT_V, k);
         if (!l.on) continue;
         const t = new Float32Array(h);
-        for (let i = 0; i < h; i++) t[i] = center(l, k, y0 + i);
+        for (let i = 0; i < h; i++) {
+          t[i] = covers(SALT_V, k, l, y0 + i) ? center(l, k, y0 + i) : 1e9;
+        }
         out.v.push(t);
       }
       return out;

@@ -5,8 +5,10 @@
 //   duration: 900,               // с, на этой секунде финальный босс (bosses.js: final: true)
 //   bossWarning: 10,             // с до босса: событие bossWarning
 //   tiles: ['grass', ...],       // ключи тайлсета
-//   roads: { spacing, width, chance, wobble, wave, wave2 },  // сеть песчаных дорог (src/core/roads.js):
-//     полосы через spacing px по обеим осям, каждая есть с шансом chance, извилистость wobble px с периодами wave, wave2
+//   roads: { spacing, width, chance, trunkChance, segmentChance, wobble, wave, wave2 },  // сеть песчаных дорог
+//     (src/core/roads.js): полосы через spacing px по обеим осям, каждая есть с шансом chance; доля trunkChance
+//     из них магистрали (сплошные), остальные ветки из отрезков между магистралями (каждый с шансом segmentChance,
+//     концы только на магистралях: тройники и повороты без тупиков); извилистость wobble px с периодами wave, wave2
 //   props: [{ sprite, density, breakable, hp, drop, place, big }],
 //     density — среднее число на чанк SIM.chunkSize x SIM.chunkSize;
 //     sim создаёт только breakable-объекты (sim.props), остальные — декор, его рисует рендер сам;
@@ -40,7 +42,10 @@ export const forest = {
   bossWarning: 10,             // за сколько секунд до каждого босса отправить событие bossWarning
   tiles: ['grass'],
   // Дороги примерно через два экрана, извилистые; перекрёстки там, где полосы пересекаются.
-  roads: { spacing: 1100, width: 40, chance: 0.7, wobble: 110, wave: 520, wave2: 190 },
+  roads: {
+    spacing: 1100, width: 40, chance: 0.75, trunkChance: 0.45, segmentChance: 0.6,
+    wobble: 110, wave: 520, wave2: 190,
+  },
   props: [
     { sprite: 'tree', density: 2.5, breakable: false, big: true },
     { sprite: 'rock', density: 2, breakable: false },
