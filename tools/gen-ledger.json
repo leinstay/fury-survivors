@@ -3,7 +3,7 @@
   "budget": 5,
   "stop": 4.5,
   "estimatePerImage": 0.25,
-  "spent": 2.105045,
+  "spent": 2.127867,
   "entries": [
     {
       "date": "2026-10-21T19:22:23.155Z",
@@ -1532,6 +1532,40 @@
       },
       "seconds": 18,
       "file": "assets/raw/reaper.png"
+    },
+    {
+      "date": "2026-10-22T14:55:11.759Z",
+      "name": "reaper_edit",
+      "model": "openai/gpt-image-2.5-flare",
+      "refs": [
+        "assets/raw/reaper_v1.png"
+      ],
+      "resolution": null,
+      "quality": "medium",
+      "moderation": "low",
+      "aspect": "1:1",
+      "cost": 0.022822,
+      "usage": {
+        "prompt_tokens": 1316,
+        "completion_tokens": 439,
+        "total_tokens": 1755,
+        "cost": 0.022822,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.022822,
+          "upstream_inference_prompt_cost": 0.009652,
+          "upstream_inference_completions_cost": 0.01317
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 439
+        }
+      },
+      "seconds": 15,
+      "file": "assets/raw/reaper_edit.png"
     }
   ]
 }
