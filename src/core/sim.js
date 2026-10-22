@@ -157,7 +157,7 @@ class Sim {
       dirX: 1, dirY: 0,
       radius: PLAYER.radius,
       slots: { weapons: slots.weapons, passives: slots.passives },
-      dead: false, coffinT: 0, revives: 0,
+      dead: false, coffinT: 0, revives: 0, dist: 0,
       name: '',
       // свои карточки и пул: набор текущего уровня (done — не его ход или уже выбрал), изгнанные, лимиты
       levelUp: {
@@ -286,6 +286,7 @@ class Sim {
       const sp = pl.stats.speed;
       pl.x += ix * sp * dt;
       pl.y += iy * sp * dt;
+      pl.dist += Math.min(1, len) * sp * dt; // пройдено, px (кодекс)
       if (ix > 0.05) pl.facing = 1; else if (ix < -0.05) pl.facing = -1;
       pl.dirX = ix / len;
       pl.dirY = iy / len;
@@ -576,6 +577,7 @@ class Sim {
   damageEnemy(e, dmg, wid, kb, sx, sy, by = this.player) {
     if (e.dead || e.def.invulnerable) return; // жница: урон не проходит, чисел урона нет
     const crit = this.rng.next() < this.critChance(by);
+    e.lastBy = by.id;
     const amount = crit ? dmg * COMBAT.critMul : dmg;
     const dealt = amount < e.hp ? amount : e.hp;
     e.hp -= amount;
@@ -608,7 +610,10 @@ class Sim {
     this.deadN++;
     this.kills++;
     const luck = this.luck();
-    this.events.push({ type: 'kill', x: e.x, y: e.y, enemy: e.type, elite: e.elite, boss: e.boss, final: !!(e.boss && e.def.final), sprite: e.sprite, size: e.size });
+    this.events.push({
+      type: 'kill', x: e.x, y: e.y, enemy: e.type, elite: e.elite, boss: e.boss, final: !!(e.boss && e.def.final),
+      sprite: e.sprite, size: e.size, by: e.lastBy || 0, // by — игрок, чей удар добил (кодекс)
+    });
     if (e.xp > 0) this.dropPickup(xpTierFor(e.xp), e.x, e.y, e.xp);
     if (e.boss) {
       if (e.def.drop) this.dropPickup(e.def.drop, e.x, e.y);
@@ -676,7 +681,7 @@ class Sim {
         const dy = e.y - pl.y;
         const r = e.size * 0.8 + pl.radius;
         if (dx * dx + dy * dy <= r * r) {
-          this.hurtPlayer(e.damage, pl);
+          this.hurtPlayer(e.damage, pl, e.type);
           break;
         }
       }
@@ -685,13 +690,14 @@ class Sim {
 
   // Урон игроку (по умолчанию первому). В коопе смерть превращает игрока в гроб (оживёт по таймеру),
   // забег кончается, когда мертвы все.
-  hurtPlayer(raw, pl = this.player) {
+  // src — кто ударил (id врага или босса; для кодекса).
+  hurtPlayer(raw, pl = this.player, src = '') {
     if (pl.dead || pl.iframes > 0 || this.state !== 'running') return;
     const amount = Math.max(COMBAT.armorMinDamage, raw - pl.stats.armor);
     pl.hp -= amount;
     pl.iframes = PLAYER.iframes;
     pl.hurtFlash = PLAYER.hurtFlash;
-    this.events.push({ type: 'playerHurt', amount, player: pl.id });
+    this.events.push({ type: 'playerHurt', amount, player: pl.id, src });
     if (pl.hp > 0) return;
     pl.hp = 0;
     if (this.coop) {
@@ -756,14 +762,15 @@ class Sim {
     p.fx = ''; p.life0 = 0; // fx: зона рисуется слоями (render/zones.js), а не спрайтом
     // drawOff, drawLift: спрайт рисуется сдвинутым на drawOff px вдоль angle и на drawLift px вверх (взмах клинка);
     // cone > 0: удар конусом — x, y это вершина, radius длина, cone косинус половины угла вокруг angle
-    p.drawOff = 0; p.drawLift = 0; p.cone = 0;
+    p.drawOff = 0; p.drawLift = 0; p.cone = 0; p.src = '';
     this.projectiles.push(p);
     return p;
   }
 
-  // Снаряд врага.
-  spawnEnemyProjectile(x, y, angle, speed, dmg, life) {
+  // Снаряд врага. src — id стрелявшего (кодекс: кто попал).
+  spawnEnemyProjectile(x, y, angle, speed, dmg, life, src = '') {
     const p = this.addProjectile('enemy', 'proj_enemy');
+    p.src = src;
     p.x = x; p.y = y; p.angle = angle;
     p.vx = Math.cos(angle) * speed;
     p.vy = Math.sin(angle) * speed;
@@ -774,8 +781,8 @@ class Sim {
   }
 
   // Удар по земле: через delay секунд урон игроку, если он в радиусе. Рендер только рисует sim.telegraphs.
-  addTelegraph(x, y, radius, delay, dmg) {
-    const tg = { uid: ++this.uid, x, y, radius, delay, t: 0, dmg };
+  addTelegraph(x, y, radius, delay, dmg, src = '') {
+    const tg = { uid: ++this.uid, x, y, radius, delay, t: 0, dmg, src };
     this.telegraphs.push(tg);
     return tg;
   }
@@ -790,7 +797,7 @@ class Sim {
         if (pl.dead) continue;
         const dx = pl.x - tg.x;
         const dy = pl.y - tg.y;
-        if (dx * dx + dy * dy <= tg.radius * tg.radius) this.hurtPlayer(tg.dmg, pl);
+        if (dx * dx + dy * dy <= tg.radius * tg.radius) this.hurtPlayer(tg.dmg, pl, tg.src);
       }
       this.events.push({ type: 'slam', x: tg.x, y: tg.y, radius: tg.radius });
       arr[i] = arr[arr.length - 1];
@@ -820,7 +827,7 @@ class Sim {
             const dy = p.y - t.y;
             const r = p.radius + t.radius;
             if (dx * dx + dy * dy <= r * r) {
-              this.hurtPlayer(p.dmg, t);
+              this.hurtPlayer(p.dmg, t, p.src);
               p.life = 0;
               break;
             }

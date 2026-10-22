@@ -21,7 +21,7 @@ export const ranged = {
     if (e.a <= 0 && d < P.range) {
       e.a = P.cooldown;
       const dmg = P.projDamage * (e.damage / e.def.damage);
-      sim.spawnEnemyProjectile(e.x, e.y, Math.atan2(dy, dx), P.projSpeed, dmg, P.projLife);
+      sim.spawnEnemyProjectile(e.x, e.y, Math.atan2(dy, dx), P.projSpeed, dmg, P.projLife, e.type);
     }
   },
 };

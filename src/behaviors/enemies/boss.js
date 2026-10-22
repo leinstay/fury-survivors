@@ -20,16 +20,16 @@ function volley(e, sim, a, k, dx, dy) {
     const spread = ((a.spread || 0) * Math.PI) / 180;
     for (let j = 0; j < a.count; j++) {
       const off = a.count > 1 ? (j / (a.count - 1) - 0.5) * spread : 0;
-      sim.spawnEnemyProjectile(e.x, e.y, base + off, a.speed, dmg, a.life);
+      sim.spawnEnemyProjectile(e.x, e.y, base + off, a.speed, dmg, a.life, e.type);
     }
   } else if (a.type === 'ring') {
     const start = (a.spin || 0) * k;
     for (let j = 0; j < a.count; j++) {
-      sim.spawnEnemyProjectile(e.x, e.y, start + (j / a.count) * TAU, a.speed, dmg, a.life);
+      sim.spawnEnemyProjectile(e.x, e.y, start + (j / a.count) * TAU, a.speed, dmg, a.life, e.type);
     }
   } else if (a.type === 'slam') {
     const t = sim.target(e.x, e.y);
-    sim.addTelegraph(t.x, t.y, a.radius, a.delay, dmg);
+    sim.addTelegraph(t.x, t.y, a.radius, a.delay, dmg, e.type);
   }
 }
 
