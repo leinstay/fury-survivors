@@ -11,8 +11,9 @@
 //     density — среднее число на чанк SIM.chunkSize x SIM.chunkSize;
 //     sim создаёт только breakable-объекты (sim.props), остальные — декор, его рисует рендер сам;
 //     drop — { pickupId: шанс } для разрушаемых (шансы умножаются на luck)
-//     place — 'ground' (по умолчанию: не на дороге), 'any' (где угодно), 'road' (на оси дороги),
-//             'roadside' (у обочины); big — крупный объект, занимает клетку чанка, чтобы не расти в соседе
+//     place — 'ground' (по умолчанию: не на дороге), 'any' (где угодно), 'roadside' (у обочины, вагонетки,
+//             указатели, фонари; полотно дороги остаётся пустым), 'road' (на оси дороги, сейчас не используется);
+//             big — крупный объект, занимает клетку чанка, чтобы не расти в соседе
 //   scaling: { hpPerMinute, damagePerMinute },  // рост здоровья и урона врагов со временем
 //   timeline: [                  // события по времени, сортированы по at
 //     { at, type: 'spawn', enemy, rate, rateEnd?, until?, group, min?, minEnd? }
@@ -47,8 +48,8 @@ export const forest = {
     { sprite: 'flower', density: 6, breakable: false },
     { sprite: 'barrel', density: 0.6, breakable: true, hp: 1, place: 'any', drop: { food: 0.15, coin: 0.35, magnet: 0.05 } },
     { sprite: 'lantern', density: 0.4, breakable: true, hp: 1, place: 'roadside', drop: { magnet: 0.25, food: 0.15, coin: 0.2 } },
-    // Дорожные объекты (env_props2): density считается на чанк, но без дороги в чанке они не появляются.
-    { sprite: 'cart', density: 0.5, breakable: true, hp: 2, place: 'road', drop: { coin: 0.6, food: 0.2, magnet: 0.1 } },
+    // Дорожные объекты (env_props2) стоят у обочины: само полотно дороги всегда свободно.
+    { sprite: 'cart', density: 0.5, breakable: true, hp: 2, place: 'roadside', drop: { coin: 0.6, food: 0.2, magnet: 0.1 } },
     { sprite: 'signpost', density: 0.35, breakable: false, place: 'roadside' },
     { sprite: 'fence', density: 0.5, breakable: false, place: 'roadside' },
     { sprite: 'stump', density: 0.8, breakable: false },
