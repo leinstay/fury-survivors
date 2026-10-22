@@ -66,6 +66,7 @@ export class Decor {
       if (cell >= 0) used.add(cell);
       return { x, y, angle: 0 };
     }
+    if (place === 'roadside' && def.fallback) return this._place({ ...def, place: def.fallback }, cx, cy, rnd, used);
     return null;
   }
 

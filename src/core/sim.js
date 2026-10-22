@@ -735,8 +735,8 @@ class Sim {
       const d = roads.distance(x, y);
       if (place === 'roadside' ? (d > half + 4 && d < half + 24) : d > half + (def.big ? 28 : 4)) return { x, y, angle: 0 };
     }
-    // обочины в чанке нет: фонарь встаёт как обычный объект
-    if (place === 'roadside') return this.placeProp({ ...def, place: 'ground' }, cx, cy, rnd);
+    // обочины в чанке нет: объект с fallback (фонарь) встаёт как обычный, остальные (вагонетка) пропускаются
+    if (place === 'roadside' && def.fallback) return this.placeProp({ ...def, place: def.fallback }, cx, cy, rnd);
     return null;
   }
 

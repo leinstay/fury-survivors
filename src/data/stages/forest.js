@@ -15,6 +15,7 @@
 //     drop — { pickupId: шанс } для разрушаемых (шансы умножаются на luck)
 //     place — 'ground' (по умолчанию: не на дороге), 'any' (где угодно), 'roadside' (у обочины, вагонетки,
 //             указатели, фонари; полотно дороги остаётся пустым), 'road' (на оси дороги, сейчас не используется);
+//             fallback — куда ставить объект roadside, если дороги в чанке нет (без него объект пропускается);
 //             big — крупный объект, занимает клетку чанка, чтобы не расти в соседе
 //   scaling: { hpPerMinute, damagePerMinute },  // рост здоровья и урона врагов со временем
 //   timeline: [                  // события по времени, сортированы по at
@@ -52,7 +53,7 @@ export const forest = {
     { sprite: 'bush', density: 3, breakable: false, big: true },
     { sprite: 'flower', density: 6, breakable: false },
     { sprite: 'barrel', density: 0.6, breakable: true, hp: 1, place: 'any', drop: { food: 0.15, coin: 0.35, magnet: 0.05 } },
-    { sprite: 'lantern', density: 0.4, breakable: true, hp: 1, place: 'roadside', drop: { magnet: 0.25, food: 0.15, coin: 0.2 } },
+    { sprite: 'lantern', density: 0.4, breakable: true, hp: 1, place: 'roadside', fallback: 'ground', drop: { magnet: 0.25, food: 0.15, coin: 0.2 } },
     // Дорожные объекты (env_props2) стоят у обочины: само полотно дороги всегда свободно.
     { sprite: 'cart', density: 0.5, breakable: true, hp: 2, place: 'roadside', drop: { coin: 0.6, food: 0.2, magnet: 0.1 } },
     { sprite: 'signpost', density: 0.35, breakable: false, place: 'roadside' },
