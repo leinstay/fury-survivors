@@ -396,7 +396,7 @@ class Sim {
 
   // Урон врагу. (sx, sy) — источник для направления отбрасывания.
   damageEnemy(e, dmg, wid, kb, sx, sy) {
-    if (e.dead) return;
+    if (e.dead || e.def.invulnerable) return; // жница: урон не проходит, чисел урона нет
     const crit = this.rng.next() < this.critChance();
     const amount = crit ? dmg * COMBAT.critMul : dmg;
     const dealt = amount < e.hp ? amount : e.hp;

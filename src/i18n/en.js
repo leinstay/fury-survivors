@@ -225,6 +225,7 @@ export const en = {
   'boss.kitsune_empress.name': 'Kitsune Empress',
   'boss.harpy_queen.name': 'Harpy Queen',
   'boss.dryad_queen.name': 'Dryad Queen',
+  'boss.reaper.name': 'Banshee Reaper',
 
   // Этапы
   'stage.forest.name': 'Whispering Forest',

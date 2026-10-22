@@ -22,6 +22,7 @@
 //   rage: { hpFraction, cooldownMul, speedMul? },  // ниже этой доли HP кулдауны атак умножаются на cooldownMul
 //   final: true,         // убийство этого босса завершает забег победой; у остальных падает только дроп
 //   drop: 'chest',
+//   invulnerable: true,  // урон не проходит, полосы HP нет (жница овертайма, stage.overtime.reaper); attacks могут быть пустыми
 // }
 // Урон босса растёт с этапом так же, как у врагов (stage.scaling.damagePerMinute), поэтому damage задан
 // для минуты появления, делённый на этот множитель (касание ~20 при появлении, как у боссов VS).
@@ -71,5 +72,12 @@ export const BOSSES = {
     rage: { hpFraction: 0.5, cooldownMul: 0.7, speedMul: 1.25 },
     final: true,
     drop: 'chest',
+  },
+  // Банши-жница: Смерть овертайма (как Death в VS). Приходит через stage.overtime.reaperAt секунд овертайма,
+  // неуязвима, летит быстрее героини (90) и не отстаёт, коса снимает damage за касание (растёт с этапом и овертаймом:
+  // на 20:00 это ~100 HP). Уйти нельзя, можно только протянуть секунды ради очков.
+  reaper: {
+    sprite: 'reaper', behavior: 'chase', hp: 1, speed: 112, damage: 18, xp: 0, size: 30, knockbackResist: 1,
+    attacks: [], invulnerable: true,
   },
 };

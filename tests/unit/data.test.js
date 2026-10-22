@@ -124,7 +124,7 @@ test('data: enemies have behavior, positive stats, elite block', () => {
 test('data: bosses use known behavior, attacks and summons', () => {
   for (const [id, b] of Object.entries(BOSSES)) {
     assert.ok(ENEMY_BEHAVIORS[b.behavior], `${id}: behavior`);
-    assert.ok(b.attacks.length > 0);
+    assert.ok(b.attacks.length > 0 || b.invulnerable, `${id}: attacks`);
     for (const a of b.attacks) {
       assert.ok(['dash', 'summon', 'fan', 'ring', 'slam', 'blink'].includes(a.type), `${id}: attack ${a.type}`);
       assert.ok(a.cooldown > 0, `${id}: cooldown`);
@@ -134,7 +134,8 @@ test('data: bosses use known behavior, attacks and summons', () => {
       if (a.type === 'blink') assert.ok(a.delay > 0 && a.distance > 0, `${id}: blink`);
     }
   }
-  assert.equal(Object.keys(BOSSES).length, 3);
+  assert.equal(Object.keys(BOSSES).length, 4);
+  assert.ok(BOSSES[forest.overtime.reaper] && BOSSES[forest.overtime.reaper].invulnerable);
   assert.deepEqual(Object.keys(BOSSES).filter((id) => BOSSES[id].final), ['dryad_queen']);
 });
 

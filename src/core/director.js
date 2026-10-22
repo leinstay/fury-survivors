@@ -15,7 +15,8 @@ export function createDirector(stage, rng) {
   const warned = new Set(); // боссы, о которых уже предупредили
   const active = []; // активные spawn-события { ev, acc, check }
   const ot = stage.overtime || null;
-  const otState = { acc: 0, next: 0, ring: 0, elite: 0 }; // овертайм: накопитель групп, индекс типа, таймеры кольца и элиты
+  // овертайм: накопитель групп, индекс типа, таймеры кольца и элиты, предупреждение и приход жницы
+  const otState = { acc: 0, next: 0, ring: 0, elite: 0, reaperWarned: false, reaper: false };
 
   // Сложность (sim.diff.spawnMul): частота, минимумы и размеры разовых событий умножаются.
   const mul = (sim, n) => Math.round(n * sim.diff.spawnMul);
@@ -142,6 +143,17 @@ export function createDirector(stage, rng) {
     if (ot.eliteEvery && o.elite >= ot.eliteEvery) {
       o.elite = 0;
       start({ type: 'elite', enemy: ot.enemies[rng.int(ot.enemies.length)] }, sim);
+    }
+    if (ot.reaper && !o.reaper) {
+      const warn = stage.bossWarning || 0;
+      if (!o.reaperWarned && s >= ot.reaperAt - warn) {
+        o.reaperWarned = true;
+        sim.events.push({ type: 'bossWarning', boss: ot.reaper, seconds: Math.max(0, ot.reaperAt - s) });
+      }
+      if (s >= ot.reaperAt) {
+        o.reaper = true;
+        sim.spawnBoss(ot.reaper);
+      }
     }
   }
 

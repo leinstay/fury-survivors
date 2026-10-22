@@ -103,7 +103,7 @@ export class Hud {
 
   _updateBoss() {
     const b = this.sim.boss;
-    const alive = !!b && b.hp > 0 && !b.dead;
+    const alive = !!b && b.hp > 0 && !b.dead && !b.def.invulnerable; // у неуязвимой жницы полосы нет
     const key = alive ? b.type : '';
     if (key !== this.bossShown) {
       this.bossShown = key;

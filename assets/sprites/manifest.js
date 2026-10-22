@@ -78,6 +78,9 @@ export const SPRITES = Object.fromEntries([
   // Боссы: анимация PixelLab в масштабе 1 (обычные враги 0.4), примерно втрое выше героини.
   art('kitsune_empress', 192, 256, { frames: 9, walk: WALK_LOOP, density: HD, origin: FEET, color: '#f08a3a', shape: 'humanoid' }),
   art('harpy_queen', 192, 256, { frames: 9, walk: WALK_LOOP, density: HD, origin: FEET, color: '#8a6040', shape: 'flyer' }),
+  // Банши-жница овертайма: один кадр с листа reaper (модель нарисовала одну крупную фигуру, hd 0.25 даёт рост
+  // босса ~246 px холста; кадр шире из-за косы), парит процедурно (shape flyer).
+  art('reaper', 208, 256, { density: HD, origin: FEET, color: '#9fd8ff', shape: 'flyer' }),
   art('dryad_queen', 192, 256, { frames: 9, walk: WALK_LOOP, density: HD, origin: FEET, color: '#3f8a4a', shape: 'humanoid' }),
 
   // Предметы

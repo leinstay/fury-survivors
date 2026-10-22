@@ -1,0 +1,7 @@
+Proportions override: Nendoroid / super-deformed proportions, exactly 2 heads tall, like the figures on the attached sheet: the head is as tall as the whole rest of the body, tiny torso, short stub legs. The figure is an adult woman. Face is clean: no blush, no red or pink pixels on the cheeks. Outfit is revealing (bare shoulders, deep neckline, high thigh slit), never nude, nothing explicit.
+
+Background: fully transparent. No glow, no aura, no colored halo, no vignette, no gradient behind the figure.
+
+Layout: ONE single figure, centered, idle floating pose facing three-quarter view to the RIGHT, drawn at exactly the same pixel scale and on the same pixel grid as the attached sheet, and exactly twice as tall as the small regular figures of that sheet (the same size as its three big bosses). Nothing else in the image, no text, no shadow.
+
+The figure: Banshee Reaper, a glamorous mature ghostly woman, Death herself. Long flowing silver-white hair drifting upward, pale blue-grey translucent skin, glowing cyan eyes, a dark hooded tattered cloak open at the front over a black off-shoulder dress with a deep neckline and a high thigh slit, her legs fade into a wispy ghost tail instead of feet, she floats. She holds a huge scythe with a long dark handle and a curved glowing cyan blade raised beside her, wisps of cyan soul-fire trailing from the blade and from the hem of her cloak.

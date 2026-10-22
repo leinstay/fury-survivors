@@ -34,6 +34,7 @@
 //     rate, rateRamp,            // групп в секунду в начале и прибавка каждую секунду овертайма
 //     ringEvery, ringEnemy, ringCount, eliteEvery,   // кольцо и элита раз в столько секунд
 //     hpRamp, damageRamp,        // HP и урон врагов × (1 + ramp × секунды овертайма), поверх scaling
+//     reaper, reaperAt,          // неуязвимый босс (bosses.js) через reaperAt секунд овертайма, предупреждение за bossWarning
 //   },
 // }
 export const forest = {
@@ -131,5 +132,6 @@ export const forest = {
     ringEvery: 20, ringEnemy: 'ghost', ringCount: 48,
     eliteEvery: 15,
     hpRamp: 0.015, damageRamp: 0.008,
+    reaper: 'reaper', reaperAt: 300,
   },
 };

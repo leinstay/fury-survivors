@@ -230,6 +230,29 @@ test('sim: final boss death starts overtime, death in overtime is a victory', ()
   assert.ok(sim.events.some((e) => e.type === 'victory'));
 });
 
+test('sim: the reaper arrives in overtime, is invulnerable and faster than the heroine', () => {
+  const sim = createSim({ seed: 16 });
+  const boss = sim.spawnBoss('dryad_queen');
+  sim.damageEnemy(boss, 1e9, 'blade_arc', 0, 0, 0);
+  sim.player.hp = 1e9;
+  sim.time = sim.overtime + forest.overtime.reaperAt - forest.bossWarning - 0.5;
+  let warned = false;
+  for (let i = 0; i < 12 * 60 && !sim.enemies.some((e) => e.type === 'reaper'); i++) {
+    if (sim.state === 'levelup') sim.skip();
+    sim.step(DT, idle);
+    if (sim.events.some((e) => e.type === 'bossWarning' && e.boss === 'reaper')) warned = true;
+  }
+  const reaper = sim.enemies.find((e) => e.type === 'reaper');
+  assert.ok(reaper && reaper.boss, 'reaper spawned');
+  assert.ok(warned, 'warning before the reaper');
+  assert.ok(reaper.speed > sim.player.stats.speed);
+  const hp = reaper.hp;
+  sim.damageEnemy(reaper, 1e9, 'blade_arc', 0, 0, 0);
+  assert.equal(reaper.hp, hp);
+  assert.ok(!reaper.dead);
+  assert.ok(!sim.events.some((e) => e.type === 'hit'));
+});
+
 test('sim: overtime keeps spawning and can be finished early', () => {
   const sim = createSim({ seed: 15 });
   const boss = sim.spawnBoss('dryad_queen');
