@@ -57,6 +57,7 @@ node tools/gen-sprite.mjs <name> [--ref path]... [--aspect 3:2] [--quality mediu
 | kitsune_empress (босс) | standing idle facing right, nine tails sway in slow waves, sleeves and hair drift, calm breathing | стоит лицом вправо, девять хвостов медленно колышутся волнами, рукава и волосы развеваются, спокойное дыхание | готово |
 | harpy_queen (босс) | hovering in place facing right, large slow wing flaps, crown and feathers ruffle | парит на месте лицом вправо, большие медленные взмахи крыльев, корона и перья топорщатся | готово |
 | dryad_queen (босс) | standing idle facing right, swaying like a tree in wind, leaves and vines in her hair rustle | стоит лицом вправо, покачивается, как дерево на ветру, листья и лозы в волосах шелестят | готово |
+| reaper (жница овертайма) | hovering in place facing right, slow gentle up and down float, long white hair and tattered cloak drifting in the wind, scythe sways slightly, cyan soul-fire flickers | парит на месте лицом вправо, плавно покачивается, волосы и рваный плащ колышутся, коса чуть качается, синее пламя мерцает | готово (первый кадр из assets/raw/reaper.png, лента ×1.5) |
 
 - `--dry-run` печатает тело запроса без отправки и без трат.
 - Деньги: `tools/gen-ledger.json` (`budget` 5, `stop` 4.5, `spent`, список трат). Скрипт отказывается работать, если `spent + оценка > stop` (оценка: самая дорогая из прошлых трат или `estimatePerImage`). Трата пишется в ledger даже если картинки в ответе нет. Вручную ledger не править.
@@ -137,7 +138,7 @@ node tools/slice-sheet.mjs <sheet> [--report]
 | `lamia` | 77×102 | 9 | 2 | `assets/raw/lamia_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
 | `kitsune_empress` | 192×256 | 9 | 2 | `assets/raw/kitsune_empress_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
 | `harpy_queen` | 192×256 | 9 | 2 | `assets/raw/harpy_queen_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
-| `reaper` | 304×384 | 1 | 2 | `assets/raw/reaper.png` |
+| `reaper` | 288×384 | 9 | 2 | `assets/raw/reaper_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
 | `dryad_queen` | 192×256 | 9 | 2 | `assets/raw/dryad_queen_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
 | `xp_small` | 20×24 | 1 | 2 | `assets/raw/items.png` |
 | `xp_medium` | 24×30 | 1 | 2 | `assets/raw/items.png` |

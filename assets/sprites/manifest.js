@@ -43,12 +43,13 @@ function icon(key, color) {
 }
 
 // Объект из листа (tools/slice-sheet.mjs): кадр w×h, рисунок вписывается в size (по умолчанию весь кадр).
-function art(key, w, h, { frames = 1, origin = [0.5, 0.5], size = [w, h], density, layer, walk, smooth, color = '#888888', shape = 'rect' } = {}) {
+function art(key, w, h, { frames = 1, origin = [0.5, 0.5], size = [w, h], density, layer, walk, smooth, color = '#888888', shape = 'rect', shadow } = {}) {
   const spec = { file: `assets/sprites/${key}.png`, frameWidth: w, frameHeight: h, frames, origin, size, color, shape };
   if (density) spec.density = density;
   if (layer) spec.layer = layer;
   if (walk) spec.walk = walk;
   if (smooth) spec.smooth = true;
+  if (shadow) spec.shadow = shadow; // { dx, width } px мира: тень не под центром кадра (коса жницы уводит центр)
   return [key, spec];
 }
 const FEET = [0.5, 1];
@@ -78,9 +79,13 @@ export const SPRITES = Object.fromEntries([
   // Боссы: анимация PixelLab в масштабе 1 (обычные враги 0.4), примерно втрое выше героини.
   art('kitsune_empress', 192, 256, { frames: 9, walk: WALK_LOOP, density: HD, origin: FEET, color: '#f08a3a', shape: 'humanoid' }),
   art('harpy_queen', 192, 256, { frames: 9, walk: WALK_LOOP, density: HD, origin: FEET, color: '#8a6040', shape: 'flyer' }),
-  // Банши-жница овертайма: один кадр с листа reaper (модель нарисовала одну крупную фигуру; hd 0.375 даёт рост
-  // в полтора босса, ~370 px холста; кадр шире из-за косы), парит процедурно (shape flyer).
-  art('reaper', 304, 384, { density: HD, origin: FEET, color: '#9fd8ff', shape: 'flyer' }),
+  // Банши-жница овертайма: парение PixelLab (assets/raw/reaper_anim_pixellab, холст 192×256, максимум API),
+  // лента увеличена в 1.5 (tools/hd-frames.mjs 1.5): рост в полтора босса. Тело левее центра кадра из-за косы,
+  // тень сдвинута (shadow.dx, зеркалится вместе со спрайтом).
+  art('reaper', 288, 384, {
+    frames: 9, walk: WALK_LOOP, density: HD, origin: FEET, color: '#9fd8ff', shape: 'flyer',
+    shadow: { dx: -17, width: 50 },
+  }),
   art('dryad_queen', 192, 256, { frames: 9, walk: WALK_LOOP, density: HD, origin: FEET, color: '#3f8a4a', shape: 'humanoid' }),
 
   // Предметы

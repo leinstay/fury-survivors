@@ -142,8 +142,11 @@ export class World {
       this.shadows.push(s);
     }
     this.shadowN++;
-    const w = Math.max(8, sprite.width * Math.abs(sprite.baseScale || 1) * c.widthK);
-    s.setVisible(true).setPosition(Math.round(x), Math.round(y + c.yOffset))
+    const def = SPRITES[sprite.spriteKey];
+    const o = def && def.shadow; // своя тень: смещение по X (зеркалится с спрайтом) и ширина, px мира
+    const w = o ? o.width : Math.max(8, sprite.width * Math.abs(sprite.baseScale || 1) * c.widthK);
+    const sx = o ? x + o.dx * (sprite.flipX ? -1 : 1) : x;
+    s.setVisible(true).setPosition(Math.round(sx), Math.round(y + c.yOffset))
         .setScale(w / 32, w * c.height / 16);
   }
 

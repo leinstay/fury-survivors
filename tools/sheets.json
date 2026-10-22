@@ -394,14 +394,5 @@
     "hd": {
       "default": 0.28
     }
-  },
-  "reaper": {
-    "raw": "assets/raw/reaper.png",
-    "items": [
-      "reaper"
-    ],
-    "hd": {
-      "default": 0.375
-    }
   }
 }
