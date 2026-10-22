@@ -31,11 +31,12 @@ export class Hud {
     this.hpText = add(scene.add.text(58, 27, '', textStyle(8, '#ffffff', { stroke: '#000000', strokeThickness: 2 })).setOrigin(0.5));
 
     this.timeText = add(scene.add.text(GAME_WIDTH / 2, 24, '', textStyle(16, '#ffffff', { stroke: '#000000', strokeThickness: 4 })).setOrigin(0.5, 0.5));
-    // Счёт по формуле таблицы рекордов, на лету: под таймером; пока жив босс, уходит под его имя.
-    // Убийства мелко под миникартой.
-    this.scoreText = add(scene.add.text(GAME_WIDTH / 2, HUD.scoreY, '', textStyle(12, '#ffd84a', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5, 0));
-    this.killText = add(scene.add.text(GAME_WIDTH - HUD.minimap.margin, HUD.minimap.top + HUD.minimap.radius * 2 + 4, '',
-        textStyle(10, '#cccccc', { stroke: '#000000', strokeThickness: 3 })).setOrigin(1, 0));
+    // Счёт по формуле таблицы рекордов, на лету: по центру под миникартой; без миникарты на уровне таймера.
+    // Убийств в HUD нет, они на экране итогов.
+    const mm = HUD.minimap;
+    const mapOn = getSetting('minimap') !== 'off';
+    this.scoreText = add(scene.add.text(GAME_WIDTH - mm.margin - mm.radius, mapOn ? mm.top + mm.radius * 2 + 4 : 24, '',
+        textStyle(12, '#ffd84a', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5, mapOn ? 0 : 0.5));
     // DPS-метр: панель в правом нижнем углу, по оружию и общий, среднее за HUD.dpsWindow секунд.
     // Настройка dps: full / transparent / off. Строки пересобираются вместе со слотами оружия.
     this.dpsMode = getSetting('dps');
@@ -237,12 +238,10 @@ export class Hud {
     this.hpFill.width = Math.round(100 * Math.max(0, Math.min(1, p.hp / Math.max(1, p.maxHp))));
     this.hpText.setText(`${Math.ceil(Math.max(0, p.hp))}/${Math.ceil(p.maxHp)}`);
     this.timeText.setText(formatTime(sim.time));
-    this.killText.setText(t('hud.kills', { n: sim.kills }));
     const score = computeScore({
       time: sim.time, kills: sim.kills, coins: sim.coins, victory: sim.won,
     });
     this.scoreText.setText(t('hud.score', { n: score }));
-    this.scoreText.y = this.bossShown ? HUD.scoreYBoss : HUD.scoreY;
     if (this.dpsMode !== 'off') this._updateDps();
     if (this.mapMode !== 'off' && sim.time >= this.mapNext) {
       this.mapNext = sim.time + 1 / HUD.minimap.fps;

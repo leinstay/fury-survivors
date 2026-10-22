@@ -49,7 +49,6 @@ export const en = {
 
   // HUD
   'hud.level': 'LV {n}',
-  'hud.kills': 'Kills {n}',
   'hud.pause': 'II',
   'hud.score': 'Score {n}',
   'hud.dps_label': 'DPS',
