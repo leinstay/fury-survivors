@@ -91,9 +91,8 @@ export class ChestScene extends Phaser.Scene {
     this.nav.update(time);
     if (this.choices.length && this.sim.state !== 'chest') {
       // кооп: выбор применился (у обоих), показываем, что выпало, как обычный сундук
-      const ev = this.sim.events.find((e) => e.type === 'chest' && e.applied);
       this.choices = [];
-      this.items = ev ? ev.items : [];
+      this.items = this.sim.chest.applied || [];
       this.nav.clear();
       for (const o of this.choiceObjs) o.destroy();
       this.choiceObjs = [];

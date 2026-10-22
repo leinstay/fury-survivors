@@ -100,9 +100,10 @@ function wrap(pc, ch) {
   };
   ch.onclose = fail;
   ch.onerror = fail;
+  // 'disconnected' не считаем концом: это часто временный сбой ICE, соединение возвращается само;
+  // настоящую потерю ловит тишина в lockstep (NET.dropAfter)
   pc.onconnectionstatechange = () => {
-    if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected' ||
-        pc.connectionState === 'closed') fail();
+    if (pc.connectionState === 'failed' || pc.connectionState === 'closed') fail();
   };
   return {
     send(obj) {
@@ -153,7 +154,12 @@ export async function createRoom(opts = {}) {
   const sdp = pc.localDescription.sdp;
   if (sdp.length >= ROOMS.sdpMax) throw new Error('failed');
   const code = makeCode();
-  await signal.create(code, sdp);
+  try {
+    await signal.create(code, sdp);
+  } catch (e) {
+    pc.close();
+    throw e;
+  }
   status('waiting');
   let cancelled = false;
   const conn = (async () => {
@@ -167,6 +173,8 @@ export async function createRoom(opts = {}) {
       if (d && d.answer) { answer = d.answer; break; }
     }
     if (cancelled) { status('cancelled'); throw new Error('cancelled'); }
+    // документ комнаты не нужен ни после соединения, ни после провала: иначе брошенные коды копятся
+    if (signal.remove) signal.remove(code);
     if (!answer) { status('failed'); pc.close(); throw new Error('timeout'); }
     status('connecting');
     try {
@@ -178,7 +186,6 @@ export async function createRoom(opts = {}) {
       throw e;
     }
     status('connected');
-    if (signal.remove) signal.remove(code);
     return wrap(pc, ch);
   })();
   conn.catch(() => {});

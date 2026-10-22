@@ -164,7 +164,8 @@ export class GameScene extends Phaser.Scene {
     // ожидание по часам сцены, не по тикам: при низком fps тики за кадр не набегают
     if (!stalled) this.waitSince = -1;
     else if (this.waitSince < 0) this.waitSince = now;
-    this.hud.setWaiting(this.waitSince >= 0 && now - this.waitSince > NET.waitWarn);
+    const waiting = this.waitSince >= 0 && now - this.waitSince > NET.waitWarn;
+    this.hud.setNotice(this.desynced ? 'coop.desync' : waiting ? 'coop.waiting' : null);
     if (!this.lost && ls.silence(now) > NET.dropAfter) this.lost = true;
   }
 

@@ -59,9 +59,13 @@ test('online co-op: lobby, connect by code, synced game, partner leaves', async 
   expect(await host.evaluate(() => window.__game.game.scene.getScene('Lobby').partner)).toBe('BOB');
   expect(await guest.evaluate(() => window.__game.game.scene.getScene('Lobby').partner)).toBe('ANN');
 
-  await guest.evaluate(() => window.__game.game.scene.getScene('Lobby').pickHero('mage'));
+  // оба пришли с героиней по умолчанию: гость уступает (сообщение hero), хост видит магессу у напарника
   await host.waitForFunction(() => window.__game.game.scene.getScene('Lobby').partnerHero === 'mage',
       null, { timeout: 5_000 });
+  expect(await guest.evaluate(() => window.__game.game.scene.getScene('Lobby').hero)).toBe('mage');
+  // героиня занята хостом: выбор отклоняется
+  await guest.evaluate(() => window.__game.game.scene.getScene('Lobby').pickHero('heroine'));
+  expect(await guest.evaluate(() => window.__game.game.scene.getScene('Lobby').hero)).toBe('mage');
   await host.evaluate(() => window.__game.game.scene.getScene('Lobby').pickDifficulty('cursed'));
   await guest.waitForFunction(() => window.__game.game.scene.getScene('Lobby').difficulty === 'cursed',
       null, { timeout: 5_000 });

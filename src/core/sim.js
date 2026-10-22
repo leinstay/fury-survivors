@@ -103,7 +103,7 @@ class Sim {
     this.stamp = 0;
     this.frame = 0;
     this.pendingLevels = 0;
-    this.chest = { cards: [] };   // выбор супероружия из сундука (state 'chest'), см. chooseChest
+    this.chest = { cards: [], applied: [] }; // выбор супероружия (state 'chest'); applied — что выдал последний выбор
     this.banished = new Set();
     this.levelUp = {
       cards: [],
@@ -1094,6 +1094,7 @@ class Sim {
     for (const it of items) this._applyCard(it, pl);
     this._syncBuild();
     this.chest.cards = [];
+    this.chest.applied = items; // экран сундука читает отсюда: за кадр может пройти несколько тиков
     this.state = 'running';
     this.events.push({ type: 'chest', items, applied: true, player: pl.id });
     this._checkLevel();

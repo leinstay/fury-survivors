@@ -78,7 +78,7 @@ function gridFor(n, w, h) {
  *     gridWidth — ширина сетки, когда героев много (по умолчанию maxWidth);
  *     compact — без строки статов (лобби); mark — отмечать выбранного (лобби); без mark selected только
  *     ставит начальный фокус; taken — герои напарника, выбрать нельзя
- * @return {{select: function(string), objects: !Array<!Object>, grid: boolean}}
+ * @return {{objects: !Array<!Object>, grid: boolean}}
  */
 export function addHeroPicker(scene, nav, o) {
   const ids = Object.keys(HEROES);
@@ -91,7 +91,7 @@ export function addHeroPicker(scene, nav, o) {
   const panels = {};
   const checks = {};
   const focus = {};
-  let selected = o.selected;
+  const selected = o.selected;
   let info = null;
   // строка описания живёт в одном контейнере: при смене героя пересобирается, удаляется вместе с выбором
   const showInfo = (id) => {
@@ -185,14 +185,5 @@ export function addHeroPicker(scene, nav, o) {
   }
   for (const id of ids) paint(id, false);
   const objects = scene.children.list.filter((c) => !before.has(c) && c.type !== 'Zone');
-  return {
-    objects,
-    grid,
-    select(id) {
-      const prev = selected;
-      selected = id;
-      if (panels[prev]) paint(prev, !!focus[prev]);
-      if (panels[id]) paint(id, !!focus[id]);
-    },
-  };
+  return { objects, grid };
 }

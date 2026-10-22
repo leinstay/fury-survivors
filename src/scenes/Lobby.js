@@ -16,12 +16,19 @@ import { getSetting, setSetting } from '../ui/settings.js';
 import { createRoom, joinRoom } from '../services/net.js';
 import { stopMusic } from '../audio/sfx.js';
 import { validHero, freeHero, distinctHeroes } from '../core/heroes.js';
+import { validateNick } from '../core/nick.js';
 import { addHeroPicker } from '../ui/hero-picker.js';
 
 // Колонки лобби: кнопки сложности, Start/Cancel и карточки героев одной ширины, центры на cx ± BTN_DX.
 const BTN_W = 120;
 const BTN_DX = 70;
 const LOBBY_GRID_W = 400; // сетка героев, когда их много: на всю ширину панели
+
+// Ник от напарника: по тем же правилам, что своё поле, иначе '?' (в таблицу такая пара не уйдёт)
+function nickOf(raw) {
+  const v = validateNick(raw);
+  return v.ok ? v.value : '?';
+}
 
 export class LobbyScene extends Phaser.Scene {
   constructor() {
@@ -133,7 +140,7 @@ export class LobbyScene extends Phaser.Scene {
     if (!m || typeof m !== 'object' || this.started) return;
     switch (m.type) {
       case 'hello':
-        this.partner = typeof m.name === 'string' ? m.name.slice(0, 6) : '?';
+        this.partner = nickOf(m.name);
         this.partnerHero = validHero(m.hero);
         this.resolveHeroes();
         this.renderButtons();
@@ -148,7 +155,8 @@ export class LobbyScene extends Phaser.Scene {
         break;
       case 'start':
         if (this.role === 'guest' && DIFFICULTIES[m.difficulty] && Number.isFinite(m.seed)) {
-          const names = Array.isArray(m.names) ? m.names : [this.partner, this.nick];
+          const names = Array.isArray(m.names) ? m.names.slice(0, 2).map(nickOf)
+            : [this.partner, this.nick];
           const heroes = distinctHeroes(2, Array.isArray(m.heroes) ? m.heroes : this.heroes());
           this.startGame(m.seed, m.difficulty, names, heroes);
         }

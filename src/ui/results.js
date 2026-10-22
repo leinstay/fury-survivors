@@ -85,7 +85,8 @@ export function buildResults(scene, sim,
   const field = { x: cx - 60, y: NICK_Y, w: 120, h: 24 };
   const fieldPanel = addPanel(scene, field.x, field.y, field.w, field.h);
   const nick = createTextInput(scene, field, { maxLength: NICK.max, placeholder: t('result.nick_hint') });
-  nick.el.value = readNick();
+  nick.el.value = coop ? sim.players[sim.local].name : readNick();
+  if (coop) nick.el.disabled = true; // ник пары из лобби: иначе два игрока запишут две разные пары
   let dead = false;
   let submitted = false;
   let busy = false;
@@ -94,7 +95,7 @@ export function buildResults(scene, sim,
   const fieldItem = nav.add({
     x: field.x, y: field.y, w: field.w, h: field.h,
     setFocus: (f) => fieldPanel.setFocus(f),
-    onSelect: () => { if (!submitted && !busy) nick.el.focus(); },
+    onSelect: () => { if (!submitted && !busy && !coop) nick.el.focus(); },
   });
   const say = (key, params, color = '#aaaaaa') => { if (!dead) status.setText(t(key, params)).setColor(color); };
 

@@ -40,8 +40,8 @@ export class Hud {
           textStyle(8, '#ffffff', { stroke: '#000000', strokeThickness: 2 })).setOrigin(0.5));
     }
 
-    // кооп: «ждём напарника», пока lockstep стоит без его ввода (Game.setWaiting)
-    this.waitText = add(scene.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 40, t('coop.waiting'),
+    // кооп: «ждём напарника», пока lockstep стоит без его ввода, или «рассинхрон» (Game → setNotice)
+    this.waitText = add(scene.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 40, '',
         textStyle(12, '#9ad0ff', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5)).setVisible(false);
     this.timeText = add(scene.add.text(GAME_WIDTH / 2, 24, '', textStyle(16, '#ffffff', { stroke: '#000000', strokeThickness: 4 })).setOrigin(0.5, 0.5));
     // Счёт по формуле таблицы рекордов, на лету: по центру под миникартой. Убийств в HUD нет, они на итогах.
@@ -258,8 +258,12 @@ export class Hud {
     row(p.passives, 'passive', 68 + dy);
   }
 
-  setWaiting(on) {
-    if (this.waitText.visible !== on) this.waitText.setVisible(on);
+  /** @param {?string} key ключ i18n строки по центру экрана, null — скрыть */
+  setNotice(key) {
+    if (this.notice === key) return;
+    this.notice = key;
+    this.waitText.setVisible(!!key);
+    if (key) this.waitText.setText(t(key));
   }
 
   update() {

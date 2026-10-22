@@ -42,7 +42,8 @@ service cloud.firestore {
     // Лобби коопа (src/services/net.js): хост кладёт offer, гость один раз дописывает answer.
     // Документ живёт до соединения (хост удаляет), брошенные можно чистить TTL-политикой по createdAt.
     match /rooms/{code} {
-      allow read: if true;
+      allow get: if true;   // только по коду: список открытых лобби не отдаём
+      allow list: if false;
       allow create: if code.matches('^[A-Z0-9]{5}$')
         && request.resource.data.keys().hasOnly(['offer', 'createdAt'])
         && request.resource.data.offer is string
