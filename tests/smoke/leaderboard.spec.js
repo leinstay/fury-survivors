@@ -11,7 +11,9 @@ test('leaderboard scene and nick input work offline', async ({ page }) => {
   await page.waitForFunction(() => window.__game && window.__game.debug().scene === 'Menu', null, { timeout: 15_000 });
 
   await page.waitForTimeout(500);
-  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('ArrowDown'); // Co-op
+  await page.waitForTimeout(150);
+  await page.keyboard.press('ArrowDown'); // Leaderboard
   await page.waitForTimeout(150);
   await page.keyboard.press('Enter');
   await page.waitForFunction(() => window.__game.debug().scene === 'Leaderboard', null, { timeout: 5_000 });
