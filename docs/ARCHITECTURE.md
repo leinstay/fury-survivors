@@ -133,7 +133,7 @@ sim.banish(i)       // убрать карточку i из пула до кон
 
 - Мир, данные и UI в координатах 640×360 (`GAME_WIDTH`, `GAME_HEIGHT` в `src/data/constants.js`). Холст в `RENDER_ZOOM` = 2 раза больше: 1280×720 (`src/main.js`).
 - Каждая сцена при старте получает камеру с origin (0, 0) и `zoom` = `RENDER_ZOOM` (обёртка `zoomed` в `main.js`), поэтому код сцен, HUD и меню про удвоение не знает. Текст создаётся с `resolution: RENDER_ZOOM`, чтобы не размываться.
-- Phaser: `pixelArt: true`, `roundPixels: true`, Scale FIT. Растяжка холста на экран: целый масштаб даёт `image-rendering: pixelated`, нецелый мягкое сглаживание, чтобы пиксели не рябили при движении (`src/ui/scaling.js`).
+- Phaser: `pixelArt: true`, `roundPixels: true`, Scale FIT. Растяжка холста на экран: целый масштаб даёт `image-rendering: pixelated`, нецелый мягкое сглаживание, чтобы пиксели не рябили при движении (`src/ui/scaling.js`). На телефоне первое касание включает полный экран и фиксирует альбомную ориентацию, где браузер это позволяет (`src/ui/fullscreen.js`); холст пересчитывается при каждой смене размера окна.
 - `density` спрайта в manifest это число пикселей текстуры на 1 px мира. Спрайт рисуется в масштабе `1 / density` (`src/render/density.js`): density 2 показывает каждый пиксель текстуры на холсте, density 1 даёт блоки 2×2 px, density 0.5 блоки 4×4 px. Выбор плотности: `docs/ASSETS.md`.
 - Камера следует за игроком (`scrollX/scrollY` в мировых координатах), фон `grass` это `tileSprite` с `scrollFactor` 0. Опора спрайта (`origin` в manifest) у персонажей стоит на ногах; глубина персонажей равна их `y`, снаряды рисуются поверх (`PROJ_DEPTH`).
 - Размер элиты на экране и хитбокс берут один множитель `elite.sizeMul`.

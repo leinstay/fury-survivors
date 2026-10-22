@@ -59,9 +59,11 @@ export const HUD = {
 };
 
 export const XP = {
-  // Опыт до следующего уровня: base + perLevel * (level - 1) + extra на пороговом уровне.
-  base: 6,
-  perLevel: 8,
+  // Опыт до следующего уровня, как в Vampire Survivors: 5 на 1 -> 2, затем прибавка за каждый уровень
+  // steps[i].per, пока уровень меньше steps[i].below (+10 до 20-го, +13 до 40-го, дальше +16),
+  // плюс extra на пороговом уровне.
+  base: 5,
+  steps: [{ below: 20, per: 10 }, { below: 40, per: 13 }, { below: Infinity, per: 16 }],
   thresholds: [{ level: 20, extra: 600 }, { level: 40, extra: 2400 }],
   mergeRadius: 24,         // кристаллы рядом сливаются, когда их больше mergeAbove
   mergeAbove: 300,
@@ -100,11 +102,22 @@ export const FX = {
   },
   maxParticles: 320,
   ghost: { max: 24, life: 0.25, squashY: 0.25, stretchX: 1.25, eliteScale: 1.25 },
-  // Эффекты движения выключены по просьбе владельца (0 = выкл). Прежние значения в комментариях.
-  shake: { hurt: [0, 0], elite: [0, 0], boss: [0, 0] }, // [амплитуда px, длительность с]; было [2, 0.15], [3, 0.2], [5, 0.35]
+  // Тряска экрана как в Vampire Survivors: урон по герою, смерть элиты, босс. Отключается в настройках.
+  // Хитстоп и сплющивание при ударе выключены по просьбе владельца (0 = выкл), прежние значения в комментариях.
+  shake: { hurt: [2, 0.15], elite: [3, 0.2], boss: [5, 0.35] }, // [амплитуда px мира, длительность с]
   hitstop: { crit: 0, hurt: 0, elite: 0, boss: 0, cap: 0.1, cooldown: 0.3 }, // было 0.03, 0.06, 0.07, 0.08
-  levelup: { flashAlpha: 0.5, flashTime: 0.3, ringTime: 0.5, ringRadius: 70, ringColor: 0xffe88a },
+  levelup: { ringTime: 0.5, ringRadius: 70, ringColor: 0xffe88a }, // белая вспышка на весь экран убрана
   pickupSpark: { count: 2, color: 0x7fd8ff, life: 0.25, speed: 40 },
+  // Мягкое свечение под снарядами, чтобы их было видно на траве: спрайт → цвет, диаметр px мира, яркость.
+  // Аддитивное наложение; у снаряда с tint (супероружие) свечение берёт его цвет.
+  projGlow: {
+    proj_enemy: { color: 0xff4a4a, size: 26, alpha: 0.75 },
+    proj_dagger: { color: 0xbfe6ff, size: 18, alpha: 0.35 },
+    proj_axe: { color: 0xffd9a0, size: 30, alpha: 0.3 },
+    proj_chain: { color: 0x9fd8ff, size: 30, alpha: 0.4 },
+    proj_firebomb: { color: 0xffa040, size: 28, alpha: 0.4 },
+    proj_shield: { color: 0xfff0a0, size: 28, alpha: 0.3 },
+  },
   hitSquash: { x: 1, y: 1 }, // было 1.18 × 0.82
   // Ходьба (src/render/anim.js): fps — кадров ходьбы в секунду у спрайтов с кадрами; однокадровые подпрыгивают
   // на hop целых px мира, steps шагов в секунду; летуны парят на hoverHeight px, качаясь на ±hover px.

@@ -69,7 +69,7 @@ export class PauseScene extends Phaser.Scene {
     const cx = 170;
     addButton(this, this.nav, { x: cx, y: 90, w: 180, h: 30, label: t('pause.resume'), onSelect: () => this.resume() });
     addVolumeSliders(this, this.nav, { x: cx, y: 140, w: 280 });
-    addButton(this, this.nav, { x: cx, y: 215, w: 180, h: 30, label: t('pause.quit'), onSelect: () => this.quit() });
+    addButton(this, this.nav, { x: cx, y: 240, w: 180, h: 30, label: t('pause.quit'), onSelect: () => this.quit() });
     addStatsBlock(this, 20, 262, this.sim.player);
     addBuildList(this, 330, 56, this.sim.player);
 

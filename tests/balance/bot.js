@@ -1,4 +1,8 @@
-// Балансный бот: играет на core/sim без рендера. Кайтит от ближайших врагов, жадно выбирает карточки.
+// Балансный бот: играет на core/sim без рендера. Пресеты (opts.preset):
+//   greedy — кайтит от ближайших врагов, жадно берёт любые карточки (прежний бот, по умолчанию);
+//   idle   — стоит на месте, берёт Holy Ground, Storm Chain и защитные пассивки (max_hp, armor, regen):
+//            проверка, что «встал в чеснок и победил» не работает;
+//   kite   — кайтит с осмысленным билдом: Blade Arc + Throwing Daggers + War Axe, атака, скорострельность, HP.
 import { createSim } from '../../src/core/sim.js';
 
 const CARD_SCORE = {
@@ -22,15 +26,41 @@ const WEAPON_PREF = {
   war_axe: 0.5, firebomb: 0.5, holy_ground: 0.1,
 };
 
-function score(c, nW) {
+// Билды пресетов: weapons — какие оружия брать (остальные новые оружия не берёт), passives — очки пассивок.
+const BUILDS = {
+  idle: {
+    weapons: { holy_ground: 10, storm_chain: 9, blade_arc: 6 },
+    passives: { max_hp: 5, armor: 5, regen: 4.5, attack: 3, haste: 3 },
+  },
+  kite: {
+    weapons: { blade_arc: 10, throwing_daggers: 9, war_axe: 8 },
+    passives: { attack: 5, haste: 4.5, max_hp: 4, armor: 3.5, speed: 3, regen: 2.5 },
+  },
+};
+
+function buildScore(c, b) {
+  if (c.kind === 'heal') return 0;
+  if (c.kind === 'weapon') {
+    if (c.evolved) return 20;
+    const w = b.weapons[c.id];
+    if (!w) return -1;
+    return c.isNew ? w : 5 + w / 10;
+  }
+  return b.passives[c.id] ?? -1;
+}
+
+function score(c, nW, preset) {
+  if (BUILDS[preset]) return buildScore(c, BUILDS[preset]);
   if (c.kind === 'heal') return CARD_SCORE.heal;
   if (c.kind === 'weapon') return (c.isNew ? (nW >= 4 ? CARD_SCORE['weapon:new3'] : CARD_SCORE['weapon:new']) : CARD_SCORE['weapon:up'] + (c.evolved ? 5 : 0)) + (WEAPON_PREF[c.id] || 0);
   return CARD_SCORE['passive:' + c.id] ?? (c.isNew ? 2 : 2.5);
 }
 
-export function pickBest(cards, nW = 0) {
+export function pickBest(cards, nW = 0, preset = 'greedy') {
   let best = 0;
-  for (let i = 1; i < cards.length; i++) if (score(cards[i], nW) > score(cards[best], nW)) best = i;
+  for (let i = 1; i < cards.length; i++) {
+    if (score(cards[i], nW, preset) > score(cards[best], nW, preset)) best = i;
+  }
   return best;
 }
 
@@ -92,15 +122,17 @@ function steer(sim, out, t) {
   out.y = ay / l;
 }
 
-// opts: { seed, upgrades (bool), until (с), dt, hero, onSecond(sim), onEvents(events) }
+// opts: { seed, preset ('greedy' | 'idle' | 'kite'), upgrades (bool), until (с), dt, onSecond(sim), onEvents(events) }
+// res.bosses: { id: { at, hp, level, killed } } — время появления, HP и уровень игрока при появлении, время убийства.
 export function runBot(opts) {
-  const { seed = 1, upgrades = true, until = 910, dt = 1 / 60 } = opts;
+  const { seed = 1, preset = 'greedy', upgrades = true, until = 910, dt = 1 / 60 } = opts;
+  const idle = preset === 'idle';
   const sim = createSim({ hero: 'heroine', stage: 'forest', seed });
   if (!upgrades) sim.levelUp.skips = 1e9;
   const input = { x: 0, y: 0 };
   const res = {
     sim, levelAt: {}, maxEnemies: 0, deathTime: null, victoryTime: null,
-    levelTimes: [], evolutions: 0,
+    levelTimes: [], evolutions: 0, bosses: {},
   };
   let step = 0;
   let lastLevel = 1;
@@ -109,11 +141,11 @@ export function runBot(opts) {
   let nextSecond = 1;
   while (sim.time < until && (sim.state === 'running' || sim.state === 'levelup')) {
     if (sim.state === 'levelup') {
-      if (upgrades) sim.chooseCard(pickBest(sim.levelUp.cards, sim.player.weapons.length));
+      if (upgrades) sim.chooseCard(pickBest(sim.levelUp.cards, sim.player.weapons.length, preset));
       else sim.skip();
       continue;
     }
-    if (step % 3 === 0) steer(sim, input, sim.time);
+    if (idle) { input.x = 0; input.y = 0; } else if (step % 3 === 0) steer(sim, input, sim.time);
     sim.step(dt, input);
     step++;
     if (opts.onSecond && sim.time >= nextSecond) { opts.onSecond(sim); nextSecond++; }
@@ -129,7 +161,15 @@ export function runBot(opts) {
       mi++;
     }
     if (opts.onEvents && sim.events.length) opts.onEvents(sim.events);
-    for (const ev of sim.events) if (ev.type === 'chest' && ev.items.some((i) => i.evolved)) res.evolutions++;
+    for (const ev of sim.events) {
+      if (ev.type === 'chest' && ev.items.some((i) => i.evolved)) res.evolutions++;
+      if (ev.type === 'bossSpawn' && sim.boss) {
+        res.bosses[ev.boss] = {
+          at: sim.time, hp: sim.boss.maxHp, level: sim.player.level, killed: null,
+        };
+      }
+      if (ev.type === 'kill' && ev.boss && res.bosses[ev.enemy]) res.bosses[ev.enemy].killed = sim.time;
+    }
   }
   if (sim.state === 'gameover') res.deathTime = sim.time;
   if (sim.state === 'victory') res.victoryTime = sim.time;

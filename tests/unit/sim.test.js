@@ -127,8 +127,9 @@ test('sim: several pending levels give several card sets', () => {
 
 test('sim: xp curve', () => {
   assert.equal(xpForLevel(1), XP.base);
-  assert.equal(xpForLevel(2), XP.base + XP.perLevel);
-  assert.equal(xpForLevel(20), XP.base + XP.perLevel * 19 + 600);
+  assert.equal(xpForLevel(2), 15);   // как в VS: 5, затем +10 за уровень
+  assert.equal(xpForLevel(20), 5 + 10 * 19 + 600);
+  assert.equal(xpForLevel(21), 5 + 10 * 19 + 13);
 });
 
 test('sim: contact damage, i-frames, gameover', () => {
@@ -233,7 +234,7 @@ test('sim: evolution from chest when both parts are maxed', () => {
   sim.step(DT, idle);
   assert.deepEqual(sim.player.weapons.map((w) => w.id), ['aegis_storm']);
   run(sim, 5);
-  assert.ok(sim.projectiles.some((p) => p.sprite === 'proj_blade_arc'), 'evolved shields orbit');
+  assert.ok(sim.projectiles.some((p) => p.sprite === 'proj_crescent'), 'evolved shields orbit');
 });
 
 test('sim: every weapon fires and deals damage in a crowd', () => {

@@ -2,24 +2,62 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { runBot } from './bot.js';
 import { SIM } from '../../src/data/constants.js';
+import { createSim } from '../../src/core/sim.js';
 
 // Боты играют на core/sim с фиксированными сидами; весь файл должен работать быстро.
 const withUpgrades = [1, 2, 3, 4, 5, 6, 7, 8].map((seed) => runBot({ seed, upgrades: true }));
 const withoutUpgrades = [1, 2, 3, 4, 5].map((seed) => runBot({ seed, upgrades: false }));
 
+// Кривая опыта как в VS (5, затем +10 за уровень): жадный бот к 5:00 на 9-21 уровне, человек выше.
 test('balance: level at 5:00 is in range', () => {
   // считаем только забеги, дожившие до 5:00
   for (const r of withUpgrades.filter((x) => x.time >= 300)) {
     const lv = r.levelAt[300];
-    assert.ok(lv >= 12 && lv <= 26, `level at 5:00 = ${lv}`);
+    assert.ok(lv >= 8 && lv <= 24, `level at 5:00 = ${lv}`);
   }
 });
 
-test('balance: level 10 comes between 1:20 and 5:00', () => {
-  for (const r of withUpgrades) {
+test('balance: level 10 comes between 1:20 and 5:30', () => {
+  // забеги, дожившие до 5:30
+  for (const r of withUpgrades.filter((x) => x.time >= 330)) {
     const t = r.levelTimes[10];
-    assert.ok(t >= 80 && t <= 300, `level 10 at ${t}s`);
+    assert.ok(t >= 80 && t <= 330, `level 10 at ${t}s`);
   }
+});
+
+// Стоять на месте с максимальными чесноком и молниями нельзя: без движения толпа продавливает (проверка
+// жалобы «встал в чеснок и победил»). Бот не двигается и не выбирает карточки.
+test('balance: standing still with maxed Holy Ground + Storm Chain dies before 10:00', () => {
+  for (const seed of [1, 2, 3]) {
+    const sim = createSim({ seed });
+    sim.player.weapons.length = 0;
+    sim.player.weapons.push({ id: 'holy_ground', level: 7 }, { id: 'storm_chain', level: 7 });
+    sim._syncBuild();
+    const idle = { x: 0, y: 0 };
+    while (sim.time < 600 && sim.state !== 'gameover') {
+      if (sim.state !== 'running') sim.state = 'running';
+      sim.step(1 / 30, idle);
+    }
+    assert.equal(sim.state, 'gameover', `seed ${seed}: survived to 10:00 standing still`);
+  }
+});
+
+// Обычную толпу можно обогнать (как в VS): без оружия бег по большой дуге живёт заметно дольше, чем стояние.
+test('balance: running away without weapons outlives standing still', () => {
+  const life = (seed, run) => {
+    const sim = createSim({ seed });
+    sim.player.weapons.length = 0;
+    sim._syncBuild();
+    while (sim.state === 'running' && sim.time < 120) {
+      const a = sim.time * 0.02;
+      sim.step(1 / 30, run ? { x: Math.cos(a), y: Math.sin(a) } : { x: 0, y: 0 });
+    }
+    return sim.time;
+  };
+  const seeds = [1, 2, 3, 4];
+  const stand = seeds.reduce((s, x) => s + life(x, false), 0);
+  const run = seeds.reduce((s, x) => s + life(x, true), 0);
+  assert.ok(run >= stand * 1.8, `running ${run.toFixed(0)}s vs standing ${stand.toFixed(0)}s (sum of 4 seeds)`);
 });
 
 test('balance: bot without upgrades dies before 4:00', () => {

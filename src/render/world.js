@@ -23,6 +23,21 @@ function dropGlow(s) {
   s.eliteGlow = null;
 }
 
+// Мягкое круглое пятно (радиальный градиент) для свечения снарядов, белое: цвет задаёт tint.
+const HALO_SIZE = 64;
+function makeHalo(scene) {
+  const tex = scene.textures.createCanvas('fx_halo', HALO_SIZE, HALO_SIZE);
+  const ctx = tex.getContext();
+  const r = HALO_SIZE / 2;
+  const grad = ctx.createRadialGradient(r, r, 0, r, r, r);
+  grad.addColorStop(0, 'rgba(255,255,255,1)');
+  grad.addColorStop(0.35, 'rgba(255,255,255,0.55)');
+  grad.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, HALO_SIZE, HALO_SIZE);
+  tex.refresh();
+}
+
 class Pool {
   constructor(scene, key) {
     this.scene = scene;
@@ -89,6 +104,7 @@ export class World {
     this.pools = {
       enemies: new Pool(scene),
       projectiles: new Pool(scene),
+      glows: new Pool(scene),
       pickups: new Pool(scene),
       props: new Pool(scene),
     };
@@ -104,6 +120,7 @@ export class World {
     this.shadowN = 0;
     this.telegraphGfx = scene.add.graphics().setDepth(TELEGRAPH_DEPTH);
     this.zones = new Zones(scene, GROUND_DEPTH);
+    if (!scene.textures.exists('fx_halo')) makeHalo(scene);
     this.shake = { x: 0, y: 0 }; // смещение камеры от fx (тряска)
   }
 
@@ -161,6 +178,14 @@ export class World {
     s.tintState = state;
     if (state === 1) s.setTintFill(0xffffff);
     else s.clearTint();
+  }
+
+  // Снаряды со свечением (FX.projGlow); список переиспользуется между кадрами.
+  _glowing(list) {
+    const out = this.glowList || (this.glowList = []);
+    out.length = 0;
+    for (const p of list) if (!p.fx && FX.projGlow[p.sprite]) out.push(p);
+    return out;
   }
 
   update(dt) {
@@ -221,8 +246,13 @@ export class World {
 
     this.pools.projectiles.sync(sim.projectiles, (e) => e.sprite, (s, e) => {
       this._setKey(s, e.sprite);
-      s.setPosition(Math.round(e.x), Math.round(e.y));
-      s.setRotation(e.angle || 0);
+      const ang = e.angle || 0;
+      const off = e.drawOff || 0;
+      const lift = e.drawLift || 0;
+      const px = e.x + Math.cos(ang) * off;
+      const py = e.y + Math.sin(ang) * off - lift;
+      s.setPosition(Math.round(px), Math.round(py));
+      s.setRotation(ang);
       s.setScale((e.scale == null ? 1 : e.scale) * spriteScale(e.sprite));
       s.setAlpha(e.fx ? 0 : e.alpha == null ? 1 : e.alpha);
       if (s.projTint !== e.tint) {
@@ -231,6 +261,15 @@ export class World {
         else s.clearTint();
       }
       s.setDepth((SPRITES[e.sprite]?.layer === 'ground' ? GROUND_DEPTH : PROJ_DEPTH) + e.y);
+    });
+    const glow = FX.projGlow;
+    this.pools.glows.sync(this._glowing(sim.projectiles), () => 'fx_halo', (s, e, isNew) => {
+      const g = glow[e.sprite];
+      if (isNew) s.setBlendMode(Phaser.BlendModes.ADD);
+      s.setPosition(Math.round(e.x), Math.round(e.y));
+      s.setScale((g.size * (e.scale == null ? 1 : e.scale)) / HALO_SIZE);
+      s.setTint(e.tint || g.color).setAlpha(g.alpha * (e.alpha == null ? 1 : e.alpha));
+      s.setDepth(PROJ_DEPTH + e.y - 0.5);
     });
     this.zones.draw(sim.projectiles, time);
 

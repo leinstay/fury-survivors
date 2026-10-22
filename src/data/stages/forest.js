@@ -33,7 +33,9 @@ export const forest = {
     { sprite: 'barrel', density: 0.6, breakable: true, hp: 1, drop: { food: 0.15, coin: 0.35, magnet: 0.05 } },
     { sprite: 'lantern', density: 0.4, breakable: true, hp: 1, drop: { magnet: 0.25, food: 0.15, coin: 0.2 } },
   ],
-  scaling: { hpPerMinute: 0.06, damagePerMinute: 0.03 },
+  // HP врагов × (1 + hpPerMinute × минуты): ранние типы повторяются поздно, поэтому к 15:00 они втрое крепче
+  // (catgirl 16 -> 48, lamia к 15:00 ~600, как Mantichana в VS). Скорость не растёт.
+  scaling: { hpPerMinute: 0.133, damagePerMinute: 0.03 },
   // Ритм как в Mad Forest: 0-5 мин летучие и слизни, ряд колец призраков; 5:00 босс 1; 5-10 стрелки и лисы;
   // 10:00 босс 2; 10-15 всё сразу, волны стрелков, стены призраков, финал 15:00.
   timeline: [

@@ -9,13 +9,16 @@ import { validateNick } from '../core/nick.js';
 
 /**
  * Очки забега по формуле из data/leaderboard.js.
- * @param {{time: (number|undefined), kills: (number|undefined), victory: (boolean|undefined)}=} run
- * @param {!Object=} f формула (perSecond, perKill, victoryBonus)
+ * @param {{time: (number|undefined), kills: (number|undefined), coins: (number|undefined),
+ *     victory: (boolean|undefined)}=} run
+ * @param {!Object=} f формула (perSecond, perKill, perCoin, victoryBonus)
  * @return {number}
  */
-export function computeScore({ time = 0, kills = 0, victory = false } = {}, f = SCORE_FORMULA) {
+export function computeScore(
+    { time = 0, kills = 0, coins = 0, victory = false } = {}, f = SCORE_FORMULA) {
   const s = Math.floor(Math.max(0, time)) * f.perSecond +
-      Math.max(0, Math.floor(kills)) * f.perKill + (victory ? f.victoryBonus : 0);
+      Math.max(0, Math.floor(kills)) * f.perKill +
+      Math.max(0, Math.floor(coins)) * (f.perCoin || 0) + (victory ? f.victoryBonus : 0);
   return Math.min(s, LIMITS.scoreMax);
 }
 

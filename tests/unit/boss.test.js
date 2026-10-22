@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createSim } from '../../src/core/sim.js';
-import { BOSSES } from '../../src/data/bosses.js';
+import { BOSSES, BOSS } from '../../src/data/bosses.js';
 import { forest } from '../../src/data/stages/forest.js';
 
 const DT = 1 / 60;
@@ -21,10 +21,16 @@ function setup(attack, extra = {}) {
   return { sim, boss };
 }
 const enemyProj = (sim) => sim.projectiles.filter((p) => p.owner === 'enemy');
+// веер и кольцо начинаются после замаха BOSS.castDelay
+const pastWindup = (sim) => {
+  sim.step(DT, idle);
+  while (!enemyProj(sim).length && sim.time < 3) sim.step(DT, idle);
+};
 
 test('boss attack fan: count projectiles aimed at the player within the spread', () => {
   const { sim } = setup({ type: 'fan', count: 5, spread: 60, speed: 100, damage: 10, life: 5 });
-  sim.step(DT, idle);
+  pastWindup(sim);
+  assert.ok(sim.time >= BOSS.castDelay, 'fan waits for the windup');
   const ps = enemyProj(sim);
   assert.equal(ps.length, 5);
   const a = ps.map((p) => p.angle).sort((x, y) => x - y);
@@ -40,7 +46,7 @@ test('boss attack fan: volleys repeat after the interval', () => {
 
 test('boss attack ring: count x volleys projectiles, spin turns each volley', () => {
   const { sim } = setup({ type: 'ring', count: 8, volleys: 3, interval: 0.3, spin: 0.2, speed: 10, damage: 10, life: 50 });
-  sim.step(DT, idle);
+  pastWindup(sim);
   const first = enemyProj(sim).map((p) => p.angle);
   assert.equal(first.length, 8);
   step(sim, 1.5);
@@ -144,4 +150,16 @@ test('boss HP bar passes to a boss that is still alive when the newer one dies',
   second.dead = true;
   sim.step(DT, idle);
   assert.equal(sim.boss, first);
+});
+
+test('boss fairness: a fan does not start while the heroine is point-blank, and a dash stops short', () => {
+  const { sim, boss } = setup({ type: 'fan', count: 3, spread: 20, speed: 10, damage: 1, life: 50 });
+  boss.x = BOSS.minRange / 2;
+  boss.y = 0;
+  step(sim, 2);
+  assert.equal(enemyProj(sim).length, 0, 'no volley at point-blank range');
+  const d = setup({ type: 'dash', cooldown: 1000, windup: 0.1, speed: 600, time: 2 });
+  step(d.sim, 1);
+  const dist = Math.hypot(d.boss.x - d.sim.player.x, d.boss.y - d.sim.player.y);
+  assert.ok(dist >= BOSS.dashStop - 15, `dash stopped at ${dist.toFixed(0)} px`);
 });

@@ -7,8 +7,9 @@
 //   levels: [0.1, 0.2, ...],     // суммарный бонус на уровне 1..N (maxLevel = levels.length)
 // }
 // Сначала применяются все add, затем все mul.
+// Ориентир VS: Spinach +10% урона за уровень, Armor +1, Hollow Heart +20% HP, Pummarola +0.2 HP/с, Empty Tome −8% кулдауна.
 export const PASSIVES = {
-  max_hp:  { icon: 'icon_max_hp', stat: 'maxHp',  mode: 'mul', levels: [0.10, 0.20, 0.30, 0.40, 0.50] },
+  max_hp:  { icon: 'icon_max_hp', stat: 'maxHp',  mode: 'mul', levels: [0.20, 0.40, 0.60, 0.80, 1.00] },
   attack:  { icon: 'icon_attack', stat: 'atk',    mode: 'mul', levels: [0.10, 0.20, 0.30, 0.40, 0.50] },
   speed:   { icon: 'icon_speed', stat: 'speed',  mode: 'mul', levels: [0.08, 0.16, 0.24, 0.32, 0.40] },
   crit:    { icon: 'icon_crit', stat: 'crit',   mode: 'add', levels: [0.05, 0.10, 0.15, 0.20, 0.25] },

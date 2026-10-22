@@ -1,26 +1,31 @@
-// Blade Arc: серия взмахов рядом с игроком. Взмахи чередуют стороны; первый целится в ближайшего врага.
+// Blade Arc: серия ударов конусом из героя. Взмахи чередуют стороны; первый целится в ближайшего врага.
+// Дуга рисуется по краю конуса, центр её окружности — середина тела героя.
 import { WEAPON_BEHAVIOR } from '../../data/weapons.js';
 
-const { swingGap: SWING_GAP, swingLife: SWING_LIFE } = WEAPON_BEHAVIOR.melee_arc;
+const ARC = WEAPON_BEHAVIOR.melee_arc;
 
 function swing(w, sim) {
   const P = w.params;
   const pl = sim.player;
   if (w.n === 0) {
-    const t = sim.nearestEnemy(pl.x, pl.y, P.area * 2.2);
+    const t = sim.nearestEnemy(pl.x, pl.y, P.area * ARC.aimRange);
     w.base = t ? Math.atan2(t.y - pl.y, t.x - pl.x) : (pl.facing > 0 ? 0 : Math.PI);
   }
   const dir = w.base + ((w.n & 1) ? Math.PI : 0);
   w.n++;
-  const off = P.area * 0.55;
+  const reach = P.area * ARC.arcRadius;
   const p = sim.addProjectile('player', w.def.sprite);
-  p.x = pl.x + Math.cos(dir) * off;
-  p.y = pl.y + Math.sin(dir) * off;
+  p.x = pl.x;
+  p.y = pl.y;
   p.angle = dir;
-  p.scale = (P.area * 1.3) / 64;
+  // внешняя дуга кадра (texRadius) ложится на окружность длины удара вокруг героя
+  p.scale = (reach * ARC.tex) / (ARC.texRadius * ARC.spriteWorld);
+  p.drawOff = ((ARC.tex / 2 - ARC.texCenterX) / ARC.tex) * ARC.spriteWorld * p.scale;
+  p.drawLift = ARC.bodyLift;
   p.alpha = 0.9;
-  p.life = SWING_LIFE;
-  p.radius = P.area * 0.65;
+  p.life = ARC.swingLife;
+  p.radius = reach;
+  p.cone = Math.cos((ARC.arcSpan * Math.PI) / 180);
   p.dmg = P.damage;
   p.kb = P.knockback || 0;
   p.once = true;
@@ -29,7 +34,7 @@ function swing(w, sim) {
   p.ws = w;
   p.bk = meleeArc;
   p.a = dir;
-  p.b = off;
+  p.b = 0;   // вершина конуса идёт за героем
 }
 
 export const meleeArc = {
@@ -37,7 +42,7 @@ export const meleeArc = {
   update(w, sim, dt) {
     if (w.q > 0) {
       w.t -= dt;
-      if (w.t <= 0) { swing(w, sim); w.q--; w.t = SWING_GAP; }
+      if (w.t <= 0) { swing(w, sim); w.q--; w.t = ARC.swingGap; }
     }
     w.cooldown -= dt;
     if (w.cooldown <= 0 && w.q === 0) {

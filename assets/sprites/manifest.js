@@ -91,6 +91,7 @@ export const SPRITES = Object.fromEntries([
 
   // Снаряды и эффекты оружия. Взмах и святой круг крупнее (кадр 64×64 мира): поведение оружия масштабирует их от ширины 64 px мира.
   art('proj_blade_arc', 256, 256, { density: 4, smooth: true }),
+  art('proj_crescent', 256, 256, { density: 4, smooth: true }),   // щиты и бумеранг супероружия
   art('proj_dagger', 40, 20, { density: HD }),
   art('proj_shield', 44, 44, { density: HD }),
   art('proj_holy_ground', 128, 128, { density: HD, layer: 'ground' }),

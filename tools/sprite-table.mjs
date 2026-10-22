@@ -6,7 +6,7 @@ import { SPRITES } from '../assets/sprites/manifest.js';
 
 const DOC = 'docs/ASSETS.md';
 // Спрайты не из листов: процедурные и собранные из готовой анимации.
-const TOOLS = { grass: 'tools/make-grass.mjs', proj_blade_arc: 'tools/make-slash.mjs', menu_bg: '`assets/raw/menu_bg.png` (tools/snap-image.mjs)',
+const TOOLS = { grass: 'tools/make-grass.mjs', proj_blade_arc: 'tools/make-slash.mjs', proj_crescent: 'tools/make-slash.mjs', menu_bg: '`assets/raw/menu_bg.png` (tools/snap-image.mjs)',
   heroine_menu: 'tools/crop-raw.mjs', heroine_portrait: 'заглушка (tools/placeholders.mjs)' };
 
 const sheets = JSON.parse(readFileSync('tools/sheets.json', 'utf8'));

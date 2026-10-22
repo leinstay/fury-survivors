@@ -1,6 +1,7 @@
 // Боссы. Строки интерфейса: boss.<id>.name. Формат как у врагов + атаки.
 // id: {
 //   sprite, behavior: 'boss', hp, speed, damage, xp, size, knockbackResist,
+//   hpPerLevel,          // если задано: HP = hpPerLevel × уровень игрока при появлении (правило VS), hp не используется
 //   attacks: [{ type, cooldown, ...params }],
 //     dash:   { windup, speed, time }                — рывок в сторону игрока после замаха
 //     summon: { enemy, count, radius }               — призыв врагов вокруг босса
@@ -22,17 +23,25 @@
 //   final: true,         // убийство этого босса завершает забег победой; у остальных падает только дроп
 //   drop: 'chest',
 // }
-// Здоровье и урон босса растут с этапом так же, как у врагов (stage.scaling), поэтому числа здесь
-// заданы для минуты появления босса, делённые на этот множитель.
+// Урон босса растёт с этапом так же, как у врагов (stage.scaling.damagePerMinute), поэтому damage задан
+// для минуты появления, делённый на этот множитель (касание ~20 при появлении, как у боссов VS).
+// HP: как в VS, base × уровень игрока при появлении (Mantichana 150★ на 5:00 и 10:00, Giant Werewolf 200★ на 15:00).
+// Наши базы крупнее, потому что у нас 7 уровней оружия и сильнее коллабы; цель для среднего уровня бота:
+// Kitsune на 5:00 ~2000-3000, Harpy Queen на 10:00 ~6000-9000, Dryad Queen на 15:00 ~15000-25000.
 // Общие числа поведения боссов (src/behaviors/enemies/boss.js).
+// Честность атак: от рывка и залпа должно быть можно уйти.
 export const BOSS = {
   castTime: 0.6,           // с, поза 'cast' после призыва или залпа
   volleyInterval: 0.4,     // с между залпами серии, если у атаки нет interval
+  castDelay: 0.6,          // с замаха (поза 'cast') перед первым залпом веера или кольца
+  minRange: 90,            // px: веер и кольцо не начинаются, пока героиня ближе (ждут, не тратя откат)
+  dashStop: 70,            // px: рывок обрывается, не долетев до героини на это расстояние
+  recover: 0.7,            // с после рывка и телепорта: босс стоит и не атакует
 };
 
 export const BOSSES = {
   kitsune_empress: {
-    sprite: 'kitsune_empress', behavior: 'boss', hp: 1600, speed: 38, damage: 14, xp: 0, size: 36, knockbackResist: 1,
+    sprite: 'kitsune_empress', behavior: 'boss', hp: 1600, hpPerLevel: 120, speed: 38, damage: 17, xp: 0, size: 36, knockbackResist: 1,
     attacks: [
       { type: 'fan', cooldown: 3.6, count: 3, spread: 36, speed: 110, damage: 8, life: 4, volleys: 2, interval: 0.5 },
       { type: 'blink', cooldown: 8, delay: 0.7, distance: 80, fadeIn: 0.35 },
@@ -42,7 +51,7 @@ export const BOSSES = {
     drop: 'chest',
   },
   harpy_queen: {
-    sprite: 'harpy_queen', behavior: 'boss', hp: 11000, speed: 62, damage: 36, xp: 0, size: 36, knockbackResist: 1,
+    sprite: 'harpy_queen', behavior: 'boss', hp: 11000, hpPerLevel: 220, speed: 62, damage: 15, xp: 0, size: 36, knockbackResist: 1,
     attacks: [
       { type: 'dash', cooldown: 4.5, windup: 0.55, speed: 340, time: 0.55 },
       { type: 'ring', cooldown: 7, count: 14, volleys: 5, interval: 0.28, spin: 0.22, speed: 100, damage: 15, life: 4.5 },
@@ -52,7 +61,7 @@ export const BOSSES = {
     drop: 'chest',
   },
   dryad_queen: {
-    sprite: 'dryad_queen', behavior: 'boss', hp: 30000, speed: 34, damage: 44, xp: 0, size: 38, knockbackResist: 1,
+    sprite: 'dryad_queen', behavior: 'boss', hp: 30000, hpPerLevel: 450, speed: 34, damage: 14, xp: 0, size: 38, knockbackResist: 1,
     attacks: [
       { type: 'dash', cooldown: 5, windup: 0.8, speed: 260, time: 0.6 },
       { type: 'summon', cooldown: 8, enemy: 'catgirl', count: 6, radius: 90 },

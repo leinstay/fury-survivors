@@ -22,6 +22,7 @@ test('computeScore: data formula', () => {
       100 * f.perSecond + 50 * f.perKill);
   assert.equal(computeScore({ time: 600, kills: 0, victory: true }),
       600 * f.perSecond + f.victoryBonus);
+  assert.equal(computeScore({ time: 0, kills: 0, coins: 7 }), 7 * f.perCoin);
   assert.equal(computeScore({}), 0);
 });
 

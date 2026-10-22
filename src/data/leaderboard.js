@@ -21,8 +21,9 @@ export const SDK_URL = 'https://www.gstatic.com/firebasejs/12.19.0';
 // Ник: 3-6 символов [A-Za-z0-9], хранится в верхнем регистре. Зеркалит firestore.rules.
 export const NICK = { min: 3, max: 6, re: /^[A-Za-z0-9]+$/, storageKey: 'fury-survivors.nick' };
 
-// Очки забега: floor(time) * perSecond + kills * perKill + (victory ? victoryBonus : 0).
-export const SCORE_FORMULA = { perSecond: 10, perKill: 1, victoryBonus: 5000 };
+// Очки забега: floor(time) * perSecond + kills * perKill + coins * perCoin + (victory ? victoryBonus : 0).
+// Монеты пока ничего не покупают и дают только очки.
+export const SCORE_FORMULA = { perSecond: 10, perKill: 1, perCoin: 10, victoryBonus: 5000 };
 
 // Допустимые диапазоны полей документа (клиентская проверка; правила держат те же границы).
 export const LIMITS = { scoreMax: 9999999, timeMax: 86400, killsMax: 1000000, levelMax: 999 };

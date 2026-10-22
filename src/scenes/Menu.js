@@ -49,7 +49,7 @@ export class MenuScene extends Phaser.Scene {
     } else {
       this.add.text(cx, 108, t('settings.title'), textStyle(16)).setOrigin(0.5);
       addVolumeSliders(this, this.nav, { x: cx, y: 150, w: 300 });
-      addButton(this, this.nav, { x: cx, y: 230, w: 120, h: 30, label: t('settings.back'), onSelect: () => this.show('main') });
+      addButton(this, this.nav, { x: cx, y: 250, w: 120, h: 30, label: t('settings.back'), onSelect: () => this.show('main') });
     }
     this.objs = this.children.list.filter((o) => !before.has(o) && o.type !== 'Zone');
     this.nav.focus(0);

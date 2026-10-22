@@ -12,7 +12,7 @@
 | 1 (по умолчанию) | 1 | 2×2 px | всё: персонажи (~50 px в кадре 56×56), боссы (~95 px в кадре 96×96), окружение, предметы, иконки. Персонажи и окружение сняты с родной сетки модели клетка в пиксель |
 | 2/3 | 1.5 | 3×3 px | боссы: тот же лист, что персонажи, но втрое выше героини |
 | 0.4 | 2.5 | 5×5 px | фон меню (`tools/snap-image.mjs`) |
-| 4, smooth | 0.25 | плавно | `proj_blade_arc`: процедурный полумесяц (`tools/make-slash.mjs`), хранится в размере самого крупного показа и уменьшается линейно (`smooth` в manifest), без пиксельной сетки |
+| 4, smooth | 0.25 | плавно | `proj_blade_arc`: процедурная дуга взмаха (`tools/make-slash.mjs`), хранится в размере самого крупного показа и уменьшается линейно (`smooth` в manifest), без пиксельной сетки |
 
 Правило выбора: всё новое делаем в density 1 и на той же сетке, что персонажи (рост обычного персонажа ~50 клеток, дерево ~100). 0.5 только для больших эффектов, растягиваемых от ширины 64 px.
 
@@ -102,7 +102,7 @@ node tools/slice-sheet.mjs <sheet> [--report]
 - `node tools/contact-sheet.mjs [key ...] [--scale 4] [--out tools/out/contact-sheet.png] [--bg grass]`: превью спрайтов на шахматке или траве с подписью и линией опоры. Без ключей берёт все из manifest. `tools/out/` в `.gitignore`.
 - `node tools/snap-image.mjs <raw.png> <out.png> [--step N]`: целая картинка (фон) по родной сетке модели без потерь; показ целым множителем через `density` в manifest.
 - `node tools/make-grass.mjs [--seed 7]`: процедурный бесшовный тайл `assets/sprites/grass.png` (128×128).
-- `node tools/make-slash.mjs`: взмах клинка `assets/sprites/proj_blade_arc.png`, гладкий полумесяц из SVG почти белого цвета (tint супероружия красит его целиком).
+- `node tools/make-slash.mjs`: взмах клинка `assets/sprites/proj_blade_arc.png`, край удара конусом: кусок кольца вокруг героя из SVG почти белого цвета (tint супероружия красит его целиком). Геометрия кадра в `WEAPON_BEHAVIOR.melee_arc` (`src/data/weapons.js`), её же читает оружие; после правки чисел перезапусти скрипт.
 - `node tools/demouth.mjs [key...] [--dry] [--debug]`: PixelLab дорисовывает персонажам рот, которого нет на исходном рисунке. Скрипт находит голову на каждом кадре (сдвиг относительно кадра 0), ищет под глазами замкнутые пятна не цвета кожи и заливает их кожей вокруг; правит `assets/raw/<key>_{anim|walk}_pixellab/*.png` на месте, после него ленты пересобираются `tools/hd-frames.mjs` (0.4 для обычных, 1 для боссов). Точки лица по персонажам и ручные прямоугольники для трудных кадров заданы в начале скрипта; `--debug` пишет лист проверки `tools/out/demouth-debug.png`.
 - `node tools/sprite-table.mjs`: пересобирает раздел «Таблица спрайтов» в этом файле; запускать после правок manifest.
 - `node tools/placeholders.mjs [--force]` (или `npm run placeholders`): цветные заглушки по manifest (форма из `shape`, цвет из `color`). Существующие файлы не трогает без `--force`, чтобы не затереть настоящие спрайты.
@@ -146,6 +146,7 @@ node tools/slice-sheet.mjs <sheet> [--report]
 | `coin` | 24×28 | 1 | 2 | `assets/raw/items.png` |
 | `chest` | 44×40 | 1 | 2 | `assets/raw/items.png` |
 | `proj_blade_arc` | 256×256 | 1 | 4, smooth | tools/make-slash.mjs |
+| `proj_crescent` | 256×256 | 1 | 4, smooth | tools/make-slash.mjs |
 | `proj_dagger` | 40×20 | 1 | 2 | `assets/raw/projectiles.png` |
 | `proj_shield` | 44×44 | 1 | 2 | `assets/raw/projectiles.png` |
 | `proj_holy_ground` | 128×128 | 1 | 2 | `assets/raw/projectiles.png` |

@@ -14,6 +14,9 @@ export const en = {
   'settings.music': 'Music',
   'settings.sfx': 'Sound',
   'settings.back': 'Back',
+  'settings.shake': 'Screen shake',
+  'settings.on': 'On',
+  'settings.off': 'Off',
 
   // Пауза
   'pause.title': 'Paused',

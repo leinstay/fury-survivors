@@ -37,7 +37,13 @@ function xpTierFor(value) {
  * @return {number} опыт до следующего уровня
  */
 export function xpForLevel(level) {
-  let need = XP.base + XP.perLevel * (level - 1);
+  let need = XP.base;
+  let from = 1;
+  for (const s of XP.steps) {
+    const to = Math.min(level, s.below);
+    if (to > from) need += s.per * (to - from);
+    from = Math.max(from, to);
+  }
   for (const t of XP.thresholds) if (t.level === level) need += t.extra;
   return need;
 }
@@ -237,6 +243,12 @@ class Sim {
   spawnBoss(id) {
     const pl = this.player;
     const e = this.spawnEnemy(id, pl.x + pl.dirX * 300, pl.y + pl.dirY * 300, false, true);
+    // Правило VS: HP босса = hpPerLevel × уровень игрока при появлении (без роста со временем).
+    // Без hpPerLevel работает прежний путь: hp × рост этапа.
+    if (e && e.def.hpPerLevel) {
+      e.maxHp = e.def.hpPerLevel * pl.level;
+      e.hp = e.maxHp;
+    }
     if (e) {
       this.boss = e;
       this.events.push({ type: 'bossSpawn', boss: id });
@@ -452,6 +464,7 @@ class Sim {
         uid: 0, sprite: '', x: 0, y: 0, angle: 0, scale: 1, alpha: 1, owner: 'player',
         vx: 0, vy: 0, life: 0, radius: 0, dmg: 0, kb: 0, pierce: 0, rehit: 0, once: false,
         a: 0, b: 0, c: 0, wid: '', ws: null, bk: null, slot: 0, hitN: 0, hitUid: new Int32Array(HIT_MEM), tint: 0, fx: '', life0: 0,
+        drawOff: 0, drawLift: 0, cone: 0,
       };
     }
     p.uid = ++this.uid;
@@ -463,6 +476,9 @@ class Sim {
     p.a = 0; p.b = 0; p.c = 0; p.wid = ''; p.ws = null; p.bk = null; p.slot = 0; p.hitN = 0;
     p.tint = owner === 'player' ? this.projTint || 0 : 0;
     p.fx = ''; p.life0 = 0; // fx: зона рисуется слоями (render/zones.js), а не спрайтом
+    // drawOff, drawLift: спрайт рисуется сдвинутым на drawOff px вдоль angle и на drawLift px вверх (взмах клинка);
+    // cone > 0: удар конусом — x, y это вершина, radius длина, cone косинус половины угла вокруг angle
+    p.drawOff = 0; p.drawLift = 0; p.cone = 0;
     this.projectiles.push(p);
     return p;
   }
@@ -549,6 +565,7 @@ class Sim {
       const dy = e.y - p.y;
       const r = p.radius + e.size;
       if (dx * dx + dy * dy > r * r) continue;
+      if (p.cone > 0 && !this._inCone(p, dx, dy, e.size)) continue;
       if (p.rehit > 0) {
         if (t - e.hitAt[p.slot] < p.rehit) continue;
         e.hitAt[p.slot] = t;
@@ -568,6 +585,7 @@ class Sim {
       const dy = o.y - p.y;
       const r = p.radius + o.radius;
       if (dx * dx + dy * dy > r * r) continue;
+      if (p.cone > 0 && !this._inCone(p, dx, dy, o.radius)) continue;
       if (p.rehit > 0) {
         if (t - o.hitAt[p.slot] < p.rehit) continue;
         o.hitAt[p.slot] = t;
@@ -578,6 +596,14 @@ class Sim {
       this._damageProp(o);
     }
     if (p.once) p.dmg = 0;
+  }
+
+  // Цель (смещение dx, dy от вершины, радиус size) внутри конуса снаряда: угол до направления удара не больше
+  // половины угла конуса; size расширяет конус на краях, чтобы задевать крупных врагов краем тела.
+  _inCone(p, dx, dy, size) {
+    const d = Math.sqrt(dx * dx + dy * dy);
+    if (d <= size) return true;
+    return dx * Math.cos(p.angle) + dy * Math.sin(p.angle) >= p.cone * d - size;
   }
 
   _seen(p, uid) {

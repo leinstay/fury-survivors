@@ -79,10 +79,6 @@ export class ChestScene extends Phaser.Scene {
     this.tweens.killTweensOf(this.chest);
     this.chest.destroy();
 
-    const flash = this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0xffffff, 0.9)
-        .setOrigin(0, 0).setDepth(100);
-    this.tweens.add({ targets: flash, alpha: 0, duration: 350, onComplete: () => flash.destroy() });
-
     const items = this.items;
     const gap = 16;
     const w = items.some((it) => this.isEvolution(it)) ? 290 : 190;
@@ -109,17 +105,21 @@ export class ChestScene extends Phaser.Scene {
     if (evo) {
       this.add.text(x, y - h / 2 + 14, t('chest.evolution'), textStyle(16, '#ffd84a', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5);
       const from = it.from || [];
-      const iy = y - 10;
+      const iy = y - 22;
       if (from.length >= 2) {
-        icon(from[0], 28, x - 100, iy);
-        this.add.text(x - 70, iy, '+', textStyle(16)).setOrigin(0.5);
-        icon(from[1], 28, x - 40, iy);
-        this.add.text(x - 8, iy, '>', textStyle(18, '#ffd84a')).setOrigin(0.5);
-        icon(it.id, 44, x + 40, iy);
+        // ряд «A + B > C» по центру карточки: ширина 180 px (иконки 28, 28, 44, знаки по 12, промежутки 14)
+        icon(from[0], 28, x - 76, iy);
+        this.add.text(x - 42, iy, '+', textStyle(16)).setOrigin(0.5);
+        icon(from[1], 28, x - 8, iy);
+        this.add.text(x + 26, iy, '>', textStyle(18, '#ffd84a')).setOrigin(0.5);
+        icon(it.id, 44, x + 68, iy);
       } else {
         icon(it.id, 44, x, iy);
       }
-      this.add.text(x, y + 28, displayName(kind, it.id), textStyle(14, '#ffffff', { align: 'center' })).setOrigin(0.5);
+      this.add.text(x, y + 12, displayName(kind, it.id), textStyle(14, '#ffffff', { align: 'center' })).setOrigin(0.5);
+      const desc = t(`weapon.${it.id}.desc`);
+      this.add.text(x, y + 26, desc, textStyle(10, '#d8d0f0', { align: 'center', wordWrap: { width: w - 28 } }))
+        .setOrigin(0.5, 0);
       return;
     }
 

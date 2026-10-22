@@ -5,10 +5,10 @@ import { SPRITES } from '../../assets/sprites/manifest.js';
 import { GAME_WIDTH, GAME_HEIGHT, FX } from '../data/constants.js';
 import { textStyle } from '../ui/style.js';
 import { spriteScale } from './density.js';
+import { getSetting } from '../ui/settings.js';
 
 const DEPTH_PARTICLE = 300000;
 const DEPTH_TEXT = 400000;
-const DEPTH_FLASH = 500000;
 
 function makeTextures(scene) {
   const tx = scene.textures;
@@ -88,9 +88,6 @@ export class Fx {
       return s;
     });
 
-    this.flash = scene.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0xffffff, 1)
-      .setOrigin(0, 0).setScrollFactor(0).setDepth(DEPTH_FLASH).setVisible(false);
-    this.flashT = 0;
     this.trailT = 0;
     this.twinkleT = 0;
     this.emberT = 0;
@@ -113,6 +110,7 @@ export class Fx {
   }
 
   shake(amp, dur) {
+    if (!getSetting('shake')) return;   // тряска отключается в настройках
     if (amp >= this.shakeAmp * (this.shakeT / this.shakeDur)) {
       this.shakeAmp = amp;
       this.shakeT = dur;
@@ -193,8 +191,6 @@ export class Fx {
   }
 
   _levelup() {
-    this.flashT = FX.levelup.flashTime;
-    this.flash.setVisible(true).setAlpha(FX.levelup.flashAlpha);
     const r = this.rings.acquire();
     r.life = r.maxLife = FX.levelup.ringTime;
     r.setTint(FX.levelup.ringColor).setVisible(true);
@@ -294,12 +290,6 @@ export class Fx {
       const k = 1 - r.life / r.maxLife;
       r.setPosition(Math.round(pl.x), Math.round(pl.y - 6));
       r.setScale((0.1 + k * 0.9) * FX.levelup.ringRadius / 32).setAlpha(1 - k);
-    }
-
-    if (this.flashT > 0) {
-      this.flashT -= dt;
-      if (this.flashT <= 0) this.flash.setVisible(false);
-      else this.flash.setAlpha(FX.levelup.flashAlpha * this.flashT / FX.levelup.flashTime);
     }
   }
 }

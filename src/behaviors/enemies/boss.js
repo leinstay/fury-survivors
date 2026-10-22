@@ -36,6 +36,16 @@ function total(a) {
   return a.type === 'slam' ? a.count : a.volleys || 1;
 }
 
+// Начать серию залпов атаки i: первый залп сразу, остальные по таймеру в update.
+function startVolleys(e, sim, a, i, dx, dy) {
+  e.castT = CAST_TIME;
+  e.pose = 'cast';
+  e.vk[i] = 0;
+  volley(e, sim, a, e.vk[i]++, dx, dy);
+  e.vl[i] = total(a) - 1;
+  e.vt[i] = a.interval || BOSS.volleyInterval;
+}
+
 export const boss = {
   init(e) {
     const n = e.def.attacks.length;
@@ -49,6 +59,7 @@ export const boss = {
     e.rage = false;
     e.castT = 0;
     e.alpha = 1;
+    e.rec = 0;   // передышка после рывка и телепорта (BOSS.recover)
   },
   update(e, sim, dt) {
     const attacks = e.def.attacks;
@@ -78,7 +89,13 @@ export const boss = {
       e.castT = CAST_TIME;
     }
 
-    if (e.st === 0) {
+    if (e.st === 0 && e.rec > 0) {
+      // передышка: стоит на месте, откаты атак не идут
+      e.rec -= dt;
+      e.moving = false;
+      e.facing = dx >= 0 ? 1 : -1;
+      e.pose = 'idle';
+    } else if (e.st === 0) {
       const k = (e.speed * speedMul * dt) / d;
       e.x += dx * k;
       e.y += dy * k;
@@ -110,13 +127,17 @@ export const boss = {
             sim.spawnEnemy(a.enemy,
                 e.x + Math.cos(ang) * a.radius, e.y + Math.sin(ang) * a.radius, false);
           }
-        } else if (a.type === 'fan' || a.type === 'ring' || a.type === 'slam') {
-          e.castT = CAST_TIME;
+        } else if (a.type === 'fan' || a.type === 'ring') {
+          if (d < BOSS.minRange) {
+            e.cd[i] = 0;   // героиня вплотную: ждём, пока отойдёт, откат не тратим
+            continue;
+          }
+          // замах перед первым залпом, чтобы успеть отойти
+          e.st = 5; e.a = BOSS.castDelay; e.b = i;
           e.pose = 'cast';
-          e.vk[i] = 0;
-          volley(e, sim, a, e.vk[i]++, dx, dy);   // первый залп сразу
-          e.vl[i] = total(a) - 1;
-          e.vt[i] = a.interval || BOSS.volleyInterval;
+          break;
+        } else if (a.type === 'slam') {
+          startVolleys(e, sim, a, i, dx, dy);   // удары по земле сами предупреждают кругом
         }
       }
     } else if (e.st === 1) {
@@ -138,7 +159,21 @@ export const boss = {
       e.x += e.vx * dt;
       e.y += e.vy * dt;
       e.a -= dt;
-      if (e.a <= 0) e.st = 0;
+      // рывок обрывается, не долетев до героини
+      if (e.a <= 0 || d < BOSS.dashStop) {
+        e.st = 0;
+        e.rec = BOSS.recover;
+      }
+    } else if (e.st === 5) {
+      // замах перед веером или кольцом
+      e.moving = false;
+      e.pose = 'cast';
+      e.facing = dx >= 0 ? 1 : -1;
+      e.a -= dt;
+      if (e.a <= 0) {
+        e.st = 0;
+        startVolleys(e, sim, attacks[e.b], e.b, dx, dy);
+      }
     } else if (e.st === 3) {
       // исчезает, затем появляется рядом с игроком
       const a = attacks[e.b];
@@ -163,7 +198,11 @@ export const boss = {
       e.facing = dx >= 0 ? 1 : -1;
       e.a -= dt;
       e.alpha = 1 - Math.max(0, e.a / (a.fadeIn || 0.3));
-      if (e.a <= 0) { e.st = 0; e.alpha = 1; }
+      if (e.a <= 0) {
+        e.st = 0;
+        e.alpha = 1;
+        e.rec = BOSS.recover;
+      }
     }
   },
 };

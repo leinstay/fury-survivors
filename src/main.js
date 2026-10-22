@@ -3,6 +3,7 @@ import { GAME_WIDTH, GAME_HEIGHT, RENDER_ZOOM } from './data/constants.js';
 import { installDebug } from './debug.js';
 import { installOrientationOverlay } from './ui/orientation.js';
 import { installCrispScaling } from './ui/scaling.js';
+import { installTouchFullscreen } from './ui/fullscreen.js';
 import { installTextAlign } from './ui/text-align.js';
 import { BootScene } from './scenes/Boot.js';
 import { MenuScene } from './scenes/Menu.js';
@@ -50,3 +51,4 @@ const game = new Phaser.Game({
 installDebug(game);
 installOrientationOverlay();
 installCrispScaling(game);
+installTouchFullscreen(game);

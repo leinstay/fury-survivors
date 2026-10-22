@@ -103,7 +103,7 @@ export function buildResults(scene, sim,
     scene.add.text(cx - 90, 56 + i * 17, k, textStyle(13, '#aaaaaa')).setOrigin(0, 0);
     scene.add.text(cx + 90, 56 + i * 17, v, textStyle(13)).setOrigin(1, 0);
   });
-  const score = computeScore({ time: sim.time, kills: sim.kills, victory });
+  const score = computeScore({ time: sim.time, kills: sim.kills, coins: sim.coins, victory });
   scene.add.text(cx - 90, 111, t('result.score'), textStyle(16, COLORS.accent)).setOrigin(0, 0);
   scene.add.text(cx + 90, 111, String(score), textStyle(16, '#ffd84a')).setOrigin(1, 0);
 
