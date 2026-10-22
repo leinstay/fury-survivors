@@ -64,9 +64,11 @@ function maxEnemySize() {
 class Sim {
   constructor(opts) {
     const o = opts || {};
-    this.heroDef = HEROES[o.hero || 'heroine'];
-    // герои по игрокам: соло o.hero, кооп o.heroes или COOP.heroes (хост героиня, гость маг)
-    this.heroes = o.players > 1 ? (o.heroes || COOP.heroes) : [o.hero || 'heroine'];
+    // герои по игрокам: соло o.hero, кооп o.heroes или COOP.heroes; неизвестный id заменяется героиней
+    const ok = (h) => (HEROES[h] ? h : 'heroine');
+    this.heroes = o.players > 1 ?
+      (o.heroes || COOP.heroes).map(ok) : [ok(o.hero)];
+    this.heroDef = HEROES[this.heroes[0]];
     this.stageDef = STAGES[o.stage || 'forest'];
     this.difficulty = DIFFICULTIES[o.difficulty] ? o.difficulty : DEFAULT_DIFFICULTY;
     this.diff = DIFFICULTIES[this.difficulty];
@@ -140,7 +142,7 @@ class Sim {
   }
 
   _makePlayer(i, n) {
-    const hero = this.heroes[i] && HEROES[this.heroes[i]] ? this.heroes[i] : this.heroes[0];
+    const hero = this.heroes[i] || 'heroine';
     const heroDef = HEROES[hero];
     const stats = computeStats(heroDef.stats, [], {});
     const slots = n > 1 ? COOP.slots : SLOTS;
@@ -156,7 +158,9 @@ class Sim {
       radius: PLAYER.radius,
       slots: { weapons: slots.weapons, passives: slots.passives },
       dead: false, coffinT: 0, revives: 0,
-      tint: COOP.tints[i] || 0xffffff,
+      // одинаковые герои различаются подкраской второго
+      tint: i > 0 && this.players[0] && this.players[0].hero === hero ?
+        COOP.tints[i] || 0xffffff : 0xffffff,
       name: '',
     };
   }

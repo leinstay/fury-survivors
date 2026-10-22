@@ -158,3 +158,19 @@ test('coop: same seed and inputs give the same run', () => {
   ]);
   assert.equal(snap(a), snap(b));
 });
+
+test('heroes: solo hero choice and per-player heroes in co-op, same hero tinted', () => {
+  const solo = createSim({ seed: 1, hero: 'mage' });
+  assert.equal(solo.player.hero, 'mage');
+  assert.equal(solo.player.sprite, 'mage');
+  assert.equal(solo.player.weapons[0].id, 'storm_chain');
+  assert.equal(solo.player.maxHp, 80);
+  const swap = createSim({ seed: 1, players: 2, heroes: ['mage', 'heroine'] });
+  assert.deepEqual(swap.players.map((p) => p.weapons[0].id), ['storm_chain', 'blade_arc']);
+  assert.ok(swap.players.every((p) => p.tint === 0xffffff));
+  const same = createSim({ seed: 1, players: 2, heroes: ['mage', 'mage'] });
+  assert.equal(same.players[0].tint, 0xffffff);
+  assert.equal(same.players[1].tint, COOP.tints[1]);
+  const bad = createSim({ seed: 1, players: 2, heroes: ['nope', 'mage'] });
+  assert.equal(bad.players[0].hero, 'heroine');
+});

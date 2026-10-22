@@ -57,6 +57,7 @@ node tools/gen-sprite.mjs <name> [--ref path]... [--aspect 3:2] [--quality mediu
 | kitsune_empress (босс) | standing idle facing right, nine tails sway in slow waves, sleeves and hair drift, calm breathing | стоит лицом вправо, девять хвостов медленно колышутся волнами, рукава и волосы развеваются, спокойное дыхание | готово |
 | harpy_queen (босс) | hovering in place facing right, large slow wing flaps, crown and feathers ruffle | парит на месте лицом вправо, большие медленные взмахи крыльев, корона и перья топорщатся | готово |
 | dryad_queen (босс) | standing idle facing right, swaying like a tree in wind, leaves and vines in her hair rustle | стоит лицом вправо, покачивается, как дерево на ветру, листья и лозы в волосах шелестят | готово |
+| mage (героиня-магесса) | walking to the right in place, light elegant walk cycle, small steps, the staff stays in her raised right hand and bobs gently with each step, her left arm swings slightly, long twin tails and starry cape sway behind her, the big witch hat stays on her head | шагает вправо на месте, лёгкая походка, посох в поднятой руке покачивается в такт, хвосты и звёздный плащ колышутся, шляпа на месте | готово (холст 256×256: шляпа и посох не влезают в 192×256; лента ×0.4282, тот же размер пикселя, что у героини; 8 генераций) |
 | reaper (жница овертайма) | hovering in place facing right, slow gentle up and down float, long white hair and tattered cloak drifting in the wind, scythe sways slightly, cyan soul-fire flickers | парит на месте лицом вправо, плавно покачивается, волосы и рваный плащ колышутся, коса чуть качается, синее пламя мерцает | готово (первый кадр из assets/raw/reaper.png, лента ×1.5) |
 
 - `--dry-run` печатает тело запроса без отправки и без трат.
@@ -129,6 +130,9 @@ node tools/slice-sheet.mjs <sheet> [--report]
 | `heroine` | 77×102 | 9 | 2 | `assets/raw/heroine_walk_pixellab/` (PixelLab, tools/hd-frames.mjs) |
 | `heroine_portrait` | 48×48 | 1 | 1 | заглушка (tools/placeholders.mjs) |
 | `heroine_menu` | 139×261 | 1 | 2 | tools/crop-raw.mjs |
+| `mage` | 110×110 | 9 | 2 | `assets/raw/mage_walk_pixellab/` (PixelLab по `assets/raw/mage.png`, tools/hd-frames.mjs ×0.4282) |
+| `mage_portrait` | 48×48 | 1 | 1 | заглушка (tools/placeholders.mjs) |
+| `mage_menu` | 205×279 | 1 | 2 | `assets/raw/roster/mage.png`: вырезка из `assets/raw/mage.png` (tools/crop-raw.mjs), уменьшена ×261/637 по копии героини на том же листе |
 | `catgirl` | 77×102 | 9 | 2 | `assets/raw/catgirl_walk_pixellab/` (PixelLab, tools/hd-frames.mjs) |
 | `foxgirl` | 77×102 | 9 | 2 | `assets/raw/foxgirl_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
 | `succubus` | 77×102 | 9 | 2 | `assets/raw/succubus_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |

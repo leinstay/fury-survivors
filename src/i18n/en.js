@@ -153,6 +153,8 @@ export const en = {
   // Герои
   'hero.heroine.name': 'Heroine',
   'hero.mage.name': 'Mage',
+  'hero.title': 'Choose your hero',
+  'lobby.your_hero': 'Your hero',
 
   // Оружие
   'weapon.blade_arc.name': 'Blade Arc',

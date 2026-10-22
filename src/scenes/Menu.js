@@ -15,6 +15,13 @@ import { ROOMS } from '../data/net.js';
 import { validateNick } from '../core/nick.js';
 import { cleanCode } from '../services/net.js';
 import { readNick, writeNick } from '../services/nick-store.js';
+import { HEROES } from '../data/heroes.js';
+import { addHeroPicker } from '../ui/hero-picker.js';
+
+// Картинки героинь по бокам меню: мечница справа, магесса слева отражённой; внутренний край каждой на одном
+// расстоянии от центра (MENU_ART_GAP), ноги на одной линии (MENU_ART_Y).
+const MENU_ART_GAP = 135;
+const MENU_ART_Y = 318;
 
 export class MenuScene extends Phaser.Scene {
   constructor() {
@@ -51,7 +58,23 @@ export class MenuScene extends Phaser.Scene {
   play(difficulty) {
     setSetting('difficulty', difficulty);
     requestFullscreen();
-    this.scene.start('Game', { difficulty });
+    this.scene.start('Game', { difficulty, hero: this.hero() });
+  }
+
+  // Выбранный герой (последний выбор, по умолчанию героиня).
+  hero() {
+    const h = getSetting('hero');
+    return HEROES[h] ? h : 'heroine';
+  }
+
+  // Картинка героини у меню: right — справа от кнопок, иначе слева и отражённой.
+  menuArt(key, right) {
+    if (!this.textures.exists(key)) return;
+    const cx = GAME_WIDTH / 2;
+    const img = this.add.image(0, MENU_ART_Y, key).setOrigin(0.5, 1).setScale(spriteScale(key));
+    const half = img.displayWidth / 2;
+    img.x = right ? cx + MENU_ART_GAP + half : cx - MENU_ART_GAP - half;
+    img.setFlipX(!right);
   }
 
   show(view) {
@@ -65,14 +88,27 @@ export class MenuScene extends Phaser.Scene {
     this.add.text(cx, 62, t('game.title'), textStyle(32, COLORS.accent, { stroke: '#000000', strokeThickness: 6 })).setOrigin(0.5);
 
     if (view === 'main') {
-      if (this.textures.exists('heroine_menu')) this.add.image(cx + 170, 318, 'heroine_menu').setOrigin(0.5, 1).setScale(spriteScale('heroine_menu'));
+      this.menuArt('heroine_menu', true);
+      this.menuArt('mage_menu', false);
       const bw = 160;
       const bh = 30;
-      addButton(this, this.nav, { x: cx, y: 140, w: bw, h: bh, label: t('menu.play'), onSelect: () => this.show('difficulty') });
+      addButton(this, this.nav, { x: cx, y: 140, w: bw, h: bh, label: t('menu.play'), onSelect: () => this.show('hero') });
       addButton(this, this.nav, { x: cx, y: 178, w: bw, h: bh, label: t('menu.coop'), onSelect: () => this.show('coop') });
       addButton(this, this.nav, { x: cx, y: 216, w: bw, h: bh, label: t('menu.leaderboard'), onSelect: () => this.scene.start('Leaderboard') });
       addButton(this, this.nav, { x: cx, y: 254, w: bw, h: bh, label: t('menu.settings'), onSelect: () => this.show('settings') });
       this.add.text(cx, GAME_HEIGHT - 14, t('menu.hint'), textStyle(10, '#dddddd', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5);
+    } else if (view === 'hero') {
+      // Выбор героя перед сложностью; последний выбор запоминается и стоит в фокусе.
+      this.add.text(cx, 100, t('hero.title'), textStyle(16)).setOrigin(0.5);
+      const ids = Object.keys(HEROES);
+      addHeroPicker(this, this.nav, {
+        x: cx, y: 196, selected: this.hero(),
+        onPick: (id) => { setSetting('hero', id); this.show('difficulty'); },
+      });
+      addButton(this, this.nav, { x: cx, y: 298, w: 120, h: 28, label: t('settings.back'), onSelect: () => this.show('main') });
+      this.objs = this.children.list.filter((o) => !before.has(o) && o.type !== 'Zone');
+      this.nav.focus(Math.max(0, ids.indexOf(this.hero())));
+      return;
     } else if (view === 'difficulty') {
       // Выбор сложности перед забегом; последний выбор запоминается и стоит в фокусе.
       this.add.text(cx, 100, t('difficulty.title'), textStyle(16)).setOrigin(0.5);
@@ -87,7 +123,7 @@ export class MenuScene extends Phaser.Scene {
         });
         this.add.text(cx, y + 22, t(`difficulty.${id}.desc`), textStyle(10, '#dddddd', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5);
       });
-      addButton(this, this.nav, { x: cx, y: 136 + ids.length * 54 + 6, w: 120, h: 28, label: t('settings.back'), onSelect: () => this.show('main') });
+      addButton(this, this.nav, { x: cx, y: 136 + ids.length * 54 + 6, w: 120, h: 28, label: t('settings.back'), onSelect: () => this.show('hero') });
       this.objs = this.children.list.filter((o) => !before.has(o) && o.type !== 'Zone');
       this.nav.focus(Math.max(0, ids.indexOf(last)));
       return;

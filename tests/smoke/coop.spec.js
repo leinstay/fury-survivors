@@ -59,6 +59,9 @@ test('online co-op: lobby, connect by code, synced game, partner leaves', async 
   expect(await host.evaluate(() => window.__game.game.scene.getScene('Lobby').partner)).toBe('BOB');
   expect(await guest.evaluate(() => window.__game.game.scene.getScene('Lobby').partner)).toBe('ANN');
 
+  await guest.evaluate(() => window.__game.game.scene.getScene('Lobby').pickHero('mage'));
+  await host.waitForFunction(() => window.__game.game.scene.getScene('Lobby').partnerHero === 'mage',
+      null, { timeout: 5_000 });
   await host.evaluate(() => window.__game.game.scene.getScene('Lobby').pickDifficulty('cursed'));
   await guest.waitForFunction(() => window.__game.game.scene.getScene('Lobby').difficulty === 'cursed',
       null, { timeout: 5_000 });
@@ -71,7 +74,8 @@ test('online co-op: lobby, connect by code, synced game, partner leaves', async 
     const gs = window.__game.game.scene.getScene('Game');
     const s = gs.sim;
     return {
-      diff: s.difficulty, names: s.players.map((q) => q.name), desynced: gs.desynced, tick: gs.ls.tick,
+      diff: s.difficulty, names: s.players.map((q) => q.name), heroes: s.players.map((q) => q.hero),
+      desynced: gs.desynced, tick: gs.ls.tick,
     };
   });
   const a = await snap(host);
@@ -79,6 +83,8 @@ test('online co-op: lobby, connect by code, synced game, partner leaves', async 
   expect(a.diff).toBe('cursed');
   expect(a.names).toEqual(['ANN', 'BOB']);
   expect(b.names).toEqual(['ANN', 'BOB']);
+  expect(a.heroes).toEqual(b.heroes);
+  expect(b.heroes[1]).toBe('mage');
   expect(a.desynced || b.desynced).toBe(false);
   expect(Math.abs(a.tick - b.tick)).toBeLessThan(30);
   expect(a.tick).toBeGreaterThan(30);

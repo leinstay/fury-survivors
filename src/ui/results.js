@@ -151,7 +151,7 @@ export function buildResults(scene, sim,
   if (!coop) {
     addButton(scene, nav, {
       x: cx - 80, y: 316, w: 130, h: 28, label: t('result.retry'),
-      onSelect: () => { scene.scene.stop('Game'); scene.scene.start('Game', { difficulty: sim.difficulty }); },
+      onSelect: () => { scene.scene.stop('Game'); scene.scene.start('Game', { difficulty: sim.difficulty, hero: sim.player.hero }); },
     });
   }
   addButton(scene, nav, {

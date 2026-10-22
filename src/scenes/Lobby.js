@@ -1,8 +1,9 @@
 // Лобби сетевого коопа. Хост: createRoom, показывает код, ждёт гостя, выбирает сложность, Start.
 // Гость: joinRoom по коду, видит выбор хоста, ждёт старта. После соединения всё идёт по каналу:
-//   { type: 'hello', name }        ник, оба сразу после соединения
+//   { type: 'hello', name, hero }  ник и герой, оба сразу после соединения
+//   { type: 'hero', id }           смена своего героя (каждый выбирает сам)
 //   { type: 'diff', id }           хост при смене сложности
-//   { type: 'start', seed, difficulty, names }   хост; оба стартуют Game с data.coop
+//   { type: 'start', seed, difficulty, names, heroes }   хост; оба стартуют Game с data.coop
 //   { type: 'leave' }              выход из лобби
 import { t } from '../i18n/index.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
@@ -13,7 +14,8 @@ import { addPanel } from '../ui/panel.js';
 import { getSetting, setSetting } from '../ui/settings.js';
 import { createRoom, joinRoom } from '../services/net.js';
 import { stopMusic } from '../audio/sfx.js';
-import { COOP } from '../data/coop.js';
+import { HEROES } from '../data/heroes.js';
+import { addHeroPicker } from '../ui/hero-picker.js';
 
 export class LobbyScene extends Phaser.Scene {
   constructor() {
@@ -29,6 +31,8 @@ export class LobbyScene extends Phaser.Scene {
     this.room = null;
     this.partner = '';
     this.difficulty = DIFFICULTIES[getSetting('difficulty')] ? getSetting('difficulty') : DEFAULT_DIFFICULTY;
+    this.hero = HEROES[getSetting('hero')] ? getSetting('hero') : 'heroine';
+    this.partnerHero = '';
     this.started = false;
     this.alive = true;
   }
@@ -37,12 +41,12 @@ export class LobbyScene extends Phaser.Scene {
     stopMusic();
     const cx = GAME_WIDTH / 2;
     this.nav = new FocusNav(this, { onBack: () => this.leave() });
-    this.add.text(cx, 40, t('lobby.title'), textStyle(22, COLORS.accent, { stroke: '#000000', strokeThickness: 4 })).setOrigin(0.5);
-    addPanel(this, cx, 190, 400, 230);
-    this.codeLabel = this.add.text(cx, 92, '', textStyle(11, '#aaaaaa')).setOrigin(0.5);
-    this.codeText = this.add.text(cx, 118, '', textStyle(30, '#ffd84a', { stroke: '#000000', strokeThickness: 5 })).setOrigin(0.5);
-    this.status = this.add.text(cx, 150, '', textStyle(11, '#dddddd')).setOrigin(0.5);
-    this.players = this.add.text(cx, 176, '', textStyle(12)).setOrigin(0.5);
+    this.add.text(cx, 20, t('lobby.title'), textStyle(20, COLORS.accent, { stroke: '#000000', strokeThickness: 4 })).setOrigin(0.5);
+    addPanel(this, cx, 190, 420, 298);
+    this.codeLabel = this.add.text(cx, 56, '', textStyle(10, '#aaaaaa')).setOrigin(0.5);
+    this.codeText = this.add.text(cx, 78, '', textStyle(26, '#ffd84a', { stroke: '#000000', strokeThickness: 5 })).setOrigin(0.5);
+    this.status = this.add.text(cx, 102, '', textStyle(10, '#dddddd')).setOrigin(0.5);
+    this.players = this.add.text(cx, 120, '', textStyle(11)).setOrigin(0.5);
     this.objs = [];
     this.events.once('shutdown', () => this.shutdown());
     this.renderButtons();
@@ -114,7 +118,7 @@ export class LobbyScene extends Phaser.Scene {
       this.say('lobby.left', '#ff8080');
       this.renderButtons();
     });
-    conn.send({ type: 'hello', name: this.nick });
+    conn.send({ type: 'hello', name: this.nick, hero: this.hero });
     if (this.role === 'host') conn.send({ type: 'diff', id: this.difficulty });
     this.renderButtons();
   }
@@ -124,7 +128,11 @@ export class LobbyScene extends Phaser.Scene {
     switch (m.type) {
       case 'hello':
         this.partner = typeof m.name === 'string' ? m.name.slice(0, 6) : '?';
+        this.partnerHero = HEROES[m.hero] ? m.hero : 'heroine';
         this.renderButtons();
+        break;
+      case 'hero':
+        if (HEROES[m.id]) { this.partnerHero = m.id; this.renderButtons(); }
         break;
       case 'diff':
         if (this.role === 'guest' && DIFFICULTIES[m.id]) { this.difficulty = m.id; this.renderButtons(); }
@@ -132,7 +140,9 @@ export class LobbyScene extends Phaser.Scene {
       case 'start':
         if (this.role === 'guest' && DIFFICULTIES[m.difficulty] && Number.isFinite(m.seed)) {
           const names = Array.isArray(m.names) ? m.names : [this.partner, this.nick];
-          this.startGame(m.seed, m.difficulty, names);
+          const heroes = Array.isArray(m.heroes) && m.heroes.every((h) => HEROES[h]) ?
+            m.heroes : this.heroes();
+          this.startGame(m.seed, m.difficulty, names, heroes);
         }
         break;
       case 'leave':
@@ -143,9 +153,22 @@ export class LobbyScene extends Phaser.Scene {
     }
   }
 
-  // Имена по индексам игроков: хост 0, гость 1.
+  // Имена и герои по индексам игроков: хост 0, гость 1.
   names() {
     return this.role === 'host' ? [this.nick, this.partner] : [this.partner, this.nick];
+  }
+
+  heroes() {
+    const other = this.partnerHero || 'heroine';
+    return this.role === 'host' ? [this.hero, other] : [other, this.hero];
+  }
+
+  pickHero(id) {
+    if (!HEROES[id]) return;
+    this.hero = id;
+    setSetting('hero', id);
+    if (this.conn) this.conn.send({ type: 'hero', id });
+    this.renderButtons();
   }
 
   renderButtons() {
@@ -155,14 +178,20 @@ export class LobbyScene extends Phaser.Scene {
     this.nav.clear();
     for (const o of this.objs) o.destroy();
     const before = new Set(this.children.list);
-    const me = `${this.nick} (${t('lobby.you')})`;
-    const other = this.partner || '...';
+    const me = `${this.nick} (${t('lobby.you')}) · ${t(`hero.${this.hero}.name`)}`;
+    const other = this.partner ? `${this.partner} · ${t(`hero.${this.partnerHero || 'heroine'}.name`)}` : '...';
     const [a, b] = this.role === 'host' ? [me, other] : [other, me];
-    const hero = (i) => t(`hero.${COOP.heroes[i]}.name`);
-    this.players.setText(`${t('lobby.host')}: ${a} · ${hero(0)}    ${t('lobby.guest')}: ${b} · ${hero(1)}`);
+    this.players.setText(`${t('lobby.host')}: ${a}    ${t('lobby.guest')}: ${b}`);
+
+    // свой герой: карточки, выбор сразу уходит напарнику
+    this.add.text(cx, 136, t('lobby.your_hero'), textStyle(9, '#aaaaaa')).setOrigin(0.5);
+    addHeroPicker(this, this.nav, {
+      x: cx, y: 190, w: 110, h: 92, gap: 12, compact: true, mark: true, selected: this.hero,
+      onPick: (id) => this.pickHero(id),
+    });
 
     const ids = Object.keys(DIFFICULTIES);
-    const y = 214;
+    const y = 256;
     ids.forEach((id, i) => {
       const x = cx - 70 + i * 140;
       const cursed = id !== DEFAULT_DIFFICULTY;
@@ -175,14 +204,14 @@ export class LobbyScene extends Phaser.Scene {
       if (this.role !== 'host') b.setDisabled(true);
     });
     if (this.role !== 'host') {
-      this.add.text(cx, 238, t('lobby.host_picks'), textStyle(9, '#aaaaaa')).setOrigin(0.5);
+      this.add.text(cx, 278, t('lobby.host_picks'), textStyle(9, '#aaaaaa')).setOrigin(0.5);
     }
     const ready = !!(this.conn && this.partner);
     if (this.role === 'host') {
-      const start = addButton(this, this.nav, { x: cx - 70, y: 272, w: 120, h: 28, label: t('lobby.start'), onSelect: () => this.start() });
+      const start = addButton(this, this.nav, { x: cx - 70, y: 308, w: 120, h: 28, label: t('lobby.start'), onSelect: () => this.start() });
       start.setDisabled(!ready);
     }
-    addButton(this, this.nav, { x: this.role === 'host' ? cx + 70 : cx, y: 272, w: 120, h: 28, label: t('lobby.cancel'), onSelect: () => this.leave() });
+    addButton(this, this.nav, { x: this.role === 'host' ? cx + 70 : cx, y: 308, w: 120, h: 28, label: t('lobby.cancel'), onSelect: () => this.leave() });
     this.objs = this.children.list.filter((o) => !before.has(o) && o.type !== 'Zone');
     this.nav.focus(Math.max(0, Math.min(keep, this.nav.items.length - 1)));
   }
@@ -199,17 +228,19 @@ export class LobbyScene extends Phaser.Scene {
     if (this.role !== 'host' || !this.conn || !this.partner) return;
     const seed = (Date.now() ^ Math.floor(Math.random() * 0x7fffffff)) >>> 0;
     const names = this.names();
-    this.conn.send({ type: 'start', seed, difficulty: this.difficulty, names });
-    this.startGame(seed, this.difficulty, names);
+    const heroes = this.heroes();
+    this.conn.send({ type: 'start', seed, difficulty: this.difficulty, names, heroes });
+    this.startGame(seed, this.difficulty, names, heroes);
   }
 
-  startGame(seed, difficulty, names) {
+  startGame(seed, difficulty, names, heroes) {
     if (this.started || !this.conn) return;
     this.started = true;
     const conn = this.conn;
     conn.onMessage(null); // Game поставит свой обработчик; до того сообщения копятся
     conn.onClose(null);
-    this.scene.start('Game', { coop: { net: conn, local: this.role === 'host' ? 0 : 1, seed, difficulty, names } });
+    const local = this.role === 'host' ? 0 : 1;
+    this.scene.start('Game', { coop: { net: conn, local, seed, difficulty, names, heroes } });
   }
 
   leave() {
