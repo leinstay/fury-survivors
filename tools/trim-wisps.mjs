@@ -11,6 +11,10 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const dir = join(root, 'assets', 'raw', 'reaper_anim_pixellab');
 // зоны кадра 192×256 [x0, y0, x1, y1]: над капюшоном слева от косы; слева у волос
 const ZONES = [[30, 0, 85, 60], [0, 110, 34, 170]];
+// над макушкой капюшона остаётся светлая ниточка пряди: в этой зоне стираются все светлые пиксели
+const LIGHT_ZONE = [56, 14, 86, 48];
+const LIGHT = 90;      // яркость, выше которой пиксель в LIGHT_ZONE считается прядью (капюшон темнее)
+const SPECK = 8;       // отдельные пятна не больше стольких пикселей удаляются по всему кадру (синие точки)
 const ALPHA = 20;
 const apply = process.argv[2] === 'apply';
 
@@ -64,9 +68,18 @@ for (let f = 0; f <= 8; f++) {
   for (const c of comps) {
     if (c === main) continue;
     const [cx, cy] = center(c, W);
-    if (!inZone(cx, cy)) continue;
+    if (!inZone(cx, cy) && c.length > SPECK) continue;
     removed.push(`${c.length}px@${cx.toFixed(0)},${cy.toFixed(0)}`);
     if (apply) for (const i of c) data[i * 4 + 3] = 0;
+  }
+  let light = 0;
+  for (let y = LIGHT_ZONE[1]; y <= LIGHT_ZONE[3]; y++) {
+    for (let x = LIGHT_ZONE[0]; x <= LIGHT_ZONE[2]; x++) {
+      const i = (y * W + x) * 4;
+      if (data[i + 3] < ALPHA || (data[i] + data[i + 1] + data[i + 2]) / 3 <= LIGHT) continue;
+      light++;
+      if (apply) data[i + 3] = 0;
+    }
   }
   let cyan = 0;
   for (const [x0, y0, x1, y1] of ZONES) {
@@ -79,6 +92,6 @@ for (let f = 0; f <= 8; f++) {
       }
     }
   }
-  console.log(`frame ${f}: blobs ${removed.join(' ') || '-'}, cyan px in zones ${cyan}`);
+  console.log(`frame ${f}: blobs ${removed.join(' ') || '-'}, cyan px in zones ${cyan}, light px ${light}`);
   if (apply) await sharp(data, { raw: { width: W, height: H, channels: 4 } }).png().toFile(file);
 }
