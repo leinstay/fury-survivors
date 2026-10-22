@@ -30,6 +30,7 @@ export class LevelUpScene extends Phaser.Scene {
     this.act = data.act || createActions(data.sim);
     this.banishMode = false;
     this.shown = null; // набор карточек, который нарисован (sim меняет массив при новом наборе)
+    this.closed = false; // сцена переиспользуется Phaser'ом: флаг прошлого показа сбрасываем
   }
 
   create() {
