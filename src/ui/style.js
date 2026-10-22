@@ -26,4 +26,5 @@ export const COLORS = {
   dim: '#aaaaaa',
   hp: 0xd23a3a,
   xp: 0x4fc3ff,
+  cursed: '#c06cff',   // метка сложности Cursed в таблице, на итогах и в меню
 };

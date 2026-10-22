@@ -108,6 +108,16 @@ export const en = {
   'lb.col.score': 'Score',
   'lb.col.time': 'Time',
   'lb.col.kills': 'Kills',
+  'lb.col.mode': 'Mode',
+
+  // Сложность
+  'difficulty.title': 'Choose difficulty',
+  'difficulty.normal.name': 'Normal',
+  'difficulty.normal.short': 'Normal',
+  'difficulty.normal.desc': 'The forest as it is.',
+  'difficulty.cursed.name': 'Cursed',
+  'difficulty.cursed.short': 'Cursed',
+  'difficulty.cursed.desc': '+50% enemies, +25% experience. More kills, more score.',
 
   // Герои
   'hero.heroine.name': 'Heroine',

@@ -11,9 +11,10 @@
 ```js
 import { createSim } from './core/sim.js';
 
-const sim = createSim({ hero: 'heroine', stage: 'forest', seed: 12345 });
+const sim = createSim({ hero: 'heroine', stage: 'forest', seed: 12345, difficulty: 'normal' });
 // hero: id из data/heroes.js; stage: id этапа (сейчас таблица STAGES = { forest } зашита в sim.js);
-// seed: тот же seed даёт тот же забег (core/rng.js), на этом стоят balance-тесты
+// seed: тот же seed даёт тот же забег (core/rng.js), на этом стоят balance-тесты;
+// difficulty: id из data/difficulty.js (spawnMul для директора, xpMul для опыта), по умолчанию normal
 
 sim.step(dt, input);   // dt в секундах (Game.js режет до 1/20, sim сам до 0.1), input = { x, y } вектор движения длиной 0..1
                        // в состоянии 'levelup' / 'chest' / 'gameover' / 'victory' step ничего не делает

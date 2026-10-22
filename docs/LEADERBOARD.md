@@ -25,7 +25,7 @@
 ## Данные
 
 - Проект `fury-survivors`, база `(default)` (`FIRESTORE_DB_ID = null`), коллекция `fury_scores`.
-- Документ: `{ name, score, time, kills, level, victory, createdAt }`. `time` целые секунды, `createdAt` серверное время.
+- Документ: `{ name, score, time, kills, level, victory, difficulty, createdAt }`. `time` целые секунды, `createdAt` серверное время, `difficulty` `'normal' | 'cursed'` (`src/data/difficulty.js`); записи без поля (до появления сложности) читаются как `normal`, правила допускают его отсутствие.
 - Формула: `score = floor(time) * 10 + kills * 1 + coins * 10 + (victory ? 5000 : 0)` (монеты пока ничего не покупают и дают только очки), числа в `SCORE_FORMULA`. Правила проверяют только диапазоны, а не равенство формуле: менять формулу можно без публикации правил, но клиент может прислать любые числа в диапазоне (защиты от подделки нет, как и в Fruit Madness).
 - Запрос: `orderBy('score','desc').limit(50)`, затем `topTen` оставляет лучший результат каждого игрока (имя без учёта регистра) и режет до 10. Индекс автоматический.
 - Диапазоны (дублируются в `LIMITS` и в правилах): score 1..9999999, time 0..86400, kills 0..1000000, level 1..999.

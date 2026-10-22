@@ -363,3 +363,23 @@ test('director: wall and flyby cross the screen on a straight course and vanish,
     Math.abs(Math.hypot(e.x - 200, e.y - 200) - forest.chestHorde.radius) < 1));
   assert.ok(sim.events.some((e) => e.type === 'horde'));
 });
+
+test('difficulty: cursed spawns more and gives more xp', () => {
+  const count = (difficulty) => {
+    const sim = createSim({ seed: 41, difficulty });
+    sim.player.hp = 1e9;
+    let spawned = 0;
+    let maxUid = 0;
+    for (let i = 0; i < 60 * 60; i++) {
+      if (sim.state === 'levelup') { sim.levelUp.skips = 1e9; sim.skip(); }
+      sim.step(DT, idle);
+      for (const e of sim.enemies) if (e.uid > maxUid) { maxUid = e.uid; spawned++; }
+    }
+    return { spawned, xp: sim.spawnEnemy('slime', 0, 0).xp };
+  };
+  const n = count('normal');
+  const c = count('cursed');
+  assert.ok(c.spawned > n.spawned * 1.3, `normal ${n.spawned}, cursed ${c.spawned}`);
+  assert.equal(c.xp, n.xp * 1.25);
+  assert.equal(createSim({ seed: 1, difficulty: 'nope' }).difficulty, 'normal');
+});

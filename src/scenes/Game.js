@@ -15,8 +15,13 @@ export class GameScene extends Phaser.Scene {
     this.sim = null;
   }
 
+  // data.difficulty: id из data/difficulty.js (Menu, Retry на экране итогов)
+  init(data) {
+    this.difficulty = data && data.difficulty;
+  }
+
   create() {
-    this.sim = createSim({ hero: 'heroine', stage: 'forest', seed: Date.now() });
+    this.sim = createSim({ hero: 'heroine', stage: 'forest', seed: Date.now(), difficulty: this.difficulty });
     this.world = new World(this, this.sim);
     this.fx = new Fx(this);
     this.hitstop = 0;

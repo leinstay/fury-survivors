@@ -25,6 +25,9 @@ export const NICK = { min: 3, max: 6, re: /^[A-Za-z0-9]+$/, storageKey: 'fury-su
 // Монеты пока ничего не покупают и дают только очки.
 export const SCORE_FORMULA = { perSecond: 10, perKill: 1, perCoin: 10, victoryBonus: 5000 };
 
+// Сложность в документе: поле difficulty ('normal' | 'cursed'); старые записи без поля читаются как normal.
+export const DIFFICULTY_FIELD = { key: 'difficulty', values: ['normal', 'cursed'], fallback: 'normal' };
+
 // Допустимые диапазоны полей документа (клиентская проверка; правила держат те же границы).
 export const LIMITS = { scoreMax: 9999999, timeMax: 86400, killsMax: 1000000, levelMax: 999 };
 

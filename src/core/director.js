@@ -17,13 +17,16 @@ export function createDirector(stage, rng) {
   const ot = stage.overtime || null;
   const otState = { acc: 0, next: 0, ring: 0, elite: 0 }; // овертайм: накопитель групп, индекс типа, таймеры кольца и элиты
 
+  // Сложность (sim.diff.spawnMul): частота, минимумы и размеры разовых событий умножаются.
+  const mul = (sim, n) => Math.round(n * sim.diff.spawnMul);
+
   function start(ev, sim) {
     switch (ev.type) {
       case 'spawn':
         active.push({ ev, acc: 0, check: 0 });
         break;
       case 'ring': {
-        const n = ev.count || DIRECTOR.ringCount;
+        const n = mul(sim, ev.count || DIRECTOR.ringCount);
         const radius = ev.radius || SIM.spawnDistance - DIRECTOR.ringInset;
         const p = sim.player;
         const off = rng.next() * Math.PI * 2;
@@ -46,7 +49,7 @@ export function createDirector(stage, rng) {
         const p = sim.player;
         const cx = p.x + Math.cos(a) * SIM.spawnDistance;
         const cy = p.y + Math.sin(a) * SIM.spawnDistance;
-        for (let i = 0; i < ev.count; i++) {
+        for (let i = 0, n = mul(sim, ev.count); i < n; i++) {
           if (!sim.canSpawn()) break;
           sim.spawnEnemy(ev.enemy,
               cx + (rng.next() - 0.5) * DIRECTOR.burstJitter,
@@ -59,7 +62,7 @@ export function createDirector(stage, rng) {
         break;
       case 'wall': {
         // Стена (как в VS): шеренга врагов во весь экран за краем, идёт сквозь игрока прямым курсом и исчезает.
-        const n = ev.count || DIRECTOR.wallCount;
+        const n = mul(sim, ev.count || DIRECTOR.wallCount);
         const a = rng.next() * Math.PI * 2;          // откуда идёт
         const dist = SIM.spawnDistance + DIRECTOR.wallInset;
         const len = ev.length || DIRECTOR.wallLength;
@@ -76,7 +79,7 @@ export function createDirector(stage, rng) {
       }
       case 'flyby': {
         // Пролёт стаи: кучка у края летит по случайному курсу мимо игрока (через точку рядом с ним) и улетает.
-        const n = ev.count || DIRECTOR.ringCount;
+        const n = mul(sim, ev.count || DIRECTOR.ringCount);
         const a = rng.next() * Math.PI * 2;
         const p = sim.player;
         const cx = p.x + Math.cos(a) * SIM.spawnDistance;
@@ -125,7 +128,7 @@ export function createDirector(stage, rng) {
   function overtime(sim, dt) {
     const s = sim.time - sim.overtime;
     const o = otState;
-    o.acc += (ot.rate + ot.rateRamp * s) * dt;
+    o.acc += (ot.rate + ot.rateRamp * s) * sim.diff.spawnMul * dt;
     while (o.acc >= 1) {
       o.acc -= 1;
       group(sim, ot.enemies[o.next++ % ot.enemies.length], ot.group || 1);
@@ -166,12 +169,13 @@ export function createDirector(stage, rng) {
         }
         const k = (t - ev.at) / Math.max(0.001, until - ev.at);
         const rate = ev.rateEnd === undefined ? ev.rate : ev.rate + (ev.rateEnd - ev.rate) * k;
-        a.acc += rate * dt;
+        a.acc += rate * sim.diff.spawnMul * dt;
         // Минимум как в Vampire Survivors: раз в полсекунды досыпаем группы, пока живых этого вида меньше min.
         a.check -= dt;
         if (ev.min !== undefined && a.check <= 0) {
           a.check = DIRECTOR.minCheckInterval;
-          const min = ev.minEnd === undefined ? ev.min : ev.min + (ev.minEnd - ev.min) * k;
+          const base = ev.minEnd === undefined ? ev.min : ev.min + (ev.minEnd - ev.min) * k;
+          const min = base * sim.diff.spawnMul;
           let alive = 0;
           for (let j = 0; j < sim.enemies.length; j++) {
             const o = sim.enemies[j];

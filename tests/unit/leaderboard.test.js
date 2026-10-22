@@ -35,6 +35,8 @@ test('topTen: one best row per player, sorted, trimmed, upper-cased', () => {
   const top = topTen(rows);
   assert.deepEqual(top.map((r) => [r.name, r.score]), [['BOB', 50], ['ANN', 50], ['CAT', 5]]);
   assert.equal(top[0].time, 7);
+  assert.equal(top[0].difficulty, 'normal'); // старые записи без поля
+  assert.equal(topTen([{ name: 'x', score: 1, difficulty: 'cursed' }])[0].difficulty, 'cursed');
   assert.equal(topTen(Array.from({ length: 30 }, (_, i) => ({ name: `p${i}`, score: i })), 10).length, 10);
   assert.deepEqual(topTen(null), []);
   assert.equal(rankOf(top, 'ann'), 2);
@@ -74,9 +76,14 @@ test('errors: offline, denied, invalid, cooldown', async () => {
 
 test('submit writes a normalized document; failed write does not start cooldown', async () => {
   const f = fake();
-  const lb = createLeaderboard({ loadBackend: f.loadBackend, now: () => 5 });
+  let now = 5;
+  const lb = createLeaderboard({ loadBackend: f.loadBackend, now: () => (now += 100000) });
   await lb.submitScore(run({ victory: true, time: 12.7 }));
-  assert.deepEqual(f.added[0], { name: 'LEIN', score: 1500, time: 12, kills: 500, level: 8, victory: true });
+  assert.deepEqual(f.added[0], { name: 'LEIN', score: 1500, time: 12, kills: 500, level: 8, victory: true, difficulty: 'normal' });
+  await lb.submitScore(run({ difficulty: 'cursed' }));
+  assert.equal(f.added[1].difficulty, 'cursed');
+  await lb.submitScore(run({ difficulty: 'nope' }));
+  assert.equal(f.added[2].difficulty, 'normal');
 
   let fail = true;
   const flaky = createLeaderboard({

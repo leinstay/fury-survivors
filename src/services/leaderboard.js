@@ -4,6 +4,7 @@
 // игра работает полностью. Неудачная загрузка не кэшируется.
 import {
   FIREBASE_CONFIG, FIRESTORE_DB_ID, COLLECTION, SDK_URL, SCORE_FORMULA, LIMITS, BOARD,
+  DIFFICULTY_FIELD,
 } from '../data/leaderboard.js';
 import { validateNick } from '../core/nick.js';
 
@@ -31,7 +32,7 @@ const int = (v) => Math.floor(Number(v));
  * @param {*} entries сырые строки из базы
  * @param {number=} limit
  * @return {!Array<{name: string, score: number, time: number, kills: number, level: number,
- *     victory: boolean}>}
+ *     victory: boolean, difficulty: string}>}
  */
 export function topTen(entries, limit = BOARD.rows) {
   if (!Array.isArray(entries)) return [];
@@ -47,6 +48,8 @@ export function topTen(entries, limit = BOARD.rows) {
       kills: Number.isFinite(int(e.kills)) ? int(e.kills) : 0,
       level: Number.isFinite(int(e.level)) ? int(e.level) : 0,
       victory: e.victory === true,
+      difficulty: DIFFICULTY_FIELD.values.includes(e[DIFFICULTY_FIELD.key])
+        ? e[DIFFICULTY_FIELD.key] : DIFFICULTY_FIELD.fallback,
     };
     const seen = best.get(name);
     if (!seen) best.set(name, { ...row, order: best.size });
@@ -102,12 +105,14 @@ async function loadFirestoreBackend() {
 }
 
 /** Проверка и нормализация документа до отправки; null если не годится. */
-function buildDoc({ name, score, time, kills, level, victory }) {
+function buildDoc({ name, score, time, kills, level, victory, difficulty }) {
   const nick = validateNick(name);
   if (!nick.ok) return null;
   const doc = {
     name: nick.value, score: int(score), time: int(time), kills: int(kills), level: int(level),
     victory: victory === true,
+    difficulty: DIFFICULTY_FIELD.values.includes(difficulty)
+      ? difficulty : DIFFICULTY_FIELD.fallback,
   };
   const inR = (v, lo, hi) => Number.isFinite(v) && v >= lo && v <= hi;
   if (!inR(doc.score, 1, LIMITS.scoreMax) || !inR(doc.time, 0, LIMITS.timeMax)
@@ -189,7 +194,7 @@ let service = createLeaderboard();
 export function fetchTop10() { return service.fetchTop10(); }
 /**
  * @param {{name: string, score: number, time: number, kills: number, level: number,
- *     victory: boolean}} run
+ *     victory: boolean, difficulty: (string|undefined)}} run
  * @return {!Promise<void>} ошибка с message 'offline'|'cooldown'|'invalid'|'denied'
  */
 export function submitScore(run) { return service.submitScore(run); }

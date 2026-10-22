@@ -7,6 +7,7 @@ import { formatTime } from './hud.js';
 import { displayName, addIcon, iconKeyFor } from './icons.js';
 import { addPanel } from './panel.js';
 import { NICK } from '../data/leaderboard.js';
+import { DEFAULT_DIFFICULTY } from '../data/difficulty.js';
 import { validateNick } from '../core/nick.js';
 import { computeScore, submitScore, fetchTop10, rankOf } from '../services/leaderboard.js';
 import { readNick, writeNick } from '../services/nick-store.js';
@@ -93,6 +94,9 @@ export function buildResults(scene, sim,
   addPanel(scene, cx, 175, 370, 336);
   if (confetti) addConfetti(scene);
   scene.add.text(cx, 28, t(titleKey), textStyle(26, titleColor, { stroke: '#000000', strokeThickness: 5 })).setOrigin(0.5);
+  if (sim.difficulty && sim.difficulty !== DEFAULT_DIFFICULTY) {
+    scene.add.text(cx + 150, 56, t(`difficulty.${sim.difficulty}.name`), textStyle(11, COLORS.cursed)).setOrigin(1, 0);
+  }
 
   const rows = [
     [t('result.time'), formatTime(sim.time)],
@@ -152,6 +156,7 @@ export function buildResults(scene, sim,
     try {
       await submitScore({
         name: v.value, score, time: sim.time, kills: sim.kills, level: sim.player.level, victory,
+        difficulty: sim.difficulty,
       });
     } catch (err) {
       busy = false;
@@ -180,7 +185,7 @@ export function buildResults(scene, sim,
 
   addButton(scene, nav, {
     x: cx - 80, y: 316, w: 130, h: 28, label: t('result.retry'),
-    onSelect: () => { scene.scene.stop('Game'); scene.scene.start('Game'); },
+    onSelect: () => { scene.scene.stop('Game'); scene.scene.start('Game', { difficulty: sim.difficulty }); },
   });
   addButton(scene, nav, {
     x: cx + 80, y: 316, w: 130, h: 28, label: t('result.menu'),

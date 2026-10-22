@@ -10,7 +10,7 @@ service cloud.firestore {
     // Fury Survivors. Границы зеркалят NICK и LIMITS в src/data/leaderboard.js.
     match /fury_scores/{id} {
       allow read: if true;
-      allow create: if request.resource.data.keys().hasOnly(['name', 'score', 'time', 'kills', 'level', 'victory', 'createdAt'])
+      allow create: if request.resource.data.keys().hasOnly(['name', 'score', 'time', 'kills', 'level', 'victory', 'difficulty', 'createdAt'])
         && request.resource.data.name is string
         && request.resource.data.name.matches('^[A-Za-z0-9]{3,6}$')
         && request.resource.data.score is int
@@ -22,6 +22,7 @@ service cloud.firestore {
         && request.resource.data.level is int
         && request.resource.data.level >= 1 && request.resource.data.level <= 999
         && request.resource.data.victory is bool
+        && (!('difficulty' in request.resource.data) || request.resource.data.difficulty in ['normal', 'cursed'])
         && request.resource.data.createdAt == request.time;
       allow update, delete: if false;
     }

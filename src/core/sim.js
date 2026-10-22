@@ -7,6 +7,7 @@ import { ENEMIES } from '../data/enemies.js';
 import { BOSSES } from '../data/bosses.js';
 import { PICKUPS } from '../data/pickups.js';
 import { forest } from '../data/stages/forest.js';
+import { DIFFICULTIES, DEFAULT_DIFFICULTY } from '../data/difficulty.js';
 import { WEAPON_BEHAVIORS, ENEMY_BEHAVIORS } from '../behaviors/index.js';
 import { createRng, hashSeed } from './rng.js';
 import { Grid } from './grid.js';
@@ -63,6 +64,8 @@ class Sim {
     const o = opts || {};
     this.heroDef = HEROES[o.hero || 'heroine'];
     this.stageDef = STAGES[o.stage || 'forest'];
+    this.difficulty = DIFFICULTIES[o.difficulty] ? o.difficulty : DEFAULT_DIFFICULTY;
+    this.diff = DIFFICULTIES[this.difficulty];
     this.seed = o.seed === undefined ? 1 : o.seed;
     this.rng = createRng(this.seed);
     this.director = createDirector(this.stageDef, this.rng);
@@ -250,7 +253,7 @@ class Sim {
     e.vx = 0; e.vy = 0; e.kx = 0; e.ky = 0;
     e.speed = def.speed;
     e.damage = def.damage * dmgScale * (ed ? ed.damageMul : 1);
-    e.xp = (def.xp || 0) * (ed ? ed.xpMul || 1 : 1);
+    e.xp = (def.xp || 0) * (ed ? ed.xpMul || 1 : 1) * this.diff.xpMul;
     e.pose = 'idle'; e.alpha = 1; e.rage = false; e.st = 0; e.a = 0; e.b = 0; e.t = this.rng.next() * 6.2832; e.mark = 0;
     e.dead = false;
     e.transient = false;
@@ -436,9 +439,10 @@ class Sim {
     const h = this.stageDef.chestHorde;
     if (!h) return;
     const off = this.rng.next() * Math.PI * 2;
-    for (let i = 0; i < h.count; i++) {
+    const n = Math.round(h.count * this.diff.spawnMul);
+    for (let i = 0; i < n; i++) {
       if (!this.canSpawn()) break;
-      const a = off + (i / h.count) * Math.PI * 2;
+      const a = off + (i / n) * Math.PI * 2;
       this.spawnEnemy(e.type, e.x + Math.cos(a) * h.radius, e.y + Math.sin(a) * h.radius, false);
     }
     this.events.push({ type: 'horde', x: e.x, y: e.y, enemy: e.type });

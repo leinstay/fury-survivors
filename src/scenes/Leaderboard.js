@@ -7,8 +7,9 @@ import { textStyle, COLORS } from '../ui/style.js';
 import { addPanel } from '../ui/panel.js';
 import { formatTime } from '../ui/hud.js';
 import { fetchTop10 } from '../services/leaderboard.js';
+import { DEFAULT_DIFFICULTY } from '../data/difficulty.js';
 
-const COL = { place: 140, name: 170, score: 350, time: 425, kills: 498 };
+const COL = { place: 110, name: 140, score: 318, time: 392, kills: 464, mode: 540 };
 const ROW0 = 82;
 const ROW_H = 19;
 
@@ -25,13 +26,14 @@ export class LeaderboardScene extends Phaser.Scene {
     this.events.once('shutdown', () => { this.alive = false; });
 
     this.add.text(cx, 24, t('lb.title'), textStyle(22, COLORS.accent, { stroke: '#000000', strokeThickness: 4 })).setOrigin(0.5);
-    addPanel(this, cx, 176, 400, 252);
+    addPanel(this, cx, 176, 460, 252);
     const head = textStyle(10, COLORS.dim);
     this.add.text(COL.place, 62, '#', head);
     this.add.text(COL.name, 62, t('lb.col.name'), head);
     this.add.text(COL.score, 62, t('lb.col.score'), head).setOrigin(1, 0);
     this.add.text(COL.time, 62, t('lb.col.time'), head).setOrigin(1, 0);
     this.add.text(COL.kills, 62, t('lb.col.kills'), head).setOrigin(1, 0);
+    this.add.text(COL.mode, 62, t('lb.col.mode'), head).setOrigin(1, 0);
 
     this.rowObjs = [];
     this.status = this.add.text(cx, 176, '', textStyle(14, COLORS.dim)).setOrigin(0.5);
@@ -79,6 +81,9 @@ export class LeaderboardScene extends Phaser.Scene {
         this.add.text(COL.score, y, String(r.score), st).setOrigin(1, 0),
         this.add.text(COL.time, y, formatTime(r.time), st).setOrigin(1, 0),
         this.add.text(COL.kills, y, String(r.kills), st).setOrigin(1, 0),
+        this.add.text(COL.mode, y, t(`difficulty.${r.difficulty}.short`),
+            textStyle(12, r.difficulty === DEFAULT_DIFFICULTY ? COLORS.dim : COLORS.cursed))
+            .setOrigin(1, 0),
       );
     });
   }
