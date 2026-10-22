@@ -82,7 +82,7 @@ export class LevelUpScene extends Phaser.Scene {
       // Здесь, а не в create: при нескольких уровнях подряд ход переходит, пока экран открыт
       const who = this.sim.picker;
       const key = who === this.sim.local ? 'coop.your_pick' : 'coop.partner_pick';
-      this.add.text(GAME_WIDTH / 2, 52, t(key, { n: who + 1 }), textStyle(10, '#9ad0ff')).setOrigin(0.5);
+      this.add.text(GAME_WIDTH / 2, 46, t(key, { n: who + 1 }), textStyle(10, '#9ad0ff')).setOrigin(0.5);
     }
     const lu = this.lu;
     const cards = lu.cards;

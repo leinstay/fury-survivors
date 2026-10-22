@@ -389,7 +389,7 @@ class Sim {
     e.vx = 0; e.vy = 0; e.kx = 0; e.ky = 0;
     e.speed = def.speed;
     e.damage = def.damage * dmgScale * (ed ? ed.damageMul : 1);
-    e.xp = (def.xp || 0) * (ed ? ed.xpMul || 1 : 1) * this.diff.xpMul;
+    e.xp = (def.xp || 0) * (ed ? ed.xpMul || 1 : 1) * this.diff.xpMul * (this.coop ? COOP.xpMul : 1);
     e.pose = 'idle'; e.alpha = 1; e.rage = false; e.st = 0; e.a = 0; e.b = 0; e.t = this.rng.next() * 6.2832; e.mark = 0;
     e.dead = false;
     e.transient = false;

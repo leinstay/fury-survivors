@@ -29,16 +29,7 @@ export class Hud {
         .setOrigin(0, 0).setStrokeStyle(1, 0x000000));
     this.hpFill = add(scene.add.rectangle(8, 21, 100, 12, COLORS.hp).setOrigin(0, 0));
     this.hpText = add(scene.add.text(58, 27, '', textStyle(8, '#ffffff', { stroke: '#000000', strokeThickness: 2 })).setOrigin(0.5));
-    // кооп: полоска HP напарника под своей (цвет его подкраски), на гробу — таймер оживления
-    this.allyFill = null;
-    if (sim.coop) {
-      const color = HUD.allyHp;
-      add(scene.add.rectangle(6, 36, 104, 11, 0x000000, 0.7).setOrigin(0, 0)
-          .setStrokeStyle(1, 0x000000));
-      this.allyFill = add(scene.add.rectangle(8, 38, 100, 7, color).setOrigin(0, 0));
-      this.allyText = add(scene.add.text(58, 41, '',
-          textStyle(8, '#ffffff', { stroke: '#000000', strokeThickness: 2 })).setOrigin(0.5));
-    }
+    // кооп: HUD как в соло, только свой игрок (HP напарника не показываем)
 
     // кооп: «ждём напарника», пока lockstep стоит без его ввода, или «рассинхрон» (Game → setNotice)
     this.waitText = add(scene.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 40, '',
@@ -250,9 +241,8 @@ export class Hud {
         for (const o of [c, lv]) { o.setScrollFactor(0).setDepth(D); this.slots.push(o); }
       });
     };
-    const dy = this.allyFill ? 14 : 0; // в коопе под полоской напарника
-    row(p.weapons, 'weapon', 48 + dy);
-    row(p.passives, 'passive', 68 + dy);
+    row(p.weapons, 'weapon', 48);
+    row(p.passives, 'passive', 68);
   }
 
   /** @param {?string} key ключ i18n строки по центру экрана, null — скрыть */
@@ -272,13 +262,6 @@ export class Hud {
     this.levelText.setText(t('hud.level', { n: shared.level }));
     this.hpFill.width = Math.round(100 * Math.max(0, Math.min(1, p.hp / Math.max(1, p.maxHp))));
     this.hpText.setText(`${Math.ceil(Math.max(0, p.hp))}/${Math.ceil(p.maxHp)}`);
-    if (this.allyFill) {
-      const a = sim.players[1 - sim.local];
-      const k = Math.max(0, Math.min(1, a.hp / Math.max(1, a.maxHp)));
-      this.allyFill.width = Math.round(100 * k);
-      const hp = `${Math.ceil(Math.max(0, a.hp))}/${Math.ceil(a.maxHp)}`;
-      this.allyText.setText(a.dead ? t('hud.revive', { s: Math.ceil(a.coffinT) }) : hp);
-    }
     this.timeText.setText(formatTime(sim.time));
     const score = computeScore({
       time: sim.time, kills: sim.kills, coins: sim.coins, victory: sim.won,

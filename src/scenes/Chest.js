@@ -37,7 +37,7 @@ export class ChestScene extends Phaser.Scene {
     if (this.sim.coop && this.choices.length) {
       const who = this.sim.chest.player;
       const key = who === this.sim.local ? 'coop.your_pick' : 'coop.partner_pick';
-      this.add.text(GAME_WIDTH / 2, 56, t(key, { n: who + 1 }), textStyle(10, '#9ad0ff')).setOrigin(0.5);
+      this.add.text(GAME_WIDTH / 2, 50, t(key, { n: who + 1 }), textStyle(10, '#9ad0ff')).setOrigin(0.5);
     }
     this.nav = new FocusNav(this, {});
     this.startAt = this.time.now;
