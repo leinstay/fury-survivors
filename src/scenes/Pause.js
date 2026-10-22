@@ -74,12 +74,16 @@ export class PauseScene extends Phaser.Scene {
     const pad = readPad();
     this.padStart = !!(pad && pad.start);
 
-    // Слева: Resume, настройки, Quit (и Finish в овертайме). Справа: билд и статы.
+    // Слева: Resume, настройки, Codex, Quit (и Finish в овертайме). Справа: билд и статы.
     const cx = 170;
     const gap = 26;
+    this.inCodex = false;
+    this.wake = false;
     addButton(this, this.nav, { x: cx, y: 62, w: 180, h: 28, label: t('pause.resume'), onSelect: () => this.resume() });
     const rows = addVolumeSliders(this, this.nav, { x: cx, y: 100, w: 280, gap });
-    const qy = 100 + rows * gap + 10;
+    const cy = 100 + rows * gap + 10;
+    addButton(this, this.nav, { x: cx, y: cy, w: 180, h: 28, label: t('menu.codex'), onSelect: () => this.openCodex() });
+    const qy = cy + 34;
     if (this.sim.overtime >= 0) {
       // В овертайме забег можно закончить сразу: победа с текущими очками.
       addButton(this, this.nav, { x: cx - 70, y: qy, w: 136, h: 28, size: 12, label: t('pause.quit'), onSelect: () => this.quit() });
@@ -94,14 +98,40 @@ export class PauseScene extends Phaser.Scene {
     this.input.keyboard.on('keydown-P', () => this.resume());
   }
 
+  // Кодекс поверх паузы: пауза и забег остаются как есть, ввод паузы выключен, пока кодекс открыт.
+  openCodex() {
+    if (this.inCodex || this.closed) return;
+    this.inCodex = true;
+    this.input.enabled = false;
+    this.input.keyboard.enabled = false;
+    this.scene.launch('Codex', { from: 'Pause' });
+    this.scene.bringToTop('Codex');
+  }
+
+  // Codex закрылся: ввод вернётся в следующем кадре, чтобы Esc / B, закрывшие кодекс, не сняли и паузу.
+  codexClosed() {
+    this.wake = true;
+  }
+
   update(time) {
+    // кооп: пауза общая, экран закрывается, когда команда resume применилась у обоих (и кодекс поверх тоже)
+    if (this.act.coop && !this.act.paused) { this.close(); return; }
+    if (this.inCodex) {
+      if (!this.wake) return;
+      this.inCodex = false;
+      this.wake = false;
+      this.input.enabled = true;
+      this.input.keyboard.enabled = true;
+      const p = readPad();
+      this.nav.padPrev = p || { x: 0, y: 0, a: false, b: false };
+      this.padStart = !!(p && p.start);
+      return;
+    }
     this.nav.update(time);
     const pad = readPad();
     const start = !!(pad && pad.start);
     if (start && !this.padStart) this.resume();
     this.padStart = start;
-    // кооп: пауза общая, экран закрывается, когда команда resume применилась у обоих
-    if (this.act.coop && !this.act.paused) this.close();
   }
 
   resume() {
@@ -112,6 +142,7 @@ export class PauseScene extends Phaser.Scene {
   close() {
     if (this.closed) return;
     this.closed = true;
+    if (this.scene.isActive('Codex') || this.scene.isPaused('Codex')) this.scene.stop('Codex');
     if (!this.act.coop) {
       this.act.hold();
       this.scene.resume('Game');

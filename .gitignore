@@ -7,3 +7,4 @@ Thumbs.db
 tools/.gen.lock
 tools/out/
 .trash/
+.claude/worktrees/

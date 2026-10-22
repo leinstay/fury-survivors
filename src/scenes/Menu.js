@@ -104,11 +104,14 @@ export class MenuScene extends Phaser.Scene {
     if (view === 'main') {
       this.menuArt();
       const bw = 160;
-      const bh = 30;
-      addButton(this, this.nav, { x: cx, y: 140, w: bw, h: bh, label: t('menu.play'), onSelect: () => this.show('hero') });
-      addButton(this, this.nav, { x: cx, y: 178, w: bw, h: bh, label: t('menu.coop'), onSelect: () => this.show('coop') });
-      addButton(this, this.nav, { x: cx, y: 216, w: bw, h: bh, label: t('menu.leaderboard'), onSelect: () => this.scene.start('Leaderboard') });
-      addButton(this, this.nav, { x: cx, y: 254, w: bw, h: bh, label: t('menu.settings'), onSelect: () => this.show('settings') });
+      const bh = 28;
+      const y0 = 134;
+      const gap = 36;
+      addButton(this, this.nav, { x: cx, y: y0, w: bw, h: bh, label: t('menu.play'), onSelect: () => this.show('hero') });
+      addButton(this, this.nav, { x: cx, y: y0 + gap, w: bw, h: bh, label: t('menu.coop'), onSelect: () => this.show('coop') });
+      addButton(this, this.nav, { x: cx, y: y0 + gap * 2, w: bw, h: bh, label: t('menu.leaderboard'), onSelect: () => this.scene.start('Leaderboard') });
+      addButton(this, this.nav, { x: cx, y: y0 + gap * 3, w: bw, h: bh, label: t('menu.codex'), onSelect: () => this.scene.start('Codex', { from: 'Menu' }) });
+      addButton(this, this.nav, { x: cx, y: y0 + gap * 4, w: bw, h: bh, label: t('menu.settings'), onSelect: () => this.show('settings') });
       this.add.text(cx, GAME_HEIGHT - 14, t('menu.hint'), textStyle(10, '#dddddd', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5);
     } else if (view === 'hero') {
       // Выбор героя перед сложностью; последний выбор запоминается и стоит в фокусе.

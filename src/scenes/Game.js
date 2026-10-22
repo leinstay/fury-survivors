@@ -9,6 +9,9 @@ import { Fx } from '../render/fx.js';
 import { FX, SIM, NET } from '../data/constants.js';
 import { handleSimEvents, startMusic, fadeOutMusic } from '../audio/sfx.js';
 import { netLog } from '../services/net.js';
+import { createRunTracker, runStatus } from '../core/codex.js';
+import { recordRun } from '../services/codex.js';
+import { computeScore } from '../services/leaderboard.js';
 
 const MAX_DT = SIM.maxFrameDt;
 const STEP = 1 / SIM.tickRate;
@@ -58,6 +61,11 @@ export class GameScene extends Phaser.Scene {
       this.ls = null;
     }
     this.act = createActions(this.sim, this.ls);
+    // Кодекс: свой забег (не готовый sim плейтеста). Итог пишется в конце забега или при выходе в меню.
+    this.tracker = this.givenSim ? null : createRunTracker({
+      local: this.sim.local || 0, coop: !!co,
+      partner: co && co.names ? co.names[1 - co.local] || '' : '',
+    });
     this.acc = 0;
     this.waitSince = -1; // кооп: момент (с), с которого ждём ввод напарника; -1 — не ждём
     this.overlay = null; // открытый поверх экран (кооп: Game не ставится на паузу)
@@ -71,6 +79,7 @@ export class GameScene extends Phaser.Scene {
     const onResume = () => this.fx.playPending();
     this.events.on('resume', onResume);
     this.events.once('shutdown', () => {
+      this._finishRun('quit');
       this.events.off('resume', onResume);
       if (this.net) this.net.close();
     });
@@ -142,9 +151,20 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  // Итог забега в кодекс (один раз): статус victory | dead | disconnected | quit, очки как на экране итогов.
+  _finishRun(status) {
+    const tr = this.tracker;
+    if (!tr) return;
+    this.tracker = null;
+    const sim = this.sim;
+    const score = computeScore({ time: sim.time, kills: sim.kills, coins: sim.coins, victory: status === 'victory' });
+    recordRun(tr.finish(sim, { status, at: Date.now(), score }));
+  }
+
   // Единая точка обработки событий sim: эффекты, звук, хитстоп.
   handleEvents(events) {
     if (!events.length) return;
+    if (this.tracker) this.tracker.onEvents(events);
     this.fx.onEvents(events);
     this.hud.onEvents(events);
     // два сундука за кадр: sim уже выдал оба, показываем всё вместе
@@ -271,6 +291,7 @@ export class GameScene extends Phaser.Scene {
     const input = this.gameInput.read();
     if (this.ls) this._stepCoop(delta / 1000, input);
     else this._stepSolo(dt, input);
+    if (this.tracker) this.tracker.observe(sim);
     this._predict(input);
     this.hitCool -= dt;
     this.fx.update(dt);
@@ -301,6 +322,7 @@ export class GameScene extends Phaser.Scene {
       if (this.overlay) { this.scene.stop(this.overlay); this.overlay = null; }
       this.scene.pause('Game');
       const over = sim.state === 'gameover' || sim.state === 'victory';
+      this._finishRun(runStatus(sim, this.lost && !over));
       this.scene.launch(sim.state === 'victory' ? 'Victory' : 'GameOver', {
         sim, coop: this.coop, lost: this.lost && !over,
       });

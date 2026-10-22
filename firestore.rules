@@ -56,5 +56,23 @@ service cloud.firestore {
         && request.resource.data.answeredAt == request.time;
       allow delete: if true;
     }
+    // Резервная копия кодекса игрока (src/services/codex.js, CODEX в src/data/codex.js). Имя документа —
+    // случайный id кодекса (20 знаков [a-z0-9]), его знает только владелец: читать по id можно, список нельзя.
+    // data: JSON кодекса строкой; nick: ник для поиска владельцем проекта в консоли.
+    match /fury_codex/{id} {
+      allow get: if true;
+      allow list: if false;
+      allow create, update: if id.matches('^[a-z0-9]{20}$')
+        && request.resource.data.keys().hasOnly(['nick', 'data', 'v', 'updatedAt'])
+        && request.resource.data.keys().hasAll(['nick', 'data', 'v', 'updatedAt'])
+        && request.resource.data.nick is string
+        && request.resource.data.nick.size() <= 6
+        && request.resource.data.data is string
+        && request.resource.data.data.size() < 800000
+        && request.resource.data.v is int
+        && request.resource.data.v >= 1 && request.resource.data.v < 1000
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+    }
   }
 }
