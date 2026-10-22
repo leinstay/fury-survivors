@@ -13,6 +13,8 @@ export function createDirector(stage, rng) {
   let idx = 0;
   const warned = new Set(); // боссы, о которых уже предупредили
   const active = []; // активные spawn-события { ev, acc, check }
+  const ot = stage.overtime || null;
+  const otState = { acc: 0, next: 0, ring: 0, elite: 0 }; // овертайм: накопитель групп, индекс типа, таймеры кольца и элиты
 
   function start(ev, sim) {
     switch (ev.type) {
@@ -59,9 +61,45 @@ export function createDirector(stage, rng) {
     }
   }
 
+  // Группа врагов типа type у края экрана.
+  function group(sim, type, count) {
+    const p = sim.player;
+    const ang = rng.next() * Math.PI * 2;
+    const cx = p.x + Math.cos(ang) * SIM.spawnDistance;
+    const cy = p.y + Math.sin(ang) * SIM.spawnDistance;
+    for (let j = 0; j < count; j++) {
+      if (!sim.canSpawn()) break;
+      sim.spawnEnemy(type,
+          cx + (rng.next() - 0.5) * DIRECTOR.groupJitter,
+          cy + (rng.next() - 0.5) * DIRECTOR.groupJitter, false);
+    }
+  }
+
+  // Овертайм: группы всех типов по кругу с растущей частотой, кольцо призраков и элита по таймерам.
+  function overtime(sim, dt) {
+    const s = sim.time - sim.overtime;
+    const o = otState;
+    o.acc += (ot.rate + ot.rateRamp * s) * dt;
+    while (o.acc >= 1) {
+      o.acc -= 1;
+      group(sim, ot.enemies[o.next++ % ot.enemies.length], ot.group || 1);
+    }
+    o.ring += dt;
+    if (ot.ringEvery && o.ring >= ot.ringEvery) {
+      o.ring = 0;
+      start({ type: 'ring', enemy: ot.ringEnemy, count: ot.ringCount }, sim);
+    }
+    o.elite += dt;
+    if (ot.eliteEvery && o.elite >= ot.eliteEvery) {
+      o.elite = 0;
+      start({ type: 'elite', enemy: ot.enemies[rng.int(ot.enemies.length)] }, sim);
+    }
+  }
+
   return {
     update(sim, dt) {
       const t = sim.time;
+      if (ot && sim.overtime >= 0) overtime(sim, dt);
       if (stage.bossWarning) {
         for (const ev of events) {
           if (ev.type === 'boss' && !warned.has(ev) && t >= ev.at - stage.bossWarning && t < ev.at) {
@@ -71,7 +109,6 @@ export function createDirector(stage, rng) {
         }
       }
       while (idx < events.length && events[idx].at <= t) start(events[idx++], sim);
-      const p = sim.player;
       for (let i = active.length - 1; i >= 0; i--) {
         const a = active[i];
         const ev = a.ev;
@@ -98,16 +135,7 @@ export function createDirector(stage, rng) {
         }
         while (a.acc >= 1) {
           a.acc -= 1;
-          const ang = rng.next() * Math.PI * 2;
-          const cx = p.x + Math.cos(ang) * SIM.spawnDistance;
-          const cy = p.y + Math.sin(ang) * SIM.spawnDistance;
-          const g = ev.group || 1;
-          for (let j = 0; j < g; j++) {
-            if (!sim.canSpawn()) break;
-            sim.spawnEnemy(ev.enemy,
-                cx + (rng.next() - 0.5) * DIRECTOR.groupJitter,
-                cy + (rng.next() - 0.5) * DIRECTOR.groupJitter, false);
-          }
+          group(sim, ev.enemy, ev.group || 1);
         }
       }
     },

@@ -160,7 +160,7 @@ test('boss: bossWarning comes once, 10 s before the first boss', () => {
   assert.ok(spawnAt[0] - warns[0][0] > 9.8);
 });
 
-test('boss: hp/maxHp readable, pose, rage at 50% hp, victory on death', () => {
+test('boss: hp/maxHp readable, pose, rage at 50% hp, win on death', () => {
   const sim = createSim({ seed: 36 });
   god(sim);
   const boss = sim.spawnBoss('dryad_queen');
@@ -179,7 +179,7 @@ test('boss: hp/maxHp readable, pose, rage at 50% hp, victory on death', () => {
   assert.equal(boss.rage, true);
   assert.ok(sim.events.some((e) => e.type === 'bossRage'));
   sim.damageEnemy(boss, 1e9, 'blade_arc', 0, 0, 0);
-  assert.equal(sim.state, 'victory');
+  assert.ok(sim.won);
 });
 
 test('boss: rage shortens the attack interval', () => {

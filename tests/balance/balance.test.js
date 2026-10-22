@@ -91,7 +91,7 @@ test('balance: all three bosses can be beaten by a healed strong bot, only the l
       seed, upgrades: true, until: 1100, onSecond: heal,
       onEvents: (evs) => { for (const ev of evs) if (ev.type === 'kill' && ev.boss) killed[ev.enemy] = true; },
     });
-    if (r.state === 'victory' && Object.keys(killed).length === 3) { found = { r, killed }; break; }
+    if (r.sim.won && Object.keys(killed).length === 3) { found = { r, killed }; break; }
   }
   assert.ok(found, 'no seed in 1-4 where the bot killed all 3 bosses');
   assert.ok(found.r.victoryTime > 900);
@@ -120,6 +120,6 @@ test('balance: bosses are not immortal: each takes damage within 3 minutes of ap
       }
     },
   });
-  assert.equal(r.state, 'victory');
+  assert.ok(r.sim.won);
   for (const id of ['kitsune_empress', 'harpy_queen', 'dryad_queen']) assert.ok(seen[id] && seen[id].min < 1, id);
 });

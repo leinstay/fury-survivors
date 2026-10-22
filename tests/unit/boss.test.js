@@ -121,7 +121,8 @@ test('boss: killing a non-final boss drops a chest and the run continues', () =>
   assert.equal(sim.pickups.filter((p) => p.kind === 'chest').length, 1);
   const last = sim.spawnBoss('dryad_queen');
   sim.damageEnemy(last, 1e12, 'blade_arc', 0, 0, 0);
-  assert.equal(sim.state, 'victory');
+  assert.ok(sim.won);
+  assert.ok(sim.events.some((e) => e.type === 'overtime'));
 });
 
 test('boss: each boss gets its own warning 10 s ahead', () => {

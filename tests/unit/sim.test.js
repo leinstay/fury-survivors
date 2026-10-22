@@ -202,12 +202,35 @@ test('sim: breakable props drop pickups when hit', () => {
   assert.ok(broken, 'prop destroyed by blade arc');
 });
 
-test('sim: boss death means victory', () => {
+test('sim: final boss death starts overtime, death in overtime is a victory', () => {
   const sim = createSim({ seed: 14 });
   const boss = sim.spawnBoss('dryad_queen');
   assert.ok(boss && boss.boss);
   assert.ok(sim.events.some((e) => e.type === 'bossSpawn'));
   sim.damageEnemy(boss, 1e9, 'blade_arc', 0, 0, 0);
+  assert.equal(sim.state, 'running');
+  assert.ok(sim.won);
+  assert.ok(sim.overtime >= 0);
+  assert.ok(sim.events.some((e) => e.type === 'overtime'));
+  // враги овертайма крепче обычных и крепнут дальше
+  const t0 = sim.time;
+  const a = sim.spawnEnemy('slime', 300, 300);
+  sim.time = t0 + 60;
+  const b = sim.spawnEnemy('slime', 300, 300);
+  assert.ok(b.maxHp > a.maxHp * 1.5, `hp ${a.maxHp} -> ${b.maxHp}`);
+  sim.hurtPlayer(1e9);
+  assert.equal(sim.state, 'victory');
+  assert.ok(sim.events.some((e) => e.type === 'victory'));
+});
+
+test('sim: overtime keeps spawning and can be finished early', () => {
+  const sim = createSim({ seed: 15 });
+  const boss = sim.spawnBoss('dryad_queen');
+  sim.damageEnemy(boss, 1e9, 'blade_arc', 0, 0, 0);
+  sim.player.hp = 1e9;
+  for (let i = 0; i < 600; i++) { if (sim.state === 'levelup') sim.skip(); sim.step(1 / 60); }
+  assert.ok(sim.enemies.length > 20, `enemies ${sim.enemies.length}`);
+  sim.finishOvertime();
   assert.equal(sim.state, 'victory');
   assert.ok(sim.events.some((e) => e.type === 'victory'));
 });

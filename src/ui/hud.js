@@ -50,6 +50,7 @@ export class Hud {
 
     // Баннер предупреждения о боссе
     this.banner = add(scene.add.text(GAME_WIDTH / 2, 110, t('boss.warning'), textStyle(24, '#ff3030', { stroke: '#000000', strokeThickness: 5 })).setOrigin(0.5)).setVisible(false);
+    this.bannerSub = add(scene.add.text(GAME_WIDTH / 2, 134, '', textStyle(12, '#ffffff', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5)).setVisible(false);
     this.bannerUntil = -1;
     this.bannerStart = 0;
 
@@ -74,9 +75,13 @@ export class Hud {
   // События sim этого шага (баннер босса).
   onEvents(events) {
     for (const ev of events) {
-      if (ev.type === 'bossWarning') {
+      if (ev.type === 'bossWarning' || ev.type === 'overtime') {
         this.bannerStart = this.sim.time;
         this.bannerUntil = this.sim.time + HUD.bossBannerTime;
+        const ot = ev.type === 'overtime';
+        this.banner.setText(t(ot ? 'hud.overtime' : 'boss.warning')).setColor(ot ? '#ffd84a' : '#ff3030');
+        this.bannerSub.setText(ot ? t('hud.overtime_hint') : '');
+        if (ot) this.timeText.setColor('#ffd84a');
       }
     }
   }
@@ -129,6 +134,7 @@ export class Hud {
     this._updateBoss();
     const showBanner = sim.time < this.bannerUntil;
     this.banner.setVisible(showBanner && Math.floor((sim.time - this.bannerStart) * 3) % 2 === 0);
+    this.bannerSub.setVisible(showBanner && this.bannerSub.text !== '');
     const sig = p.weapons.map((w) => `${w.id}${w.level}`).join() + '|' + p.passives.map((w) => `${w.id}${w.level}`).join();
     if (sig !== this.slotSig) {
       this.slotSig = sig;

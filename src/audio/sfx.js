@@ -69,6 +69,7 @@ export function handleSimEvents(scene, events) {
       case 'bossRage': playSfx(scene, 'boss_spawn', { detune: -300 }); break;
       case 'gameover': playSfx(scene, 'gameover'); break;
       case 'victory': playSfx(scene, 'victory'); break;
+      case 'overtime': playSfx(scene, 'boss_spawn'); break;
       case 'weaponFire': playSfx(scene, 'weapon_fire', { volume: 0.5 }); break;
       default: break;
     }

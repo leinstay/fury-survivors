@@ -124,6 +124,7 @@ function steer(sim, out, t) {
 
 // opts: { seed, preset ('greedy' | 'idle' | 'kite'), upgrades (bool), until (с), dt, onSecond(sim), onEvents(events) }
 // res.bosses: { id: { at, hp, level, killed } } — время появления, HP и уровень игрока при появлении, время убийства.
+// res.victoryTime — убийство финального босса (начало овертайма); забег после него идёт до смерти или until.
 export function runBot(opts) {
   const { seed = 1, preset = 'greedy', upgrades = true, until = 910, dt = 1 / 60 } = opts;
   const idle = preset === 'idle';
@@ -169,10 +170,11 @@ export function runBot(opts) {
         };
       }
       if (ev.type === 'kill' && ev.boss && res.bosses[ev.enemy]) res.bosses[ev.enemy].killed = sim.time;
+      if (ev.type === 'overtime') res.victoryTime = sim.time;
     }
   }
   if (sim.state === 'gameover') res.deathTime = sim.time;
-  if (sim.state === 'victory') res.victoryTime = sim.time;
+  if (sim.state === 'victory' && res.victoryTime === null) res.victoryTime = sim.time;
   res.time = sim.time;
   res.state = sim.state;
   return res;

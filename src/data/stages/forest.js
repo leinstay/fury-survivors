@@ -18,6 +18,12 @@
 //     { at, type: 'burst', enemy, count }                           // разовая кучка врагов у края экрана
 //     { at, type: 'boss', boss }                                    // несколько боссов: убийство нефинального даёт сундук, забег идёт дальше
 //   ],
+//   overtime: {                  // после финального босса: бесконечные волны, пока героиня не погибнет (смерть = победа)
+//     enemies, group,            // типы по кругу, врагов в группе
+//     rate, rateRamp,            // групп в секунду в начале и прибавка каждую секунду овертайма
+//     ringEvery, ringEnemy, ringCount, eliteEvery,   // кольцо и элита раз в столько секунд
+//     hpRamp, damageRamp,        // HP и урон врагов × (1 + ramp × секунды овертайма), поверх scaling
+//   },
 // }
 export const forest = {
   id: 'forest',
@@ -86,4 +92,14 @@ export const forest = {
     { at: 870, type: 'ring', enemy: 'ghost', count: 48 },
     { at: 900, type: 'boss', boss: 'dryad_queen' },
   ],
+  // Овертайм ради очков в таблице: через минуту враги почти вдвое крепче, через две — почти втрое, и толпа растёт
+  // без предела. Выжить нельзя, но каждая секунда и каждый кил идут в счёт (бот живёт ~1.5 мин, человек 2-3).
+  overtime: {
+    enemies: ['harpy', 'catgirl', 'bunnygirl', 'foxgirl', 'succubus', 'lamia', 'slime'],
+    group: 4,
+    rate: 2, rateRamp: 0.03,
+    ringEvery: 20, ringEnemy: 'ghost', ringCount: 48,
+    eliteEvery: 15,
+    hpRamp: 0.015, damageRamp: 0.008,
+  },
 };

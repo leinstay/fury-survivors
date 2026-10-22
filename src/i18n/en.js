@@ -22,6 +22,7 @@ export const en = {
   'pause.title': 'Paused',
   'pause.resume': 'Resume',
   'pause.quit': 'Quit to menu',
+  'pause.finish': 'Finish run',
   'pause.build': 'Build',
   'pause.weapons': 'Weapons',
   'pause.passives': 'Passives',
@@ -43,6 +44,8 @@ export const en = {
   'hud.pause': 'II',
   'hud.coins': 'Coins {n}',
   'boss.warning': 'WARNING! A BOSS APPROACHES',
+  'hud.overtime': 'OVERTIME!',
+  'hud.overtime_hint': 'The forest wakes. Survive for score!',
 
   // Сундук
   'chest.title': 'Treasure!',

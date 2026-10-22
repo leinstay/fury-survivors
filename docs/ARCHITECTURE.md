@@ -23,6 +23,9 @@ sim.step(dt, input);   // dt в секундах (Game.js режет до 1/20, 
 
 ```js
 sim.state      // 'running' | 'levelup' | 'gameover' | 'victory'
+sim.won        // финальный босс убит: забег закончится победой (в овертайме смерть даёт 'victory', не 'gameover')
+sim.overtime   // время начала овертайма (stage.overtime: бесконечные крепнущие волны ради очков) или -1
+sim.finishOvertime()  // закончить овертайм досрочно: state = 'victory'
 sim.time       // с с начала забега
 sim.kills
 sim.coins       // собранные монеты
@@ -63,7 +66,9 @@ sim.events      // события этого шага, очищаются в н�
                 //   { type: 'bossBlink', x, y }              босс появился после телепорта
                 //   { type: 'bossRage', x, y }               босс упал ниже bosses[id].rage.hpFraction HP (один раз);
                 //                                            fx: тряска, звук: boss_spawn ниже тоном
-                //   { type: 'gameover' } | { type: 'victory' }  victory приходит сразу после kill босса
+                //   { type: 'overtime' }                     финальный босс убит, начался овертайм (hud: баннер)
+                //   { type: 'gameover' } | { type: 'victory' }  victory: смерть или finishOvertime в овертайме
+                //                                            (без stage.overtime приходит сразу после kill босса)
 sim.damageByWeapon  // { weaponId: totalDamage }
 ```
 

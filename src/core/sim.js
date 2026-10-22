@@ -71,6 +71,8 @@ class Sim {
     this.time = 0;
     this.kills = 0;
     this.coins = 0;
+    this.won = false;       // финальный босс убит (забег закончится победой)
+    this.overtime = -1;     // время начала овертайма (stage.overtime) или -1
     this.boss = null;
     this.damageByWeapon = {};
     this.projTint = 0;
@@ -210,8 +212,14 @@ class Sim {
     }
     const mins = this.time / 60;
     const sc = this.stageDef.scaling || EMPTY;
-    const hpScale = 1 + (sc.hpPerMinute || 0) * mins;
-    const dmgScale = 1 + (sc.damagePerMinute || 0) * mins;
+    let hpScale = 1 + (sc.hpPerMinute || 0) * mins;
+    let dmgScale = 1 + (sc.damagePerMinute || 0) * mins;
+    if (this.overtime >= 0) {
+      const ot = this.stageDef.overtime;
+      const s = this.time - this.overtime;
+      hpScale *= 1 + (ot.hpRamp || 0) * s;
+      dmgScale *= 1 + (ot.damageRamp || 0) * s;
+    }
     e.uid = ++this.uid;
     e.type = type;
     e.sprite = def.sprite;
@@ -380,8 +388,14 @@ class Sim {
     if (e.boss) {
       if (e.def.drop) this.dropPickup(e.def.drop, e.x, e.y);
       if (e.def.final) {
-        this.state = 'victory';
-        this.events.push({ type: 'victory' });
+        this.won = true;
+        if (this.stageDef.overtime) {
+          // Овертайм: забег идёт дальше ради очков, смерть засчитывается как победа.
+          this.overtime = this.time;
+          this.events.push({ type: 'overtime' });
+        } else {
+          this._win();
+        }
       } else {
         this.events.push({ type: 'bossDown', boss: e.type });
       }
@@ -438,9 +452,21 @@ class Sim {
     this.events.push({ type: 'playerHurt', amount });
     if (pl.hp <= 0) {
       pl.hp = 0;
+      if (this.won) { this._win(); return; }
       this.state = 'gameover';
       this.events.push({ type: 'gameover' });
     }
+  }
+
+  _win() {
+    this.state = 'victory';
+    this.events.push({ type: 'victory' });
+  }
+
+  // Досрочно закончить овертайм (кнопка в паузе): победа с текущими очками.
+  finishOvertime() {
+    if (this.overtime < 0 || this.state !== 'running') return;
+    this._win();
   }
 
   // ---------- оружие и снаряды ----------

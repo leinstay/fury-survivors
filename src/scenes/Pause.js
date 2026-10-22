@@ -5,6 +5,7 @@ import { addVolumeSliders } from '../ui/volume.js';
 import { addIcon, displayName, iconKeyFor } from '../ui/icons.js';
 import { textStyle } from '../ui/style.js';
 import { addPanel } from '../ui/panel.js';
+import { playSfx } from '../audio/sfx.js';
 
 // Билд в две колонки (оружие слева, пассивки справа): 6+6 строк не налезают на кнопки.
 export function addBuildList(scene, x, y, player) {
@@ -70,6 +71,10 @@ export class PauseScene extends Phaser.Scene {
     addButton(this, this.nav, { x: cx, y: 90, w: 180, h: 30, label: t('pause.resume'), onSelect: () => this.resume() });
     addVolumeSliders(this, this.nav, { x: cx, y: 140, w: 280 });
     addButton(this, this.nav, { x: cx, y: 240, w: 180, h: 30, label: t('pause.quit'), onSelect: () => this.quit() });
+    // В овертайме забег можно закончить сразу: победа с текущими очками.
+    if (this.sim.overtime >= 0) {
+      addButton(this, this.nav, { x: cx, y: 276, w: 180, h: 30, label: t('pause.finish'), color: '#ffd84a', onSelect: () => this.finish() });
+    }
     addStatsBlock(this, 20, 262, this.sim.player);
     addBuildList(this, 330, 56, this.sim.player);
 
@@ -87,6 +92,12 @@ export class PauseScene extends Phaser.Scene {
   resume() {
     this.scene.resume('Game');
     this.scene.stop();
+  }
+
+  finish() {
+    this.sim.finishOvertime();
+    playSfx(this, 'victory');
+    this.resume();
   }
 
   quit() {
