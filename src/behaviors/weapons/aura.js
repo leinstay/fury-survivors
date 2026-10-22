@@ -1,5 +1,5 @@
 // Holy Ground: постоянная зона вокруг игрока, бьёт каждого врага внутри раз в cooldown.
-const aura = {
+export const aura = {
   init(w) { w.p = null; },
   update(w, sim) {
     const P = w.params;
@@ -8,7 +8,7 @@ const aura = {
       p = sim.addProjectile('player', w.def.sprite);
       p.life = 1e9;
       p.pierce = 1e9;
-      p.alpha = 0.35;
+      p.fx = 'aura';
       p.wid = w.id;
       p.slot = w.slot;
       p.ws = w;
@@ -27,4 +27,3 @@ const aura = {
     p.y = sim.player.y;
   },
 };
-export default aura;

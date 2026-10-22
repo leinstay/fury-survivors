@@ -34,7 +34,10 @@ test('upgrades: banished cards never come back', () => {
 });
 
 test('upgrades: slot limits', () => {
-  const p = { weapons: regular.slice(0, SLOTS.weapons).map((id) => ({ id, level: 1 })), passives: [] };
+  const p = {
+    weapons: regular.slice(0, SLOTS.weapons).map((id) => ({ id, level: 1 })),
+    passives: [],
+  };
   const pool = buildPool(p, new Set());
   assert.ok(!pool.some((c) => c.kind === 'weapon' && c.isNew), 'no new weapons when slots are full');
   const ids = Object.keys(PASSIVES).slice(0, SLOTS.passives);
@@ -45,7 +48,8 @@ test('upgrades: slot limits', () => {
 test('upgrades: everything maxed gives a single heal card', () => {
   const p = {
     weapons: regular.slice(0, SLOTS.weapons).map((id) => ({ id, level: WEAPONS[id].maxLevel })),
-    passives: Object.keys(PASSIVES).slice(0, SLOTS.passives).map((id) => ({ id, level: PASSIVES[id].levels.length })),
+    passives: Object.keys(PASSIVES).slice(0, SLOTS.passives)
+        .map((id) => ({ id, level: PASSIVES[id].levels.length })),
   };
   const cards = drawCards(p, createRng(1), new Set());
   assert.equal(cards.length, 1);
@@ -65,7 +69,24 @@ test('upgrades: applyCard levels up and adds', () => {
 test('upgrades: evolution needs both parts maxed, then replaces them', () => {
   for (const combo of COMBOS) {
     const [a, b] = combo.from;
-    const p = { weapons: [{ id: a, level: WEAPONS[a].maxLevel }, { id: b, level: WEAPONS[b].maxLevel - 1 }], passives: [] };
+    if (!WEAPONS[b]) {
+      // оружие + пассивка: оружие на максимуме и пассивка взята
+      const q = {
+        weapons: [{ id: a, level: WEAPONS[a].maxLevel - 1 }],
+        passives: [{ id: b, level: 1 }],
+      };
+      assert.equal(findEvolution(q), null);
+      q.weapons[0].level = WEAPONS[a].maxLevel;
+      assert.equal(findEvolution(q), combo);
+      applyCard(q, evolutionCard(combo));
+      assert.deepEqual(q.weapons.map((w) => w.id), [combo.result]);
+      assert.deepEqual(q.passives.map((x) => x.id), [b]);
+      continue;
+    }
+    const p = {
+      weapons: [{ id: a, level: WEAPONS[a].maxLevel }, { id: b, level: WEAPONS[b].maxLevel - 1 }],
+      passives: [],
+    };
     assert.equal(findEvolution(p), null);
     p.weapons[1].level = WEAPONS[b].maxLevel;
     assert.equal(findEvolution(p), combo);

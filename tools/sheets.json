@@ -27,7 +27,10 @@
       4,
       7
     ],
-    "mergeGap": 2
+    "mergeGap": 2,
+    "hd": {
+      "default": 0.28
+    }
   },
   "items": {
     "raw": "assets/raw/items.png",
@@ -39,7 +42,10 @@
       "magnet",
       "coin",
       "chest"
-    ]
+    ],
+    "hd": {
+      "default": 0.152
+    }
   },
   "icons": {
     "raw": "assets/raw/icons.png",
@@ -64,7 +70,10 @@
       "icon_regen",
       "icon_heal",
       null
-    ]
+    ],
+    "hd": {
+      "default": 0.31
+    }
   },
   "projectiles": {
     "raw": "assets/raw/projectiles.png",
@@ -77,7 +86,12 @@
       "proj_chain",
       "proj_firebomb",
       "proj_enemy"
-    ]
+    ],
+    "hd": {
+      "default": 0.152,
+      "proj_blade_arc": 0.62,
+      "proj_holy_ground": 0.28
+    }
   },
   "roster": {
     "raw": "assets/raw/roster.png",
@@ -86,18 +100,54 @@
       5.2
     ],
     "items": [
-      "heroine",
-      "catgirl",
-      "foxgirl",
-      "succubus",
-      "slime",
-      "kitsune_empress",
-      "harpy_queen",
-      "dryad_queen",
-      "ghost",
-      "bunnygirl",
-      "harpy",
-      "lamia"
+      {
+        "key": "heroine",
+        "hd": false
+      },
+      {
+        "key": "catgirl",
+        "hd": false
+      },
+      {
+        "key": "foxgirl",
+        "hd": false
+      },
+      {
+        "key": "succubus",
+        "hd": false
+      },
+      {
+        "key": "slime",
+        "hd": false
+      },
+      {
+        "key": "kitsune_empress",
+        "hd": false
+      },
+      {
+        "key": "harpy_queen",
+        "hd": false
+      },
+      {
+        "key": "dryad_queen",
+        "hd": false
+      },
+      {
+        "key": "ghost",
+        "hd": false
+      },
+      {
+        "key": "bunnygirl",
+        "hd": false
+      },
+      {
+        "key": "harpy",
+        "hd": false
+      },
+      {
+        "key": "lamia",
+        "hd": false
+      }
     ],
     "cuts": [
       [
@@ -257,7 +307,13 @@
         268,
         490
       ]
-    ]
+    ],
+    "hd": {
+      "default": 0.392,
+      "kitsune_empress": 0.588,
+      "harpy_queen": 0.588,
+      "dryad_queen": 0.588
+    }
   },
   "heroine_walk": {
     "raw": "assets/raw/heroine_walk.png",
@@ -286,5 +342,40 @@
       },
       null
     ]
+  },
+  "icons_evo": {
+    "raw": "assets/raw/icons_evo.png",
+    "items": [
+      "icon_phantom_blades",
+      "icon_sacred_edge",
+      "icon_reaper_crescent",
+      "icon_storm_edge",
+      "icon_inferno_slash",
+      "icon_knife_carousel",
+      "icon_holy_rain",
+      "icon_gale_cutters",
+      "icon_ember_knives",
+      "icon_sanctuary",
+      "icon_bulwark_spin",
+      "icon_tesla_ward",
+      "icon_comet_ring",
+      "icon_judgement_wheel",
+      "icon_divine_storm",
+      "icon_hellfire",
+      "icon_thunder_axe",
+      "icon_blast_axe",
+      "icon_plasma_storm",
+      "icon_crimson_arc",
+      "icon_thousand_edge",
+      "icon_aegis_bastion",
+      "icon_soul_garden",
+      "icon_death_spiral",
+      "icon_thunder_loop",
+      "icon_napalm_rain"
+    ],
+    "hd": {
+      "default": 0.51
+    },
+    "alphaOnly": true
   }
 }

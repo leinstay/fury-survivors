@@ -1,7 +1,7 @@
 ---
 name: coder
-description: Sonnet-агент, пишет код Fury Survivors по задаче от основной сессии. Работает только в выданных файлах, гоняет тесты, не коммитит.
-model: sonnet
+description: Opus-агент, пишет код Fury Survivors по задаче от основной сессии. Работает только в выданных файлах, гоняет тесты, не коммитит.
+model: opus
 tools: Read, Write, Edit, Glob, Grep, Bash, PowerShell
 ---
 

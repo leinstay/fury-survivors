@@ -28,7 +28,9 @@ export function animateCharacter(sprite, key, e, time, seed) {
       lift = -Math.round(step * W.hop);
     }
   }
-  if (flyer && frames >= 2) lift = Math.round(Math.sin(time * W.hoverSpeed + seed) * W.hover) - W.hoverHeight;
+  if (flyer && frames >= 2) {
+    lift = Math.round(Math.sin(time * W.hoverSpeed + seed) * W.hover) - W.hoverHeight;
+  }
   // Замах и каст босса: на пиксель приседает и подпрыгивает, без поворота.
   if (e.boss) {
     if (e.pose === 'windup') lift += FX.bossPose.windupDrop;

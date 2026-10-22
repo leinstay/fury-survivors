@@ -1,8 +1,10 @@
 // Throwing Daggers: веер снарядов в ближайшего врага. pierce — сколько врагов пробьёт сверх первого.
-const SPREAD = 0.16;
-const TARGET_RANGE = 360;
+import { WEAPON_BEHAVIOR } from '../../data/weapons.js';
 
-export default {
+const SPREAD = 0.16;
+const { targetRange: TARGET_RANGE, hitRadius: HIT_RADIUS } = WEAPON_BEHAVIOR.projectile;
+
+export const projectile = {
   init(w) { w.cooldown = 0.2; },
   update(w, sim, dt) {
     w.cooldown -= dt;
@@ -22,7 +24,7 @@ export default {
       p.vx = Math.cos(a) * P.speed;
       p.vy = Math.sin(a) * P.speed;
       p.life = P.duration;
-      p.radius = 5;
+      p.radius = HIT_RADIUS;
       p.dmg = P.damage;
       p.kb = P.knockback || 0;
       p.pierce = P.pierce || 0;

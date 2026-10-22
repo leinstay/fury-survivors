@@ -51,7 +51,8 @@ test('sim: deterministic for the same seed', () => {
   assert.equal(a.player.hp, b.player.hp);
   assert.equal(a.enemies.length, b.enemies.length);
   assert.equal(a.pickups.length, b.pickups.length);
-  assert.notEqual(JSON.stringify(a.enemies.map((e) => [e.x, e.y])), JSON.stringify(c.enemies.map((e) => [e.x, e.y])));
+  assert.notEqual(JSON.stringify(a.enemies.map((e) => [e.x, e.y])),
+      JSON.stringify(c.enemies.map((e) => [e.x, e.y])));
 });
 
 test('sim: events are cleared every step and weapons fire', () => {
@@ -86,7 +87,8 @@ test('sim: level up flow, step is frozen while choosing', () => {
   assert.equal(sim.events.length, 0);
   sim.chooseCard(0);
   assert.equal(sim.state, 'running');
-  const owned = [...sim.player.weapons, ...sim.player.passives].some((x) => x.id === card.id && x.level === card.level);
+  const owned = [...sim.player.weapons, ...sim.player.passives]
+      .some((x) => x.id === card.id && x.level === card.level);
   assert.ok(owned);
 });
 

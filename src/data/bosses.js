@@ -24,6 +24,12 @@
 // }
 // Здоровье и урон босса растут с этапом так же, как у врагов (stage.scaling), поэтому числа здесь
 // заданы для минуты появления босса, делённые на этот множитель.
+// Общие числа поведения боссов (src/behaviors/enemies/boss.js).
+export const BOSS = {
+  castTime: 0.6,           // с, поза 'cast' после призыва или залпа
+  volleyInterval: 0.4,     // с между залпами серии, если у атаки нет interval
+};
+
 export const BOSSES = {
   kitsune_empress: {
     sprite: 'kitsune_empress', behavior: 'boss', hp: 1600, speed: 38, damage: 14, xp: 0, size: 36, knockbackResist: 1,

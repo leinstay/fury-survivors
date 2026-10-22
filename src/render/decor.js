@@ -52,8 +52,10 @@ export class Decor {
 
   update(cam) {
     const v = cam.worldView; // видимая область мира с учётом зума
-    const x0 = Math.floor(v.x / this.size) - 1, x1 = Math.floor((v.x + v.width) / this.size) + 1;
-    const y0 = Math.floor(v.y / this.size) - 1, y1 = Math.floor((v.y + v.height) / this.size) + 1;
+    const x0 = Math.floor(v.x / this.size) - 1;
+    const x1 = Math.floor((v.x + v.width) / this.size) + 1;
+    const y0 = Math.floor(v.y / this.size) - 1;
+    const y1 = Math.floor((v.y + v.height) / this.size) + 1;
     for (const [key, list] of this.chunks) {
       const [cx, cy] = key.split(',').map(Number);
       if (cx < x0 || cx > x1 || cy < y0 || cy > y1) {
@@ -61,9 +63,11 @@ export class Decor {
         this.chunks.delete(key);
       }
     }
-    for (let cy = y0; cy <= y1; cy++) for (let cx = x0; cx <= x1; cx++) {
-      const key = `${cx},${cy}`;
-      if (!this.chunks.has(key)) this.chunks.set(key, this._build(cx, cy));
+    for (let cy = y0; cy <= y1; cy++) {
+      for (let cx = x0; cx <= x1; cx++) {
+        const key = `${cx},${cy}`;
+        if (!this.chunks.has(key)) this.chunks.set(key, this._build(cx, cy));
+      }
     }
   }
 }

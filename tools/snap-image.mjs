@@ -11,8 +11,10 @@ if (!src || !out) {
 }
 const stepArg = process.argv.indexOf('--step');
 
-const { data, info } = await sharp(src).removeAlpha().ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-const w = info.width, h = info.height;
+const { data, info } = await sharp(src).removeAlpha().ensureAlpha().raw()
+    .toBuffer({ resolveWithObject: true });
+const w = info.width;
+const h = info.height;
 const mask = new Uint8Array(w * h).fill(1);
 const prof = edgeProfiles(data, mask, w, h, { x0: 0, x1: w - 1, y0: 0, y1: h - 1 });
 let step = stepArg > 0 ? Number(process.argv[stepArg + 1]) : 0;
@@ -22,5 +24,6 @@ if (!step) {
   step = (sx + sy) / 2;
 }
 const im = gridSnap(data, mask, w, prof, step, step);
-await sharp(Buffer.from(im.rgba), { raw: { width: im.w, height: im.h, channels: 4 } }).png().toFile(out);
+await sharp(Buffer.from(im.rgba), { raw: { width: im.w, height: im.h, channels: 4 } })
+    .png().toFile(out);
 console.log(`${out} ${im.w}x${im.h}, step ${step.toFixed(2)}`);

@@ -2,6 +2,7 @@
 // каждые 10 с печатает __game.debug(). Скриншот (опционально) делается на shotAt-й секунде.
 // node tools/playtest.mjs [seconds=60] [--shot path.png] [--shot-at 25] [--size 640x360] [--url http://...] [--god]
 // --god: опционально, держит героя живым (window.__game.god(true) из src/debug.js, hp = max каждые 50 мс) для визуальных проверок.
+// --weapons id:lvl,id:lvl: заменить оружие героя на старте (проверка вида оружия и супероружия на скриншоте).
 import { chromium } from '@playwright/test';
 import { spawn } from 'node:child_process';
 
@@ -12,6 +13,7 @@ const opt = (name, def) => {
 };
 const seconds = Number(args.find((a) => /^\d+$/.test(a)) || 60);
 const god = args.includes('--god');
+const weapons = opt('--weapons', null);
 const shot = opt('--shot', null);
 const shotAt = Number(opt('--shot-at', 25));
 let url = opt('--url', null);
@@ -35,6 +37,14 @@ try {
   await page.keyboard.press('Enter');
   await page.waitForTimeout(800);
   if (god) await page.evaluate(() => window.__game.god(true));
+  if (weapons) {
+    await page.evaluate((list) => {
+      const sim = window.__game.game.scene.getScene('Game').sim;
+      sim.player.weapons.length = 0;
+      for (const it of list.split(',')) { const [id, lv] = it.split(':'); sim.player.weapons.push({ id, level: Number(lv || 1) }); }
+      sim._syncBuild();
+    }, weapons);
+  }
   const keys = ['KeyW', 'KeyD', 'KeyS', 'KeyA'];
   for (let s = 0; s < seconds; s++) {
     const k = keys[s % 4];
@@ -45,7 +55,8 @@ try {
     if (d.scene === 'LevelUp' || d.scene === 'Chest') await page.keyboard.press('Enter');
     if (s % 10 === 9 || d.scene === 'GameOver' || d.scene === 'Victory') {
       console.log(JSON.stringify({
-        t: Math.round(d.time), scene: d.scene, fps: d.fps, enemies: d.enemies, hp: d.hp && Math.round(d.hp), lvl: d.level,
+        t: Math.round(d.time), scene: d.scene, fps: d.fps, enemies: d.enemies,
+        hp: d.hp && Math.round(d.hp), lvl: d.level,
         weapons: d.weapons.map((w) => `${w.id}:${w.level}`).join(','),
       }));
     }

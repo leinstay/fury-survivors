@@ -44,7 +44,8 @@ export class FocusNav {
 
   // item: { x, y, w, h, onSelect?, onAdjust?(dir), onPointer?(pointer), setFocus(bool), disabled? }
   add(item) {
-    const zone = this.scene.add.zone(item.x, item.y, item.w, item.h).setInteractive({ useHandCursor: true });
+    const zone = this.scene.add.zone(item.x, item.y, item.w, item.h)
+        .setInteractive({ useHandCursor: true });
     zone.on('pointerover', () => { if (!item.disabled) this.focus(this.items.indexOf(item)); });
     zone.on('pointerdown', (p) => {
       if (item.disabled) return;
@@ -180,7 +181,8 @@ export function addSlider(scene, nav, { x, y, w, h = 24, label, get, set }) {
   const labelText = scene.add.text(x - w / 2 + 8, y, label, textStyle(12)).setOrigin(0, 0.5);
   const trackW = Math.round(w * 0.42);
   const trackX = x + w / 2 - trackW - 44;
-  scene.add.rectangle(trackX, y, trackW, 6, 0x000000).setOrigin(0, 0.5).setStrokeStyle(1, COLORS.stroke);
+  scene.add.rectangle(trackX, y, trackW, 6, 0x000000)
+      .setOrigin(0, 0.5).setStrokeStyle(1, COLORS.stroke);
   const fill = scene.add.rectangle(trackX, y, 0, 6, 0xffd84a).setOrigin(0, 0.5);
   const valueText = scene.add.text(x + w / 2 - 8, y, '', textStyle(12)).setOrigin(1, 0.5);
   const refresh = () => {

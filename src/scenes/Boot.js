@@ -12,7 +12,7 @@ function loadFont() {
 }
 
 // Грузит все спрайты из manifest.js как spritesheet и уходит в меню.
-export default class BootScene extends Phaser.Scene {
+export class BootScene extends Phaser.Scene {
   constructor() {
     super('Boot');
   }
@@ -32,6 +32,10 @@ export default class BootScene extends Phaser.Scene {
   }
 
   create() {
+    // smooth: спрайт, который оружие сильно масштабирует (взмах), хранится крупнее показа и уменьшается линейно.
+    for (const [key, s] of Object.entries(SPRITES)) {
+      if (s.smooth) this.textures.get(key).setFilter(Phaser.Textures.FilterMode.LINEAR);
+    }
     this.fontReady.then(() => this.scene.start('Menu'));
   }
 }

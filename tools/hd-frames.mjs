@@ -12,13 +12,19 @@ if (!out || !(k > 0) || !frames.length) {
 }
 
 const meta = await sharp(frames[0]).metadata();
-const fw = Math.round(meta.width * k), fh = Math.round(meta.height * k);
+const fw = Math.round(meta.width * k);
+const fh = Math.round(meta.height * k);
 // lanczos3 держит контур чётким; альфа после уменьшения порогуется, чтобы края не просвечивали
 const imgs = await Promise.all(frames.map(async (f) => {
   const { data } = await sharp(f).resize(fw, fh, { kernel: 'lanczos3' }).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   for (let i = 3; i < data.length; i += 4) data[i] = data[i] >= 110 ? 255 : 0;
   return sharp(data, { raw: { width: fw, height: fh, channels: 4 } }).png().toBuffer();
 }));
-await sharp({ create: { width: fw * imgs.length, height: fh, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+await sharp({
+  create: {
+    width: fw * imgs.length, height: fh, channels: 4,
+    background: { r: 0, g: 0, b: 0, alpha: 0 },
+  },
+})
   .composite(imgs.map((input, i) => ({ input, left: i * fw, top: 0 }))).png().toFile(out);
 console.log(`${out}: ${imgs.length} frames ${fw}x${fh}`);

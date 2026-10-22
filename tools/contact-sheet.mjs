@@ -25,12 +25,14 @@ const esc = (s) => s.replace(/[<>&]/g, '');
 
 async function main() {
   const a = parseArgs(process.argv.slice(2));
-  const LABEL = 18, GAP = 12;
+  const LABEL = 18;
+  const GAP = 12;
   const rows = [];
   for (const key of a.keys) {
     const s = SPRITES[key];
     if (!s) throw new Error(`unknown key ${key}`);
-    const w = s.frameWidth * s.frames * a.scale, h = s.frameHeight * a.scale;
+    const w = s.frameWidth * s.frames * a.scale;
+    const h = s.frameHeight * a.scale;
     const img = await sharp(join(root, s.file)).resize(w, h, { kernel: 'nearest' }).png().toBuffer();
     rows.push({ key, s, img, w, h });
   }

@@ -21,10 +21,12 @@ export class GameInput {
     this.origin = null;
 
     if (this.touch) {
-      scene.input.addPointer(2);
+      if (scene.input.manager.pointersTotal < 3) scene.input.addPointer(2);   // менеджер общий для забегов
       this.gfx = scene.add.graphics().setScrollFactor(0).setDepth(1e6 + 1);
       scene.input.on('pointerdown', (p) => {
-        if (this.pointerId !== null || sx(p) > GAME_WIDTH / 2 || this.isBlocked(sx(p), sy(p))) return;
+        if (this.pointerId !== null || sx(p) > GAME_WIDTH / 2 || this.isBlocked(sx(p), sy(p))) {
+          return;
+        }
         this.pointerId = p.id;
         this.origin = { x: sx(p), y: sy(p) };
         this._draw(sx(p), sy(p));
@@ -65,8 +67,8 @@ export class GameInput {
   // Вектор движения длиной 0..1.
   read() {
     const k = this.keys;
-    let x = (k.D.isDown || k.RIGHT.isDown ? 1 : 0) - (k.A.isDown || k.LEFT.isDown ? 1 : 0);
-    let y = (k.S.isDown || k.DOWN.isDown ? 1 : 0) - (k.W.isDown || k.UP.isDown ? 1 : 0);
+    const x = (k.D.isDown || k.RIGHT.isDown ? 1 : 0) - (k.A.isDown || k.LEFT.isDown ? 1 : 0);
+    const y = (k.S.isDown || k.DOWN.isDown ? 1 : 0) - (k.W.isDown || k.UP.isDown ? 1 : 0);
     if (x !== 0 || y !== 0) {
       const l = Math.hypot(x, y);
       return { x: x / l, y: y / l };

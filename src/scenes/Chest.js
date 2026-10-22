@@ -10,7 +10,7 @@ const SHAKE_MS = 600;
 const INPUT_GUARD_MS = 250; // клавиши движения, зажатые в момент открытия, не должны закрывать экран
 
 // Экран сундука поверх замороженной Game. data: { sim, items }.
-export default class ChestScene extends Phaser.Scene {
+export class ChestScene extends Phaser.Scene {
   constructor() {
     super('Chest');
   }
@@ -38,13 +38,19 @@ export default class ChestScene extends Phaser.Scene {
     } else {
       this.chest = this.add.rectangle(cx, cy, 70, 56, 0xa0602a).setStrokeStyle(2, 0x000000);
     }
-    this.tweens.add({ targets: this.chest, angle: { from: -9, to: 9 }, duration: 70, yoyo: true, repeat: Math.floor(SHAKE_MS / 140) - 1 });
+    this.tweens.add({
+      targets: this.chest, angle: { from: -9, to: 9 }, duration: 70, yoyo: true,
+      repeat: Math.floor(SHAKE_MS / 140) - 1,
+    });
     this.tweens.add({ targets: this.chest, y: this.chest.y - 8, duration: SHAKE_MS / 4, yoyo: true, repeat: 1, ease: 'Sine.easeOut' });
     this.revealTimer = this.time.delayedCall(SHAKE_MS, () => this.reveal());
 
     this.keyHandler = (ev) => {
       if (ev.repeat) return;
-      if (!this.revealed) { if (this.time.now - this.startAt > INPUT_GUARD_MS) this.reveal(); return; }
+      if (!this.revealed) {
+        if (this.time.now - this.startAt > INPUT_GUARD_MS) this.reveal();
+        return;
+      }
       if (this.time.now - this.revealAt > INPUT_GUARD_MS) this.close();
     };
     this.input.keyboard.on('keydown', this.keyHandler);
@@ -73,7 +79,8 @@ export default class ChestScene extends Phaser.Scene {
     this.tweens.killTweensOf(this.chest);
     this.chest.destroy();
 
-    const flash = this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0xffffff, 0.9).setOrigin(0, 0).setDepth(100);
+    const flash = this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0xffffff, 0.9)
+        .setOrigin(0, 0).setDepth(100);
     this.tweens.add({ targets: flash, alpha: 0, duration: 350, onComplete: () => flash.destroy() });
 
     const items = this.items;

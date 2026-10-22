@@ -17,7 +17,8 @@ const NICK_Y = 240;
 function addConfetti(scene) {
   for (let i = 0; i < 44; i++) {
     const w = 3 + Math.floor(Math.random() * 3);
-    const r = scene.add.rectangle(Math.random() * GAME_WIDTH, -10, w, w + 2, CONFETTI[i % CONFETTI.length]);
+    const r = scene.add.rectangle(Math.random() * GAME_WIDTH, -10, w, w + 2,
+        CONFETTI[i % CONFETTI.length]);
     scene.tweens.add({
       targets: r,
       y: GAME_HEIGHT + 10,
@@ -85,7 +86,8 @@ function createNickInput(scene, { x, y, w, h }) {
   };
 }
 
-export function buildResults(scene, sim, { titleKey, titleColor, confetti = false, victory = false }) {
+export function buildResults(scene, sim,
+    { titleKey, titleColor, confetti = false, victory = false }) {
   const cx = GAME_WIDTH / 2;
   scene.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.8).setOrigin(0, 0);
   addPanel(scene, cx, 175, 370, 336);
@@ -112,7 +114,8 @@ export function buildResults(scene, sim, { titleKey, titleColor, confetti = fals
     const y = 156 + i * 17;
     addIcon(scene, cx - 150, y + 7, iconKeyFor('weapon', id), 14, 'weapon', id);
     scene.add.text(cx - 138, y, displayName('weapon', id), textStyle(10)).setOrigin(0, 0);
-    scene.add.rectangle(cx + 2, y + 7, Math.max(1, Math.round(80 * v / max)), 6, 0xff7a3d).setOrigin(0, 0.5);
+    scene.add.rectangle(cx + 2, y + 7, Math.max(1, Math.round(80 * v / max)), 6, 0xff7a3d)
+        .setOrigin(0, 0.5);
     scene.add.text(cx + 150, y, String(Math.round(v)), textStyle(10)).setOrigin(1, 0);
   });
 
@@ -147,7 +150,9 @@ export function buildResults(scene, sim, { titleKey, titleColor, confetti = fals
     writeNick(v.value);
     nick.el.value = v.value;
     try {
-      await submitScore({ name: v.value, score, time: sim.time, kills: sim.kills, level: sim.player.level, victory });
+      await submitScore({
+        name: v.value, score, time: sim.time, kills: sim.kills, level: sim.player.level, victory,
+      });
     } catch (err) {
       busy = false;
       if (dead) return;

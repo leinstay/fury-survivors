@@ -18,8 +18,10 @@ function fake({ rows = [], failTop = null, failAdd = null } = {}) {
 
 test('computeScore: data formula', () => {
   const f = SCORE_FORMULA;
-  assert.equal(computeScore({ time: 100.9, kills: 50, victory: false }), 100 * f.perSecond + 50 * f.perKill);
-  assert.equal(computeScore({ time: 600, kills: 0, victory: true }), 600 * f.perSecond + f.victoryBonus);
+  assert.equal(computeScore({ time: 100.9, kills: 50, victory: false }),
+      100 * f.perSecond + 50 * f.perKill);
+  assert.equal(computeScore({ time: 600, kills: 0, victory: true }),
+      600 * f.perSecond + f.victoryBonus);
   assert.equal(computeScore({}), 0);
 });
 
@@ -60,7 +62,9 @@ test('errors: offline, denied, invalid, cooldown', async () => {
   assert.equal(f.added.length, 0);
 
   let clock = 1000;
-  const cd = createLeaderboard({ loadBackend: fake().loadBackend, now: () => clock, cooldownMs: 10000 });
+  const cd = createLeaderboard({
+    loadBackend: fake().loadBackend, now: () => clock, cooldownMs: 10000,
+  });
   await cd.submitScore(run());
   await assert.rejects(cd.submitScore(run()), { message: 'cooldown' });
   clock += 10001;
@@ -91,4 +95,23 @@ test('timeout gives offline; module seam works', async () => {
   assert.equal((await fetchTop10())[0].name, 'ZED');
   await submitScore(run());
   __setBackendForTests();
+});
+
+test('submit after a timeout waits for the same write instead of adding a second document', async () => {
+  const added = [];
+  let release;
+  const slow = new Promise((r) => { release = r; });
+  const loadBackend = async () => ({
+    async top() { return []; },
+    async add(doc) { await slow; added.push(doc); },
+  });
+  let clock = 0;
+  const lb = createLeaderboard({ loadBackend, now: () => clock, timeoutMs: 5, cooldownMs: 10000 });
+  await assert.rejects(lb.submitScore(run()), { message: 'offline' });
+  const again = lb.submitScore(run());
+  release();
+  await again;
+  assert.equal(added.length, 1);
+  clock += 1;
+  await assert.rejects(lb.submitScore(run()), { message: 'cooldown' });
 });

@@ -12,7 +12,7 @@ const COL = { place: 140, name: 170, score: 350, time: 425, kills: 498 };
 const ROW0 = 82;
 const ROW_H = 19;
 
-export default class LeaderboardScene extends Phaser.Scene {
+export class LeaderboardScene extends Phaser.Scene {
   constructor() {
     super('Leaderboard');
   }

@@ -1,5 +1,5 @@
 // Лисодевочка: подходит, замирает (замах), рывок по прямой, пауза. st: 0 подход, 1 замах, 2 рывок.
-export default {
+export const dash = {
   init(e, sim) {
     e.st = 0;
     e.b = sim.rng.next() * e.params.cooldown; // таймер до следующего рывка

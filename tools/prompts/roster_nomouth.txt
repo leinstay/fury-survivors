@@ -1,2 +1,0 @@
-Edit the attached sprite sheet. Return the SAME image: every figure stays exactly where it is, with the same size, pixel grid, colors, poses, outlines and layout.
-Change only one thing on every character (all 13 figures, including the three big bosses): erase the mouth. Paint the mouth pixels with the skin color right next to them, so the lower face is plain clean skin with no mouth, no lips, no blush. Eyes, eyebrows, hair and everything else stay pixel-identical.

@@ -1,6 +1,6 @@
 import { buildResults } from '../ui/results.js';
 
-export default class GameOverScene extends Phaser.Scene {
+export class GameOverScene extends Phaser.Scene {
   constructor() {
     super('GameOver');
   }

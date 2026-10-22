@@ -10,6 +10,8 @@
 // 2. Шаг сетки модели общий на весь лист, каждый объект снимается по сетке (gridSnap).
 // 3. Если объект больше manifest.size [w, h], он уменьшается голосованием по блокам (shrink); меньше — остаётся родным.
 // 4. Объект ставится в кадр по origin: при origin y = 1 низом на нижнюю строку, иначе центром.
+// С "hd" в описании листа шаги 2–3 заменяет плавное уменьшение из исходника (writeHd), см. docs/ASSETS.md.
+// --raw: исходники фигур в assets/raw/<sheet>/.
 import sharp from 'sharp';
 import { readFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -32,14 +34,18 @@ function components(mask, w, h) {
     stack[sp++] = s; lab[s] = id;
     while (sp) {
       const i = stack[--sp];
-      const x = i % w, y = (i / w) | 0;
+      const x = i % w;
+      const y = (i / w) | 0;
       if (x < b.x0) b.x0 = x; if (x > b.x1) b.x1 = x;
       if (y < b.y0) b.y0 = y; if (y > b.y1) b.y1 = y;
-      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
-        const nx = x + dx, ny = y + dy;
-        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
-        const j = ny * w + nx;
-        if (mask[j] && lab[j] < 0) { lab[j] = id; stack[sp++] = j; }
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const nx = x + dx;
+          const ny = y + dy;
+          if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+          const j = ny * w + nx;
+          if (mask[j] && lab[j] < 0) { lab[j] = id; stack[sp++] = j; }
+        }
       }
     }
     boxes.push(b);
@@ -53,10 +59,18 @@ function components(mask, w, h) {
 function assignByBoxes(mask, w, h, sheet) {
   const { boxes: comps, lab } = components(mask, w, h);
   const sum = comps.map(() => ({ x: 0, y: 0, n: 0 }));
-  for (let i = 0; i < w * h; i++) if (lab[i] >= 0) { const s = sum[lab[i]]; s.x += i % w; s.y += (i / w) | 0; s.n++; }
+  for (let i = 0; i < w * h; i++) {
+    if (lab[i] >= 0) {
+      const s = sum[lab[i]];
+      s.x += i % w;
+      s.y += (i / w) | 0;
+      s.n++;
+    }
+  }
   const inside = (r, x, y) => x >= r[0] && x < r[2] && y >= r[1] && y < r[3];
   const owner = sum.map((s) => {
-    const cx = s.x / s.n, cy = s.y / s.n;
+    const cx = s.x / s.n;
+    const cy = s.y / s.n;
     if ((sheet.drop || []).some((r) => inside(r, cx, cy))) return -1;
     return sheet.boxes.findIndex((r) => inside(r, cx, cy));
   });
@@ -66,39 +80,101 @@ function assignByBoxes(mask, w, h, sheet) {
     for (let i = 0; i < w * h; i++) {
       if (lab[i] < 0 || owner[lab[i]] !== k) continue;
       m[i] = 1;
-      const x = i % w, y = (i / w) | 0;
-      if (x < b.x0) b.x0 = x; if (x > b.x1) b.x1 = x; if (y < b.y0) b.y0 = y; if (y > b.y1) b.y1 = y;
+      const x = i % w;
+      const y = (i / w) | 0;
+      if (x < b.x0) b.x0 = x;
+      if (x > b.x1) b.x1 = x;
+      if (y < b.y0) b.y0 = y;
+      if (y > b.y1) b.y1 = y;
     }
     return { mask: m, box: b };
   });
 }
 
-// Фигура в исходном разрешении (без снятия сетки) с прозрачным фоном: для референсов (Nano Banana, меню).
-async function writeRaw(data, w, obj, file) {
-  const { box: b, mask } = obj;
-  const bw = b.x1 - b.x0 + 1, bh = b.y1 - b.y0 + 1;
+const itemOf = (it) => (!it ? null : typeof it === 'string' ? { key: it } : it);
+const rawName = (item) => (item.frame != null ? `${item.key}_${item.frame}` : item.key);
+const rawInfo = (b) => ({ width: b.x1 - b.x0 + 1, height: b.y1 - b.y0 + 1, channels: 4 });
+
+// Фигура в исходном разрешении (без снятия сетки) с прозрачным фоном: референсы (Nano Banana, меню) и HD-спрайты.
+function cropRaw(data, w, b, mask) {
+  const { width: bw, height: bh } = rawInfo(b);
   const out = Buffer.alloc(bw * bh * 4);
-  for (let y = 0; y < bh; y++) for (let x = 0; x < bw; x++) {
-    const i = (b.y0 + y) * w + b.x0 + x;
-    if (!mask[i]) continue;
-    out.set(data.subarray(i * 4, i * 4 + 3), (y * bw + x) * 4);
-    out[(y * bw + x) * 4 + 3] = 255;
+  for (let y = 0; y < bh; y++) {
+    for (let x = 0; x < bw; x++) {
+      const i = (b.y0 + y) * w + b.x0 + x;
+      if (!mask[i]) continue;
+      out.set(data.subarray(i * 4, i * 4 + 3), (y * bw + x) * 4);
+      out[(y * bw + x) * 4 + 3] = 255;
+    }
   }
-  await sharp(out, { raw: { width: bw, height: bh, channels: 4 } }).png().toFile(file);
+  return out;
+}
+
+// sheets.json "hd": фигуры не снимаются по сетке, а плавно уменьшаются из исходника (как ходьба героини, tools/hd-frames.mjs).
+// "hd": { "default": k, "<key>": k } — множитель от px исходника к px холста; спрайт в manifest с density 2 (показ 1:1).
+// Элемент { "key", "hd": false } только даёт исходник (--raw), спрайт не пишется.
+async function writeHd(sheet, data, w, boxes, masks) {
+  const strips = new Map();
+  for (let i = 0; i < boxes.length; i++) {
+    const item = itemOf(sheet.items[i]);
+    if (!item || item.hd === false) continue;
+    const spec = SPRITES[item.key];
+    if (!spec) throw new Error(`unknown sprite key "${item.key}"`);
+    const k = sheet.hd[item.key] ?? sheet.hd.default;
+    const info = rawInfo(boxes[i]);
+    const tw = Math.max(1, Math.round(info.width * k));
+    const th = Math.max(1, Math.round(info.height * k));
+    let img = sharp(cropRaw(data, w, boxes[i], masks[i]), { raw: info }).resize(tw, th, { kernel: 'lanczos3' });
+    if (item.flip) img = img.flop();
+    const rgba = (await img.ensureAlpha().raw().toBuffer());
+    // альфа порогом, как в hd-frames: без полупрозрачной каймы
+    for (let p = 3; p < rgba.length; p += 4) rgba[p] = rgba[p] >= 110 ? 255 : 0;
+    if (!strips.has(item.key)) strips.set(item.key, { spec, frames: [] });
+    strips.get(item.key).frames[item.frame || 0] = { w: tw, h: th, rgba };
+    console.log(`  ${item.key}[${item.frame || 0}] ${info.width}x${info.height} -> ${tw}x${th} (x${k})`);
+  }
+  for (const [key, { spec, frames }] of strips) {
+    const fw = spec.frameWidth;
+    const fh = spec.frameHeight;
+    const n = spec.frames;
+    const layers = [];
+    for (let f = 0; f < n; f++) {
+      const im = frames[f] || frames[0];
+      if (im.w > fw || im.h > fh) throw new Error(`${key}: ${im.w}x${im.h} does not fit frame ${fw}x${fh}`);
+      const left = f * fw + Math.round(fw * spec.origin[0] - im.w / 2);
+      const top = spec.origin[1] >= 0.99 ? fh - im.h : Math.round(fh * spec.origin[1] - im.h / 2);
+      layers.push({ input: im.rgba, raw: { width: im.w, height: im.h, channels: 4 }, left, top });
+    }
+    await sharp({
+      create: {
+        width: fw * n, height: fh, channels: 4,
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      },
+    })
+      .composite(layers).png().toFile(join(root, spec.file));
+  }
+  console.log(`wrote ${strips.size} hd sprites`);
 }
 
 function mergeClose(boxes, gap = MERGE_GAP) {
-  const near = (a, b) => a.x0 - gap <= b.x1 && b.x0 - gap <= a.x1 && a.y0 - gap <= b.y1 && b.y0 - gap <= a.y1;
-  let list = boxes.slice();
+  const near = (a, b) => a.x0 - gap <= b.x1 && b.x0 - gap <= a.x1 &&
+      a.y0 - gap <= b.y1 && b.y0 - gap <= a.y1;
+  const list = boxes.slice();
   for (let changed = true; changed;) {
     changed = false;
-    for (let i = 0; i < list.length && !changed; i++) for (let j = i + 1; j < list.length; j++) {
-      if (!near(list[i], list[j])) continue;
-      const a = list[i], b = list[j];
-      list[i] = { x0: Math.min(a.x0, b.x0), x1: Math.max(a.x1, b.x1), y0: Math.min(a.y0, b.y0), y1: Math.max(a.y1, b.y1) };
-      list.splice(j, 1);
-      changed = true;
-      break;
+    for (let i = 0; i < list.length && !changed; i++) {
+      for (let j = i + 1; j < list.length; j++) {
+        if (!near(list[i], list[j])) continue;
+        const a = list[i];
+        const b = list[j];
+        list[i] = {
+          x0: Math.min(a.x0, b.x0), x1: Math.max(a.x1, b.x1),
+          y0: Math.min(a.y0, b.y0), y1: Math.max(a.y1, b.y1),
+        };
+        list.splice(j, 1);
+        changed = true;
+        break;
+      }
     }
   }
   return list;
@@ -110,8 +186,13 @@ function overlapOrder(boxes) {
   const rows = [];
   for (const b of sorted) {
     const row = rows.find((r) => b.y0 <= r.y1 && b.y1 >= r.y0);
-    if (row) { row.items.push(b); row.y0 = Math.min(row.y0, b.y0); row.y1 = Math.max(row.y1, b.y1); }
-    else rows.push({ y0: b.y0, y1: b.y1, items: [b] });
+    if (row) {
+      row.items.push(b);
+      row.y0 = Math.min(row.y0, b.y0);
+      row.y1 = Math.max(row.y1, b.y1);
+    } else {
+      rows.push({ y0: b.y0, y1: b.y1, items: [b] });
+    }
   }
   rows.sort((a, b) => a.y0 - b.y0);
   return rows.flatMap((r) => r.items.sort((a, b) => a.x0 - b.x0));
@@ -135,25 +216,39 @@ function centerOrder(boxes) {
 // Сдвиг (dx, dy) кадра im относительно ref, при котором верхние 40% фигуры (голова) совпадают лучше всего.
 function headShift(ref, im) {
   const rows = Math.round(ref.h * 0.4);
-  const px = (m, x, y) => (x < 0 || y < 0 || x >= m.w || y >= m.h ? null : m.rgba.subarray((y * m.w + x) * 4, (y * m.w + x) * 4 + 4));
-  let best = [0, 0], bestCost = Infinity;
-  for (let dy = -4; dy <= 4; dy++) for (let dx = -6; dx <= 6; dx++) {
-    let cost = 0;
-    for (let y = 0; y < rows; y++) for (let x = 0; x < ref.w; x++) {
-      const a = px(ref, x, y), b = px(im, x - dx, y - dy);
-      const ao = a && a[3] > 0, bo = b && b[3] > 0;
-      if (ao !== bo) cost += 255;
-      else if (ao) cost += Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) + Math.abs(a[2] - b[2]);
+  const px = (m, x, y) => (x < 0 || y < 0 || x >= m.w || y >= m.h ?
+      null : m.rgba.subarray((y * m.w + x) * 4, (y * m.w + x) * 4 + 4));
+  let best = [0, 0];
+  let bestCost = Infinity;
+  for (let dy = -4; dy <= 4; dy++) {
+    for (let dx = -6; dx <= 6; dx++) {
+      let cost = 0;
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < ref.w; x++) {
+          const a = px(ref, x, y);
+          const b = px(im, x - dx, y - dy);
+          const ao = a && a[3] > 0;
+          const bo = b && b[3] > 0;
+          if (ao !== bo) {
+            cost += 255;
+          } else if (ao) {
+            cost += Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) + Math.abs(a[2] - b[2]);
+          }
+        }
+      }
+      if (cost < bestCost) { bestCost = cost; best = [dx, dy]; }
     }
-    if (cost < bestCost) { bestCost = cost; best = [dx, dy]; }
   }
   return best;
 }
 
 function flipX(im) {
   const out = new Uint8Array(im.rgba.length);
-  for (let y = 0; y < im.h; y++) for (let x = 0; x < im.w; x++) {
-    out.set(im.rgba.subarray((y * im.w + x) * 4, (y * im.w + x) * 4 + 4), (y * im.w + (im.w - 1 - x)) * 4);
+  for (let y = 0; y < im.h; y++) {
+    for (let x = 0; x < im.w; x++) {
+      out.set(im.rgba.subarray((y * im.w + x) * 4, (y * im.w + x) * 4 + 4),
+          (y * im.w + (im.w - 1 - x)) * 4);
+    }
   }
   return { ...im, rgba: out };
 }
@@ -165,9 +260,11 @@ async function main() {
   const sheet = sheets[name];
   if (!sheet) throw new Error(`unknown sheet "${name}" (see tools/sheets.json)`);
 
-  const { data, info } = await sharp(join(root, sheet.raw)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-  const w = info.width, h = info.height;
-  const { mask } = buildMask(data, w, h);
+  const { data, info } = await sharp(join(root, sheet.raw)).ensureAlpha().raw()
+      .toBuffer({ resolveWithObject: true });
+  const w = info.width;
+  const h = info.height;
+  const { mask } = buildMask(data, w, h, { alphaOnly: !!sheet.alphaOnly });
   // Фигуры, которые касаются друг друга (свечение, хвост, крыло), разделяются вертикальными разрезами:
   // sheets.json "cuts": [[x, y0, y1], ...] в px исходника; [x0, x1, y, "h"] — горизонтальный отрезок,
   // чтобы собрать из вертикальных ступенчатый разрез вокруг выступа (хвост, крыло, корни).
@@ -176,28 +273,29 @@ async function main() {
     else for (let y = c[1]; y < c[2]; y++) mask[y * w + c[0]] = 0;
   }
   removeSpecks(mask, w, h, 12);
-  let boxes, masks;
+  let boxes;
+  let masks;
   if (sheet.boxes) {
     const objs = assignByBoxes(mask, w, h, sheet);
     boxes = objs.map((o) => o.box);
     masks = objs.map((o) => o.mask);
-    // --raw: каждая фигура в исходном разрешении в assets/raw/<sheet>/<key>.png
-    if (process.argv.includes('--raw')) {
-      const dir = join(root, 'assets', 'raw', name);
-      mkdirSync(dir, { recursive: true });
-      for (let i = 0; i < objs.length; i++) {
-        const it = sheet.items[i];
-        if (!it) continue;
-        const key = typeof it === 'string' ? it : it.key;
-        await writeRaw(data, w, objs[i], join(dir, `${key}.png`));
-      }
-      console.log(`raw crops in assets/raw/${name}/`);
-    }
   } else {
-    const found = mergeClose(components(mask, w, h).boxes, sheet.mergeGap).filter((b) => (b.x1 - b.x0) * (b.y1 - b.y0) > 150);
+    const found = mergeClose(components(mask, w, h).boxes, sheet.mergeGap)
+        .filter((b) => (b.x1 - b.x0) * (b.y1 - b.y0) > 150);
     boxes = sheet.rows === 'center' ? centerOrder(found) : overlapOrder(found);
     masks = boxes.map(() => mask);
   }
+  // --raw: каждая фигура в исходном разрешении в assets/raw/<sheet>/<key>.png (кадр N многокадрового: <key>_N.png)
+  if (process.argv.includes('--raw') && boxes.length === sheet.items.length) {
+    const dir = join(root, 'assets', 'raw', name);
+    mkdirSync(dir, { recursive: true });
+    for (let i = 0; i < boxes.length; i++) {
+      const item = itemOf(sheet.items[i]);
+      if (item) await sharp(cropRaw(data, w, boxes[i], masks[i]), { raw: rawInfo(boxes[i]) }).png().toFile(join(dir, `${rawName(item)}.png`));
+    }
+    console.log(`raw crops in assets/raw/${name}/`);
+  }
+  if (sheet.hd && !reportOnly) return writeHd(sheet, data, w, boxes, masks);
 
   const profs = boxes.map((b, i) => edgeProfiles(data, masks[i], w, h, b));
   // Шаг сетки модели зависит от качества и масштаба листа: границы шага задаются в sheets.json (step: [min, max]).
@@ -234,7 +332,9 @@ async function main() {
   });
 
   for (const [key, { spec, frames }] of strips) {
-    const fw = spec.frameWidth, fh = spec.frameHeight, n = spec.frames;
+    const fw = spec.frameWidth;
+    const fh = spec.frameHeight;
+    const n = spec.frames;
     const buf = Buffer.alloc(fw * n * fh * 4);
     const place = (im) => [
       Math.round(fw * spec.origin[0] - im.w / 2),
@@ -251,14 +351,18 @@ async function main() {
         const [dx, dy] = headShift(ref, im);
         ox = rx + dx; oy = ry + dy;
       }
-      for (let y = 0; y < im.h; y++) for (let x = 0; x < im.w; x++) {
-        const s = (y * im.w + x) * 4;
-        const tx = ox + x, ty = oy + y;
-        if (!im.rgba[s + 3] || tx < 0 || ty < 0 || tx >= fw || ty >= fh) continue;
-        buf.set(im.rgba.subarray(s, s + 4), (ty * fw * n + f * fw + tx) * 4);
+      for (let y = 0; y < im.h; y++) {
+        for (let x = 0; x < im.w; x++) {
+          const s = (y * im.w + x) * 4;
+          const tx = ox + x;
+          const ty = oy + y;
+          if (!im.rgba[s + 3] || tx < 0 || ty < 0 || tx >= fw || ty >= fh) continue;
+          buf.set(im.rgba.subarray(s, s + 4), (ty * fw * n + f * fw + tx) * 4);
+        }
       }
     }
-    await sharp(buf, { raw: { width: fw * n, height: fh, channels: 4 } }).png().toFile(join(root, spec.file));
+    await sharp(buf, { raw: { width: fw * n, height: fh, channels: 4 } })
+        .png().toFile(join(root, spec.file));
   }
   console.log(`wrote ${strips.size} sprites`);
 }

@@ -1,6 +1,7 @@
 // Blade Arc: серия взмахов рядом с игроком. Взмахи чередуют стороны; первый целится в ближайшего врага.
-const SWING_GAP = 0.18;
-const SWING_LIFE = 0.16;
+import { WEAPON_BEHAVIOR } from '../../data/weapons.js';
+
+const { swingGap: SWING_GAP, swingLife: SWING_LIFE } = WEAPON_BEHAVIOR.melee_arc;
 
 function swing(w, sim) {
   const P = w.params;
@@ -31,7 +32,7 @@ function swing(w, sim) {
   p.b = off;
 }
 
-const meleeArc = {
+export const meleeArc = {
   init(w) { w.q = 0; w.n = 0; w.t = 0; w.base = 0; w.cooldown = 0.2; },
   update(w, sim, dt) {
     if (w.q > 0) {
@@ -52,4 +53,3 @@ const meleeArc = {
     p.y = sim.player.y + Math.sin(p.a) * p.b;
   },
 };
-export default meleeArc;

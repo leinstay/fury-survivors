@@ -1,8 +1,9 @@
 // Guardian Shields: щиты вращаются вокруг игрока duration секунд, потом пауза cooldown.
 // Для супероружия duration огромный, щиты не гаснут.
+import { WEAPON_BEHAVIOR } from '../../data/weapons.js';
+
 const TAU = Math.PI * 2;
-const SHIELD_RADIUS = 10;
-const REHIT = 0.5;
+const { hitRadius: SHIELD_RADIUS, rehit: REHIT } = WEAPON_BEHAVIOR.orbit;
 
 function addShield(w, sim) {
   const p = sim.addProjectile('player', w.def.sprite);
@@ -21,7 +22,7 @@ function addShield(w, sim) {
   w.shields.push(p);
 }
 
-const orbit = {
+export const orbit = {
   init(w) { w.shields = []; w.active = false; w.timer = 0.2; w.t = 0; },
   update(w, sim, dt) {
     const P = w.params;
@@ -53,4 +54,3 @@ const orbit = {
     p.kb = w.params.knockback || 0;
   },
 };
-export default orbit;

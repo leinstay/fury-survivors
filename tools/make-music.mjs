@@ -50,9 +50,9 @@ function note({ start, dur, freq, wave = 'square', duty = 0.5, vol = 0.2, decay 
   let phase = 0;
   for (let i = 0; i < len; i++) {
     const t = i / RATE;
-    let f = freq * (vib ? 1 + vib * Math.sin(2 * Math.PI * 5.5 * Math.max(0, t - 0.12)) : 1);
+    const f = freq * (vib ? 1 + vib * Math.sin(2 * Math.PI * 5.5 * Math.max(0, t - 0.12)) : 1);
     phase = (phase + f / RATE) % 1;
-    let v = wave === 'square' ? (phase < duty ? 1 : -1) : wave === 'tri' ? 4 * Math.abs(phase - 0.5) - 1 : 1 - 2 * phase;
+    const v = wave === 'square' ? (phase < duty ? 1 : -1) : wave === 'tri' ? 4 * Math.abs(phase - 0.5) - 1 : 1 - 2 * phase;
     let env = Math.min(1, t / 0.004);
     if (decay) env *= Math.exp(-t * decay);
     if (t > dur) env *= Math.max(0, 1 - (t - dur) / release);
@@ -85,7 +85,8 @@ function noiseHit(start, dur, vol, hp) {
 
 // Ступени гаммы ля минор (pitch classes) и ближайшая нота лида.
 const SCALE = [9, 11, 0, 2, 4, 5, 7];
-const LEAD_LO = 69, LEAD_HI = 86;
+const LEAD_LO = 69;
+const LEAD_HI = 86;
 function scaleNotes(chordName) {
   const out = [];
   for (let m = LEAD_LO; m <= LEAD_HI; m++) {
@@ -114,7 +115,10 @@ for (let bar = 0; bar < BARS.length; bar++) {
   const pattern = [0, 1, 2, 1, 0, 1, 2, 1, 0, 1, 2, 1, 0, 2, 1, 2];
   for (let i = 0; i < 16; i++) {
     const base = 60 + ((ch.pcs[pattern[i] % 3] - 60) % 12 + 12) % 12;
-    note({ start: t0 + i * S16, dur: S16 * 0.8, freq: hz(base + (i % 8 >= 4 ? 12 : 0)), duty: 0.25, vol: 0.075, decay: 12 });
+    note({
+      start: t0 + i * S16, dur: S16 * 0.8, freq: hz(base + (i % 8 >= 4 ? 12 : 0)),
+      duty: 0.25, vol: 0.075, decay: 12,
+    });
   }
 
   // Барабаны.
@@ -152,7 +156,10 @@ for (let bar = 0; bar < BARS.length; bar++) {
       if (notes[idx] < 71) idx += 3;
       leadIdx = idx;
       const long = i === 7 || i === 3 ? 1 : 0.9;
-      note({ start: t0 + i * E8, dur: E8 * long, freq: hz(notes[idx]), duty: 0.125, vol: 0.14, vib: 0.006, decay: 2.5 });
+      note({
+        start: t0 + i * E8, dur: E8 * long, freq: hz(notes[idx]),
+        duty: 0.125, vol: 0.14, vib: 0.006, decay: 2.5,
+      });
     }
   }
 }
@@ -164,9 +171,12 @@ const g = 0.85 / peak;
 const buf = Buffer.alloc(44 + N * 2);
 buf.write('RIFF', 0); buf.writeUInt32LE(36 + N * 2, 4); buf.write('WAVE', 8);
 buf.write('fmt ', 12); buf.writeUInt32LE(16, 16); buf.writeUInt16LE(1, 20); buf.writeUInt16LE(1, 22);
-buf.writeUInt32LE(RATE, 24); buf.writeUInt32LE(RATE * 2, 28); buf.writeUInt16LE(2, 32); buf.writeUInt16LE(16, 34);
+buf.writeUInt32LE(RATE, 24); buf.writeUInt32LE(RATE * 2, 28);
+buf.writeUInt16LE(2, 32); buf.writeUInt16LE(16, 34);
 buf.write('data', 36); buf.writeUInt32LE(N * 2, 40);
-for (let i = 0; i < N; i++) buf.writeInt16LE(Math.round(Math.tanh(mix[i] * g * 1.1) * 32000), 44 + i * 2);
+for (let i = 0; i < N; i++) {
+  buf.writeInt16LE(Math.round(Math.tanh(mix[i] * g * 1.1) * 32000), 44 + i * 2);
+}
 mkdirSync(dirname(OUT), { recursive: true });
 writeFileSync(OUT, buf);
 console.log(`theme.wav ${totalSec.toFixed(1)} s, ${(buf.length / 1024 / 1024).toFixed(2)} MiB`);

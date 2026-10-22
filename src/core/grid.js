@@ -4,6 +4,11 @@
 // из далёких ячеек; точную проверку расстояния делает вызывающий (или queryCircle).
 
 export class Grid {
+  /**
+   * @param {number=} cellSize размер ячейки в px мира
+   * @param {number=} bits log2 стороны хеш-таблицы
+   * @param {number=} capacity начальная ёмкость по id
+   */
   constructor(cellSize = 64, bits = 7, capacity = 1024) {
     this.cell = cellSize;
     this.inv = 1 / cellSize;
@@ -15,10 +20,16 @@ export class Grid {
     this.ys = new Float32Array(capacity);
   }
 
+  /** Очистить сетку без освобождения памяти. */
   clear() {
     this.head.fill(-1);
   }
 
+  /**
+   * @param {number} id целочисленный id элемента
+   * @param {number} x
+   * @param {number} y
+   */
   insert(id, x, y) {
     if (id >= this.next.length) this._grow(id + 1);
     const cx = Math.floor(x * this.inv) & this.mask;
@@ -30,7 +41,14 @@ export class Grid {
     this.ys[id] = y;
   }
 
-  // Кандидаты из ячеек, пересекающих квадрат [x-r, x+r] x [y-r, y+r]. Пишет id в out, возвращает число.
+  /**
+   * Кандидаты из ячеек, пересекающих квадрат [x-r, x+r] x [y-r, y+r]. Пишет id в out.
+   * @param {number} x
+   * @param {number} y
+   * @param {number} r
+   * @param {!Int32Array|!Array<number>} out буфер; больше out.length не пишется
+   * @return {number} число записанных id
+   */
   query(x, y, r, out) {
     const inv = this.inv;
     const n = this.n;
@@ -54,7 +72,14 @@ export class Grid {
     return count;
   }
 
-  // То же, но с точной проверкой расстояния по сохранённым координатам.
+  /**
+   * То же, но с точной проверкой расстояния по сохранённым координатам.
+   * @param {number} x
+   * @param {number} y
+   * @param {number} r
+   * @param {!Int32Array|!Array<number>} out
+   * @return {number} число записанных id
+   */
   queryCircle(x, y, r, out) {
     const cnt = this.query(x, y, r, out);
     const r2 = r * r;

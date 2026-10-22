@@ -1,0 +1,10 @@
+Subject: square inventory icons for evolved super weapons in a fantasy survivor game, in the exact style of the attached icon sheet. Each icon a single bold object on its own, no background tile, no frame, readable at very small size, chunky pixels (about 32 pixels across each icon), richer and more ornate than basic weapons, with small glow sparks drawn as solid pixels inside the icon only.
+
+Layout: a grid of 26 separate icons, 6 columns by 5 rows, all the same size, evenly spaced with clear empty gaps, nothing touching. Rows 1 to 4 have 6 icons each, row 5 has only 2 icons on the left and the rest of row 5 is empty. Row by row, left to right:
+Row 1: 1. a pale violet ghostly sword slash with small spectral knives; 2. a golden glowing sword slash over a holy rune circle; 3. a red crescent scythe blade; 4. a sword slash crackling with blue lightning; 5. a flaming orange sword slash; 6. a ring of daggers spinning in a circle.
+Row 2: 7. golden daggers falling like rain; 8. green wind blades in a whirlwind; 9. a dagger wreathed in orange fire; 10. a blue shield in front of a glowing golden rune circle; 11. two war axes crossed in a spinning circle; 12. a blue shield with lightning arcs.
+Row 3: 13. a shield blazing with fire like a comet; 14. a golden spoked wheel of axes; 15. a golden rune circle struck by blue lightning; 16. a circle of red hellfire flames; 17. a war axe crackling with lightning; 18. a war axe exploding with fire.
+Row 4: 19. a magenta plasma lightning ball; 20. a huge blood-red crescent slash; 21. a fan of many silver knives; 22. a large ornate blue-silver tower shield; 23. a green glowing flower garden rune circle; 24. a purple spiral of scythes.
+Row 5: 25. a blue lightning bolt bent into a loop; 26. orange fire bombs raining from the sky.
+
+Background: one single solid flat colour (pure magenta #FF00FF or fully transparent) everywhere between icons. No soft glow, no colour haze, no gradient, no vignette on the background: glow effects stay inside each icon outline.

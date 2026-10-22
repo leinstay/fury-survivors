@@ -1,6 +1,12 @@
 // Директор: спавн врагов и событий по таймлайну этапа.
-import { SIM } from '../data/constants.js';
+import { SIM, DIRECTOR } from '../data/constants.js';
 
+/**
+ * Директор: спавн врагов и событий по таймлайну этапа.
+ * @param {!Object} stage описание этапа (timeline, duration, bossWarning)
+ * @param {{next: function(): number}} rng сидируемый RNG
+ * @return {{update: function(!Object, number)}} update(sim, dt) вызывается каждый шаг
+ */
 export function createDirector(stage, rng) {
   const events = stage.timeline;
   const end = stage.duration;
@@ -14,8 +20,8 @@ export function createDirector(stage, rng) {
         active.push({ ev, acc: 0, check: 0 });
         break;
       case 'ring': {
-        const n = ev.count || 20;
-        const radius = ev.radius || SIM.spawnDistance - 60;
+        const n = ev.count || DIRECTOR.ringCount;
+        const radius = ev.radius || SIM.spawnDistance - DIRECTOR.ringInset;
         const p = sim.player;
         const off = rng.next() * Math.PI * 2;
         for (let i = 0; i < n; i++) {
@@ -28,7 +34,8 @@ export function createDirector(stage, rng) {
       case 'elite': {
         const a = rng.next() * Math.PI * 2;
         const p = sim.player;
-        sim.spawnEnemy(ev.enemy, p.x + Math.cos(a) * SIM.spawnDistance, p.y + Math.sin(a) * SIM.spawnDistance, true);
+        sim.spawnEnemy(ev.enemy,
+            p.x + Math.cos(a) * SIM.spawnDistance, p.y + Math.sin(a) * SIM.spawnDistance, true);
         break;
       }
       case 'burst': {
@@ -38,7 +45,9 @@ export function createDirector(stage, rng) {
         const cy = p.y + Math.sin(a) * SIM.spawnDistance;
         for (let i = 0; i < ev.count; i++) {
           if (!sim.canSpawn()) break;
-          sim.spawnEnemy(ev.enemy, cx + (rng.next() - 0.5) * 80, cy + (rng.next() - 0.5) * 80, false);
+          sim.spawnEnemy(ev.enemy,
+              cx + (rng.next() - 0.5) * DIRECTOR.burstJitter,
+              cy + (rng.next() - 0.5) * DIRECTOR.burstJitter, false);
         }
         break;
       }
@@ -78,12 +87,14 @@ export function createDirector(stage, rng) {
         // Минимум как в Vampire Survivors: раз в полсекунды досыпаем группы, пока живых этого вида меньше min.
         a.check -= dt;
         if (ev.min !== undefined && a.check <= 0) {
-          a.check = 0.5;
+          a.check = DIRECTOR.minCheckInterval;
           const min = ev.minEnd === undefined ? ev.min : ev.min + (ev.minEnd - ev.min) * k;
           let alive = 0;
-          for (let j = 0; j < sim.enemies.length; j++) if (sim.enemies[j].type === ev.enemy) alive++;
+          for (let j = 0; j < sim.enemies.length; j++) {
+            if (sim.enemies[j].type === ev.enemy) alive++;
+          }
           const missing = Math.ceil((min - alive) / (ev.group || 1));
-          if (missing > 0) a.acc += Math.min(missing, 6);
+          if (missing > 0) a.acc += Math.min(missing, DIRECTOR.minGroupsCap);
         }
         while (a.acc >= 1) {
           a.acc -= 1;
@@ -93,7 +104,9 @@ export function createDirector(stage, rng) {
           const g = ev.group || 1;
           for (let j = 0; j < g; j++) {
             if (!sim.canSpawn()) break;
-            sim.spawnEnemy(ev.enemy, cx + (rng.next() - 0.5) * 36, cy + (rng.next() - 0.5) * 36, false);
+            sim.spawnEnemy(ev.enemy,
+                cx + (rng.next() - 0.5) * DIRECTOR.groupJitter,
+                cy + (rng.next() - 0.5) * DIRECTOR.groupJitter, false);
           }
         }
       }

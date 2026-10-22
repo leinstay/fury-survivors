@@ -6,7 +6,7 @@ import { createRng } from '../../src/core/rng.js';
 import { WEAPONS } from '../../src/data/weapons.js';
 import { COMBOS } from '../../src/data/combos.js';
 import { BOSSES } from '../../src/data/bosses.js';
-import forest from '../../src/data/stages/forest.js';
+import { forest } from '../../src/data/stages/forest.js';
 
 const DT = 1 / 60;
 const idle = { x: 0, y: 0 };
@@ -14,19 +14,33 @@ const tick = (sim) => { if (sim.state === 'levelup') { sim.levelUp.skips = 1e9; 
 const run = (sim, s) => { for (let i = 0; i < s / DT; i++) tick(sim); };
 const god = (sim) => { sim.player.stats.maxHp = 1e9; sim.player.maxHp = 1e9; sim.player.hp = 1e9; };
 const maxed = (id) => ({ id, level: WEAPONS[id].maxLevel });
+// Вторая часть эволюции — оружие на максимуме или пассивка (тогда она в passives и остаётся после слияния).
+const isWeapon = (id) => !!WEAPONS[id];
+const build = (weapons, passives, id) => {
+  if (isWeapon(id)) weapons.push(maxed(id));
+  else passives.push({ id, level: 1 });
+};
 
 test('combo: evolution takes the slot of the first part, second part is removed', () => {
   for (const combo of COMBOS) {
     const [a, b] = combo.from;
-    const p = { weapons: [{ id: 'war_axe', level: 1 }, maxed(a), { id: 'firebomb', level: 2 }, maxed(b)], passives: [] };
+    // заполнители — оружие, которое не входит в эту пару и не на максимуме
+    const fill = ['war_axe', 'firebomb', 'storm_chain', 'holy_ground'].filter((id) => id !== a && id !== b).slice(0, 2);
+    const p = {
+      weapons: [{ id: fill[0], level: 1 }, maxed(a), { id: fill[1], level: 2 }],
+      passives: [],
+    };
+    build(p.weapons, p.passives, b);
     const card = chestItems(p, createRng(1))[0];
     assert.equal(card.id, combo.result);
     applyCard(p, card);
-    assert.deepEqual(p.weapons.map((w) => w.id), ['war_axe', combo.result, 'firebomb']);
+    assert.deepEqual(p.weapons.map((w) => w.id), [fill[0], combo.result, fill[1]]);
+    if (!isWeapon(b)) assert.deepEqual(p.passives.map((x) => x.id), [b]);
+    if (!isWeapon(b)) continue;
     // части в обратном порядке: результат всё равно на месте первой из from
-    const q = { weapons: [maxed(b), { id: 'war_axe', level: 1 }, maxed(a)], passives: [] };
+    const q = { weapons: [maxed(b), { id: fill[0], level: 1 }, maxed(a)], passives: [] };
     applyCard(q, evolutionCard(combo));
-    assert.deepEqual(q.weapons.map((w) => w.id), ['war_axe', combo.result]);
+    assert.deepEqual(q.weapons.map((w) => w.id), [fill[0], combo.result]);
   }
 });
 
@@ -48,7 +62,8 @@ for (const combo of COMBOS) {
     const sim = createSim({ seed: 31 });
     god(sim);
     sim.player.weapons.length = 0;
-    sim.player.weapons.push(maxed(combo.from[0]), maxed(combo.from[1]));
+    sim.player.weapons.push(maxed(combo.from[0]));
+    build(sim.player.weapons, sim.player.passives, combo.from[1]);
     sim._syncBuild();
     sim.dropPickup('chest', sim.player.x, sim.player.y);
     sim.step(DT, idle);

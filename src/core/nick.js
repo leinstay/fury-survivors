@@ -2,9 +2,11 @@
 import { NICK } from '../data/leaderboard.js';
 
 /**
- * validateNick(raw) -> { ok: true, value } | { ok: false, error: 'short'|'long'|'chars' }
  * Обрезаются только края. Длина проверяется до набора символов. Принятый ник возвращается
  * в верхнем регистре (toUpperCase после проверок, поэтому длина не меняется).
+ * @param {*} raw введённый ник
+ * @return {{ok: boolean, value: (string|undefined), error: (string|undefined)}}
+ *     { ok: true, value } или { ok: false, error: 'short'|'long'|'chars' }
  */
 export function validateNick(raw) {
   const value = String(raw ?? '').trim();

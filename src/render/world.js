@@ -1,11 +1,11 @@
 // Синхронизация спрайтов с состоянием sim: пулы по uid, сортировка по y, вспышки, анимация.
 import { SPRITES } from '../../assets/sprites/manifest.js';
 import { GAME_WIDTH, GAME_HEIGHT, FX } from '../data/constants.js';
-import { HEROES } from '../data/heroes.js';
 import { ENEMIES } from '../data/enemies.js';
 import { animateCharacter, applyHitSquash } from './anim.js';
 import { Decor } from './decor.js';
 import { spriteScale } from './density.js';
+import { Zones } from './zones.js';
 
 const PICKUP_DEPTH = -100000;
 const PROJ_DEPTH = 200000;
@@ -13,7 +13,10 @@ const GROUND_DEPTH = -150000; // зоны на земле: над цветами
 const TELEGRAPH_DEPTH = GROUND_DEPTH + 1e4; // предупреждения об ударах босса
 
 // Параметры свечения элит; цвет можно задать врагу в data (elite.glow).
-const ELITE_GLOW = { color: 0xff3d6e, strength: 3, pulse: 0.35, pulseSpeed: 5, quality: 0.1, distance: 10, padding: 10 };
+const ELITE_GLOW = {
+  color: 0xff3d6e, strength: 3, pulse: 0.35, pulseSpeed: 5,
+  quality: 0.1, distance: 10, padding: 10,
+};
 
 function dropGlow(s) {
   s.preFX.remove(s.eliteGlow);
@@ -79,8 +82,7 @@ export class World {
 
     this.decor = new Decor(scene, sim.stageDef || { props: [] });
 
-    const heroId = sim.hero || 'heroine';
-    this.playerKey = sim.player.sprite || (HEROES[heroId] && HEROES[heroId].sprite) || 'heroine';
+    this.playerKey = sim.player.sprite || (sim.heroDef && sim.heroDef.sprite) || 'heroine';
     this.player = scene.add.sprite(sim.player.x, sim.player.y, this._tex(this.playerKey), 0);
     this._origin(this.player, this.playerKey);
 
@@ -101,12 +103,16 @@ export class World {
     this.shadows = [];
     this.shadowN = 0;
     this.telegraphGfx = scene.add.graphics().setDepth(TELEGRAPH_DEPTH);
+    this.zones = new Zones(scene, GROUND_DEPTH);
     this.shake = { x: 0, y: 0 }; // смещение камеры от fx (тряска)
   }
 
   // Тень у ног: тёмный эллипс под спрайтом, пул по порядку обхода за кадр.
   _shadow(x, y, sprite, cam) {
-    if (x < cam.scrollX - 40 || x > cam.scrollX + GAME_WIDTH + 40 || y < cam.scrollY - 40 || y > cam.scrollY + GAME_HEIGHT + 60) return;
+    if (x < cam.scrollX - 40 || x > cam.scrollX + GAME_WIDTH + 40 ||
+        y < cam.scrollY - 40 || y > cam.scrollY + GAME_HEIGHT + 60) {
+      return;
+    }
     const c = FX.shadow;
     let s = this.shadows[this.shadowN];
     if (!s) {
@@ -115,7 +121,8 @@ export class World {
     }
     this.shadowN++;
     const w = Math.max(8, sprite.width * Math.abs(sprite.baseScale || 1) * c.widthK);
-    s.setVisible(true).setPosition(Math.round(x), Math.round(y + c.yOffset)).setScale(w / 32, w * c.height / 16);
+    s.setVisible(true).setPosition(Math.round(x), Math.round(y + c.yOffset))
+        .setScale(w / 32, w * c.height / 16);
   }
 
   // Свечение элиты: glow-эффект WebGL вокруг силуэта, сам спрайт не перекрашивается. Сила пульсирует.
@@ -125,7 +132,8 @@ export class World {
     if (!s.eliteGlow) {
       const ed = ENEMIES[e.type] && ENEMIES[e.type].elite;
       s.preFX.setPadding(g.padding);
-      s.eliteGlow = s.preFX.addGlow(ed && ed.glow !== undefined ? ed.glow : g.color, g.strength, 0, false, g.quality, g.distance);
+      s.eliteGlow = s.preFX.addGlow(ed && ed.glow !== undefined ? ed.glow : g.color,
+          g.strength, 0, false, g.quality, g.distance);
     }
     s.eliteGlow.outerStrength = g.strength * (1 + g.pulse * Math.sin(time * g.pulseSpeed + e.uid));
   }
@@ -216,9 +224,15 @@ export class World {
       s.setPosition(Math.round(e.x), Math.round(e.y));
       s.setRotation(e.angle || 0);
       s.setScale((e.scale == null ? 1 : e.scale) * spriteScale(e.sprite));
-      s.setAlpha(e.alpha == null ? 1 : e.alpha);
+      s.setAlpha(e.fx ? 0 : e.alpha == null ? 1 : e.alpha);
+      if (s.projTint !== e.tint) {
+        s.projTint = e.tint;
+        if (e.tint) s.setTint(e.tint);
+        else s.clearTint();
+      }
       s.setDepth((SPRITES[e.sprite]?.layer === 'ground' ? GROUND_DEPTH : PROJ_DEPTH) + e.y);
     });
+    this.zones.draw(sim.projectiles, time);
 
     this.pools.pickups.sync(sim.pickups, (e) => e.sprite, (s, e) => {
       this._setKey(s, e.sprite);

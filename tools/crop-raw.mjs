@@ -12,14 +12,19 @@ if (!src || !out || [x, y, w, h].some((v) => !Number.isFinite(v))) {
   process.exit(2);
 }
 
-const { data } = await sharp(src).extract({ left: x, top: y, width: w, height: h }).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+const { data } = await sharp(src).extract({ left: x, top: y, width: w, height: h })
+    .ensureAlpha().raw().toBuffer({ resolveWithObject: true });
 const { mask } = buildMask(data, w, h);
 removeSpecks(mask, w, h, 40);
-let x0 = w, x1 = -1, y0 = h, y1 = -1;
+let x0 = w;
+let x1 = -1;
+let y0 = h;
+let y1 = -1;
 for (let i = 0; i < w * h; i++) {
   if (!mask[i]) { data[i * 4 + 3] = 0; continue; }
   data[i * 4 + 3] = 255;
-  const px = i % w, py = (i / w) | 0;
+  const px = i % w;
+  const py = (i / w) | 0;
   if (px < x0) x0 = px; if (px > x1) x1 = px; if (py < y0) y0 = py; if (py > y1) y1 = py;
 }
 await sharp(data, { raw: { width: w, height: h, channels: 4 } })

@@ -9,15 +9,17 @@
     "test": "node --test tests/unit/ tests/balance/",
     "smoke": "playwright test",
     "placeholders": "node tools/placeholders.mjs",
-    "prepare": "git config core.hooksPath .githooks || true",
     "gen": "node tools/gen-sprite.mjs",
     "clean": "node tools/clean-sprite.mjs",
     "sheet": "node tools/contact-sheet.mjs",
     "sfx": "node tools/make-sfx.mjs",
-    "music": "node tools/make-music.mjs"
+    "music": "node tools/make-music.mjs",
+    "lint": "eslint ."
   },
   "devDependencies": {
     "@playwright/test": "^1.56.1",
+    "eslint": "^9.39.5",
+    "globals": "^17.13.0",
     "sharp": "^0.34.4"
   }
 }

@@ -1,4 +1,4 @@
-import en from './en.js';
+import { en } from './en.js';
 
 const langs = { en };
 let current = langs.en;

@@ -1,5 +1,5 @@
 // Летучая мышь: летит на игрока с боковым покачиванием (params.wobble px/с, wobbleFreq рад/с).
-export default {
+export const swarm = {
   update(e, sim, dt) {
     const pl = sim.player;
     const dx = pl.x - e.x;

@@ -1,6 +1,6 @@
 import { buildResults } from '../ui/results.js';
 
-export default class VictoryScene extends Phaser.Scene {
+export class VictoryScene extends Phaser.Scene {
   constructor() {
     super('Victory');
   }

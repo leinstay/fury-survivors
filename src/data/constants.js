@@ -19,6 +19,18 @@ export const SIM = {
   gridCellSize: 64,        // ячейка пространственной сетки
   chunkSize: 320,          // размер чанка для генерации объектов (props) вокруг игрока
   propKeepDistance: 1600,  // дальше этого объекты удаляются
+  propRadius: 9,           // радиус попадания по разрушаемому объекту
+  maxFrameDt: 1 / 20,      // предел шага кадра в сцене Game, с (после зависания мир не прыгает)
+};
+
+// Директор волн (src/core/director.js).
+export const DIRECTOR = {
+  minCheckInterval: 0.5,   // с между проверками минимума врагов (поле min в таймлайне)
+  minGroupsCap: 6,         // не больше стольких групп досыпается за одну проверку минимума
+  groupJitter: 36,         // разброс врагов внутри группы spawn, px (полная ширина)
+  burstJitter: 80,         // разброс врагов события burst, px (полная ширина)
+  ringCount: 20,           // врагов в кольце ring, если у события нет count
+  ringInset: 60,           // кольцо ring без radius: spawnDistance минус это
 };
 
 export const PLAYER = {
@@ -37,6 +49,13 @@ export const COMBAT = {
   knockbackDecay: 10,      // быстрота затухания отбрасывания (1/с)
   separation: 0.35,        // доля перекрытия, которую враги раздвигают за шаг
   armorMinDamage: 1,       // урон не падает ниже этого значения
+  enemyProjectileRadius: 4, // радиус попадания вражеского снаряда
+  weaponStartCooldown: 0.3, // задержка первого выстрела нового оружия до init behavior, с
+};
+
+// HUD (src/ui/hud.js).
+export const HUD = {
+  bossBannerTime: 3,       // с, сколько мигает предупреждение о боссе
 };
 
 export const XP = {
@@ -75,7 +94,10 @@ export const FEEL = {
 export const FX = {
   dmgText: { max: 60, life: 0.6, rise: 18, size: 8, critSize: 12, color: '#ffffff', critColor: '#ffb52e', stroke: '#1a1426' },
   sparks: { min: 2, max: 4, speed: 70, life: 0.25, color: 0xfff2a0, critColor: 0xffb52e },
-  puff: { count: 5, eliteCount: 10, bossCount: 20, speed: 60, life: 0.45, size: 3, eliteSize: 1.6, colors: [0xffffff, 0xd0d0d0, 0x9a9a9a] },
+  puff: {
+    count: 5, eliteCount: 10, bossCount: 20, speed: 60, life: 0.45, size: 3, eliteSize: 1.6,
+    colors: [0xffffff, 0xd0d0d0, 0x9a9a9a],
+  },
   maxParticles: 320,
   ghost: { max: 24, life: 0.25, squashY: 0.25, stretchX: 1.25, eliteScale: 1.25 },
   // Эффекты движения выключены по просьбе владельца (0 = выкл). Прежние значения в комментариях.
@@ -90,4 +112,18 @@ export const FX = {
   // Поза босса: при замахе приседает на windupDrop px, при касте подпрыгивает на castLift px.
   bossPose: { windupDrop: 0, castLift: 0 }, // было 2 и 3
   shadow: { alpha: 0.3, widthK: 0.5, height: 0.3, yOffset: -1, depth: -50000 },
+  // Зоны на земле (src/render/zones.js): прозрачности слоёв, дыхание и волны ауры (wavesPerHit — волна на столько ударов).
+  zones: {
+    aura: {
+      color: 0xfff1a8, fill: 0.1, core: 0.06, breathe: 0.03, breatheSpeed: 4,
+      wave: 0.45, waveWidth: 1.5, wavesPerHit: 2, rimWidth: 1.5, rim: 0.55,
+    },
+    boom: { color: 0xff8030, core: 0xfff0b0, alpha: 0.5 },
+    fire: { color: 0xff6a20, core: 0xffc040, fill: 0.13, rim: 0.45, flicker: 0.08, fadeOut: 0.5 },
+  },
+  // Живость без движения камеры: след за летящими снарядами, блеск кристаллов опыта, искры над огнём.
+  // every — раз в столько секунд, max — сколько объектов за раз.
+  trail: { every: 0.05, life: 0.2, max: 12 },
+  twinkle: { every: 0.15, life: 0.45, color: 0xffffff },
+  embers: { every: 0.07, life: 0.6, rise: 22, colors: [0xffc040, 0xff7a20] },
 };

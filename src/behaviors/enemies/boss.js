@@ -7,7 +7,9 @@
 // e.pose для рендера: 'idle' | 'windup' (замах рывка) | 'cast' (призыв, залп, короткая поза).
 // e.alpha — прозрачность для рендера (blink).
 // Ярость: когда hp ниже def.rage.hpFraction, кулдауны атак умножаются на def.rage.cooldownMul (один раз, событие bossRage).
-const CAST_TIME = 0.6;
+import { BOSS } from '../../data/bosses.js';
+
+const CAST_TIME = BOSS.castTime;
 const TAU = Math.PI * 2;
 
 // Один залп серии.
@@ -34,7 +36,7 @@ function total(a) {
   return a.type === 'slam' ? a.count : a.volleys || 1;
 }
 
-export default {
+export const boss = {
   init(e) {
     const n = e.def.attacks.length;
     e.cd = e.def.attacks.map((a) => a.cooldown * 0.5);
@@ -72,7 +74,7 @@ export default {
       const a = attacks[i];
       volley(e, sim, a, e.vk[i]++, dx, dy);
       e.vl[i]--;
-      e.vt[i] = a.interval || 0.4;
+      e.vt[i] = a.interval || BOSS.volleyInterval;
       e.castT = CAST_TIME;
     }
 
@@ -105,7 +107,8 @@ export default {
           for (let j = 0; j < a.count; j++) {
             if (!sim.canSpawn()) break;
             const ang = (j / a.count) * TAU;
-            sim.spawnEnemy(a.enemy, e.x + Math.cos(ang) * a.radius, e.y + Math.sin(ang) * a.radius, false);
+            sim.spawnEnemy(a.enemy,
+                e.x + Math.cos(ang) * a.radius, e.y + Math.sin(ang) * a.radius, false);
           }
         } else if (a.type === 'fan' || a.type === 'ring' || a.type === 'slam') {
           e.castT = CAST_TIME;
@@ -113,7 +116,7 @@ export default {
           e.vk[i] = 0;
           volley(e, sim, a, e.vk[i]++, dx, dy);   // первый залп сразу
           e.vl[i] = total(a) - 1;
-          e.vt[i] = a.interval || 0.4;
+          e.vt[i] = a.interval || BOSS.volleyInterval;
         }
       }
     } else if (e.st === 1) {

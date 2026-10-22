@@ -1,10 +1,9 @@
 .secrets/
 references/
 node_modules/
-test-results/
-playwright-report/
 *.log
 .DS_Store
 Thumbs.db
 tools/.gen.lock
 tools/out/
+.trash/

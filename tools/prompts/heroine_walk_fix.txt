@@ -1,5 +1,0 @@
-Edit the attached sprite sheet. Keep EVERYTHING exactly the same (all 5 frames, poses, armor, hair, sword, colors, pixel grid, layout, magenta background), change only the face in every frame:
-- remove all orange and red pixels below and beside both eyes: no blush, no red marks, no hair strand over the cheek;
-- the skin under and around both eyes is clean flat pale skin color, same as the rest of the face;
-- the side locks of hair stay outside the face outline.
-Crisp hard-edged square pixels, no blur, no anti-aliasing.

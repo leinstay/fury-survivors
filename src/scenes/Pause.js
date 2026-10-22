@@ -50,7 +50,7 @@ export function addStatsBlock(scene, x, y, player) {
   });
 }
 
-export default class PauseScene extends Phaser.Scene {
+export class PauseScene extends Phaser.Scene {
   constructor() {
     super('Pause');
   }

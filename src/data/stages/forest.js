@@ -19,7 +19,7 @@
 //     { at, type: 'boss', boss }                                    // несколько боссов: убийство нефинального даёт сундук, забег идёт дальше
 //   ],
 // }
-export default {
+export const forest = {
   id: 'forest',
   name: 'stage.forest',
   duration: 900,

@@ -17,7 +17,10 @@ const CARD_SCORE = {
 };
 
 // Лёгкое предпочтение оружия: части супероружия первыми (бот проверяет и слияние).
-const WEAPON_PREF = { blade_arc: 1, storm_chain: 0.9, throwing_daggers: 0.8, guardian_shields: 0.7, war_axe: 0.5, firebomb: 0.5, holy_ground: 0.1 };
+const WEAPON_PREF = {
+  blade_arc: 1, storm_chain: 0.9, throwing_daggers: 0.8, guardian_shields: 0.7,
+  war_axe: 0.5, firebomb: 0.5, holy_ground: 0.1,
+};
 
 function score(c, nW) {
   if (c.kind === 'heal') return CARD_SCORE.heal;
@@ -75,7 +78,13 @@ function steer(sim, out, t) {
       ax = best.x - p.x; ay = best.y - p.y;
     } else {
       const en = sim.nearestEnemy(p.x, p.y, 300);
-      if (en) { ax = en.x - p.x; ay = en.y - p.y; } else { ax = Math.cos(t * 0.5); ay = Math.sin(t * 0.5); }
+      if (en) {
+        ax = en.x - p.x;
+        ay = en.y - p.y;
+      } else {
+        ax = Math.cos(t * 0.5);
+        ay = Math.sin(t * 0.5);
+      }
     }
   }
   const l = Math.sqrt(ax * ax + ay * ay) || 1;
@@ -90,7 +99,8 @@ export function runBot(opts) {
   if (!upgrades) sim.levelUp.skips = 1e9;
   const input = { x: 0, y: 0 };
   const res = {
-    sim, levelAt: {}, maxEnemies: 0, deathTime: null, victoryTime: null, levelTimes: [], evolutions: 0,
+    sim, levelAt: {}, maxEnemies: 0, deathTime: null, victoryTime: null,
+    levelTimes: [], evolutions: 0,
   };
   let step = 0;
   let lastLevel = 1;
@@ -112,7 +122,12 @@ export function runBot(opts) {
       lastLevel = sim.player.level;
       res.levelTimes[lastLevel] = sim.time;
     }
-    while (mi < marks.length && sim.time >= marks[mi]) { res.levelAt[marks[mi]] = sim.player.level; (res.trace ||= []).push([marks[mi], sim.enemies.length, Math.round(sim.player.hp), sim.kills]); mi++; }
+    while (mi < marks.length && sim.time >= marks[mi]) {
+      res.levelAt[marks[mi]] = sim.player.level;
+      (res.trace ||= [])
+          .push([marks[mi], sim.enemies.length, Math.round(sim.player.hp), sim.kills]);
+      mi++;
+    }
     if (opts.onEvents && sim.events.length) opts.onEvents(sim.events);
     for (const ev of sim.events) if (ev.type === 'chest' && ev.items.some((i) => i.evolved)) res.evolutions++;
   }

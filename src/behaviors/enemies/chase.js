@@ -1,5 +1,5 @@
 // Идёт прямо на игрока.
-export default {
+export const chase = {
   update(e, sim, dt) {
     const pl = sim.player;
     const dx = pl.x - e.x;

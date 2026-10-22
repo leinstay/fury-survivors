@@ -4,12 +4,12 @@ import { Hud } from '../ui/hud.js';
 import { readPad } from '../ui/focus.js';
 import { World } from '../render/world.js';
 import { Fx } from '../render/fx.js';
-import { FX } from '../data/constants.js';
+import { FX, SIM } from '../data/constants.js';
 import { handleSimEvents, startMusic, fadeOutMusic } from '../audio/sfx.js';
 
-const MAX_DT = 1 / 20;
+const MAX_DT = SIM.maxFrameDt;
 
-export default class GameScene extends Phaser.Scene {
+export class GameScene extends Phaser.Scene {
   constructor() {
     super('Game');
     this.sim = null;
@@ -21,9 +21,16 @@ export default class GameScene extends Phaser.Scene {
     this.fx = new Fx(this);
     this.hitstop = 0;
     this.hitCool = 0;
-    this.events.on('resume', () => this.fx.playPending());
-    this.gameInput = new GameInput(this, { isBlocked: (x, y) => this.hud && this.hud.isOnPauseButton(x, y) });
-    this.hud = new Hud(this, this.sim, { touch: this.gameInput.touch, onPause: () => this.openPause() });
+    // события сцены переживают рестарт: снимаем слушатель при выходе, иначе он копится с каждым забегом
+    const onResume = () => this.fx.playPending();
+    this.events.on('resume', onResume);
+    this.events.once('shutdown', () => this.events.off('resume', onResume));
+    this.gameInput = new GameInput(this, {
+      isBlocked: (x, y) => this.hud && this.hud.isOnPauseButton(x, y),
+    });
+    this.hud = new Hud(this, this.sim, {
+      touch: this.gameInput.touch, onPause: () => this.openPause(),
+    });
     this.ended = false;
     this.pendingChest = null;
     const pad = readPad();
@@ -47,7 +54,8 @@ export default class GameScene extends Phaser.Scene {
     if (!events.length) return;
     this.fx.onEvents(events);
     this.hud.onEvents(events);
-    for (const ev of events) if (ev.type === 'chest') this.pendingChest = ev.items || [];
+    // два сундука за кадр: sim уже выдал оба, показываем всё вместе
+    for (const ev of events) if (ev.type === 'chest') this.pendingChest = (this.pendingChest || []).concat(ev.items || []);
     handleSimEvents(this, events);
     const h = FX.hitstop;
     let stop = 0;

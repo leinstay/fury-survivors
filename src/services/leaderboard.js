@@ -7,18 +7,28 @@ import {
 } from '../data/leaderboard.js';
 import { validateNick } from '../core/nick.js';
 
-/** Очки забега по формуле из data/leaderboard.js. */
+/**
+ * Очки забега по формуле из data/leaderboard.js.
+ * @param {{time: (number|undefined), kills: (number|undefined), victory: (boolean|undefined)}=} run
+ * @param {!Object=} f формула (perSecond, perKill, victoryBonus)
+ * @return {number}
+ */
 export function computeScore({ time = 0, kills = 0, victory = false } = {}, f = SCORE_FORMULA) {
-  const s = Math.floor(Math.max(0, time)) * f.perSecond + Math.max(0, Math.floor(kills)) * f.perKill + (victory ? f.victoryBonus : 0);
+  const s = Math.floor(Math.max(0, time)) * f.perSecond +
+      Math.max(0, Math.floor(kills)) * f.perKill + (victory ? f.victoryBonus : 0);
   return Math.min(s, LIMITS.scoreMax);
 }
 
 const int = (v) => Math.floor(Number(v));
 
 /**
- * topTen(entries, limit) -> [{ name, score, time, kills, level, victory }]. Чистая: выкидывает
- * битые строки, оставляет лучший результат каждого игрока (ключ = имя в верхнем регистре),
- * сортирует по убыванию очков (при равенстве раньше встретившийся первым), режет до limit.
+ * Чистая: выкидывает битые строки, оставляет лучший результат каждого игрока (ключ = имя
+ * в верхнем регистре), сортирует по убыванию очков (при равенстве раньше встретившийся первым),
+ * режет до limit.
+ * @param {*} entries сырые строки из базы
+ * @param {number=} limit
+ * @return {!Array<{name: string, score: number, time: number, kills: number, level: number,
+ *     victory: boolean}>}
  */
 export function topTen(entries, limit = BOARD.rows) {
   if (!Array.isArray(entries)) return [];
@@ -45,7 +55,11 @@ export function topTen(entries, limit = BOARD.rows) {
     .map(({ order, ...row }) => row);
 }
 
-/** Место (1-based) игрока в таблице по имени или 0, если его там нет. */
+/**
+ * @param {!Array<{name: string}>} rows
+ * @param {string} name
+ * @return {number} место (1-based) или 0, если игрока нет в таблице
+ */
 export function rankOf(rows, name) {
   const i = rows.findIndex((r) => r.name === String(name).toUpperCase());
   return i + 1;
@@ -89,7 +103,8 @@ function buildDoc({ name, score, time, kills, level, victory }) {
   const nick = validateNick(name);
   if (!nick.ok) return null;
   const doc = {
-    name: nick.value, score: int(score), time: int(time), kills: int(kills), level: int(level), victory: victory === true,
+    name: nick.value, score: int(score), time: int(time), kills: int(kills), level: int(level),
+    victory: victory === true,
   };
   const inR = (v, lo, hi) => Number.isFinite(v) && v >= lo && v <= hi;
   if (!inR(doc.score, 1, LIMITS.scoreMax) || !inR(doc.time, 0, LIMITS.timeMax)
@@ -97,7 +112,15 @@ function buildDoc({ name, score, time, kills, level, victory }) {
   return doc;
 }
 
-/** createLeaderboard({ loadBackend, now, timeoutMs, cooldownMs, hasConfig }): `loadBackend()` -> { top(limit), add(doc) }. */
+/**
+ * Сервис таблицы рекордов. loadBackend() -> { top(limit), add(doc) }.
+ * @param {{loadBackend: (function(): !Promise<!Object>|undefined), now: (function(): number|undefined),
+ *     timeoutMs: (number|undefined), cooldownMs: (number|undefined),
+ *     hasConfig: (function(): boolean|undefined)}=} options
+ * @return {{fetchTop10: function(): !Promise<!Array<!Object>>,
+ *     submitScore: function(!Object): !Promise<void>, isOnline: function(): boolean,
+ *     topTen: function(*, number=): !Array<!Object>}}
+ */
 export function createLeaderboard({
   loadBackend = loadFirestoreBackend,
   now = () => Date.now(),
@@ -107,6 +130,7 @@ export function createLeaderboard({
 } = {}) {
   let backendPromise = null;
   let lastSubmit = -Infinity;
+  let inflight = null;   // запись в базу, которая ещё идёт (в том числе после таймаута)
 
   function backend() {
     if (!backendPromise) {
@@ -124,7 +148,8 @@ export function createLeaderboard({
 
   async function fetchTop10() {
     try {
-      const rows = await withTimeout((async () => (await backend()).top(BOARD.readLimit))(), timeoutMs);
+      const rows = await withTimeout(
+          (async () => (await backend()).top(BOARD.readLimit))(), timeoutMs);
       return topTen(rows);
     } catch (err) {
       backendPromise = null;
@@ -137,13 +162,17 @@ export function createLeaderboard({
     const doc = buildDoc(run || {});
     if (!doc) throw new Error('invalid');
     if (now() - lastSubmit < cooldownMs) throw new Error('cooldown');
+    // Запись после таймаута продолжает идти и может пройти: повторная отправка ждёт её же, а не пишет второй документ.
+    if (!inflight) {
+      inflight = (async () => (await backend()).add(doc))();
+      inflight.then(() => { lastSubmit = now(); }, () => {}).finally(() => { inflight = null; });
+    }
     try {
-      await withTimeout((async () => (await backend()).add(doc))(), timeoutMs);
+      await withTimeout(inflight, timeoutMs);
     } catch (err) {
       backendPromise = null;
       throw new Error(classify(err), { cause: err });
     }
-    lastSubmit = now();
   }
 
   return { fetchTop10, submitScore, isOnline, topTen };
@@ -151,11 +180,25 @@ export function createLeaderboard({
 
 let service = createLeaderboard();
 
+/**
+ * @return {!Promise<!Array<!Object>>} лучшие результаты; ошибка с message 'offline'|'denied'
+ */
 export function fetchTop10() { return service.fetchTop10(); }
+/**
+ * @param {{name: string, score: number, time: number, kills: number, level: number,
+ *     victory: boolean}} run
+ * @return {!Promise<void>} ошибка с message 'offline'|'cooldown'|'invalid'|'denied'
+ */
 export function submitScore(run) { return service.submitScore(run); }
+/**
+ * @return {boolean} есть конфиг Firebase и браузер не офлайн
+ */
 export function isOnline() { return service.isOnline(); }
 
-/** Тестовый шов: передать options с фейковым loadBackend, либо ничего для реального. */
+/**
+ * Тестовый шов: передать options с фейковым loadBackend, либо ничего для реального.
+ * @param {!Object=} options как у createLeaderboard
+ */
 export function __setBackendForTests(options) {
   service = createLeaderboard(options || {});
 }

@@ -2,6 +2,7 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: 'tests/smoke',
+  outputDir: 'tools/out/test-results',
   timeout: 90_000,
   use: { baseURL: 'http://localhost:8123/', viewport: { width: 1280, height: 720 } },
   webServer: { command: 'node tools/serve.mjs 8123', url: 'http://localhost:8123/', reuseExistingServer: true },

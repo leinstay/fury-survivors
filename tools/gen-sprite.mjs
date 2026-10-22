@@ -115,8 +115,10 @@ async function main() {
     const b64 = json.data?.[0]?.b64_json;
     const cost = json.usage?.cost ?? null;
     const entry = {
-      date: new Date().toISOString(), name: args.name, model, refs: args.refs, resolution: args.resolution,
-      quality: args.quality, moderation: args.moderation, aspect: args.aspect, cost, usage: json.usage, seconds: Math.round((Date.now() - started) / 1000),
+      date: new Date().toISOString(), name: args.name, model, refs: args.refs,
+      resolution: args.resolution, quality: args.quality, moderation: args.moderation,
+      aspect: args.aspect, cost, usage: json.usage,
+      seconds: Math.round((Date.now() - started) / 1000),
     };
     // Деньги списаны даже без картинки: в ledger пишем всегда. Неизвестную цену считаем по оценке.
     ledger.spent += cost ?? estimate;

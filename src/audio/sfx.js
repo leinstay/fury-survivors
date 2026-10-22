@@ -87,7 +87,9 @@ function musicVolume() {
 
 function fadeTo(target, seconds, done) {
   clearInterval(fadeTimer);
-  const from = fade, start = Date.now(), ms = Math.max(1, seconds * 1000);
+  const from = fade;
+  const start = Date.now();
+  const ms = Math.max(1, seconds * 1000);
   fadeTimer = setInterval(() => {
     const k = Math.min(1, (Date.now() - start) / ms);
     fade = from + (target - from) * k;

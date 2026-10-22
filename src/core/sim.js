@@ -6,7 +6,7 @@ import { WEAPONS } from '../data/weapons.js';
 import { ENEMIES } from '../data/enemies.js';
 import { BOSSES } from '../data/bosses.js';
 import { PICKUPS } from '../data/pickups.js';
-import forest from '../data/stages/forest.js';
+import { forest } from '../data/stages/forest.js';
 import { WEAPON_BEHAVIORS, ENEMY_BEHAVIORS } from '../behaviors/index.js';
 import { createRng, hashSeed } from './rng.js';
 import { Grid } from './grid.js';
@@ -26,10 +26,16 @@ const XP_TIERS = Object.keys(PICKUPS)
   .sort((a, b) => PICKUPS[b].value - PICKUPS[a].value);
 
 function xpTierFor(value) {
-  for (let i = 0; i < XP_TIERS.length; i++) if (PICKUPS[XP_TIERS[i]].value <= value) return XP_TIERS[i];
+  for (let i = 0; i < XP_TIERS.length; i++) {
+    if (PICKUPS[XP_TIERS[i]].value <= value) return XP_TIERS[i];
+  }
   return XP_TIERS[XP_TIERS.length - 1];
 }
 
+/**
+ * @param {number} level текущий уровень
+ * @return {number} опыт до следующего уровня
+ */
 export function xpForLevel(level) {
   let need = XP.base + XP.perLevel * (level - 1);
   for (const t of XP.thresholds) if (t.level === level) need += t.extra;
@@ -61,6 +67,7 @@ class Sim {
     this.coins = 0;
     this.boss = null;
     this.damageByWeapon = {};
+    this.projTint = 0;
     this.events = [];
     this.enemies = [];
     this.projectiles = [];
@@ -136,7 +143,9 @@ class Sim {
     }
     if (pl.iframes > 0) pl.iframes -= dt;
     if (pl.hurtFlash > 0) pl.hurtFlash -= dt;
-    if (pl.stats.regen > 0 && pl.hp < pl.maxHp) pl.hp = Math.min(pl.maxHp, pl.hp + pl.stats.regen * dt);
+    if (pl.stats.regen > 0 && pl.hp < pl.maxHp) {
+      pl.hp = Math.min(pl.maxHp, pl.hp + pl.stats.regen * dt);
+    }
 
     this._updateChunks();
     this.director.update(this, dt);
@@ -189,7 +198,8 @@ class Sim {
         uid: 0, type: '', sprite: '', x: 0, y: 0, hp: 0, maxHp: 0, size: 0, facing: 1, elite: false, boss: false,
         hitFlash: 0, moving: false, pose: 'idle', rage: false, alpha: 1,
         vx: 0, vy: 0, kx: 0, ky: 0, speed: 0, damage: 0, xp: 0, st: 0, a: 0, b: 0, t: 0, mark: 0,
-        dead: false, def: null, params: EMPTY, beh: null, resist: 0, hitAt: new Float64Array(SLOT_COUNT),
+        dead: false, def: null, params: EMPTY, beh: null, resist: 0,
+        hitAt: new Float64Array(SLOT_COUNT),
       };
     }
     const mins = this.time / 60;
@@ -382,7 +392,8 @@ class Sim {
       if (!e.dead) continue;
       en[i] = en[en.length - 1];
       en.pop();
-      if (this.boss === e) this.boss = null;
+      // полоса HP переходит к другому живому боссу (прошлый босс мог пережить появление следующего)
+      if (this.boss === e) this.boss = en.find((o) => o.boss && !o.dead) || null;
       this.enemyPool.push(e);
     }
   }
@@ -426,8 +437,11 @@ class Sim {
     const ws = this.player.weapons;
     for (let i = 0; i < ws.length; i++) {
       const w = ws[i];
+      // цвет снарядов супероружия (weapons.js tint; у частей коллаба свой, см. behaviors/weapons/combo.js)
+      this.projTint = w.def.tint || 0;
       w.beh.update(w, this, dt);
     }
+    this.projTint = 0;
   }
 
   // Выдать снаряд из пула. Поля сбрасываются; behavior заполняет нужные.
@@ -437,7 +451,7 @@ class Sim {
       p = {
         uid: 0, sprite: '', x: 0, y: 0, angle: 0, scale: 1, alpha: 1, owner: 'player',
         vx: 0, vy: 0, life: 0, radius: 0, dmg: 0, kb: 0, pierce: 0, rehit: 0, once: false,
-        a: 0, b: 0, c: 0, wid: '', ws: null, bk: null, slot: 0, hitN: 0, hitUid: new Int32Array(HIT_MEM),
+        a: 0, b: 0, c: 0, wid: '', ws: null, bk: null, slot: 0, hitN: 0, hitUid: new Int32Array(HIT_MEM), tint: 0, fx: '', life0: 0,
       };
     }
     p.uid = ++this.uid;
@@ -447,6 +461,8 @@ class Sim {
     p.vx = 0; p.vy = 0; p.life = 1; p.radius = 0; p.dmg = 0; p.kb = 0;
     p.pierce = 0; p.rehit = 0; p.once = false;
     p.a = 0; p.b = 0; p.c = 0; p.wid = ''; p.ws = null; p.bk = null; p.slot = 0; p.hitN = 0;
+    p.tint = owner === 'player' ? this.projTint || 0 : 0;
+    p.fx = ''; p.life0 = 0; // fx: зона рисуется слоями (render/zones.js), а не спрайтом
     this.projectiles.push(p);
     return p;
   }
@@ -458,7 +474,7 @@ class Sim {
     p.vx = Math.cos(angle) * speed;
     p.vy = Math.sin(angle) * speed;
     p.life = life;
-    p.radius = 4;
+    p.radius = COMBAT.enemyProjectileRadius;
     p.dmg = dmg;
     return p;
   }
@@ -615,7 +631,8 @@ class Sim {
       for (let i = 0; i < n; i++) {
         this.props.push({
           uid: ++this.uid, sprite: def.sprite, x: (cx + r.next()) * cs, y: (cy + r.next()) * cs,
-          breakable: true, hp: def.hp || 1, radius: 9, drop: def.drop || EMPTY, dead: false,
+          breakable: true, hp: def.hp || 1, radius: SIM.propRadius,
+          drop: def.drop || EMPTY, dead: false,
           hitAt: new Float64Array(SLOT_COUNT).fill(NEVER),
         });
       }
@@ -863,7 +880,7 @@ class Sim {
       w.def = WEAPONS[w.id];
       w.beh = WEAPON_BEHAVIORS[w.def.behavior];
       w.params = {};
-      w.cooldown = 0.3;
+      w.cooldown = COMBAT.weaponStartCooldown;
       w.removed = false;
       w.slot = this._freeSlot();
       w.shields = null;
@@ -900,6 +917,10 @@ class Sim {
   }
 }
 
+/**
+ * @param {{hero: (string|undefined), stage: (string|undefined), seed: (number|undefined)}=} opts
+ * @return {!Sim} новая симуляция забега
+ */
 export function createSim(opts) {
   return new Sim(opts);
 }

@@ -17,7 +17,7 @@ function segment(sim, x0, y0, x1, y1, sprite) {
   }
 }
 
-export default {
+export const chain = {
   init(w) { w.cooldown = 0.4; },
   update(w, sim, dt) {
     w.cooldown -= dt;

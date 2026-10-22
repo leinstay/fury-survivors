@@ -1,5 +1,0 @@
-Edit the attached sprite sheet. Return the SAME image: every figure stays exactly where it is, with the same size, pixel grid, colors, poses and the same layout. Change only these three details and nothing else:
-1. Kitsune Empress (big boss on the far left, orange hair, red kimono): her two legs below the kimono slit must match: both bare skin legs with the same red sandals. Remove the white and lilac sock on one leg.
-2. Dryad Queen (third big boss, green hair, leaf gown): give her two normal bare feet with simple brown sandals under the gown hem. Keep roots only trailing from the hem behind her, not instead of the feet.
-3. Elf archer (bottom row, far right, blonde braid): draw both arms clearly. Her front arm is bare skin from the shoulder down to the hand holding the bow at her side; her other arm is visible at her hip.
-All other figures stay pixel-identical.

@@ -61,7 +61,8 @@ function inside(shape, x, y, cx, footY, w, h, frame) {
   if (shape === 'round' || shape === 'blob' || shape === 'flyer') {
     const squash = shape === 'blob' && frame === 1 ? 0.88 : 1;
     const bob = shape === 'flyer' ? [0, -2, 1][frame] : 0;
-    const rx = w / 2 / squash, ry = (h / 2) * squash;
+    const rx = w / 2 / squash;
+    const ry = (h / 2) * squash;
     const cy = footY - ry + bob;
     return ((x + 0.5 - cx) / rx) ** 2 + ((y + 0.5 - cy) / ry) ** 2 <= 1;
   }
@@ -75,20 +76,23 @@ function inside(shape, x, y, cx, footY, w, h, frame) {
   if (y >= legTop && y < footY) {
     const spread = [0, 3, -3][frame];
     const legW = Math.max(2, Math.round(w * 0.25));
-    const l1 = cx - legW - 1 + spread, l2 = cx + 1 - spread;
+    const l1 = cx - legW - 1 + spread;
+    const l2 = cx + 1 - spread;
     return (x >= l1 && x < l1 + legW) || (x >= l2 && x < l2 + legW);
   }
   return false;
 }
 
 export function renderPlaceholder(s) {
-  const W = s.frameWidth * s.frames, H = s.frameHeight;
+  const W = s.frameWidth * s.frames;
+  const H = s.frameHeight;
   const buf = Buffer.alloc(W * H * 4);
   const [r, g, b] = hex(s.color);
   const [sw, sh] = s.size;
   const cx = s.frameWidth * s.origin[0];
   // Опора у ног (origin y ниже 0.75) или фигура по центру кадра.
-  const footY = s.origin[1] >= 0.75 ? Math.round(s.frameHeight * s.origin[1]) : Math.round((s.frameHeight + sh) / 2);
+  const footY = s.origin[1] >= 0.75 ?
+      Math.round(s.frameHeight * s.origin[1]) : Math.round((s.frameHeight + sh) / 2);
   for (let f = 0; f < s.frames; f++) {
     const shade = 1 - (f % 4) * 0.08;
     const mask = (x, y) => {
@@ -117,7 +121,8 @@ export function renderPlaceholder(s) {
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const force = process.argv.includes('--force');
-  let made = 0, kept = 0;
+  let made = 0;
+  let kept = 0;
   for (const s of Object.values(SPRITES)) {
     const out = join(root, s.file);
     if (existsSync(out) && !force) { kept++; continue; }

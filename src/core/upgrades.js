@@ -5,10 +5,17 @@ import { PASSIVES } from '../data/passives.js';
 import { COMBOS } from '../data/combos.js';
 import { SLOTS, LEVEL_UP } from '../data/constants.js';
 
+/**
+ * @param {{kind: string, id: string}} c карточка
+ * @return {string} ключ kind:id
+ */
 export function cardKey(c) {
   return c.kind + ':' + c.id;
 }
 
+/**
+ * @return {!Object} карточка лечения
+ */
 export function healCard() {
   return { kind: 'heal', id: 'heal', level: 1, isNew: false, icon: 'food' };
 }
@@ -18,7 +25,12 @@ function find(list, id) {
   return null;
 }
 
-// Все карточки, доступные сейчас (без лечения). banished — Set ключей kind:id.
+/**
+ * Все карточки, доступные сейчас (без лечения).
+ * @param {!Object} player данные игрока
+ * @param {!Set<string>} banished ключи kind:id
+ * @return {!Array<!Object>}
+ */
 export function buildPool(player, banished) {
   const pool = [];
   const weapons = player.weapons;
@@ -47,8 +59,15 @@ export function buildPool(player, banished) {
   return pool;
 }
 
-// До count случайных различных карточек. Если выбрать нечего (всё на максимуме) — одна карточка лечения.
-// exclude — массив карточек, которые нельзя повторять (замена при banish).
+/**
+ * До count случайных различных карточек. Если выбрать нечего (всё на максимуме) — одна карточка лечения.
+ * @param {!Object} player данные игрока
+ * @param {{int: function(number): number}} rng
+ * @param {!Set<string>} banished ключи kind:id
+ * @param {number=} count
+ * @param {?Array<!Object>=} exclude карточки, которые нельзя повторять (замена при banish)
+ * @return {!Array<!Object>}
+ */
 export function drawCards(player, rng, banished, count = LEVEL_UP.cards, exclude = null) {
   let pool = buildPool(player, banished);
   if (exclude && exclude.length) {
@@ -67,7 +86,11 @@ export function drawCards(player, rng, banished, count = LEVEL_UP.cards, exclude
   return out;
 }
 
-// Применить карточку к данным игрока. Для 'heal' данные не меняются (лечит sim).
+/**
+ * Применить карточку к данным игрока. Для 'heal' данные не меняются (лечит sim).
+ * @param {!Object} player данные игрока
+ * @param {!Object} card
+ */
 export function applyCard(player, card) {
   if (card.kind === 'weapon') {
     if (card.from) {
@@ -95,21 +118,42 @@ export function applyCard(player, card) {
   }
 }
 
-// Готовая к слиянию пара: обе части на максимуме, результата ещё нет. Возвращает запись из COMBOS или null.
+// Готовая к слиянию пара, результата ещё нет. Возвращает запись из COMBOS или null.
+// Оружие должно быть на максимуме; пассивка (эволюция как в VS) — просто взята, любой уровень.
+function ready(player, id) {
+  if (PASSIVES[id]) return !!find(player.passives, id);
+  const w = find(player.weapons, id);
+  return !!w && w.level >= WEAPONS[id].maxLevel;
+}
+
+/**
+ * @param {!Object} player данные игрока
+ * @return {?Object} готовая к слиянию запись из COMBOS или null
+ */
 export function findEvolution(player) {
   for (const c of COMBOS) {
-    const a = find(player.weapons, c.from[0]);
-    const b = find(player.weapons, c.from[1]);
-    if (a && b && a.level >= WEAPONS[a.id].maxLevel && b.level >= WEAPONS[b.id].maxLevel && !find(player.weapons, c.result)) return c;
+    if (ready(player, c.from[0]) && ready(player, c.from[1]) &&
+        !find(player.weapons, c.result)) {
+      return c;
+    }
   }
   return null;
 }
 
+/**
+ * @param {{from: !Array<string>, result: string}} combo запись из COMBOS
+ * @return {!Object} карточка супероружия
+ */
 export function evolutionCard(combo) {
   return { kind: 'weapon', id: combo.result, level: 1, isNew: true, evolved: true, from: combo.from.slice(), icon: WEAPONS[combo.result].icon };
 }
 
-// Содержимое сундука: супероружие, иначе апгрейд случайного оружия, иначе пассивки, иначе лечение.
+/**
+ * Содержимое сундука: супероружие, иначе апгрейд случайного оружия, иначе пассивки, иначе лечение.
+ * @param {!Object} player данные игрока
+ * @param {{int: function(number): number}} rng
+ * @return {!Array<!Object>} одна карточка
+ */
 export function chestItems(player, rng) {
   const combo = findEvolution(player);
   if (combo) return [evolutionCard(combo)];

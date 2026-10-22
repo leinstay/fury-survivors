@@ -6,6 +6,8 @@
 //   behavior: 'melee_arc',       // файл src/behaviors/weapons/<behavior>.js
 //   maxLevel: 7,
 //   evolved: true,               // только у супероружия (см. combos.js); в карточки не попадает
+//   tint: 0xff9040,              // цвет снарядов (необязательно)
+//   parts: [...]                 // behavior 'combo': части коллаба, см. src/behaviors/weapons/combo.js
 //   levels: [                    // levels[0] = уровень 1; каждая следующая запись — полный набор чисел
 //     { damage, cooldown, amount, area, speed, duration, pierce, knockback, ... },
 //   ],
@@ -14,11 +16,31 @@
 //   melee_arc  : amount — число взмахов подряд (чередуют стороны), area — длина удара, knockback
 //   projectile : amount — число снарядов веером, speed, duration — время полёта, pierce — сколько врагов пробьёт сверх первого
 //   orbit      : amount — число щитов, area — радиус орбиты, speed — рад/с, duration — сколько щиты активны, cooldown — пауза,
-//                size — масштаб спрайта (по умолчанию 1), hitRadius — радиус попадания (по умолчанию 10)
+//                size — масштаб спрайта (по умолчанию 1), hitRadius — радиус попадания (по умолчанию WEAPON_BEHAVIOR.orbit.hitRadius)
 //   aura       : area — радиус, cooldown — период удара по каждому врагу в зоне
 //   boomerang  : amount — число топоров, area — дальность, speed, duration — предельное время жизни
 //   chain      : amount — число молний, jumps — перескоков на следующего врага, area — дальность перескока, range — дальность цели
 //   area_drop  : amount — число бомб, area — радиус взрыва, duration — время огня на земле, fireDamage — доля урона огня за тик
+
+// Пресеты частей коллабов: behavior, спрайт и числа чуть выше максимального уровня исходного оружия.
+const B = { behavior: 'melee_arc', sprite: 'proj_blade_arc', damage: 40, cooldown: 0.9, amount: 3, area: 84, knockback: 130 };
+const D = { behavior: 'projectile', sprite: 'proj_dagger', damage: 26, cooldown: 0.6, amount: 5, speed: 360, duration: 1.5, pierce: 3, knockback: 80 };
+const S = { behavior: 'orbit', sprite: 'proj_shield', damage: 28, cooldown: 0, amount: 5, area: 66, speed: 4.2, duration: 1e9, knockback: 120 };
+const H = { behavior: 'aura', sprite: 'proj_holy_ground', damage: 24, cooldown: 0.4, area: 115, knockback: 35 };
+const A = { behavior: 'boomerang', sprite: 'proj_axe', damage: 50, cooldown: 1.1, amount: 4, area: 195, speed: 270, duration: 4, knockback: 100 };
+const C = { behavior: 'chain', sprite: 'proj_chain', damage: 36, cooldown: 1.0, amount: 3, jumps: 7, area: 125, range: 300, knockback: 40 };
+const F = { behavior: 'area_drop', sprite: 'proj_firebomb', damage: 46, cooldown: 1.3, amount: 3, area: 70, duration: 3.5, fireDamage: 0.5, knockback: 80 };
+const part = (base, over, tint) => ({ ...base, ...over, ...(tint ? { tint } : {}) });
+
+// Общие числа behavior, одинаковые для всех оружий с этим behavior (и для частей коллабов).
+// targetRange — дальность поиска цели, hitRadius — радиус попадания снаряда, время в секундах.
+export const WEAPON_BEHAVIOR = {
+  projectile: { targetRange: 360, hitRadius: 5 },
+  boomerang: { targetRange: 320, hitRadius: 10 },
+  area_drop: { targetRange: 300, flight: 0.5, fireTick: 0.5 }, // flight — полёт бомбы, fireTick — период урона огня
+  orbit: { hitRadius: 10, rehit: 0.5 },                        // hitRadius по умолчанию (перекрывается params.hitRadius), rehit — повторный удар щита
+  melee_arc: { swingGap: 0.18, swingLife: 0.16 },              // пауза между взмахами серии и время жизни взмаха
+};
 
 export const WEAPONS = {
   blade_arc: {
@@ -36,13 +58,20 @@ export const WEAPONS = {
   throwing_daggers: {
     icon: 'icon_throwing_daggers', sprite: 'proj_dagger', behavior: 'projectile', maxLevel: 7,
     levels: [
-      { damage: 8, cooldown: 1.0, amount: 1, speed: 280, duration: 1.2, pierce: 0, knockback: 40 },
-      { damage: 8, cooldown: 1.0, amount: 2, speed: 280, duration: 1.2, pierce: 0, knockback: 40 },
-      { damage: 11, cooldown: 0.95, amount: 2, speed: 300, duration: 1.2, pierce: 0, knockback: 50 },
-      { damage: 11, cooldown: 0.9, amount: 3, speed: 300, duration: 1.3, pierce: 0, knockback: 50 },
-      { damage: 14, cooldown: 0.85, amount: 3, speed: 320, duration: 1.3, pierce: 1, knockback: 60 },
-      { damage: 14, cooldown: 0.8, amount: 4, speed: 320, duration: 1.4, pierce: 1, knockback: 60 },
-      { damage: 20, cooldown: 0.75, amount: 4, speed: 340, duration: 1.4, pierce: 2, knockback: 70 },
+      { damage: 8, cooldown: 1.0, amount: 1, speed: 280,
+        duration: 1.2, pierce: 0, knockback: 40 },
+      { damage: 8, cooldown: 1.0, amount: 2, speed: 280,
+        duration: 1.2, pierce: 0, knockback: 40 },
+      { damage: 11, cooldown: 0.95, amount: 2, speed: 300,
+        duration: 1.2, pierce: 0, knockback: 50 },
+      { damage: 11, cooldown: 0.9, amount: 3, speed: 300,
+        duration: 1.3, pierce: 0, knockback: 50 },
+      { damage: 14, cooldown: 0.85, amount: 3, speed: 320,
+        duration: 1.3, pierce: 1, knockback: 60 },
+      { damage: 14, cooldown: 0.8, amount: 4, speed: 320,
+        duration: 1.4, pierce: 1, knockback: 60 },
+      { damage: 20, cooldown: 0.75, amount: 4, speed: 340,
+        duration: 1.4, pierce: 2, knockback: 70 },
     ],
   },
   guardian_shields: {
@@ -96,13 +125,20 @@ export const WEAPONS = {
   firebomb: {
     icon: 'icon_firebomb', sprite: 'proj_firebomb', behavior: 'area_drop', maxLevel: 7,
     levels: [
-      { damage: 14, cooldown: 2.6, amount: 1, area: 36, duration: 1.5, fireDamage: 0.3, knockback: 50 },
-      { damage: 14, cooldown: 2.5, amount: 1, area: 40, duration: 1.8, fireDamage: 0.3, knockback: 50 },
-      { damage: 20, cooldown: 2.3, amount: 2, area: 44, duration: 2.0, fireDamage: 0.35, knockback: 55 },
-      { damage: 20, cooldown: 2.1, amount: 2, area: 48, duration: 2.3, fireDamage: 0.35, knockback: 55 },
-      { damage: 28, cooldown: 1.9, amount: 2, area: 54, duration: 2.6, fireDamage: 0.4, knockback: 60 },
-      { damage: 28, cooldown: 1.7, amount: 3, area: 58, duration: 2.8, fireDamage: 0.4, knockback: 60 },
-      { damage: 38, cooldown: 1.5, amount: 3, area: 64, duration: 3.2, fireDamage: 0.45, knockback: 70 },
+      { damage: 14, cooldown: 2.6, amount: 1, area: 36,
+        duration: 1.5, fireDamage: 0.3, knockback: 50 },
+      { damage: 14, cooldown: 2.5, amount: 1, area: 40,
+        duration: 1.8, fireDamage: 0.3, knockback: 50 },
+      { damage: 20, cooldown: 2.3, amount: 2, area: 44,
+        duration: 2.0, fireDamage: 0.35, knockback: 55 },
+      { damage: 20, cooldown: 2.1, amount: 2, area: 48,
+        duration: 2.3, fireDamage: 0.35, knockback: 55 },
+      { damage: 28, cooldown: 1.9, amount: 2, area: 54,
+        duration: 2.6, fireDamage: 0.4, knockback: 60 },
+      { damage: 28, cooldown: 1.7, amount: 3, area: 58,
+        duration: 2.8, fireDamage: 0.4, knockback: 60 },
+      { damage: 38, cooldown: 1.5, amount: 3, area: 64,
+        duration: 3.2, fireDamage: 0.45, knockback: 70 },
     ],
   },
 
@@ -111,14 +147,188 @@ export const WEAPONS = {
     // Blade Arc + Guardian Shields: щиты-клинки, всегда активные.
     icon: 'icon_aegis_storm', sprite: 'proj_blade_arc', behavior: 'orbit', maxLevel: 1, evolved: true,
     levels: [
-      { damage: 26, cooldown: 0, amount: 6, area: 70, speed: 4.5, duration: 1e9, knockback: 130, size: 0.45, hitRadius: 14 },
+      { damage: 26, cooldown: 0, amount: 6, area: 70, speed: 4.5,
+        duration: 1e9, knockback: 130, size: 0.45, hitRadius: 14 },
     ],
   },
   thunder_knives: {
     // Throwing Daggers + Storm Chain: град пробивающих клинков.
     icon: 'icon_thunder_knives', sprite: 'proj_dagger', behavior: 'projectile', maxLevel: 1, evolved: true,
     levels: [
-      { damage: 26, cooldown: 0.45, amount: 6, speed: 380, duration: 1.5, pierce: 5, knockback: 80 },
+      { damage: 26, cooldown: 0.45, amount: 6, speed: 380,
+        duration: 1.5, pierce: 5, knockback: 80 },
+    ],
+  },
+
+  // Коллабы двух оружий (behavior combo: обе части работают в одном слоте) и эволюции оружие + пассивка (как в VS).
+  // Части коллаба: пресеты B D S H A C F выше с поправками.
+  // blade_arc + throwing_daggers
+  phantom_blades: {
+    icon: 'icon_phantom_blades', behavior: 'combo', maxLevel: 1, evolved: true,
+    levels: [{ damage: 0, cooldown: 1 }],
+    parts: [part(B, {}, 0xc8b8ff), part(D, { amount: 6 }, 0xc8b8ff)],
+  },
+  // blade_arc + holy_ground
+  sacred_edge: {
+    icon: 'icon_sacred_edge', behavior: 'combo', maxLevel: 1, evolved: true,
+    levels: [{ damage: 0, cooldown: 1 }],
+    parts: [part(B, { damage: 44 }, 0xffe080), part(H, {}, 0xffe080)],
+  },
+  // blade_arc + war_axe
+  reaper_crescent: {
+    icon: 'icon_reaper_crescent', sprite: 'proj_blade_arc', behavior: 'boomerang', maxLevel: 1, evolved: true, tint: 0xff9090,
+    levels: [
+      { damage: 58, cooldown: 1.0, amount: 4, area: 200, speed: 280, duration: 4, knockback: 130 },
+    ],
+  },
+  // blade_arc + storm_chain
+  storm_edge: {
+    icon: 'icon_storm_edge', behavior: 'combo', maxLevel: 1, evolved: true,
+    levels: [{ damage: 0, cooldown: 1 }],
+    parts: [part(B, {}, 0x90d8ff), part(C, {}, 0x90d8ff)],
+  },
+  // blade_arc + firebomb
+  inferno_slash: {
+    icon: 'icon_inferno_slash', behavior: 'combo', maxLevel: 1, evolved: true,
+    levels: [{ damage: 0, cooldown: 1 }],
+    parts: [part(B, {}, 0xff9040), part(F, { amount: 2 })],
+  },
+  // throwing_daggers + guardian_shields
+  knife_carousel: {
+    icon: 'icon_knife_carousel', behavior: 'combo', maxLevel: 1, evolved: true,
+    levels: [{ damage: 0, cooldown: 1 }],
+    parts: [part(S, { amount: 8, area: 58, sprite: 'proj_dagger' }), part(D, {})],
+  },
+  // throwing_daggers + holy_ground
+  holy_rain: {
+    icon: 'icon_holy_rain', behavior: 'combo', maxLevel: 1, evolved: true,
+    levels: [{ damage: 0, cooldown: 1 }],
+    parts: [part(D, { amount: 6 }, 0xffe080), part(H, {})],
+  },
+  // throwing_daggers + war_axe
+  gale_cutters: {
+    icon: 'icon_gale_cutters', sprite: 'proj_dagger', behavior: 'boomerang', maxLevel: 1, evolved: true, tint: 0xb0ffd0,
+    levels: [
+      { damage: 40, cooldown: 0.8, amount: 7, area: 190, speed: 300, duration: 4, knockback: 80 },
+    ],
+  },
+  // throwing_daggers + firebomb
+  ember_knives: {
+    icon: 'icon_ember_knives', behavior: 'combo', maxLevel: 1, evolved: true,
+    levels: [{ damage: 0, cooldown: 1 }],
+    parts: [part(D, {}, 0xff9040), part(F, {})],
+  },
+  // guardian_shields + holy_ground
+  sanctuary: {
+    icon: 'icon_sanctuary', behavior: 'combo', maxLevel: 1, evolved: true,
+    levels: [{ damage: 0, cooldown: 1 }],
+    parts: [part(H, { area: 130 }), part(S, { area: 125, amount: 6 }, 0xffe080)],
+  },
+  // guardian_shields + war_axe
+  bulwark_spin: {
+    icon: 'icon_bulwark_spin', sprite: 'proj_axe', behavior: 'orbit', maxLevel: 1, evolved: true,
+    levels: [
+      { damage: 52, cooldown: 0, amount: 5, area: 74, speed: 4.6, duration: 1e9, knockback: 140 },
+    ],
+  },
+  // guardian_shields + storm_chain
+  tesla_ward: {
+    icon: 'icon_tesla_ward', behavior: 'combo', maxLevel: 1, evolved: true,
+    levels: [{ damage: 0, cooldown: 1 }],
+    parts: [part(S, {}, 0x90d8ff), part(C, {})],
+  },
+  // guardian_shields + firebomb
+  comet_ring: {
+    icon: 'icon_comet_ring', behavior: 'combo', maxLevel: 1, evolved: true,
+    levels: [{ damage: 0, cooldown: 1 }],
+    parts: [part(S, {}, 0xff9040), part(F, {})],
+  },
+  // holy_ground + war_axe
+  judgement_wheel: {
+    icon: 'icon_judgement_wheel', behavior: 'combo', maxLevel: 1, evolved: true,
+    levels: [{ damage: 0, cooldown: 1 }],
+    parts: [part(A, {}, 0xffe080), part(H, {})],
+  },
+  // holy_ground + storm_chain
+  divine_storm: {
+    icon: 'icon_divine_storm', behavior: 'combo', maxLevel: 1, evolved: true,
+    levels: [{ damage: 0, cooldown: 1 }],
+    parts: [part(H, {}, 0x90d8ff), part(C, { amount: 4 })],
+  },
+  // holy_ground + firebomb
+  hellfire: {
+    icon: 'icon_hellfire', behavior: 'combo', maxLevel: 1, evolved: true,
+    levels: [{ damage: 0, cooldown: 1 }],
+    parts: [part(H, { damage: 28 }, 0xff7040), part(F, {})],
+  },
+  // war_axe + storm_chain
+  thunder_axe: {
+    icon: 'icon_thunder_axe', behavior: 'combo', maxLevel: 1, evolved: true,
+    levels: [{ damage: 0, cooldown: 1 }],
+    parts: [part(A, {}, 0x90d8ff), part(C, {})],
+  },
+  // war_axe + firebomb
+  blast_axe: {
+    icon: 'icon_blast_axe', behavior: 'combo', maxLevel: 1, evolved: true,
+    levels: [{ damage: 0, cooldown: 1 }],
+    parts: [part(A, {}, 0xff9040), part(F, {})],
+  },
+  // storm_chain + firebomb
+  plasma_storm: {
+    icon: 'icon_plasma_storm', behavior: 'combo', maxLevel: 1, evolved: true,
+    levels: [{ damage: 0, cooldown: 1 }],
+    parts: [part(C, { jumps: 9 }, 0xff80ff), part(F, {}, 0xff80ff)],
+  },
+  // blade_arc + attack
+  crimson_arc: {
+    icon: 'icon_crimson_arc', sprite: 'proj_blade_arc', behavior: 'melee_arc', maxLevel: 1, evolved: true, tint: 0xff5050,
+    levels: [
+      { damage: 60, cooldown: 0.8, amount: 4, area: 96, knockback: 150 },
+    ],
+  },
+  // throwing_daggers + haste
+  thousand_edge: {
+    icon: 'icon_thousand_edge', sprite: 'proj_dagger', behavior: 'projectile', maxLevel: 1, evolved: true,
+    levels: [
+      { damage: 24, cooldown: 0.18, amount: 3, speed: 420,
+        duration: 1.4, pierce: 3, knockback: 50 },
+    ],
+  },
+  // guardian_shields + armor
+  aegis_bastion: {
+    icon: 'icon_aegis_bastion', sprite: 'proj_shield', behavior: 'orbit', maxLevel: 1, evolved: true, tint: 0xa0c8ff,
+    levels: [
+      { damage: 34, cooldown: 0, amount: 6, area: 72, speed: 4.4,
+        duration: 1e9, knockback: 160, size: 1.4, hitRadius: 14 },
+    ],
+  },
+  // holy_ground + regen
+  soul_garden: {
+    icon: 'icon_soul_garden', sprite: 'proj_holy_ground', behavior: 'aura', maxLevel: 1, evolved: true, tint: 0x80ffa0,
+    levels: [
+      { damage: 30, cooldown: 0.35, area: 150, knockback: 40 },
+    ],
+  },
+  // war_axe + crit
+  death_spiral: {
+    icon: 'icon_death_spiral', sprite: 'proj_axe', behavior: 'boomerang', maxLevel: 1, evolved: true, tint: 0xd0a0ff,
+    levels: [
+      { damage: 64, cooldown: 0.9, amount: 8, area: 210, speed: 300, duration: 4, knockback: 110 },
+    ],
+  },
+  // storm_chain + luck
+  thunder_loop: {
+    icon: 'icon_thunder_loop', sprite: 'proj_chain', behavior: 'chain', maxLevel: 1, evolved: true,
+    levels: [
+      { damage: 44, cooldown: 0.7, amount: 5, jumps: 9, area: 140, range: 320, knockback: 45 },
+    ],
+  },
+  // firebomb + pickup
+  napalm_rain: {
+    icon: 'icon_napalm_rain', sprite: 'proj_firebomb', behavior: 'area_drop', maxLevel: 1, evolved: true,
+    levels: [
+      { damage: 52, cooldown: 1.0, amount: 6, area: 72,
+        duration: 3.8, fireDamage: 0.5, knockback: 80 },
     ],
   },
 };

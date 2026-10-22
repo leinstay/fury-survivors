@@ -12,7 +12,8 @@ const METRICS = { ascent: 0.76, descent: 0.2 };
 // resolution = RENDER_ZOOM: текст рисуется в разрешении холста и не огрубляется зумом камеры.
 export function textStyle(size = 12, color = '#ffffff', extra = {}) {
   const px = Math.round(size * FONT_SCALE);
-  const ascent = Math.round(px * METRICS.ascent), descent = Math.round(px * METRICS.descent);
+  const ascent = Math.round(px * METRICS.ascent);
+  const descent = Math.round(px * METRICS.descent);
   return { fontFamily: FONT, fontSize: `${px}px`, color, resolution: RENDER_ZOOM, metrics: { ascent, descent, fontSize: ascent + descent }, ...extra };
 }
 

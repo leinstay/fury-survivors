@@ -34,14 +34,19 @@ function frame() {
   // пятна светлее и темнее: короткие горизонтальные мазки, чтобы не было шума по пикселю
   for (let i = 0; i < (S * S) / 40; i++) {
     const c = rnd() < 0.5 ? COLORS.dark : COLORS.light;
-    const x = Math.floor(rnd() * S), y = Math.floor(rnd() * S), len = 2 + Math.floor(rnd() * 4);
+    const x = Math.floor(rnd() * S);
+    const y = Math.floor(rnd() * S);
+    const len = 2 + Math.floor(rnd() * 4);
     for (let k = 0; k < len; k++) put(x + k, y, c);
     if (rnd() < 0.5) for (let k = 1; k < len - 1; k++) put(x + k, y + 1, c);
   }
   // пучки травы: «галочка» из тёмного низа и светлых кончиков
   for (let i = 0; i < (S * S) / 150; i++) {
-    const x = Math.floor(rnd() * S), y = Math.floor(rnd() * S);
-    put(x, y, COLORS.tuftDark); put(x - 1, y - 1, COLORS.tuftLight); put(x + 1, y - 1, COLORS.tuftLight);
+    const x = Math.floor(rnd() * S);
+    const y = Math.floor(rnd() * S);
+    put(x, y, COLORS.tuftDark);
+    put(x - 1, y - 1, COLORS.tuftLight);
+    put(x + 1, y - 1, COLORS.tuftLight);
     if (rnd() < 0.6) { put(x, y - 1, COLORS.tuftDark); put(x, y - 2, COLORS.tuftLight); }
   }
   return px;

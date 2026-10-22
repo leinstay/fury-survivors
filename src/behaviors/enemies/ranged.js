@@ -1,5 +1,5 @@
 // Суккуба: держит дистанцию keep и стреляет в игрока каждые cooldown секунд.
-export default {
+export const ranged = {
   init(e, sim) {
     e.a = 0.5 + sim.rng.next() * e.params.cooldown;
   },

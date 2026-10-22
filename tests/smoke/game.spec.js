@@ -28,7 +28,12 @@ test('plays 30s without errors', async ({ page }) => {
     } else if (s.scene === 'Game') {
       if (s.time > 3) fpsSamples.push(s.fps);
       // меняем набор зажатых клавиш
-      for (const k of [...held]) { if (Math.random() < 0.5) { await page.keyboard.up(k); held.delete(k); } }
+      for (const k of [...held]) {
+        if (Math.random() < 0.5) {
+          await page.keyboard.up(k);
+          held.delete(k);
+        }
+      }
       const k = KEYS[Math.floor(Math.random() * KEYS.length)];
       if (!held.has(k)) { await page.keyboard.down(k); held.add(k); }
     }

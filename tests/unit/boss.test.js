@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createSim } from '../../src/core/sim.js';
 import { BOSSES } from '../../src/data/bosses.js';
-import forest from '../../src/data/stages/forest.js';
+import { forest } from '../../src/data/stages/forest.js';
 
 const DT = 1 / 60;
 const idle = { x: 0, y: 0 };
@@ -131,4 +131,17 @@ test('boss: each boss gets its own warning 10 s ahead', () => {
     }
   }
   assert.deepEqual(warned, ['kitsune_empress', 'harpy_queen', 'dryad_queen']);
+});
+
+test('boss HP bar passes to a boss that is still alive when the newer one dies', () => {
+  const sim = createSim({ seed: 5 });
+  god(sim);
+  sim.player.weapons.length = 0;
+  const first = sim.spawnBoss('kitsune_empress');
+  const second = sim.spawnBoss('harpy_queen');
+  assert.equal(sim.boss, second);
+  second.hp = 0;
+  second.dead = true;
+  sim.step(DT, idle);
+  assert.equal(sim.boss, first);
 });

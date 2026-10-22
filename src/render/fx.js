@@ -1,4 +1,5 @@
-// Эффекты «сочности»: числа урона, частицы, призраки умерших врагов, тряска, вспышка и кольцо levelup.
+// Эффекты «сочности»: числа урона, частицы, призраки умерших врагов, тряска, вспышка и кольцо levelup,
+// след за снарядами, блеск кристаллов опыта и искры над огнём (FX.trail, FX.twinkle, FX.embers).
 // Все пулы кольцевые и ограниченные (самые старые переиспользуются), поэтому без утечек и без просадок fps.
 import { SPRITES } from '../../assets/sprites/manifest.js';
 import { GAME_WIDTH, GAME_HEIGHT, FX } from '../data/constants.js';
@@ -90,6 +91,9 @@ export class Fx {
     this.flash = scene.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0xffffff, 1)
       .setOrigin(0, 0).setScrollFactor(0).setDepth(DEPTH_FLASH).setVisible(false);
     this.flashT = 0;
+    this.trailT = 0;
+    this.twinkleT = 0;
+    this.emberT = 0;
   }
 
   onEvents(events) {
@@ -121,7 +125,10 @@ export class Fx {
     const t = this.texts.acquire();
     const size = ev.crit ? c.critSize : c.size;
     if (t.fxSize !== size) { t.setFontSize(size); t.fxSize = size; }
-    if (t.fxCrit !== !!ev.crit) { t.setColor(ev.crit ? c.critColor : c.color); t.fxCrit = !!ev.crit; }
+    if (t.fxCrit !== !!ev.crit) {
+      t.setColor(ev.crit ? c.critColor : c.color);
+      t.fxCrit = !!ev.crit;
+    }
     t.setText(String(ev.amount));
     t.life = c.life;
     t.baseX = Math.round(ev.x + (Math.random() - 0.5) * 10);
@@ -163,7 +170,10 @@ export class Fx {
     if (!key || !this.scene.textures.exists(key)) return;
     const g = this.scene.cameras.main;
     // вне экрана не рисуем
-    if (ev.x < g.scrollX - 40 || ev.x > g.scrollX + GAME_WIDTH + 40 || ev.y < g.scrollY - 40 || ev.y > g.scrollY + GAME_HEIGHT + 40) return;
+    if (ev.x < g.scrollX - 40 || ev.x > g.scrollX + GAME_WIDTH + 40 ||
+        ev.y < g.scrollY - 40 || ev.y > g.scrollY + GAME_HEIGHT + 40) {
+      return;
+    }
     const s = this.ghosts.acquire();
     const def = SPRITES[key];
     const o = def ? def.origin : [0.5, 0.5];
@@ -190,7 +200,50 @@ export class Fx {
     r.setTint(FX.levelup.ringColor).setVisible(true);
   }
 
+  // Частица без разлёта: стоит на месте (или поднимается на rise px) и гаснет.
+  _mote(x, y, color, life, rise = 0) {
+    const s = this.particles.acquire();
+    s.setTexture('fx_px').setTint(color);
+    s.life = s.maxLife = life;
+    s.vx = 0; s.vy = -rise / life;
+    s.px = x; s.py = y;
+    s.sz = 1;
+    s.setScale(1).setAlpha(1).setPosition(Math.round(x), Math.round(y)).setVisible(true);
+  }
+
+  // След, блеск, искры: по таймерам, на ограниченное число объектов за раз.
+  _ambient(dt) {
+    const sim = this.scene.sim;
+    if ((this.trailT -= dt) <= 0) {
+      this.trailT = FX.trail.every;
+      let n = 0;
+      for (const p of sim.projectiles) {
+        if (n >= FX.trail.max) break;
+        if (p.owner !== 'player' || p.fx || (p.vx * p.vx + p.vy * p.vy) < 100 * 100) continue;
+        this._mote(p.x, p.y, p.tint || 0xffffff, FX.trail.life);
+        n++;
+      }
+    }
+    if ((this.twinkleT -= dt) <= 0 && sim.pickups.length) {
+      this.twinkleT = FX.twinkle.every;
+      const g = sim.pickups[Math.floor(Math.random() * sim.pickups.length)];
+      if (g.sprite && g.sprite.startsWith('xp_')) this._mote(g.x + (Math.random() - 0.5) * 6, g.y - 3 - Math.random() * 5, FX.twinkle.color, FX.twinkle.life, 3);
+    }
+    if ((this.emberT -= dt) <= 0) {
+      this.emberT = FX.embers.every;
+      for (const p of sim.projectiles) {
+        if (p.fx !== 'fire') continue;
+        const a = Math.random() * Math.PI * 2;
+        const r = Math.sqrt(Math.random()) * p.radius;
+        const c = FX.embers.colors;
+        this._mote(p.x + Math.cos(a) * r, p.y + Math.sin(a) * r,
+            p.tint || c[Math.floor(Math.random() * c.length)], FX.embers.life, FX.embers.rise);
+      }
+    }
+  }
+
   update(dt) {
+    this._ambient(dt);
     // тряска: смещение камеры, которое world.js добавляет к scroll
     if (this.shakeT > 0) {
       this.shakeT = Math.max(0, this.shakeT - dt);
@@ -218,7 +271,8 @@ export class Fx {
       s.vx *= d; s.vy *= d;
       s.px += s.vx * dt; s.py += s.vy * dt;
       const k = s.life / s.maxLife;
-      s.setPosition(Math.round(s.px), Math.round(s.py)).setAlpha(k).setScale(s.sz * (0.5 + 0.5 * k));
+      s.setPosition(Math.round(s.px), Math.round(s.py))
+          .setAlpha(k).setScale(s.sz * (0.5 + 0.5 * k));
     }
 
     const gc = FX.ghost;

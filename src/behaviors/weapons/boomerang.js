@@ -1,10 +1,12 @@
 // War Axe: топор летит на дальность area и возвращается к игроку, пробивая всех на пути.
+import { WEAPON_BEHAVIOR } from '../../data/weapons.js';
+
 const SPREAD = 0.35;
-const TARGET_RANGE = 320;
+const { targetRange: TARGET_RANGE, hitRadius: HIT_RADIUS } = WEAPON_BEHAVIOR.boomerang;
 const SPIN = 14;
 const RETURN_BOOST = 1.15;
 
-const boomerang = {
+export const boomerang = {
   init(w) { w.cooldown = 0.3; },
   update(w, sim, dt) {
     w.cooldown -= dt;
@@ -24,7 +26,7 @@ const boomerang = {
       p.vx = Math.cos(a) * P.speed;
       p.vy = Math.sin(a) * P.speed;
       p.life = P.duration;
-      p.radius = 10;
+      p.radius = HIT_RADIUS;
       p.dmg = P.damage;
       p.kb = P.knockback || 0;
       p.pierce = 1e9;
@@ -59,4 +61,3 @@ const boomerang = {
     p.angle += SPIN * dt;
   },
 };
-export default boomerang;

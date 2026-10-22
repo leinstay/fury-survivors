@@ -6,7 +6,7 @@ import { textStyle, COLORS } from '../ui/style.js';
 import { stopMusic } from '../audio/sfx.js';
 import { spriteScale } from '../render/density.js';
 
-export default class MenuScene extends Phaser.Scene {
+export class MenuScene extends Phaser.Scene {
   constructor() {
     super('Menu');
   }
@@ -40,11 +40,11 @@ export default class MenuScene extends Phaser.Scene {
 
     if (view === 'main') {
       if (this.textures.exists('heroine_menu')) this.add.image(cx + 170, 318, 'heroine_menu').setOrigin(0.5, 1).setScale(spriteScale('heroine_menu'));
-      const bw = 160, bh = 30;
+      const bw = 160;
+      const bh = 30;
       addButton(this, this.nav, { x: cx, y: 150, w: bw, h: bh, label: t('menu.play'), onSelect: () => this.scene.start('Game') });
       addButton(this, this.nav, { x: cx, y: 190, w: bw, h: bh, label: t('menu.leaderboard'), onSelect: () => this.scene.start('Leaderboard') });
       addButton(this, this.nav, { x: cx, y: 230, w: bw, h: bh, label: t('menu.settings'), onSelect: () => this.show('settings') });
-      this.add.text(GAME_WIDTH - 6, GAME_HEIGHT - 4, t('menu.version'), textStyle(8, '#bbbbbb', { stroke: '#000000', strokeThickness: 3 })).setOrigin(1, 1);
       this.add.text(cx, GAME_HEIGHT - 14, t('menu.hint'), textStyle(10, '#dddddd', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5);
     } else {
       this.add.text(cx, 108, t('settings.title'), textStyle(16)).setOrigin(0.5);

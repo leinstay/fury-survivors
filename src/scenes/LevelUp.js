@@ -19,7 +19,7 @@ function cardDesc(c) {
 }
 
 // Сцена поверх замороженной Game: 4 карточки + Reroll / Skip / Banish.
-export default class LevelUpScene extends Phaser.Scene {
+export class LevelUpScene extends Phaser.Scene {
   constructor() {
     super('LevelUp');
   }
@@ -32,7 +32,14 @@ export default class LevelUpScene extends Phaser.Scene {
   create() {
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.7).setOrigin(0, 0);
     this.add.text(GAME_WIDTH / 2, 30, t('levelup.title'), textStyle(24, '#ffd84a', { stroke: '#000000', strokeThickness: 4 })).setOrigin(0.5);
-    this.nav = new FocusNav(this, { onBack: () => { if (this.banishMode) { this.banishMode = false; this.render(); } } });
+    this.nav = new FocusNav(this, {
+      onBack: () => {
+        if (this.banishMode) {
+          this.banishMode = false;
+          this.render();
+        }
+      },
+    });
     this.objs = [];
     this.render();
   }
@@ -70,7 +77,8 @@ export default class LevelUpScene extends Phaser.Scene {
     });
 
     const by = 290;
-    const bw = 112, bh = 28;
+    const bw = 112;
+    const bh = 28;
     const mk = (x, label, count, fn) => {
       const b = addButton(this, this.nav, { x, y: by, w: bw, h: bh, label: `${label} (${count})`, size: 12, onSelect: fn });
       b.setDisabled(count <= 0);

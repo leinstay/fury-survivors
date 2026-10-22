@@ -1,5 +1,5 @@
 // HUD: HP, XP, уровень, таймер, убийства, иконки оружия и пассивок, кнопка паузы на таче.
-import { GAME_WIDTH } from '../data/constants.js';
+import { GAME_WIDTH, HUD } from '../data/constants.js';
 import { t, hasKey } from '../i18n/index.js';
 import { textStyle, COLORS } from './style.js';
 import { addIcon, iconKeyFor } from './icons.js';
@@ -17,30 +17,33 @@ export class Hud {
     this.sim = sim;
     const add = (o) => o.setScrollFactor(0).setDepth(D);
 
-    // XP-бар на всю ширину
-    add(scene.add.rectangle(0, 0, GAME_WIDTH, 10, 0x000000, 0.7).setOrigin(0, 0));
-    this.xpFill = add(scene.add.rectangle(0, 0, 0, 10, COLORS.xp).setOrigin(0, 0));
-    this.levelText = add(scene.add.text(GAME_WIDTH / 2, 5, '', textStyle(10, '#ffffff', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5));
+    // XP-бар на всю ширину. Высота 13.5 (27 px холста): надпись уровня 19 px, по 4 px сверху и снизу.
+    add(scene.add.rectangle(0, 0, GAME_WIDTH, 13.5, 0x000000, 0.7).setOrigin(0, 0));
+    this.xpFill = add(scene.add.rectangle(0, 0, 0, 13.5, COLORS.xp).setOrigin(0, 0));
+    this.levelText = add(scene.add.text(GAME_WIDTH / 2, 7, '', textStyle(10, '#ffffff', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5));
 
     // HP
-    add(scene.add.rectangle(6, 15, 104, 14, 0x000000, 0.7).setOrigin(0, 0).setStrokeStyle(1, 0x000000));
-    this.hpFill = add(scene.add.rectangle(8, 17, 100, 10, COLORS.hp).setOrigin(0, 0));
-    this.hpText = add(scene.add.text(58, 22, '', textStyle(8, '#ffffff', { stroke: '#000000', strokeThickness: 2 })).setOrigin(0.5));
+    add(scene.add.rectangle(6, 19, 104, 16, 0x000000, 0.7)
+        .setOrigin(0, 0).setStrokeStyle(1, 0x000000));
+    this.hpFill = add(scene.add.rectangle(8, 21, 100, 12, COLORS.hp).setOrigin(0, 0));
+    this.hpText = add(scene.add.text(58, 27, '', textStyle(8, '#ffffff', { stroke: '#000000', strokeThickness: 2 })).setOrigin(0.5));
 
-    this.timeText = add(scene.add.text(GAME_WIDTH / 2, 20, '', textStyle(16, '#ffffff', { stroke: '#000000', strokeThickness: 4 })).setOrigin(0.5, 0.5));
-    this.killText = add(scene.add.text(GAME_WIDTH - 8, 16, '', textStyle(12, '#ffffff', { stroke: '#000000', strokeThickness: 3 })).setOrigin(1, 0));
+    this.timeText = add(scene.add.text(GAME_WIDTH / 2, 24, '', textStyle(16, '#ffffff', { stroke: '#000000', strokeThickness: 4 })).setOrigin(0.5, 0.5));
+    this.killText = add(scene.add.text(GAME_WIDTH - 8, 20, '', textStyle(12, '#ffffff', { stroke: '#000000', strokeThickness: 3 })).setOrigin(1, 0));
 
-    this.coinText = add(scene.add.text(GAME_WIDTH - 8, 30, '', textStyle(12, '#ffd84a', { stroke: '#000000', strokeThickness: 3 })).setOrigin(1, 0));
+    this.coinText = add(scene.add.text(GAME_WIDTH - 8, 34, '', textStyle(12, '#ffd84a', { stroke: '#000000', strokeThickness: 3 })).setOrigin(1, 0));
 
     // Полоса HP босса под таймером
     this.bossObjs = [];
     const bw = 200;
     const bx = GAME_WIDTH / 2 - bw / 2;
     this.bossBarW = bw - 2;
-    this.bossObjs.push(add(scene.add.rectangle(bx - 1, 34, bw + 2, 10, 0x000000, 0.8).setOrigin(0, 0).setStrokeStyle(1, 0xb0a0d0)));
-    this.bossFill = add(scene.add.rectangle(bx + 1, 36, this.bossBarW, 6, 0xc02030).setOrigin(0, 0));
+    this.bossObjs.push(add(scene.add.rectangle(bx - 1, 38, bw + 2, 10, 0x000000, 0.8)
+        .setOrigin(0, 0).setStrokeStyle(1, 0xb0a0d0)));
+    this.bossFill = add(scene.add.rectangle(bx + 1, 40, this.bossBarW, 6, 0xc02030)
+        .setOrigin(0, 0));
     this.bossObjs.push(this.bossFill);
-    this.bossName = add(scene.add.text(GAME_WIDTH / 2, 52, '', textStyle(10, '#ffffff', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5, 0.5));
+    this.bossName = add(scene.add.text(GAME_WIDTH / 2, 56, '', textStyle(10, '#ffffff', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5, 0.5));
     this.bossObjs.push(this.bossName);
     for (const o of this.bossObjs) o.setVisible(false);
     this.bossShown = '';
@@ -55,8 +58,8 @@ export class Hud {
 
     if (touch) {
       const x = GAME_WIDTH - 22;
-      const r = add(scene.add.rectangle(x, 64, 28, 28, 0x000000, 0.5).setStrokeStyle(2, 0xffffff));
-      add(scene.add.text(x, 64, t('hud.pause'), textStyle(14)).setOrigin(0.5));
+      const r = add(scene.add.rectangle(x, 68, 28, 28, 0x000000, 0.5).setStrokeStyle(2, 0xffffff));
+      add(scene.add.text(x, 68, t('hud.pause'), textStyle(14)).setOrigin(0.5));
       r.setInteractive();
       r.on('pointerdown', (p, lx, ly, ev) => { if (ev && ev.stopPropagation) ev.stopPropagation(); if (onPause) onPause(); });
       this.pauseRect = r;
@@ -65,7 +68,7 @@ export class Hud {
 
   // Область кнопки паузы (для ввода: тут джойстик не стартует).
   isOnPauseButton(x, y) {
-    return !!this.pauseRect && x > GAME_WIDTH - 40 && y > 46 && y < 82;
+    return !!this.pauseRect && x > GAME_WIDTH - 40 && y > 50 && y < 86;
   }
 
   // События sim этого шага (баннер босса).
@@ -73,7 +76,7 @@ export class Hud {
     for (const ev of events) {
       if (ev.type === 'bossWarning') {
         this.bannerStart = this.sim.time;
-        this.bannerUntil = this.sim.time + 3;
+        this.bannerUntil = this.sim.time + HUD.bossBannerTime;
       }
     }
   }
@@ -92,7 +95,8 @@ export class Hud {
     }
     if (alive) {
       const max = b.maxHp || b.hp || 1;
-      this.bossFill.width = Math.max(1, Math.round(this.bossBarW * Math.max(0, Math.min(1, b.hp / max))));
+      this.bossFill.width =
+          Math.max(1, Math.round(this.bossBarW * Math.max(0, Math.min(1, b.hp / max))));
     }
   }
 
@@ -108,8 +112,8 @@ export class Hud {
         for (const o of [c, lv]) { o.setScrollFactor(0).setDepth(D); this.slots.push(o); }
       });
     };
-    row(p.weapons, 'weapon', 42);
-    row(p.passives, 'passive', 62);
+    row(p.weapons, 'weapon', 48);
+    row(p.passives, 'passive', 68);
   }
 
   update() {

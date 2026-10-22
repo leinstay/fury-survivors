@@ -24,7 +24,8 @@ const PRESETS = {
   pickup_food: { wave: 'square', freq: 392, duty: 0.5, attack: 0, sustain: 0.1, decay: 0.12, vol: 0.38,
                  steps: [{ t: 0.07, mult: 1.25 }, { t: 0.14, mult: 1.5 }] },
   levelup:     { wave: 'square', freq: 392, duty: 0.25, attack: 0, sustain: 0.36, decay: 0.28, vol: 0.4,
-                 steps: [{ t: 0.08, mult: 1.26 }, { t: 0.16, mult: 1.5 }, { t: 0.24, mult: 2 }, { t: 0.36, mult: 2.52 }] },
+                 steps: [{ t: 0.08, mult: 1.26 }, { t: 0.16, mult: 1.5 },
+                   { t: 0.24, mult: 2 }, { t: 0.36, mult: 2.52 }] },
   chest:       { wave: 'square', freq: 330, duty: 0.5, attack: 0, sustain: 0.3, decay: 0.3, vol: 0.4, vibDepth: 0.01, vibRate: 12,
                  steps: [{ t: 0.1, mult: 1.5 }, { t: 0.2, mult: 2 }, { t: 0.3, mult: 3 }] },
   ui_move:     { wave: 'square', freq: 660, duty: 0.5, attack: 0, sustain: 0.005, decay: 0.035, vol: 0.2 },
@@ -35,7 +36,9 @@ const PRESETS = {
   gameover:    { wave: 'square', freq: 392, duty: 0.5, attack: 0, sustain: 0.55, decay: 0.55, vol: 0.4, vibDepth: 0.015, vibRate: 6,
                  steps: [{ t: 0.22, mult: 0.84 }, { t: 0.44, mult: 0.67 }, { t: 0.7, mult: 0.5 }] },
   victory:     { wave: 'square', freq: 392, duty: 0.25, attack: 0, sustain: 0.8, decay: 0.45, vol: 0.4,
-                 steps: [{ t: 0.12, mult: 392 / 392 }, { t: 0.18, mult: 1.26 }, { t: 0.3, mult: 1.5 }, { t: 0.42, mult: 2 }, { t: 0.54, mult: 1.5 }, { t: 0.66, mult: 2 }, { t: 0.78, mult: 2.52 }] },
+                 steps: [{ t: 0.12, mult: 392 / 392 }, { t: 0.18, mult: 1.26 },
+                   { t: 0.3, mult: 1.5 }, { t: 0.42, mult: 2 }, { t: 0.54, mult: 1.5 },
+                   { t: 0.66, mult: 2 }, { t: 0.78, mult: 2.52 }] },
   weapon_fire: { wave: 'noise', freq: 1500, slide: -1.2, attack: 0.01, sustain: 0.015, decay: 0.07, vol: 0.14, lp: 0.25 },
 };
 
@@ -103,7 +106,8 @@ export function encodeWav(samples, rate = RATE) {
   const buf = Buffer.alloc(44 + samples.length * 2);
   buf.write('RIFF', 0); buf.writeUInt32LE(36 + samples.length * 2, 4); buf.write('WAVE', 8);
   buf.write('fmt ', 12); buf.writeUInt32LE(16, 16); buf.writeUInt16LE(1, 20); buf.writeUInt16LE(1, 22);
-  buf.writeUInt32LE(rate, 24); buf.writeUInt32LE(rate * 2, 28); buf.writeUInt16LE(2, 32); buf.writeUInt16LE(16, 34);
+  buf.writeUInt32LE(rate, 24); buf.writeUInt32LE(rate * 2, 28);
+  buf.writeUInt16LE(2, 32); buf.writeUInt16LE(16, 34);
   buf.write('data', 36); buf.writeUInt32LE(samples.length * 2, 40);
   for (let i = 0; i < samples.length; i++) {
     buf.writeInt16LE(Math.round(Math.max(-1, Math.min(1, samples[i])) * 32767), 44 + i * 2);

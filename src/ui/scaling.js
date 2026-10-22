@@ -7,7 +7,8 @@ export function installCrispScaling(game) {
   const apply = () => {
     const canvas = game.canvas;
     if (!canvas) return;
-    const scale = (canvas.getBoundingClientRect().height * (window.devicePixelRatio || 1)) / game.scale.height;
+    const scale = (canvas.getBoundingClientRect().height * (window.devicePixelRatio || 1)) /
+        game.scale.height;
     const integer = Math.abs(scale - Math.round(scale)) < EPS;
     canvas.style.imageRendering = integer ? 'pixelated' : 'auto';
     game.renderScale = { scale: +scale.toFixed(3), crisp: integer };
