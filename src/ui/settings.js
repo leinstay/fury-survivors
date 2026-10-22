@@ -2,7 +2,7 @@
 // на AUDIO.gain в sfx.js), shake — тряска экрана вкл/выкл, остальное — варианты из OPTIONS.
 // v2: шкала сменилась, старые сохранения не переносим.
 const KEY = 'fury-survivors.settings.v2';
-const DEFAULTS = { music: 1, sfx: 1, shake: true, quality: null, minimap: 'full', dps: 'off', difficulty: 'normal' };
+const DEFAULTS = { music: 1, sfx: 1, shake: true, quality: null, minimap: 'full', dps: 'full', difficulty: 'normal' };
 // Допустимые значения строковых настроек; порядок = порядок переключения кнопкой.
 export const OPTIONS = {
   quality: ['high', 'low'],          // low: без свечения снарядов и элит, меньше частиц (по умолчанию на таче)
