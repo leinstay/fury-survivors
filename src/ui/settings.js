@@ -6,7 +6,7 @@ const DEFAULTS = { music: 1, sfx: 1, shake: true, quality: null, minimap: 'full'
 // Допустимые значения строковых настроек; порядок = порядок переключения кнопкой.
 export const OPTIONS = {
   quality: ['high', 'low'],          // low: без свечения снарядов и элит, меньше частиц (по умолчанию на таче)
-  minimap: ['full', 'transparent', 'off'],
+  minimap: ['full', 'transparent'],  // радар не выключается
   dps: ['full', 'transparent', 'off'],
   difficulty: ['normal', 'cursed'],  // последний выбор перед забегом (data/difficulty.js)
 };

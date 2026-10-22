@@ -31,22 +31,19 @@ export class Hud {
     this.hpText = add(scene.add.text(58, 27, '', textStyle(8, '#ffffff', { stroke: '#000000', strokeThickness: 2 })).setOrigin(0.5));
 
     this.timeText = add(scene.add.text(GAME_WIDTH / 2, 24, '', textStyle(16, '#ffffff', { stroke: '#000000', strokeThickness: 4 })).setOrigin(0.5, 0.5));
-    // Счёт по формуле таблицы рекордов, на лету: по центру под миникартой; без миникарты на уровне таймера.
-    // Убийств в HUD нет, они на экране итогов.
+    // Счёт по формуле таблицы рекордов, на лету: по центру под миникартой. Убийств в HUD нет, они на итогах.
     const mm = HUD.minimap;
-    const mapOn = getSetting('minimap') !== 'off';
-    this.scoreText = add(scene.add.text(GAME_WIDTH - mm.margin - mm.radius, mapOn ? mm.top + mm.radius * 2 + 4 : 24, '',
-        textStyle(12, '#ffd84a', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5, mapOn ? 0 : 0.5));
+    this.scoreText = add(scene.add.text(GAME_WIDTH - mm.margin - mm.radius, mm.top + mm.radius * 2 + 4, '',
+        textStyle(12, '#ffd84a', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5, 0));
     // DPS-метр: панель в правом нижнем углу, по оружию и общий, среднее за HUD.dpsWindow секунд.
     // Настройка dps: full / transparent / off. Строки пересобираются вместе со слотами оружия.
     this.dpsMode = getSetting('dps');
     this.dpsAlpha = this.dpsMode === 'transparent' ? HUD.transparentAlpha : 1;
     this.dpsRows = [];
     this.dpsObjs = [];
-    // Миникарта в правом верхнем углу: настройка minimap: full / transparent / off.
+    // Миникарта в правом верхнем углу: настройка minimap: full / transparent.
     this.mapMode = getSetting('minimap');
-    this.map = add(scene.add.graphics()).setVisible(this.mapMode !== 'off')
-        .setAlpha(this.mapMode === 'transparent' ? HUD.transparentAlpha : 1);
+    this.map = add(scene.add.graphics()).setAlpha(this.mapMode === 'transparent' ? HUD.transparentAlpha : 1);
     this.mapNext = 0;
 
     // Полоса HP босса под таймером
@@ -250,7 +247,7 @@ export class Hud {
     });
     this.scoreText.setText(t('hud.score', { n: score }));
     if (this.dpsMode !== 'off') this._updateDps();
-    if (this.mapMode !== 'off' && sim.time >= this.mapNext) {
+    if (sim.time >= this.mapNext) {
       this.mapNext = sim.time + 1 / HUD.minimap.fps;
       this._drawMap();
     }

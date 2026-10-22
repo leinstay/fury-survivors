@@ -70,7 +70,7 @@ export const HUD = {
     total: 0x8a6ad0, barAlpha: 0.8,
     colors: [0xc41e3a, 0xff7c0a, 0xa330c9, 0x3fc7eb, 0xaad372, 0xfff468, 0xf48cba, 0x0070dd],
   },
-  transparentAlpha: 0.45,  // прозрачность миникарты и DPS в режиме transparent
+  transparentAlpha: 0.45,  // прозрачность миникарты и DPS в режиме transparent (миникарта не выключается)
   // Миникарта: круг в правом верхнем углу под XP-баром, точки для предметов, элит и боссов (обычных врагов нет).
   minimap: {
     radius: 34, margin: 8, top: 18, range: 900, fps: 12, alpha: 0.6, bg: 0x000000, rim: 0xb0a0d0,
