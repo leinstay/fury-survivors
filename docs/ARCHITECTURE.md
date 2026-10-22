@@ -104,7 +104,7 @@ sim.hurtPlayer(raw, pl)  // в коопе смерть: pl.dead = true, pl.coffi
 
 Движение: игроки не могут разойтись дальше экрана минус `COOP.edge` с каждой стороны (`_clampToPartners`). Гроб: таймер
 идёт быстрее, пока напарник рядом (`allyRadius`, `allyBoost`), и медленнее, пока на гробу стоит враг (`enemySlow`);
-по истечении игрок встаёт с `reviveHp` HP и `reviveIframes` с неуязвимости. Враги: спавн × `spawnMul`, HP обычных × `enemyHpMul`.
+по истечении игрок встаёт с `reviveHp` HP и `reviveIframes` с неуязвимости. Враги: спавн × `spawnMul`, HP обычных × `enemyHpMul` (0.85), HP боссов × `bossHpMul` (0.5: HP босса считается от общего уровня, а прокачка у каждого вдвое меньше).
 Слотов на игрока `COOP.slots` (меньше, чем `SLOTS`). Оружие знает владельца (`w.owner`), крит и статы берутся от него;
 удача для дропа — лучшая среди живых. События получают `player`: `playerHurt`, `playerDown { x, y }`, `revive { x, y }`,
 `pickup`, `chest`, `autoHeal`. Рендер: `render/world.js` рисует спрайт на игрока (второй подкрашен `tint`, мёртвый — гроб),

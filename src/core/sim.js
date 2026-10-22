@@ -432,7 +432,7 @@ class Sim {
     // Правило VS: HP босса = hpPerLevel × уровень игрока при появлении (без роста со временем).
     // Без hpPerLevel работает прежний путь: hp × рост этапа.
     if (e && e.def.hpPerLevel) {
-      e.maxHp = e.def.hpPerLevel * pl.level;
+      e.maxHp = e.def.hpPerLevel * pl.level * (this.coop ? COOP.bossHpMul : 1);
       e.hp = e.maxHp;
     }
     if (e) {
