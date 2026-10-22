@@ -994,20 +994,30 @@ class Sim {
       this.pendingLevels++;
       this.events.push({ type: 'levelup', level: pl.level });
     }
-    if (this.pendingLevels > 0 && this.state === 'running') {
-      this.state = 'levelup';
-      this.levelUp.cards = UP.drawCards(pl, this.rng, this.banished);
+    if (this.pendingLevels > 0 && this.state === 'running') this._offerCards();
+  }
+
+  // Набор карточек на очередной уровень. Если выбирать нечего (всё на максимуме), drawCards даёт одну карточку
+  // лечения: она применяется сама, без экрана, чтобы прокачанный билд не останавливал игру на каждом уровне.
+  _offerCards() {
+    while (this.pendingLevels > 0) {
+      const cards = UP.drawCards(this.player, this.rng, this.banished);
+      if (!(cards.length === 1 && cards[0].kind === 'heal')) {
+        this.state = 'levelup';
+        this.levelUp.cards = cards;
+        return;
+      }
+      this._applyCard(cards[0]);
+      this.pendingLevels--;
+      this.events.push({ type: 'autoHeal' });
     }
+    this.levelUp.cards = [];
+    this.state = 'running';
   }
 
   _afterChoice() {
     this.pendingLevels--;
-    if (this.pendingLevels > 0) {
-      this.levelUp.cards = UP.drawCards(this.player, this.rng, this.banished);
-    } else {
-      this.levelUp.cards = [];
-      this.state = 'running';
-    }
+    this._offerCards();
   }
 
   _applyCard(card) {

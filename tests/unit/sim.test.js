@@ -1,8 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createSim, xpForLevel } from '../../src/core/sim.js';
-import { SIM, XP, LEVEL_UP } from '../../src/data/constants.js';
+import { SIM, XP, LEVEL_UP, SLOTS } from '../../src/data/constants.js';
 import { PICKUPS } from '../../src/data/pickups.js';
+import { WEAPONS } from '../../src/data/weapons.js';
+import { PASSIVES } from '../../src/data/passives.js';
 import { createDirector } from '../../src/core/director.js';
 import { ENEMY_BEHAVIORS } from '../../src/behaviors/index.js';
 import { forest } from '../../src/data/stages/forest.js';
@@ -465,4 +467,23 @@ test('luck multiplies the crit chance', () => {
   let crits = 0;
   for (let i = 0; i < 50; i++) { sim.damageEnemy(e, 1, 'blade_arc', 0, 0, 0); if (sim.events.at(-1).crit) crits++; }
   assert.equal(crits, 50);
+});
+
+test('level up with everything maxed heals automatically without the card screen', () => {
+  const sim = createSim({ seed: 71 });
+  const pl = sim.player;
+  pl.weapons = Object.keys(WEAPONS).filter((id) => !WEAPONS[id].evolved).slice(0, SLOTS.weapons)
+      .map((id) => ({ id, level: WEAPONS[id].maxLevel }));
+  pl.passives = Object.keys(PASSIVES).slice(0, SLOTS.passives)
+      .map((id) => ({ id, level: PASSIVES[id].levels.length }));
+  sim._syncBuild();
+  pl.hp = 10;
+  const lvl = pl.level;
+  pl.xp = xpForLevel(lvl) + xpForLevel(lvl + 1); // сразу два уровня
+  sim._checkLevel();
+  assert.equal(sim.state, 'running');
+  assert.equal(sim.pendingLevels, 0);
+  assert.equal(pl.level, lvl + 2);
+  assert.ok(pl.hp > 10, 'healed');
+  assert.equal(sim.events.filter((e) => e.type === 'autoHeal').length, pl.level - lvl);
 });
