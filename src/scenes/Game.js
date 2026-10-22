@@ -8,6 +8,7 @@ import { World } from '../render/world.js';
 import { Fx } from '../render/fx.js';
 import { FX, SIM, NET } from '../data/constants.js';
 import { handleSimEvents, startMusic, fadeOutMusic } from '../audio/sfx.js';
+import { netLog } from '../services/net.js';
 
 const MAX_DT = SIM.maxFrameDt;
 const STEP = 1 / SIM.tickRate;
@@ -40,11 +41,14 @@ export class GameScene extends Phaser.Scene {
       this.ls = createLockstep({
         sim: this.sim, local: co.local,
         send: (msg) => this.net.send(msg),
-        onDesync: () => { this.desynced = true; },
+        onDesync: (t, mine, theirs, parts) => this._onDesync(t, mine, theirs, parts),
       });
       // часы: game.loop.time, не scene.time.now (тот обновляется только в preUpdate, а в create() стоит
       // на прошлом кадре прошлого запуска: после долгого лобби тишина сразу превышала NET.dropAfter)
-      this.net.onMessage((msg) => this.ls.receive(msg, this.now()));
+      this.net.onMessage((msg) => {
+        if (msg.dbg === 'hash') { this._partnerParts(msg); return; }
+        this.ls.receive(msg, this.now());
+      });
       this.net.onClose(() => { this.lost = true; });
       this.ls.lastRemoteT = this.now();
     } else {
@@ -86,6 +90,33 @@ export class GameScene extends Phaser.Scene {
     this.world.update(0);
     this.hud.update();
     startMusic(this);
+  }
+
+  // Рассинхрон: хеши состояния на тике t разошлись. В консоль — тик и хеши; свои поля уходят напарнику,
+  // у обоих печатается, какие поля различаются (по ним видно причину: опыт, позиции, RNG, оружие...).
+  _onDesync(t, mine, theirs, parts) {
+    this.desynced = true;
+    this.myParts = { t, parts };
+    netLog('DESYNC at tick', t, 'my hash', mine, 'partner hash', theirs,
+        '(different game versions? both reload the page)');
+    if (parts) this.net.send({ dbg: 'hash', t, parts });
+    if (this.theirParts) this._logDiff();
+  }
+
+  _partnerParts(msg) {
+    if (!Array.isArray(msg.parts)) return;
+    this.theirParts = { t: msg.t, parts: msg.parts };
+    if (this.myParts) this._logDiff();
+  }
+
+  _logDiff() {
+    const a = this.myParts;
+    const b = this.theirParts;
+    if (a.t !== b.t || !a.parts) { netLog('desync reports are for different ticks', a.t, b.t); return; }
+    const theirs = new Map(b.parts.map((kv) => [kv[0], kv[1]]));
+    const diff = a.parts.filter((kv) => theirs.get(kv[0]) !== kv[1])
+        .map((kv) => `${kv[0]}: mine ${kv[1]} / partner ${theirs.get(kv[0])}`);
+    netLog('DESYNC fields at tick', a.t, diff.length ? diff : '(all fields equal, hash differs)');
   }
 
   openPause() {

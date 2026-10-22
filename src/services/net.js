@@ -64,6 +64,52 @@ function firestoreSignal() {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// Логи соединения в консоль браузера (не мешают игре): что нашёл ICE, как меняется состояние, какой путь выбран.
+// Найти: фильтр «fury-net» в консоли (F12).
+export function netLog(...args) {
+  if (typeof console !== 'undefined') console.info('[fury-net]', ...args);
+}
+
+// Кандидаты ICE из SDP по типам: host (локальный адрес, mdns — скрытый браузером), srflx (внешний адрес через
+// STUN), relay (через TURN). Без srflx и relay соединиться можно только в одной сети.
+function candidateSummary(sdp) {
+  const n = { host: 0, mdns: 0, srflx: 0, prflx: 0, relay: 0, udp: 0, tcp: 0 };
+  for (const line of String(sdp || '').split(/\r?\n/)) {
+    if (!line.startsWith('a=candidate')) continue;
+    const p = line.split(' ');
+    const typ = p[p.indexOf('typ') + 1];
+    if (typ in n) n[typ]++;
+    if (typ === 'host' && /\.local$/.test(p[4])) n.mdns++;
+    const proto = String(p[2]).toLowerCase();
+    if (proto in n) n[proto]++;
+  }
+  return `host ${n.host} (mdns ${n.mdns}), srflx ${n.srflx}, relay ${n.relay}; udp ${n.udp}, tcp ${n.tcp}`;
+}
+
+// Подписка на состояния и итоговый путь соединения (после открытия канала).
+function watchPeer(pc, who) {
+  pc.addEventListener('iceconnectionstatechange', () => netLog(who, 'ice', pc.iceConnectionState));
+  pc.addEventListener('connectionstatechange', () => netLog(who, 'connection', pc.connectionState));
+  pc.addEventListener('icecandidateerror', (e) => {
+    netLog(who, 'ice candidate error', e.errorCode, e.errorText || '', e.url || '');
+  });
+}
+
+async function logRoute(pc, who) {
+  try {
+    const stats = await pc.getStats();
+    let pair = null;
+    stats.forEach((s) => {
+      if (s.type === 'candidate-pair' && (s.selected || s.nominated) && s.state === 'succeeded') pair = s;
+    });
+    if (!pair) return;
+    const l = stats.get(pair.localCandidateId);
+    const r = stats.get(pair.remoteCandidateId);
+    netLog(who, 'route', l && l.candidateType, '->', r && r.candidateType, l && l.protocol,
+        'rtt', pair.currentRoundTripTime != null ? Math.round(pair.currentRoundTripTime * 1000) + 'ms' : '?');
+  } catch (e) { /* статистика не обязательна */ }
+}
+
 // Сигналинг по умолчанию: Firestore; smoke-тесты подменяют его через globalThis.__furySignal
 // (два окна одного origin, обмен через localStorage), чтобы гонять WebRTC без сети.
 const defaultSignal = (opts) => opts.signal || globalThis.__furySignal || firestoreSignal();
@@ -86,9 +132,11 @@ function wrap(pc, ch) {
   let onClose = () => {};
   let closed = false;
   const queue = [];
-  const fail = () => {
+  const fail = (why) => {
     if (closed) return;
     closed = true;
+    netLog('channel closed:', typeof why === 'string' ? why : (why && why.type) || 'closed',
+        'connection', pc.connectionState);
     try { pc.close(); } catch (e) { /* уже закрыт */ }
     onClose();
   };
@@ -115,7 +163,7 @@ function wrap(pc, ch) {
       if (fn) while (queue.length) fn(queue.shift());
     },
     onClose(fn) { onClose = fn || (() => {}); },
-    close: fail,
+    close: () => fail('closed by us'),
     get closed() { return closed; },
   };
 }
@@ -150,16 +198,20 @@ export async function createRoom(opts = {}) {
   status('creating');
   const offer = await pc.createOffer();
   await pc.setLocalDescription(offer);
+  watchPeer(pc, 'host');
   await gathered(pc);
   const sdp = pc.localDescription.sdp;
+  netLog('host', 'offer candidates', candidateSummary(sdp));
   if (sdp.length >= ROOMS.sdpMax) throw new Error('failed');
   const code = makeCode();
   try {
     await signal.create(code, sdp);
   } catch (e) {
+    netLog('host', 'room create failed', e && (e.code || e.message));
     pc.close();
     throw e;
   }
+  netLog('host', 'room', code, 'waiting for answer');
   status('waiting');
   let cancelled = false;
   const conn = (async () => {
@@ -175,16 +227,21 @@ export async function createRoom(opts = {}) {
     if (cancelled) { status('cancelled'); throw new Error('cancelled'); }
     // документ комнаты не нужен ни после соединения, ни после провала: иначе брошенные коды копятся
     if (signal.remove) signal.remove(code);
-    if (!answer) { status('failed'); pc.close(); throw new Error('timeout'); }
+    if (!answer) { netLog('host', 'no answer in time'); status('failed'); pc.close(); throw new Error('timeout'); }
+    netLog('host', 'answer candidates', candidateSummary(answer));
     status('connecting');
     try {
       await pc.setRemoteDescription({ type: 'answer', sdp: answer });
       await openChannel(ch);
     } catch (e) {
+      netLog('host', 'channel failed:', e && e.message, 'ice', pc.iceConnectionState,
+          '(no common route: a strict NAT or blocked UDP on one side, TURN would relay)');
       status('failed');
       pc.close();
       throw e;
     }
+    netLog('host', 'channel open');
+    logRoute(pc, 'host');
     status('connected');
     return wrap(pc, ch);
   })();
@@ -210,21 +267,38 @@ export async function joinRoom(code, opts = {}) {
   const signal = defaultSignal(opts);
   const status = opts.onStatus || (() => {});
   status('connecting');
-  const d = await signal.read(code);
-  if (!d || !d.offer || d.answer) { status('failed'); throw new Error('notfound'); }
+  let d = null;
+  try {
+    d = await signal.read(code);
+  } catch (e) {
+    netLog('guest', 'room read failed', e && (e.code || e.message));
+    throw e;
+  }
+  if (!d || !d.offer || d.answer) {
+    netLog('guest', 'room', code, !d ? 'not found' : d.answer ? 'already taken' : 'has no offer');
+    status('failed');
+    throw new Error('notfound');
+  }
+  netLog('guest', 'room', code, 'offer candidates', candidateSummary(d.offer));
   const pc = peer(opts);
+  watchPeer(pc, 'guest');
   const chP = new Promise((resolve) => { pc.ondatachannel = (e) => resolve(e.channel); });
   try {
     await pc.setRemoteDescription({ type: 'offer', sdp: d.offer });
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
     await gathered(pc);
+    netLog('guest', 'answer candidates', candidateSummary(pc.localDescription.sdp));
     await signal.answer(code, pc.localDescription.sdp);
     const ch = await Promise.race([chP, sleep(ROOMS.connectMs).then(() => { throw new Error('timeout'); })]);
     await openChannel(ch);
+    netLog('guest', 'channel open');
+    logRoute(pc, 'guest');
     status('connected');
     return wrap(pc, ch);
   } catch (e) {
+    netLog('guest', 'failed:', e && (e.code || e.message), 'ice', pc.iceConnectionState,
+        '(no common route: a strict NAT or blocked UDP on one side, TURN would relay)');
     status('failed');
     pc.close();
     throw e;

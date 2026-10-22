@@ -3,7 +3,20 @@
 // нельзя посчитать, пока не пришёл ввод напарника на него (advance возвращает false — «ждём»). Команды экранов
 // (выбор карточки, сундук, пауза) идут тем же путём и применяются на одном тике у обоих. Раз в hashEvery тиков
 // клиенты сравнивают хеш состояния: расхождение — событие onDesync. Без Phaser и DOM (тесты в Node).
-import { NET } from '../data/constants.js';
+import * as CONSTANTS from '../data/constants.js';
+import { createSim } from './sim.js';
+import { HEROES, HERO_BASE } from '../data/heroes.js';
+import { WEAPONS, WEAPON_BEHAVIOR } from '../data/weapons.js';
+import { PASSIVES } from '../data/passives.js';
+import { COMBOS } from '../data/combos.js';
+import { ENEMIES } from '../data/enemies.js';
+import { BOSS, BOSSES } from '../data/bosses.js';
+import { PICKUPS } from '../data/pickups.js';
+import { COOP } from '../data/coop.js';
+import { DIFFICULTIES } from '../data/difficulty.js';
+import { forest } from '../data/stages/forest.js';
+
+const { NET } = CONSTANTS;
 
 const IDLE = { x: 0, y: 0 };
 
@@ -18,21 +31,27 @@ function fnv(str) {
 }
 
 /**
- * Хеш состояния симуляции: всё, что влияет на дальнейший ход (позиции, HP, RNG, враги).
+ * Поля состояния для хеша: всё, что влияет на дальнейший ход (позиции, HP, RNG, враги). Пары [имя, значение]:
+ * при рассинхроне клиенты печатают их в консоль, видно, что разошлось.
  * @param {!Object} sim
- * @return {number}
+ * @return {!Array<!Array>}
  */
-export function hashSim(sim) {
+export function hashParts(sim) {
   const r = (v) => Math.round(v * 1000);
-  const parts = [sim.frame, r(sim.time), sim.kills, sim.coins, sim.state, sim.rng.state, sim.uid,
-    sim.enemies.length, sim.projectiles.length, sim.pickups.length, sim.pendingLevels,
-    sim.levelTurn, sim.picker, r(sim.overtime)];
+  const out = [['frame', sim.frame], ['time', r(sim.time)], ['kills', sim.kills], ['coins', sim.coins],
+    ['state', sim.state], ['rng', sim.rng.state], ['uid', sim.uid], ['enemies', sim.enemies.length],
+    ['projectiles', sim.projectiles.length], ['pickups', sim.pickups.length],
+    ['pendingLevels', sim.pendingLevels], ['levelTurn', sim.levelTurn], ['picker', sim.picker],
+    ['overtime', r(sim.overtime)]];
   for (const p of sim.players) {
     const lu = p.levelUp;
-    parts.push(r(p.x), r(p.y), r(p.hp), p.level, r(p.xp), p.dead ? 1 : 0, r(p.coffinT),
-        lu.rerolls, lu.skips, lu.banishes, lu.banished.size);
-    for (const w of p.weapons) parts.push(w.id, w.level);
-    for (const q of p.passives) parts.push(q.id, q.level);
+    const k = `p${p.id}.`;
+    out.push([k + 'x', r(p.x)], [k + 'y', r(p.y)], [k + 'hp', r(p.hp)], [k + 'level', p.level],
+        [k + 'xp', r(p.xp)], [k + 'dead', p.dead ? 1 : 0], [k + 'coffin', r(p.coffinT)],
+        [k + 'rerolls', lu.rerolls], [k + 'skips', lu.skips], [k + 'banishes', lu.banishes],
+        [k + 'banished', lu.banished.size],
+        [k + 'weapons', p.weapons.map((w) => `${w.id}${w.level}`).join(' ')],
+        [k + 'passives', p.passives.map((q) => `${q.id}${q.level}`).join(' ')]);
   }
   let ex = 0;
   let ey = 0;
@@ -41,8 +60,42 @@ export function hashSim(sim) {
     if (e.dead) continue;
     ex += e.x; ey += e.y; eh += e.hp;
   }
-  parts.push(r(ex), r(ey), r(eh));
-  return fnv(parts.join(','));
+  out.push(['enemyX', r(ex)], ['enemyY', r(ey)], ['enemyHp', r(eh)]);
+  return out;
+}
+
+/**
+ * @param {!Object} sim
+ * @return {number}
+ */
+export function hashSim(sim) {
+  return fnv(hashParts(sim).map((kv) => kv[1]).join(','));
+}
+
+/**
+ * Отпечаток версии игры: хеш всех игровых данных (баланс, враги, этап, константы) и короткого забега на двоих
+ * с фиксированным вводом (ловит изменения логики sim). Совпадает у двух клиентов только при одной версии:
+ * лобби сравнивает его, иначе забег разошёлся бы сразу.
+ * @return {number}
+ */
+export function simFingerprint() {
+  const data = JSON.stringify([CONSTANTS, HEROES, HERO_BASE, WEAPONS, WEAPON_BEHAVIOR, PASSIVES,
+    COMBOS, ENEMIES, BOSS, BOSSES, PICKUPS, COOP, DIFFICULTIES, forest]);
+  return fnv(`${data}|${runFingerprint()}`);
+}
+
+function runFingerprint() {
+  const sim = createSim({ seed: 20261022, players: 2, heroes: [], difficulty: 'cursed' });
+  const dt = 1 / 60;
+  for (let i = 0; i < 900; i++) {
+    if (sim.state === 'levelup') sim.chooseCard(0, sim.picker);
+    else if (sim.state === 'chest') sim.chooseChest(0);
+    const a = i / 50;
+    const p0 = { x: Math.sin(a), y: Math.cos(a) };
+    sim.step(dt, { players: [p0, { x: -p0.y, y: p0.x }] });
+    if (sim.state === 'gameover' || sim.state === 'victory') break;
+  }
+  return hashSim(sim);
 }
 
 /**
@@ -99,7 +152,8 @@ class Lockstep {
     this.send = o.send;
     this.delay = o.delay === undefined ? NET.inputDelay : o.delay;
     this.hashEvery = o.hashEvery === undefined ? NET.hashEvery : o.hashEvery;
-    this.onDesync = o.onDesync || null;
+    this.onDesync = o.onDesync || null; // (tick, mine, theirs, parts) — parts: hashParts на этом тике
+    this.partsAt = new Map();      // тик -> свои hashParts, пока хеш напарника не сошёлся (для отчёта)
     this.tick = 0;                 // следующий тик к расчёту
     this.inputs = [new Map(), new Map()]; // по игрокам: тик -> { x, y }
     this.cmds = new Map();         // тик -> [{ who, cmd }]
@@ -184,7 +238,10 @@ class Lockstep {
   }
 
   _hash(t) {
-    const h = hashSim(this.sim);
+    const parts = hashParts(this.sim);
+    const h = fnv(parts.map((kv) => kv[1]).join(','));
+    this.partsAt.set(t, parts);
+    this.partsAt.delete(t - this.hashEvery * 8); // старые не держим
     const theirs = this.hashes.get(t);
     if (theirs !== undefined) {
       this.hashes.delete(t);
@@ -196,9 +253,10 @@ class Lockstep {
   }
 
   _compare(t, mine, theirs) {
-    if (mine === theirs || this.desynced) return;
+    if (mine === theirs) { this.partsAt.delete(t); return; }
+    if (this.desynced) return;
     this.desynced = true;
-    if (this.onDesync) this.onDesync(t, mine, theirs);
+    if (this.onDesync) this.onDesync(t, mine, theirs, this.partsAt.get(t) || null);
   }
 
   /**

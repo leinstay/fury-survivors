@@ -1,6 +1,7 @@
 // Лобби сетевого коопа. Хост: createRoom, показывает код, ждёт гостя, выбирает сложность, Start.
 // Гость: joinRoom по коду, видит выбор хоста, ждёт старта. После соединения всё идёт по каналу:
-//   { type: 'hello', name, hero }  ник и герой, оба сразу после соединения
+//   { type: 'hello', name, hero, fp }  ник, герой и отпечаток версии игры (simFingerprint), оба сразу после
+//                                  соединения; разные версии — старт закрыт, обоим перезагрузить страницу
 //   { type: 'hero', id }           смена своего героя (каждый выбирает сам; герой напарника занят).
 //                                  id '' — герой отпущен (повторный клик по своему), его может взять напарник.
 //                                  Если оба оказались на одном (выбрали одновременно), уступает гость.
@@ -19,6 +20,9 @@ import { stopMusic } from '../audio/sfx.js';
 import { validHero, freeHero, distinctHeroes } from '../core/heroes.js';
 import { validateNick } from '../core/nick.js';
 import { addHeroPicker } from '../ui/hero-picker.js';
+import { simFingerprint } from '../core/lockstep.js';
+import { netLog } from '../services/net.js';
+import { copyText } from '../ui/clipboard.js';
 
 // Колонки лобби: кнопки сложности, Start/Cancel и карточки героев одной ширины, центры на cx ± BTN_DX.
 const BTN_W = 120;
@@ -54,6 +58,7 @@ export class LobbyScene extends Phaser.Scene {
     this.partnerHero = '';
     this.started = false;
     this.alive = true;
+    this.mismatch = false; // у напарника другая версия игры
   }
 
   create() {
@@ -64,12 +69,37 @@ export class LobbyScene extends Phaser.Scene {
     addPanel(this, cx, 190, 420, 298);
     this.codeLabel = this.add.text(cx, 56, '', textStyle(10, '#aaaaaa')).setOrigin(0.5);
     this.codeText = this.add.text(cx, 78, '', textStyle(26, '#ffd84a', { stroke: '#000000', strokeThickness: 5 })).setOrigin(0.5);
+    this.copyOnTap();
     this.status = this.add.text(cx, 102, '', textStyle(10, '#dddddd')).setOrigin(0.5);
     this.players = this.add.text(cx, 120, '', textStyle(11)).setOrigin(0.5);
     this.objs = [];
     this.events.once('shutdown', () => this.shutdown());
     this.renderButtons();
     if (this.role === 'host') this.host(); else this.guest();
+  }
+
+  // Тап или клик по коду копирует его в буфер. Буфер на телефонах доступен только прямо в обработчике
+  // жеста, поэтому слушаем pointerup самого холста (ввод Phaser приходит позже, в шаге игры).
+  copyOnTap() {
+    const canvas = this.game.canvas;
+    const onUp = (ev) => {
+      if (!this.code || !this.codeText.text) return;
+      const r = canvas.getBoundingClientRect();
+      const gx = (ev.clientX - r.left) * (this.scale.width / r.width);
+      const gy = (ev.clientY - r.top) * (this.scale.height / r.height);
+      const p = this.cameras.main.getWorldPoint(gx, gy);
+      const b = this.codeText.getBounds();
+      if (!Phaser.Geom.Rectangle.Contains(b, p.x, p.y) &&
+          !Phaser.Geom.Rectangle.Contains(this.codeLabel.getBounds(), p.x, p.y)) return;
+      if (copyText(this.code)) {
+        this.codeLabel.setText(t('lobby.copied')).setColor('#8cff6a');
+        this.time.delayedCall(1500, () => {
+          if (this.alive) this.codeLabel.setText(t('lobby.code_copy')).setColor('#aaaaaa');
+        });
+      }
+    };
+    canvas.addEventListener('pointerup', onUp);
+    this.events.once('shutdown', () => canvas.removeEventListener('pointerup', onUp));
   }
 
   update(time) {
@@ -99,7 +129,7 @@ export class LobbyScene extends Phaser.Scene {
     if (!this.alive) { room.cancel(); return; }
     this.room = room;
     this.code = room.code;
-    this.codeLabel.setText(t('lobby.code'));
+    this.codeLabel.setText(t('lobby.code_copy'));
     this.codeText.setText(room.code);
     try {
       const conn = await room.conn;
@@ -111,7 +141,7 @@ export class LobbyScene extends Phaser.Scene {
   }
 
   async guest() {
-    this.codeLabel.setText(t('lobby.code'));
+    this.codeLabel.setText(t('lobby.code_copy'));
     this.codeText.setText(this.code);
     try {
       const conn = await joinRoom(this.code, { onStatus: (s) => this.onStatus(s) });
@@ -137,7 +167,8 @@ export class LobbyScene extends Phaser.Scene {
       this.say('lobby.left', '#ff8080');
       this.renderButtons();
     });
-    conn.send({ type: 'hello', name: this.nick, hero: this.hero });
+    this.fp = simFingerprint();
+    conn.send({ type: 'hello', name: this.nick, hero: this.hero, fp: this.fp });
     if (this.role === 'host') conn.send({ type: 'diff', id: this.difficulty });
     this.renderButtons();
   }
@@ -148,6 +179,11 @@ export class LobbyScene extends Phaser.Scene {
       case 'hello':
         this.partner = nickOf(m.name);
         this.partnerHero = heroOf(m.hero);
+        this.mismatch = m.fp !== this.fp;
+        if (this.mismatch) {
+          netLog('lobby: partner runs a different game version', 'mine', this.fp, 'partner', m.fp);
+          this.say('lobby.version', '#ff8080');
+        }
         this.resolveHeroes();
         this.renderButtons();
         break;
@@ -246,7 +282,7 @@ export class LobbyScene extends Phaser.Scene {
       this.add.text(cx, 278, t('lobby.host_picks'), textStyle(9, '#aaaaaa')).setOrigin(0.5);
     }
     const ready = !!(this.conn && this.partner && this.partnerHero && this.hero) &&
-      this.partnerHero !== this.hero;
+      this.partnerHero !== this.hero && !this.mismatch;
     if (this.role === 'host') {
       const start = addButton(this, this.nav, { x: cx - BTN_DX, y: 308, w: BTN_W, h: 28, label: t('lobby.start'), onSelect: () => this.start() });
       start.setDisabled(!ready);
@@ -266,7 +302,7 @@ export class LobbyScene extends Phaser.Scene {
 
   start() {
     if (this.role !== 'host' || !this.conn || !this.partner) return;
-    if (!this.hero || !this.partnerHero || this.partnerHero === this.hero) return; // кто-то без героя или гость не уступил
+    if (!this.hero || !this.partnerHero || this.partnerHero === this.hero || this.mismatch) return; // кто-то без героя или гость не уступил
     const seed = (Date.now() ^ Math.floor(Math.random() * 0x7fffffff)) >>> 0;
     const names = this.names();
     const heroes = distinctHeroes(2, this.heroes());

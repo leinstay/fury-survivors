@@ -173,3 +173,29 @@ test('lockstep: drift shows whose clock runs ahead', () => {
   assert.ok(a.drift() > 0, `a ahead: ${a.drift()}`);
   assert.ok(b.drift() < 0, `b behind: ${b.drift()}`);
 });
+
+test('lockstep: game version fingerprint is stable and changes with game data', async () => {
+  const { simFingerprint } = await import('../../src/core/lockstep.js');
+  const { HEROES } = await import('../../src/data/heroes.js');
+  const f = simFingerprint();
+  assert.equal(simFingerprint(), f);
+  const atk = HEROES.mage.stats.atk;
+  HEROES.mage.stats.atk = atk + 0.5;
+  try {
+    assert.notEqual(simFingerprint(), f);
+  } finally {
+    HEROES.mage.stats.atk = atk;
+  }
+});
+
+test('lockstep: desync reports the fields that differ', () => {
+  const { a, b, pump } = pair(5, { delay: 2, lag: 1, hashEvery: 10 });
+  const got = [];
+  a.onDesync = (t, mine, theirs, parts) => got.push(parts);
+  const idle = { x: 0, y: 0 };
+  for (let i = 0; i < 5; i++) { a.advance(idle, DT); b.advance(idle, DT); pump(); }
+  b.sim.players[1].hp -= 7; // «другая версия»: у b разошлось HP
+  for (let i = 0; i < 20; i++) { a.advance(idle, DT); b.advance(idle, DT); pump(); }
+  assert.ok(a.desynced && got.length === 1);
+  assert.ok(got[0].some((kv) => kv[0] === 'p1.hp'));
+});

@@ -45,8 +45,8 @@ src/
     anim.js                процедурная ходьба/покачивание/наклон/вспышка/смерть
     fx.js                  частицы, числа урона, тряска, хитстоп
   scenes/                  Boot, Menu (выбор героя, вид Co-op), Lobby (код, герои, сложность, старт), Game, LevelUp, Chest, Pause, GameOver, Victory, Leaderboard
-  services/                leaderboard.js (таблицы соло и коопа, ip), net.js (WebRTC + сигналинг через Firestore rooms), firebase.js, nick-store.js
-  ui/                      фокус-навигация (focus.js) (клава/мышь/геймпад), HUD (счёт, DPS, миникарта), экранный джойстик; settings.js настройки (качество графики, миникарта, DPS, последний герой и сложность); hero-picker.js карточки выбора героя (сетка от 3 героев); dom-input.js текстовое поле (ник, код) поверх холста; text-align.js центрует текст по пикселям; fullscreen.js полный экран на телефоне (кнопка Play и настройка, не любое касание)
+  services/                leaderboard.js (таблицы соло и коопа, ip), net.js (WebRTC + сигналинг через Firestore rooms, логи `[fury-net]` в консоль), firebase.js, nick-store.js
+  ui/                      фокус-навигация (focus.js) (клава/мышь/геймпад), HUD (счёт, DPS, миникарта), экранный джойстик; settings.js настройки (качество графики, миникарта, DPS, последний герой и сложность); hero-picker.js карточки выбора героя (сетка от 3 героев); dom-input.js текстовое поле (ник, код) поверх холста; clipboard.js копирование в буфер (код лобби по тапу); text-align.js центрует текст по пикселям; fullscreen.js полный экран на телефоне (кнопка Play и настройка, не любое касание)
   audio/sfx.js             воспроизведение звуков, рандом тона, лимит одновременных
   debug.js                 window.__game.debug(), запись ошибок в localStorage
   i18n/                    en.js + index.js (t('key')). Все строки UI только через t()
