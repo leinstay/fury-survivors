@@ -127,13 +127,14 @@ function steer(sim, out, t) {
   out.y = ay / l;
 }
 
-// opts: { seed, preset ('greedy' | 'idle' | 'kite'), upgrades (bool), until (с), dt, onSecond(sim), onEvents(events) }
+// opts: { seed, preset ('greedy' | 'idle' | 'kite' | 'tank'), upgrades (bool), until (с), dt, difficulty,
+//         onSecond(sim), onEvents(events) }
 // res.bosses: { id: { at, hp, level, killed } } — время появления, HP и уровень игрока при появлении, время убийства.
 // res.victoryTime — убийство финального босса (начало овертайма); забег после него идёт до смерти или until.
 export function runBot(opts) {
-  const { seed = 1, preset = 'greedy', upgrades = true, until = 910, dt = 1 / 60 } = opts;
+  const { seed = 1, preset = 'greedy', upgrades = true, until = 910, dt = 1 / 60, difficulty } = opts;
   const idle = preset === 'idle';
-  const sim = createSim({ hero: 'heroine', stage: 'forest', seed });
+  const sim = createSim({ hero: 'heroine', stage: 'forest', seed, difficulty });
   if (!upgrades) sim.levelUp.skips = 1e9;
   const input = { x: 0, y: 0 };
   const res = {

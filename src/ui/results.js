@@ -95,7 +95,7 @@ export function buildResults(scene, sim,
   if (confetti) addConfetti(scene);
   scene.add.text(cx, 28, t(titleKey), textStyle(26, titleColor, { stroke: '#000000', strokeThickness: 5 })).setOrigin(0.5);
   if (sim.difficulty && sim.difficulty !== DEFAULT_DIFFICULTY) {
-    scene.add.text(cx + 150, 56, t(`difficulty.${sim.difficulty}.name`), textStyle(11, COLORS.cursed)).setOrigin(1, 0);
+    scene.add.text(cx, 46, t(`difficulty.${sim.difficulty}.name`), textStyle(10, COLORS.cursed)).setOrigin(0.5);
   }
 
   const rows = [
