@@ -12,14 +12,16 @@ export const OPTIONS = {
 };
 let data = null;
 
-function isTouch() {
-  return typeof navigator !== 'undefined' && (navigator.maxTouchPoints > 0 || 'ontouchstart' in globalThis);
+// Телефон или планшет: основной указатель «грубый» (палец). ПК с тачскрином сюда не попадает
+// (maxTouchPoints там тоже > 0, поэтому по нему судить нельзя).
+export function isMobile() {
+  return typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
 }
 
 function load() {
   if (data) return data;
   data = { ...DEFAULTS };
-  data.quality = isTouch() ? 'low' : 'high';
+  data.quality = isMobile() ? 'low' : 'high';
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) || '{}');
     for (const k in DEFAULTS) {
