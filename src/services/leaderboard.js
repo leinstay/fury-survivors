@@ -3,9 +3,9 @@
 // Firebase SDK подтягивается ленивым import() с gstatic при первом использовании; без сети
 // игра работает полностью. Неудачная загрузка не кэшируется.
 import {
-  FIREBASE_CONFIG, FIRESTORE_DB_ID, COLLECTION, SDK_URL, SCORE_FORMULA, LIMITS, BOARD,
-  DIFFICULTY_FIELD,
+  COLLECTION, SCORE_FORMULA, LIMITS, BOARD, DIFFICULTY_FIELD,
 } from '../data/leaderboard.js';
+import { loadFirestore } from './firebase.js';
 import { validateNick } from '../core/nick.js';
 
 /**
@@ -87,11 +87,7 @@ function withTimeout(promise, ms) {
 
 /** Реальный бэкенд: Firebase web SDK (firestore-lite) с CDN. */
 async function loadFirestoreBackend() {
-  if (!FIREBASE_CONFIG) throw new Error('offline');
-  const { initializeApp, getApps, getApp } = await import(`${SDK_URL}/firebase-app.js`);
-  const fs = await import(`${SDK_URL}/firebase-firestore-lite.js`);
-  const app = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
-  const db = FIRESTORE_DB_ID ? fs.getFirestore(app, FIRESTORE_DB_ID) : fs.getFirestore(app);
+  const { fs, db } = await loadFirestore();
   const col = () => fs.collection(db, COLLECTION);
   return {
     async top(limit) {

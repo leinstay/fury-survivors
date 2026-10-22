@@ -26,5 +26,22 @@ service cloud.firestore {
         && request.resource.data.createdAt == request.time;
       allow update, delete: if false;
     }
+
+    // Лобби коопа (src/services/net.js): хост кладёт offer, гость один раз дописывает answer.
+    // Документ живёт до соединения (хост удаляет), брошенные можно чистить TTL-политикой по createdAt.
+    match /rooms/{code} {
+      allow read: if true;
+      allow create: if code.matches('^[A-Z0-9]{5}$')
+        && request.resource.data.keys().hasOnly(['offer', 'createdAt'])
+        && request.resource.data.offer is string
+        && request.resource.data.offer.size() < 20000
+        && request.resource.data.createdAt == request.time;
+      allow update: if !('answer' in resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['answer', 'answeredAt'])
+        && request.resource.data.answer is string
+        && request.resource.data.answer.size() < 20000
+        && request.resource.data.answeredAt == request.time;
+      allow delete: if true;
+    }
   }
 }
