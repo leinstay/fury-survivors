@@ -1,8 +1,9 @@
 // Выбор героя (меню соло и лобби коопа). Два вида по числу героев:
-//   карточки — пока в ряд влезают карточки не уже CARD_MIN_W: спрайт (кадр 0 ленты, стойка), имя,
+//   карточки — героев меньше GRID_FROM (базовые два): спрайт (кадр 0 ленты, стойка), имя,
 //              стартовое оружие с иконкой, в полном виде ещё HP и скорость;
-//   сетка    — героев больше: плитки со спрайтом в сетке под размер области, описание героя в фокусе
-//              (или выбранного) одной строкой под сеткой, как в выборе персонажа VS.
+//   сетка    — героев GRID_FROM и больше: плитки со спрайтом под размер области, ряды поровну
+//              (7 = 4 + 3, 13 = 7 + 6) и каждый по центру; описание героя в фокусе (или выбранного)
+//              одной строкой под сеткой, как в выборе персонажа VS.
 // Фокус — жёлтая рамка; выбранный (mark) — зелёная рамка и галочка; занятый напарником — тусклый.
 import { t } from '../i18n/index.js';
 import { HEROES } from '../data/heroes.js';
@@ -13,7 +14,7 @@ import { spriteScale } from '../render/density.js';
 
 const SELECTED = 0x8cff6a; // рамка выбранного героя
 const PICKER_MAX_W = 600;  // ширина ряда карточек на экране 640
-const CARD_MIN_W = 100;    // уже карточки нечитаемы: переход на сетку
+const GRID_FROM = 3;       // с стольких героев карточки сменяются сеткой
 const TILE_GAP = 4;        // зазор между плитками сетки
 const TILE_MAX = 64;       // плитка не крупнее
 const INFO_H = 14;         // строка описания под сеткой
@@ -49,16 +50,21 @@ function addWeaponRow(scene, def, x, y) {
   return [icon, label];
 }
 
-// Сетка: число колонок, при котором плитка крупнее всего в области w×h.
+// Сетка: число рядов, при котором плитка крупнее всего в области w×h (при равенстве — меньше рядов).
+// Герои делятся по рядам поровну: первые n % rows рядов на одну плитку длиннее.
+// @return {{rows: number, size: number, counts: !Array<number>}}
 function gridFor(n, w, h) {
-  let best = { cols: n, rows: 1, size: 0 };
-  for (let cols = 1; cols <= n; cols++) {
-    const rows = Math.ceil(n / cols);
+  let best = null;
+  for (let rows = 1; rows <= n; rows++) {
+    const cols = Math.ceil(n / rows);
     const byW = (w - TILE_GAP * (cols - 1)) / cols;
     const byH = (h - TILE_GAP * (rows - 1)) / rows;
-    const size = Math.floor(Math.min(byW, byH));
-    if (size > best.size) best = { cols, rows, size: Math.min(size, TILE_MAX) };
+    const size = Math.min(Math.floor(Math.min(byW, byH)), TILE_MAX);
+    if (!best || size > best.size) best = { rows, size };
   }
+  const base = Math.floor(n / best.rows);
+  const extra = n % best.rows;
+  best.counts = Array.from({ length: best.rows }, (_, r) => base + (r < extra ? 1 : 0));
   return best;
 }
 
@@ -80,7 +86,7 @@ export function addHeroPicker(scene, nav, o) {
   const areaW = o.maxWidth || PICKER_MAX_W;
   const h = o.h || 150;
   const fit = Math.floor((areaW - gap * (ids.length - 1)) / ids.length);
-  const grid = fit < CARD_MIN_W;
+  const grid = ids.length >= GRID_FROM;
   const before = new Set(scene.children.list);
   const panels = {};
   const checks = {};
@@ -157,21 +163,25 @@ export function addHeroPicker(scene, nav, o) {
   } else {
     const gridW = o.gridWidth || areaW;
     const g = gridFor(ids.length, gridW, h - INFO_H);
-    const gw = g.cols * g.size + (g.cols - 1) * TILE_GAP;
     const gh = g.rows * g.size + (g.rows - 1) * TILE_GAP;
-    const top0 = o.y - h / 2 + (h - INFO_H - gh) / 2;
-    ids.forEach((id, i) => {
-      const col = i % g.cols;
-      const row = Math.floor(i / g.cols);
-      const x = o.x - gw / 2 + g.size / 2 + col * (g.size + TILE_GAP);
+    // сетка и строка описания одним блоком по центру области
+    const top0 = o.y - (gh + TILE_GAP + INFO_H) / 2;
+    let i = 0;
+    g.counts.forEach((count, row) => {
+      // каждый ряд по центру области
+      const rw = count * g.size + (count - 1) * TILE_GAP;
       const y = top0 + g.size / 2 + row * (g.size + TILE_GAP);
-      panels[id] = addPanel(scene, x, y, g.size, g.size);
-      const mark = Math.max(6, Math.round(g.size / 5));
-      checks[id] = addCheck(scene, x + g.size / 2, y - g.size / 2, mark);
-      addHeroSprite(scene, HEROES[id], x, y + g.size / 2 - 2, g.size - 6, 1);
-      addItem(id, x, y, g.size, g.size);
+      for (let c = 0; c < count; c++, i++) {
+        const id = ids[i];
+        const x = o.x - rw / 2 + g.size / 2 + c * (g.size + TILE_GAP);
+        panels[id] = addPanel(scene, x, y, g.size, g.size);
+        const mark = Math.max(6, Math.round(g.size / 5));
+        checks[id] = addCheck(scene, x + g.size / 2, y - g.size / 2, mark);
+        addHeroSprite(scene, HEROES[id], x, y + g.size / 2 - 2, g.size - 6, 1);
+        addItem(id, x, y, g.size, g.size);
+      }
     });
-    info = { y: o.y + h / 2 - INFO_H / 2, box: scene.add.container(0, 0) };
+    info = { y: top0 + gh + TILE_GAP + INFO_H / 2, box: scene.add.container(0, 0) };
   }
   for (const id of ids) paint(id, false);
   const objects = scene.children.list.filter((c) => !before.has(c) && c.type !== 'Zone');
