@@ -3,7 +3,7 @@
   "budget": 5,
   "stop": 4.5,
   "estimatePerImage": 0.25,
-  "spent": 2.253763,
+  "spent": 2.31639,
   "entries": [
     {
       "date": "2026-10-21T19:22:23.155Z",
@@ -1633,6 +1633,40 @@
         }
       },
       "seconds": 25,
+      "file": "assets/raw/mage_v2.png"
+    },
+    {
+      "date": "2026-10-22T18:01:13.356Z",
+      "name": "mage_edit2",
+      "model": "openai/gpt-image-2.5-flare",
+      "refs": [
+        "assets/raw/mage_v2.png"
+      ],
+      "resolution": null,
+      "quality": "high",
+      "moderation": "low",
+      "aspect": "1:1",
+      "cost": 0.062627,
+      "usage": {
+        "prompt_tokens": 1375,
+        "completion_tokens": 1756,
+        "total_tokens": 3131,
+        "cost": 0.062627,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.062627,
+          "upstream_inference_prompt_cost": 0.009947,
+          "upstream_inference_completions_cost": 0.05268
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 1756
+        }
+      },
+      "seconds": 26,
       "file": "assets/raw/mage.png"
     }
   ]
