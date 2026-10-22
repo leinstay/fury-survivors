@@ -159,4 +159,9 @@ export const SPRITES = Object.fromEntries([
   art('flower', 44, 44, { density: HD, frames: 2, origin: FEET }),
   art('barrel', 44, 52, { density: HD, origin: FEET }),
   art('lantern', 52, 80, { density: HD, origin: FEET }),
+  // Второй лист окружения (env_props2): вагонетка на дороге, указатель и изгородь у обочины, пень.
+  art('cart', 112, 104, { density: HD, origin: FEET }),
+  art('signpost', 96, 128, { density: HD, origin: FEET }),
+  art('stump', 80, 72, { density: HD, origin: FEET }),
+  art('fence', 112, 72, { density: HD, origin: FEET }),
 ]);

@@ -377,5 +377,22 @@
       "default": 0.51
     },
     "alphaOnly": true
+  },
+  "env_props2": {
+    "raw": "assets/raw/env_props2.png",
+    "items": [
+      "cart",
+      "signpost",
+      "stump",
+      "fence"
+    ],
+    "step": [
+      4,
+      7
+    ],
+    "mergeGap": 2,
+    "hd": {
+      "default": 0.28
+    }
   }
 }

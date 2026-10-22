@@ -5,10 +5,14 @@
 //   duration: 900,               // с, на этой секунде финальный босс (bosses.js: final: true)
 //   bossWarning: 10,             // с до босса: событие bossWarning
 //   tiles: ['grass', ...],       // ключи тайлсета
-//   props: [{ sprite, density, breakable, hp, drop }],
+//   roads: { spacing, width, chance, wobble, wave, wave2 },  // сеть песчаных дорог (src/core/roads.js):
+//     полосы через spacing px по обеим осям, каждая есть с шансом chance, извилистость wobble px с периодами wave, wave2
+//   props: [{ sprite, density, breakable, hp, drop, place, big }],
 //     density — среднее число на чанк SIM.chunkSize x SIM.chunkSize;
 //     sim создаёт только breakable-объекты (sim.props), остальные — декор, его рисует рендер сам;
 //     drop — { pickupId: шанс } для разрушаемых (шансы умножаются на luck)
+//     place — 'ground' (по умолчанию: не на дороге), 'any' (где угодно), 'road' (на оси дороги),
+//             'roadside' (у обочины); big — крупный объект, занимает клетку чанка, чтобы не расти в соседе
 //   scaling: { hpPerMinute, damagePerMinute },  // рост здоровья и урона врагов со временем
 //   timeline: [                  // события по времени, сортированы по at
 //     { at, type: 'spawn', enemy, rate, rateEnd?, until?, group, min?, minEnd? }
@@ -34,13 +38,20 @@ export const forest = {
   duration: 900,
   bossWarning: 10,             // за сколько секунд до каждого босса отправить событие bossWarning
   tiles: ['grass'],
+  // Дороги примерно через два экрана, извилистые; перекрёстки там, где полосы пересекаются.
+  roads: { spacing: 1100, width: 40, chance: 0.7, wobble: 110, wave: 520, wave2: 190 },
   props: [
-    { sprite: 'tree', density: 2.5, breakable: false },
+    { sprite: 'tree', density: 2.5, breakable: false, big: true },
     { sprite: 'rock', density: 2, breakable: false },
-    { sprite: 'bush', density: 3, breakable: false },
+    { sprite: 'bush', density: 3, breakable: false, big: true },
     { sprite: 'flower', density: 6, breakable: false },
-    { sprite: 'barrel', density: 0.6, breakable: true, hp: 1, drop: { food: 0.15, coin: 0.35, magnet: 0.05 } },
-    { sprite: 'lantern', density: 0.4, breakable: true, hp: 1, drop: { magnet: 0.25, food: 0.15, coin: 0.2 } },
+    { sprite: 'barrel', density: 0.6, breakable: true, hp: 1, place: 'any', drop: { food: 0.15, coin: 0.35, magnet: 0.05 } },
+    { sprite: 'lantern', density: 0.4, breakable: true, hp: 1, place: 'roadside', drop: { magnet: 0.25, food: 0.15, coin: 0.2 } },
+    // Дорожные объекты (env_props2): density считается на чанк, но без дороги в чанке они не появляются.
+    { sprite: 'cart', density: 0.5, breakable: true, hp: 2, place: 'road', drop: { coin: 0.6, food: 0.2, magnet: 0.1 } },
+    { sprite: 'signpost', density: 0.35, breakable: false, place: 'roadside' },
+    { sprite: 'fence', density: 0.5, breakable: false, place: 'roadside' },
+    { sprite: 'stump', density: 0.8, breakable: false },
   ],
   // HP врагов × (1 + hpPerMinute × минуты): ранние типы повторяются поздно, поэтому к 15:00 они втрое крепче
   // (catgirl 16 -> 48, lamia к 15:00 ~600, как Mantichana в VS). Скорость не растёт.

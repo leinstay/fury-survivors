@@ -13,6 +13,7 @@ import { createRng, hashSeed } from './rng.js';
 import { Grid } from './grid.js';
 import { computeStats } from './stats.js';
 import { createDirector } from './director.js';
+import { createRoads } from './roads.js';
 import * as UP from './upgrades.js';
 
 const STAGES = { forest };
@@ -69,6 +70,8 @@ class Sim {
     this.seed = o.seed === undefined ? 1 : o.seed;
     this.rng = createRng(this.seed);
     this.director = createDirector(this.stageDef, this.rng);
+    const rc = this.stageDef.roads;
+    this.roads = rc ? createRoads(rc, hashSeed(this.seed, 7, 7)) : null;
 
     this.state = 'running';
     this.time = 0;
@@ -715,9 +718,30 @@ class Sim {
     }
   }
 
+  // Место для объекта по правилу place (см. stages/forest.js) или null, если за несколько попыток не нашлось.
+  placeProp(def, cx, cy, rnd) {
+    const cs = SIM.chunkSize;
+    const roads = this.roads;
+    const place = def.place || 'ground';
+    if (!roads || place === 'any') return { x: (cx + rnd()) * cs, y: (cy + rnd()) * cs, angle: 0 };
+    const half = roads.cfg.width / 2;
+    if (place === 'road') {
+      const p = roads.pointInChunk(cx * cs, cy * cs, cs, rnd);
+      return p ? { x: p.x, y: p.y, angle: p.angle } : null;
+    }
+    for (let t = 0; t < 8; t++) {
+      const x = (cx + rnd()) * cs;
+      const y = (cy + rnd()) * cs;
+      const d = roads.distance(x, y);
+      if (place === 'roadside' ? (d > half + 4 && d < half + 24) : d > half + (def.big ? 28 : 4)) return { x, y, angle: 0 };
+    }
+    // обочины в чанке нет: фонарь встаёт как обычный объект
+    if (place === 'roadside') return this.placeProp({ ...def, place: 'ground' }, cx, cy, rnd);
+    return null;
+  }
+
   _genChunk(cx, cy) {
     const r = createRng(hashSeed(this.seed, cx, cy));
-    const cs = SIM.chunkSize;
     const defs = this.stageDef.props || [];
     for (let d = 0; d < defs.length; d++) {
       const def = defs[d];
@@ -725,8 +749,10 @@ class Sim {
       let n = Math.floor(def.density);
       if (r.next() < def.density - n) n++;
       for (let i = 0; i < n; i++) {
+        const at = this.placeProp(def, cx, cy, () => r.next());
+        if (!at) continue;
         this.props.push({
-          uid: ++this.uid, sprite: def.sprite, x: (cx + r.next()) * cs, y: (cy + r.next()) * cs,
+          uid: ++this.uid, sprite: def.sprite, x: at.x, y: at.y, angle: at.angle,
           breakable: true, hp: def.hp || 1, radius: SIM.propRadius,
           drop: def.drop || EMPTY, dead: false,
           hitAt: new Float64Array(SLOT_COUNT).fill(NEVER),

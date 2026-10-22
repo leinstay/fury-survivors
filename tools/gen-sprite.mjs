@@ -1,4 +1,5 @@
 // Генерация картинки через OpenRouter. Ключ читается только здесь, из .secrets/, и никуда не пишется.
+// Без файла ключа (облачная сессия) запрос уходит без Authorization: заголовок подставляет прокси окружения.
 // Учёт трат в tools/gen-ledger.json, жёсткий стоп по ledger.stop. Одновременно работает один процесс (lock-файл).
 //
 // node tools/gen-sprite.mjs <name> [--ref path]... [--aspect 3:2] [--quality high] [--moderation low] [--bg transparent]
@@ -38,6 +39,7 @@ function parseArgs(argv) {
 }
 
 function readKey() {
+  if (!existsSync(KEY_FILE)) return null;
   const raw = readFileSync(KEY_FILE, 'utf8');
   const m = raw.match(/sk-or-[A-Za-z0-9_-]+/);
   if (!m) throw new Error('no OpenRouter key found in .secrets/openrouter-flare');
@@ -106,7 +108,10 @@ async function main() {
     const started = Date.now();
     const res = await fetch(ENDPOINT, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${readKey()}`, 'Content-Type': 'application/json', 'X-Title': 'Fury Survivors asset tool' },
+      headers: {
+        ...(readKey() ? { Authorization: `Bearer ${readKey()}` } : {}),
+        'Content-Type': 'application/json', 'X-Title': 'Fury Survivors asset tool',
+      },
       body: JSON.stringify(body),
     });
     const json = await res.json();

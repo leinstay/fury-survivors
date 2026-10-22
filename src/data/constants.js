@@ -57,6 +57,14 @@ export const COMBAT = {
   weaponStartCooldown: 0.3, // задержка первого выстрела нового оружия до init behavior, с
 };
 
+// Песчаные дороги (src/render/roads.js): цвета RGB, кромка и колея в px мира. Сеть дорог задаёт этап (stage.roads).
+export const ROADS = {
+  base: [184, 158, 104], light: [200, 176, 122], dark: [166, 140, 90],
+  rutColor: [156, 130, 82], pebble: [142, 134, 118],
+  edge: 3,                 // ширина дизеринга на кромке
+  rut: 7, rutWidth: 2,     // колея: полоска на расстоянии rut от края дороги
+};
+
 // HUD (src/ui/hud.js).
 export const HUD = {
   bossBannerTime: 3,       // с, сколько мигает предупреждение о боссе

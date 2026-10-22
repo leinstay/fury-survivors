@@ -6,6 +6,8 @@ import { PICKUPS } from '../../src/data/pickups.js';
 import { createDirector } from '../../src/core/director.js';
 import { ENEMY_BEHAVIORS } from '../../src/behaviors/index.js';
 import { forest } from '../../src/data/stages/forest.js';
+import * as roadsModule from '../../src/core/roads.js';
+import { createRng } from '../../src/core/rng.js';
 
 const DT = 1 / 60;
 const idle = { x: 0, y: 0 };
@@ -404,4 +406,45 @@ test('difficulty: cursed spawns more and gives more xp', () => {
   assert.ok(c.spawned > n.spawned * 1.3, `normal ${n.spawned}, cursed ${c.spawned}`);
   assert.equal(c.xp, n.xp * 1.25);
   assert.equal(createSim({ seed: 1, difficulty: 'nope' }).difficulty, 'normal');
+});
+
+test('roads: continuous lanes, props keep off the road, road props sit on it', () => {
+  const { createRoads } = roadsModule;
+  const cfg = forest.roads;
+  const roads = createRoads(cfg, 123);
+  // полоса непрерывна: расстояние до оси меняется плавно вдоль мира, и какая-то дорога всегда ближе spacing
+  let prev = roads.distance(0, 0);
+  let maxJump = 0;
+  for (let x = 1; x < 4000; x++) {
+    const d = roads.distance(x, 0);
+    maxJump = Math.max(maxJump, Math.abs(d - prev));
+    prev = d;
+    assert.ok(d < cfg.spacing, `distance ${d}`);
+  }
+  assert.ok(maxJump < 2, `max jump ${maxJump}`);
+  // точка на дороге из чанка лежит на оси
+  const rnd = createRng(5);
+  let found = 0;
+  for (let cx = -6; cx <= 6 && found < 3; cx++) {
+    for (let cy = -6; cy <= 6 && found < 3; cy++) {
+      const cs = SIM.chunkSize;
+      const p = roads.pointInChunk(cx * cs, cy * cs, cs, () => rnd.next());
+      if (!p) continue;
+      found++;
+      assert.ok(roads.distance(p.x, p.y) < 1.5, 'point on the axis');
+      assert.ok(roads.crossesChunk(cx * SIM.chunkSize, cy * SIM.chunkSize, SIM.chunkSize));
+    }
+  }
+  assert.ok(found > 0, 'some chunk has a road');
+  // sim: обычные объекты не на дороге, фонари у обочины, объект place 'road' на оси
+  const sim = createSim({ seed: 9 });
+  for (const o of sim.props) {
+    const d = sim.roads.distance(o.x, o.y);
+    if (o.sprite === 'lantern') assert.ok(d > cfg.width / 2, `lantern on road ${d}`);
+  }
+  const cart = sim.placeProp({ sprite: 'x', place: 'road' }, 0, 0, () => rnd.next());
+  const cartIn = roads.pointInChunk(0, 0, SIM.chunkSize, () => 0.5);
+  if (cartIn) assert.ok(cart === null || sim.roads.distance(cart.x, cart.y) < 1.5);
+  const ground = sim.placeProp({ sprite: 'x', big: true }, 0, 0, () => rnd.next());
+  if (ground) assert.ok(sim.roads.distance(ground.x, ground.y) > cfg.width / 2 + 28);
 });

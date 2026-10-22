@@ -207,3 +207,7 @@ node tools/slice-sheet.mjs <sheet> [--report]
 | `flower` | 44×44 | 2 | 2 | `assets/raw/env_props.png` |
 | `barrel` | 44×52 | 1 | 2 | `assets/raw/env_props.png` |
 | `lantern` | 52×80 | 1 | 2 | `assets/raw/env_props.png` |
+| `cart` | 112×104 | 1 | 2 | `assets/raw/env_props2.png` |
+| `signpost` | 96×128 | 1 | 2 | `assets/raw/env_props2.png` |
+| `stump` | 80×72 | 1 | 2 | `assets/raw/env_props2.png` |
+| `fence` | 112×72 | 1 | 2 | `assets/raw/env_props2.png` |

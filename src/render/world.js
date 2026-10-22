@@ -4,6 +4,7 @@ import { GAME_WIDTH, GAME_HEIGHT, FX, LOW_QUALITY } from '../data/constants.js';
 import { ENEMIES } from '../data/enemies.js';
 import { animateCharacter, applyHitSquash } from './anim.js';
 import { Decor } from './decor.js';
+import { Roads } from './roads.js';
 import { spriteScale } from './density.js';
 import { Zones } from './zones.js';
 import { lowQuality } from '../ui/settings.js';
@@ -96,7 +97,8 @@ export class World {
     this.bg = scene.add.tileSprite(0, 0, GAME_WIDTH, GAME_HEIGHT, this._tex('grass'), 0)
       .setOrigin(0, 0).setScrollFactor(0).setDepth(-1e7);
 
-    this.decor = new Decor(scene, sim.stageDef || { props: [] });
+    this.roads = sim.roads ? new Roads(scene, sim.roads) : null;
+    this.decor = new Decor(scene, sim.stageDef || { props: [] }, sim.roads);
 
     this.playerKey = sim.player.sprite || (sim.heroDef && sim.heroDef.sprite) || 'heroine';
     this.player = scene.add.sprite(sim.player.x, sim.player.y, this._tex(this.playerKey), 0);
@@ -226,6 +228,7 @@ export class World {
     this._shadow(p.x, p.y, pl, cam);
     this.bg.tilePositionX = cam.scrollX;
     this.bg.tilePositionY = cam.scrollY;
+    if (this.roads) this.roads.update(cam);
     this.decor.update(cam);
 
     this.pools.enemies.sync(sim.enemies, (e) => e.sprite || e.type, (s, e) => {
@@ -306,6 +309,7 @@ export class World {
     this.pools.props.sync(sim.props, (e) => e.sprite, (s, e) => {
       this._setKey(s, e.sprite);
       s.setScale(spriteScale(e.sprite));
+      s.setFlipX(!!e.angle && Math.cos(e.angle) < 0); // объект на дороге смотрит по её направлению
       s.setPosition(Math.round(e.x), Math.round(e.y));
       s.setDepth(e.y);
     });

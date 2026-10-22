@@ -50,7 +50,9 @@ sim.boss        // живой босс (та же сущность из sim.enem
 sim.projectiles // [{ uid, sprite, x, y, angle, scale, alpha, owner: 'player' | 'enemy' }]
                 // scale задаёт behavior (например, orbit: size из уровня оружия); рендер умножает на 1/density спрайта
 sim.pickups     // [{ uid, type, sprite, kind, value, x, y }]  type = id из data/pickups.js
-sim.props       // [{ uid, sprite, x, y, breakable, hp, drop }]  только разрушаемые; декор рисует render/decor.js
+sim.props       // [{ uid, sprite, x, y, angle, breakable, hp, drop }]  только разрушаемые; декор рисует render/decor.js
+sim.roads       // сеть песчаных дорог (core/roads.js: distance(x, y), onRoad, pointInChunk) или null; рендер рисует
+                // песок по чанкам (render/roads.js), расстановка объектов учитывает дорогу (place в stage.props)
 sim.events      // события этого шага, очищаются в начале step():
                 //   { type: 'hit', x, y, amount, crit, weapon }
                 //   { type: 'kill', x, y, enemy, elite, boss, sprite, size }
