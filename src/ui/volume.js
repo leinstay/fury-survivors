@@ -1,12 +1,15 @@
-// Настройки для Menu и Pause: два слайдера громкости (музыка, звуки) и переключатель тряски экрана.
+// Настройки для Menu и Pause: слайдеры громкости (музыка, звуки) и переключатели: тряска, графика, миникарта,
+// DPS-метр, полный экран (только на таче, где браузер его даёт). Возвращает число строк.
 import { t } from '../i18n/index.js';
 import { addSlider, addButton } from './focus.js';
-import { getVolume, setVolume, getSetting, setSetting } from './settings.js';
+import { getVolume, setVolume, getSetting, setSetting, cycleSetting } from './settings.js';
 import { applyVolumes, playSfx } from '../audio/sfx.js';
+import { canFullscreen, isFullscreen, toggleFullscreen } from './fullscreen.js';
 
 export function addVolumeSliders(scene, nav, { x, y, w, gap = 30 }) {
+  let row = 0;
   addSlider(scene, nav, {
-    x, y, w, label: t('settings.music'),
+    x, y: y + gap * row++, w, label: t('settings.music'),
     get: () => getVolume('music'),
     set: (v) => {
       setVolume('music', v);
@@ -14,7 +17,7 @@ export function addVolumeSliders(scene, nav, { x, y, w, gap = 30 }) {
     },
   });
   addSlider(scene, nav, {
-    x, y: y + gap, w, label: t('settings.sfx'),
+    x, y: y + gap * row++, w, label: t('settings.sfx'),
     get: () => getVolume('sfx'),
     set: (v) => {
       const old = getVolume('sfx');
@@ -22,13 +25,26 @@ export function addVolumeSliders(scene, nav, { x, y, w, gap = 30 }) {
       if (getVolume('sfx') !== old) playSfx(scene, 'ui_move');
     },
   });
-  const shakeLabel = () => `${t('settings.shake')}: ${t(getSetting('shake') ? 'settings.on' : 'settings.off')}`;
-  const toggle = addButton(scene, nav, {
-    x, y: y + 2 * gap, w, h: 24, size: 12, label: shakeLabel(),
-    onSelect: () => {
-      setSetting('shake', !getSetting('shake'));
-      toggle.setLabel(shakeLabel());
-      playSfx(scene, 'ui_move');
-    },
-  });
+  // Кнопка «Название: значение»; onCycle возвращает новое значение.
+  const cycle = (labelKey, value, onCycle) => {
+    const label = () => `${t(labelKey)}: ${value()}`;
+    const b = addButton(scene, nav, {
+      x, y: y + gap * row++, w, h: 24, size: 12, label: label(),
+      onSelect: () => {
+        onCycle();
+        b.setLabel(label());
+        playSfx(scene, 'ui_move');
+      },
+    });
+    return b;
+  };
+  const onOff = (v) => t(v ? 'settings.on' : 'settings.off');
+  cycle('settings.shake', () => onOff(getSetting('shake')), () => setSetting('shake', !getSetting('shake')));
+  cycle('settings.quality', () => t(`settings.quality.${getSetting('quality')}`), () => cycleSetting('quality'));
+  cycle('settings.minimap', () => t(`settings.mode.${getSetting('minimap')}`), () => cycleSetting('minimap'));
+  cycle('settings.dps', () => t(`settings.mode.${getSetting('dps')}`), () => cycleSetting('dps'));
+  if (canFullscreen()) {
+    cycle('settings.fullscreen', () => onOff(isFullscreen()), () => toggleFullscreen());
+  }
+  return row;
 }

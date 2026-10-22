@@ -56,6 +56,23 @@ export const COMBAT = {
 // HUD (src/ui/hud.js).
 export const HUD = {
   bossBannerTime: 3,       // с, сколько мигает предупреждение о боссе
+  dpsWindow: 5,            // с, окно DPS-метра (среднее за последние N секунд, обновление раз в секунду)
+  transparentAlpha: 0.45,  // прозрачность миникарты и DPS в режиме transparent
+  // Миникарта: круг в правом нижнем углу, точки для предметов, элит и боссов (обычных врагов не показывает).
+  minimap: {
+    radius: 34, margin: 8, range: 900, fps: 12, alpha: 0.6, bg: 0x000000, rim: 0xb0a0d0,
+    dots: {
+      player: 0xffffff, chest: 0xffd84a, food: 0x8cff6a, magnet: 0x7fd8ff, coin: 0xffb52e,
+      elite: 0xff3d6e, boss: 0xff2020,
+    },
+  },
+};
+
+// Низкое качество графики (настройка quality, по умолчанию на таче): без свечения снарядов, элита с простым
+// ореолом вместо WebGL glow, меньше частиц, без следа за снарядами, блеска кристаллов и искр.
+export const LOW_QUALITY = {
+  maxParticles: 120,
+  eliteHalo: { size: 3, alpha: 0.35 }, // диаметр ореола = size × радиус элиты, аддитивное наложение
 };
 
 export const XP = {

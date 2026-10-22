@@ -1,16 +1,30 @@
 // Настройки в localStorage. Громкость 0..1 (положение ползунка; реальная громкость ещё умножается
-// на AUDIO.gain в sfx.js), shake — тряска экрана вкл/выкл. v2: шкала сменилась, старые сохранения не переносим.
+// на AUDIO.gain в sfx.js), shake — тряска экрана вкл/выкл, остальное — варианты из OPTIONS.
+// v2: шкала сменилась, старые сохранения не переносим.
 const KEY = 'fury-survivors.settings.v2';
-const DEFAULTS = { music: 1, sfx: 1, shake: true };
+const DEFAULTS = { music: 1, sfx: 1, shake: true, quality: null, minimap: 'full', dps: 'off' };
+// Допустимые значения строковых настроек; порядок = порядок переключения кнопкой.
+export const OPTIONS = {
+  quality: ['high', 'low'],          // low: без свечения снарядов и элит, меньше частиц (по умолчанию на таче)
+  minimap: ['full', 'transparent', 'off'],
+  dps: ['full', 'transparent', 'off'],
+};
 let data = null;
+
+function isTouch() {
+  return typeof navigator !== 'undefined' && (navigator.maxTouchPoints > 0 || 'ontouchstart' in globalThis);
+}
 
 function load() {
   if (data) return data;
   data = { ...DEFAULTS };
+  data.quality = isTouch() ? 'low' : 'high';
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) || '{}');
     for (const k in DEFAULTS) {
-      if (typeof DEFAULTS[k] === 'boolean') {
+      if (OPTIONS[k]) {
+        if (OPTIONS[k].includes(raw[k])) data[k] = raw[k];
+      } else if (typeof DEFAULTS[k] === 'boolean') {
         if (typeof raw[k] === 'boolean') data[k] = raw[k];
       } else if (typeof raw[k] === 'number') {
         data[k] = Math.min(1, Math.max(0, raw[k]));
@@ -33,7 +47,7 @@ export function setVolume(kind, v) {
   save();
 }
 
-// Переключатели (shake).
+// Переключатели (shake, quality, minimap, dps).
 export function getSetting(key) {
   return load()[key];
 }
@@ -41,4 +55,17 @@ export function getSetting(key) {
 export function setSetting(key, v) {
   load()[key] = v;
   save();
+}
+
+// Следующее значение строковой настройки по кругу.
+export function cycleSetting(key) {
+  const list = OPTIONS[key];
+  const v = list[(list.indexOf(getSetting(key)) + 1) % list.length];
+  setSetting(key, v);
+  return v;
+}
+
+// Низкое качество графики: без свечения, меньше частиц.
+export function lowQuality() {
+  return getSetting('quality') === 'low';
 }

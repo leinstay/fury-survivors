@@ -1,6 +1,6 @@
 // Симуляция игры. Чистая логика: без Phaser, без DOM, без Math.random.
 // Контракт полей и методов описан в docs/ARCHITECTURE.md.
-import { SIM, PLAYER, COMBAT, XP, DROPS, LEVEL_UP } from '../data/constants.js';
+import { SIM, PLAYER, COMBAT, XP, DROPS, LEVEL_UP, HUD } from '../data/constants.js';
 import { HEROES } from '../data/heroes.js';
 import { WEAPONS } from '../data/weapons.js';
 import { ENEMIES } from '../data/enemies.js';
@@ -75,6 +75,10 @@ class Sim {
     this.overtime = -1;     // время начала овертайма (stage.overtime) или -1
     this.boss = null;
     this.damageByWeapon = {};
+    this.dps = 0;           // средний урон в секунду за последние HUD.dpsWindow секунд (обновляется раз в секунду)
+    this.dpsAcc = 0;        // урон с начала текущей секунды
+    this.dpsBuckets = [];   // урон по секундам, не больше HUD.dpsWindow
+    this.dpsNext = 1;       // время закрытия текущей секунды
     this.projTint = 0;
     this.events = [];
     this.enemies = [];
@@ -134,6 +138,16 @@ class Sim {
     this.time += dt;
     this.frame++;
     const pl = this.player;
+    while (this.time >= this.dpsNext) {
+      this.dpsNext++;
+      const b = this.dpsBuckets;
+      b.push(this.dpsAcc);
+      this.dpsAcc = 0;
+      if (b.length > HUD.dpsWindow) b.shift();
+      let sum = 0;
+      for (let i = 0; i < b.length; i++) sum += b[i];
+      this.dps = sum / b.length;
+    }
 
     // движение игрока
     let ix = input && input.x ? input.x : 0;
@@ -366,6 +380,7 @@ class Sim {
     e.hp -= amount;
     e.hitFlash = COMBAT.hitFlash;
     this.damageByWeapon[wid] = (this.damageByWeapon[wid] || 0) + dealt;
+    this.dpsAcc += dealt;
     this.events.push({ type: 'hit', x: e.x, y: e.y, amount: Math.max(1, Math.round(amount)), crit, weapon: wid });
     if (kb > 0 && e.resist < 1 && !e.boss) {
       const dx = e.x - sx;

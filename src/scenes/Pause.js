@@ -9,7 +9,7 @@ import { playSfx } from '../audio/sfx.js';
 
 // Билд в две колонки (оружие слева, пассивки справа): 6+6 строк не налезают на кнопки.
 export function addBuildList(scene, x, y, player) {
-  addPanel(scene, x + 150, y + 82, 308, 172);
+  addPanel(scene, x + 150, y + 70, 308, 148);
   scene.add.text(x + 8, y + 4, t('pause.build'), textStyle(14, '#ffd84a')).setOrigin(0, 0);
   [
     ['weapon', t('pause.weapons'), player.weapons, x + 8],
@@ -39,15 +39,17 @@ const STAT_ROWS = [
   ['stat.armor', (s) => String(Math.round((s.armor ?? 0) * 10) / 10)],
 ];
 
-// Компактный блок статов: 2 колонки по 4 строки.
+// Компактный блок статов: 2 колонки по 4 строки, между колонками зазор, чтобы значение первой не сливалось
+// с названием второй.
 export function addStatsBlock(scene, x, y, player) {
   const stats = player.stats || {};
-  addPanel(scene, x + 150, y + 36, 300, 82);
+  addPanel(scene, x + 150, y + 38, 308, 86);
   STAT_ROWS.forEach(([key, fn], i) => {
-    const cx = x + 10 + Math.floor(i / 4) * 148;
-    const cy = y + 4 + (i % 4) * 18;
+    const col = Math.floor(i / 4);
+    const cx = x + 10 + col * 166;
+    const cy = y + 6 + (i % 4) * 18;
     scene.add.text(cx, cy, t(key), textStyle(10, '#aaaaaa')).setOrigin(0, 0);
-    scene.add.text(cx + 136, cy, fn(stats, player), textStyle(10)).setOrigin(1, 0);
+    scene.add.text(cx + 122, cy, fn(stats, player), textStyle(10)).setOrigin(1, 0);
   });
 }
 
@@ -67,16 +69,21 @@ export class PauseScene extends Phaser.Scene {
     const pad = readPad();
     this.padStart = !!(pad && pad.start);
 
+    // Слева: Resume, настройки, Quit (и Finish в овертайме). Справа: билд и статы.
     const cx = 170;
-    addButton(this, this.nav, { x: cx, y: 90, w: 180, h: 30, label: t('pause.resume'), onSelect: () => this.resume() });
-    addVolumeSliders(this, this.nav, { x: cx, y: 140, w: 280 });
-    addButton(this, this.nav, { x: cx, y: 240, w: 180, h: 30, label: t('pause.quit'), onSelect: () => this.quit() });
-    // В овертайме забег можно закончить сразу: победа с текущими очками.
+    const gap = 26;
+    addButton(this, this.nav, { x: cx, y: 62, w: 180, h: 28, label: t('pause.resume'), onSelect: () => this.resume() });
+    const rows = addVolumeSliders(this, this.nav, { x: cx, y: 100, w: 280, gap });
+    const qy = 100 + rows * gap + 10;
     if (this.sim.overtime >= 0) {
-      addButton(this, this.nav, { x: cx, y: 276, w: 180, h: 30, label: t('pause.finish'), color: '#ffd84a', onSelect: () => this.finish() });
+      // В овертайме забег можно закончить сразу: победа с текущими очками.
+      addButton(this, this.nav, { x: cx - 70, y: qy, w: 136, h: 28, size: 12, label: t('pause.quit'), onSelect: () => this.quit() });
+      addButton(this, this.nav, { x: cx + 72, y: qy, w: 136, h: 28, size: 12, label: t('pause.finish'), color: '#ffd84a', onSelect: () => this.finish() });
+    } else {
+      addButton(this, this.nav, { x: cx, y: qy, w: 180, h: 28, label: t('pause.quit'), onSelect: () => this.quit() });
     }
-    addStatsBlock(this, 20, 262, this.sim.player);
-    addBuildList(this, 330, 56, this.sim.player);
+    addBuildList(this, 330, 44, this.sim.player);
+    addStatsBlock(this, 330, 232, this.sim.player);
 
     this.input.keyboard.on('keydown-P', () => this.resume());
   }

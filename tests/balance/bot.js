@@ -2,7 +2,8 @@
 //   greedy — кайтит от ближайших врагов, жадно берёт любые карточки (прежний бот, по умолчанию);
 //   idle   — стоит на месте, берёт Holy Ground, Storm Chain и защитные пассивки (max_hp, armor, regen):
 //            проверка, что «встал в чеснок и победил» не работает;
-//   kite   — кайтит с осмысленным билдом: Blade Arc + Throwing Daggers + War Axe, атака, скорострельность, HP.
+//   kite   — кайтит с осмысленным билдом: Blade Arc + Throwing Daggers + War Axe, атака, скорострельность, HP;
+//   tank   — кайтит с билдом на выживание: Storm Chain + Holy Ground, реген, броня, криты (оценка рекордов).
 import { createSim } from '../../src/core/sim.js';
 
 const CARD_SCORE = {
@@ -35,6 +36,10 @@ const BUILDS = {
   kite: {
     weapons: { blade_arc: 10, throwing_daggers: 9, war_axe: 8 },
     passives: { attack: 5, haste: 4.5, max_hp: 4, armor: 3.5, speed: 3, regen: 2.5 },
+  },
+  tank: {
+    weapons: { storm_chain: 10, holy_ground: 9, blade_arc: 6 },
+    passives: { regen: 5, armor: 5, crit: 4.5, attack: 4, haste: 3.5, max_hp: 3 },
   },
 };
 

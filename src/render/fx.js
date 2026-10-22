@@ -2,10 +2,10 @@
 // след за снарядами, блеск кристаллов опыта и искры над огнём (FX.trail, FX.twinkle, FX.embers).
 // Все пулы кольцевые и ограниченные (самые старые переиспользуются), поэтому без утечек и без просадок fps.
 import { SPRITES } from '../../assets/sprites/manifest.js';
-import { GAME_WIDTH, GAME_HEIGHT, FX } from '../data/constants.js';
+import { GAME_WIDTH, GAME_HEIGHT, FX, LOW_QUALITY } from '../data/constants.js';
 import { textStyle } from '../ui/style.js';
 import { spriteScale } from './density.js';
-import { getSetting } from '../ui/settings.js';
+import { getSetting, lowQuality } from '../ui/settings.js';
 
 const DEPTH_PARTICLE = 300000;
 const DEPTH_TEXT = 400000;
@@ -70,7 +70,8 @@ export class Fx {
     };
     this.texts = new Ring(FX.dmgText.max, mkText);
 
-    this.particles = new Ring(FX.maxParticles, () => {
+    this.low = lowQuality(); // низкое качество: меньше частиц, без следа, блеска и искр
+    this.particles = new Ring(this.low ? LOW_QUALITY.maxParticles : FX.maxParticles, () => {
       const s = scene.add.image(0, 0, 'fx_px').setDepth(DEPTH_PARTICLE).setVisible(false);
       s.life = 0;
       return s;
@@ -209,6 +210,7 @@ export class Fx {
 
   // След, блеск, искры: по таймерам, на ограниченное число объектов за раз.
   _ambient(dt) {
+    if (this.low) return;
     const sim = this.scene.sim;
     if ((this.trailT -= dt) <= 0) {
       this.trailT = FX.trail.every;

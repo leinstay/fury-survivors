@@ -5,6 +5,7 @@ import { addVolumeSliders } from '../ui/volume.js';
 import { textStyle, COLORS } from '../ui/style.js';
 import { stopMusic } from '../audio/sfx.js';
 import { spriteScale } from '../render/density.js';
+import { requestFullscreen } from '../ui/fullscreen.js';
 
 export class MenuScene extends Phaser.Scene {
   constructor() {
@@ -42,14 +43,16 @@ export class MenuScene extends Phaser.Scene {
       if (this.textures.exists('heroine_menu')) this.add.image(cx + 170, 318, 'heroine_menu').setOrigin(0.5, 1).setScale(spriteScale('heroine_menu'));
       const bw = 160;
       const bh = 30;
-      addButton(this, this.nav, { x: cx, y: 150, w: bw, h: bh, label: t('menu.play'), onSelect: () => this.scene.start('Game') });
+      // На телефоне Play разворачивает игру на весь экран (нужен жест пользователя, нажатие кнопки им и является).
+      addButton(this, this.nav, { x: cx, y: 150, w: bw, h: bh, label: t('menu.play'), onSelect: () => { requestFullscreen(); this.scene.start('Game'); } });
       addButton(this, this.nav, { x: cx, y: 190, w: bw, h: bh, label: t('menu.leaderboard'), onSelect: () => this.scene.start('Leaderboard') });
       addButton(this, this.nav, { x: cx, y: 230, w: bw, h: bh, label: t('menu.settings'), onSelect: () => this.show('settings') });
       this.add.text(cx, GAME_HEIGHT - 14, t('menu.hint'), textStyle(10, '#dddddd', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5);
     } else {
-      this.add.text(cx, 108, t('settings.title'), textStyle(16)).setOrigin(0.5);
-      addVolumeSliders(this, this.nav, { x: cx, y: 150, w: 300 });
-      addButton(this, this.nav, { x: cx, y: 250, w: 120, h: 30, label: t('settings.back'), onSelect: () => this.show('main') });
+      this.add.text(cx, 100, t('settings.title'), textStyle(16)).setOrigin(0.5);
+      const gap = 28;
+      const rows = addVolumeSliders(this, this.nav, { x: cx, y: 126, w: 300, gap });
+      addButton(this, this.nav, { x: cx, y: 126 + rows * gap + 8, w: 120, h: 30, label: t('settings.back'), onSelect: () => this.show('main') });
     }
     this.objs = this.children.list.filter((o) => !before.has(o) && o.type !== 'Zone');
     this.nav.focus(0);

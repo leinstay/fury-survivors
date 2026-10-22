@@ -1,11 +1,12 @@
 // Синхронизация спрайтов с состоянием sim: пулы по uid, сортировка по y, вспышки, анимация.
 import { SPRITES } from '../../assets/sprites/manifest.js';
-import { GAME_WIDTH, GAME_HEIGHT, FX } from '../data/constants.js';
+import { GAME_WIDTH, GAME_HEIGHT, FX, LOW_QUALITY } from '../data/constants.js';
 import { ENEMIES } from '../data/enemies.js';
 import { animateCharacter, applyHitSquash } from './anim.js';
 import { Decor } from './decor.js';
 import { spriteScale } from './density.js';
 import { Zones } from './zones.js';
+import { lowQuality } from '../ui/settings.js';
 
 const PICKUP_DEPTH = -100000;
 const PROJ_DEPTH = 200000;
@@ -105,9 +106,11 @@ export class World {
       enemies: new Pool(scene),
       projectiles: new Pool(scene),
       glows: new Pool(scene),
+      halos: new Pool(scene),
       pickups: new Pool(scene),
       props: new Pool(scene),
     };
+    this.low = lowQuality(); // читается при старте забега: смена настройки в паузе применится со следующего
     scene.cameras.main.setRoundPixels(true);
 
     if (!scene.textures.exists('fx_shadow')) {
@@ -143,8 +146,9 @@ export class World {
   }
 
   // Свечение элиты: glow-эффект WebGL вокруг силуэта, сам спрайт не перекрашивается. Сила пульсирует.
+  // На низком качестве вместо шейдера простой аддитивный ореол под элитой (пул halos).
   _glow(s, e, time) {
-    if (!s.preFX) return; // Canvas-рендер без эффектов
+    if (!s.preFX || this.low) return; // Canvas-рендер без эффектов
     const g = ELITE_GLOW;
     if (!s.eliteGlow) {
       const ed = ENEMIES[e.type] && ENEMIES[e.type].elite;
@@ -180,11 +184,21 @@ export class World {
     else s.clearTint();
   }
 
-  // Снаряды со свечением (FX.projGlow); список переиспользуется между кадрами.
+  // Снаряды со свечением (FX.projGlow); список переиспользуется между кадрами. На низком качестве пусто.
   _glowing(list) {
     const out = this.glowList || (this.glowList = []);
     out.length = 0;
+    if (this.low) return out;
     for (const p of list) if (!p.fx && FX.projGlow[p.sprite]) out.push(p);
+    return out;
+  }
+
+  // Элиты для ореола на низком качестве.
+  _elites(list) {
+    const out = this.eliteList || (this.eliteList = []);
+    out.length = 0;
+    if (!this.low) return out;
+    for (const e of list) if (e.elite && !e.dead) out.push(e);
     return out;
   }
 
@@ -233,6 +247,15 @@ export class World {
       if (!this.shadows[i].visible) break;
       this.shadows[i].setVisible(false);
     }
+    const halo = LOW_QUALITY.eliteHalo;
+    this.pools.halos.sync(this._elites(sim.enemies), () => 'fx_halo', (s, e, isNew) => {
+      if (isNew) s.setBlendMode(Phaser.BlendModes.ADD);
+      const ed = ENEMIES[e.type] && ENEMIES[e.type].elite;
+      s.setPosition(Math.round(e.x), Math.round(e.y) - Math.round(e.size * 0.5));
+      s.setScale((e.size * halo.size) / HALO_SIZE);
+      s.setTint(ed && ed.glow !== undefined ? ed.glow : ELITE_GLOW.color).setAlpha(halo.alpha);
+      s.setDepth(e.y - 1);
+    });
 
     // предупреждения об ударах босса: заливка растёт от центра до края за delay
     const g = this.telegraphGfx;
