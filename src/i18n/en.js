@@ -52,7 +52,7 @@ export const en = {
   'hud.kills': 'Kills {n}',
   'hud.pause': 'II',
   'hud.score': 'Score {n}',
-  'hud.dps': 'DPS {n}',
+  'hud.dps_label': 'DPS',
   'boss.warning': 'WARNING! A BOSS APPROACHES',
   'hud.overtime': 'OVERTIME!',
   'hud.overtime_hint': 'The forest wakes. Survive for score!',

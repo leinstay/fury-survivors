@@ -79,8 +79,9 @@ class Sim {
     this.boss = null;
     this.damageByWeapon = {};
     this.dps = 0;           // средний урон в секунду за последние HUD.dpsWindow секунд (обновляется раз в секунду)
-    this.dpsAcc = 0;        // урон с начала текущей секунды
-    this.dpsBuckets = [];   // урон по секундам, не больше HUD.dpsWindow
+    this.dpsByWeapon = {};  // то же по оружию { weaponId: dps }
+    this.dpsAcc = {};       // урон по оружию с начала текущей секунды
+    this.dpsBuckets = [];   // урон по секундам (объекты по оружию), не больше HUD.dpsWindow
     this.dpsNext = 1;       // время закрытия текущей секунды
     this.projTint = 0;
     this.events = [];
@@ -146,10 +147,15 @@ class Sim {
       this.dpsNext++;
       const b = this.dpsBuckets;
       b.push(this.dpsAcc);
-      this.dpsAcc = 0;
+      this.dpsAcc = {};
       if (b.length > HUD.dpsWindow) b.shift();
+      const byW = {};
       let sum = 0;
-      for (let i = 0; i < b.length; i++) sum += b[i];
+      for (let i = 0; i < b.length; i++) {
+        for (const wid in b[i]) { byW[wid] = (byW[wid] || 0) + b[i][wid]; sum += b[i][wid]; }
+      }
+      for (const wid in byW) byW[wid] /= b.length;
+      this.dpsByWeapon = byW;
       this.dps = sum / b.length;
     }
 
@@ -388,7 +394,7 @@ class Sim {
     e.hp -= amount;
     e.hitFlash = COMBAT.hitFlash;
     this.damageByWeapon[wid] = (this.damageByWeapon[wid] || 0) + dealt;
-    this.dpsAcc += dealt;
+    this.dpsAcc[wid] = (this.dpsAcc[wid] || 0) + dealt;
     this.events.push({ type: 'hit', x: e.x, y: e.y, amount: Math.max(1, Math.round(amount)), crit, weapon: wid });
     if (kb > 0 && e.resist < 1 && !e.boss) {
       const dx = e.x - sx;

@@ -34,11 +34,13 @@ export class Hud {
     this.killText = add(scene.add.text(GAME_WIDTH - 8, 20, '', textStyle(12, '#ffffff', { stroke: '#000000', strokeThickness: 3 })).setOrigin(1, 0));
     // Счёт по формуле таблицы рекордов, считается на лету (монеты входят в него).
     this.scoreText = add(scene.add.text(GAME_WIDTH - 8, 34, '', textStyle(12, '#ffd84a', { stroke: '#000000', strokeThickness: 3 })).setOrigin(1, 0));
-    // DPS-метр: среднее за HUD.dpsWindow секунд, настройка dps: full / transparent / off.
+    // DPS-метр: как на экране итогов, по оружию и общий, среднее за HUD.dpsWindow секунд.
+    // Настройка dps: full / transparent / off. Строки пересобираются вместе со слотами оружия.
     this.dpsMode = getSetting('dps');
-    this.dpsText = add(scene.add.text(GAME_WIDTH - 8, 48, '', textStyle(10, '#9ad0ff', { stroke: '#000000', strokeThickness: 3 })).setOrigin(1, 0))
-        .setVisible(this.dpsMode !== 'off').setAlpha(this.dpsMode === 'transparent' ? HUD.transparentAlpha : 1);
-    this.dpsShown = -1;
+    this.dpsAlpha = this.dpsMode === 'transparent' ? HUD.transparentAlpha : 1;
+    this.dpsY = touch ? HUD.dpsMeter.touchY : HUD.dpsMeter.y;
+    this.dpsRows = [];
+    this.dpsObjs = [];
     // Миникарта: настройка minimap: full / transparent / off.
     this.mapMode = getSetting('minimap');
     this.map = add(scene.add.graphics()).setVisible(this.mapMode !== 'off')
@@ -150,9 +152,59 @@ export class Hud {
     g.fillStyle(m.dots.player, 1).fillRect(cx - 1, cy - 1, 2, 2);
   }
 
+  // Строки DPS-метра: общая сверху, затем по оружию в порядке слотов.
+  _rebuildDps() {
+    for (const o of this.dpsObjs) o.destroy();
+    this.dpsObjs = [];
+    this.dpsRows = [];
+    if (this.dpsMode === 'off') return;
+    const m = HUD.dpsMeter;
+    const right = GAME_WIDTH - 8;
+    const left = right - m.width;
+    const add = (o) => {
+      o.setScrollFactor(0).setDepth(D).setAlpha(this.dpsAlpha);
+      this.dpsObjs.push(o);
+      return o;
+    };
+    const rows = this.sim.player.weapons.length + 1;
+    add(this.scene.add.rectangle(left - 4, this.dpsY - 2, m.width + 8, rows * m.rowH + 4,
+        0x000000, 0.45).setOrigin(0, 0));
+    const row = (i, id) => {
+      const y = this.dpsY + i * m.rowH + m.rowH / 2;
+      if (id) add(addIcon(this.scene, left + m.icon / 2, y, iconKeyFor('weapon', id), m.icon, 'weapon', id));
+      else {
+        add(this.scene.add.text(left, y, t('hud.dps_label'),
+            textStyle(8, '#ffd84a', { stroke: '#000000', strokeThickness: 2 })).setOrigin(0, 0.5));
+      }
+      const color = id ? m.color : m.total;
+      const bar = add(this.scene.add.rectangle(left + m.icon + 4, y, 1, m.barH, color)
+          .setOrigin(0, 0.5));
+      const num = add(this.scene.add.text(right, y, '',
+          textStyle(8, '#ffffff', { stroke: '#000000', strokeThickness: 2 })).setOrigin(1, 0.5));
+      this.dpsRows.push({ id, bar, num });
+    };
+    row(0, null);
+    this.sim.player.weapons.forEach((w, i) => row(i + 1, w.id));
+    this.dpsShown = null;
+  }
+
+  _updateDps() {
+    const sim = this.sim;
+    if (sim.dpsByWeapon === this.dpsShown) return; // sim меняет объект раз в секунду
+    this.dpsShown = sim.dpsByWeapon;
+    const m = HUD.dpsMeter;
+    const total = sim.dps;
+    for (const r of this.dpsRows) {
+      const v = r.id ? (sim.dpsByWeapon[r.id] || 0) : total;
+      r.bar.width = Math.max(1, Math.round(m.bar * (total > 0 ? v / total : 0)));
+      r.num.setText(String(Math.round(v)));
+    }
+  }
+
   _rebuildSlots() {
     for (const s of this.slots) s.destroy();
     this.slots = [];
+    this._rebuildDps();
     const p = this.sim.player;
     const row = (list, kind, y) => {
       list.forEach((it, i) => {
@@ -179,10 +231,7 @@ export class Hud {
       time: sim.time, kills: sim.kills, coins: sim.coins, victory: sim.won,
     });
     this.scoreText.setText(t('hud.score', { n: score }));
-    if (this.dpsMode !== 'off') {
-      const d = Math.round(sim.dps);
-      if (d !== this.dpsShown) { this.dpsShown = d; this.dpsText.setText(t('hud.dps', { n: d })); }
-    }
+    if (this.dpsMode !== 'off') this._updateDps();
     if (this.mapMode !== 'off' && sim.time >= this.mapNext) {
       this.mapNext = sim.time + 1 / HUD.minimap.fps;
       this._drawMap();
