@@ -20,18 +20,18 @@ export const HEROES = {
     menu: { art: 'heroine_menu', side: 'right' },
     startWeapon: 'blade_arc',
     stats: {
-      maxHp: 100, atk: 1, speed: 90, crit: 0.05, pickup: 1,
+      maxHp: 120, atk: 1, speed: 90, crit: 0.05, pickup: 1,
       haste: 1, luck: 1, armor: 0, regen: 0,
     },
   },
-  // Магесса: стартует с молнией (Storm Chain). Хрупче, зато быстрее, сильнее бьёт и чаще критует.
+  // Магесса: стартует с молнией (Storm Chain). Хрупче, зато сильнее бьёт и чаще критует.
   mage: {
     sprite: 'mage',
     portrait: 'mage_portrait',
     menu: { art: 'mage_menu', side: 'left' },
     startWeapon: 'storm_chain',
     stats: {
-      maxHp: 80, atk: 1.25, speed: 95, crit: 0.15, pickup: 1,
+      maxHp: 80, atk: 1.25, speed: 90, crit: 0.15, pickup: 1,
       haste: 1, luck: 1, armor: 0, regen: 0,
     },
   },
@@ -40,7 +40,7 @@ export const HEROES = {
 // Средний герой: черты на экране выбора («+ATK», «-HP») — разница статов героя с этими числами
 // (core/heroes.js heroTraits). Сами статы игроку не показываются.
 export const HERO_BASE = {
-  maxHp: 90, atk: 1, speed: 92, crit: 0.05, pickup: 1, haste: 1, luck: 1, armor: 0, regen: 0,
+  maxHp: 90, atk: 1, speed: 90, crit: 0.05, pickup: 1, haste: 1, luck: 1, armor: 0, regen: 0,
 };
 
 // Герой по умолчанию: первый запуск, неизвестный id (старые сохранения, сообщение из сети).
