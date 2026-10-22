@@ -14,15 +14,15 @@ test('balance: level at 5:00 is in range', () => {
   // считаем только забеги, дожившие до 5:00
   for (const r of withUpgrades.filter((x) => x.time >= 300)) {
     const lv = r.levelAt[300];
-    assert.ok(lv >= 8 && lv <= 24, `level at 5:00 = ${lv}`);
+    assert.ok(lv >= 8 && lv <= 28, `level at 5:00 = ${lv}`); // слабые базовые оружия подтянуты к чесноку: растёт быстрее
   }
 });
 
-test('balance: level 10 comes between 1:20 and 5:30', () => {
+test('balance: level 10 comes between 1:00 and 5:30', () => {
   // забеги, дожившие до 5:30
   for (const r of withUpgrades.filter((x) => x.time >= 330)) {
     const t = r.levelTimes[10];
-    assert.ok(t >= 80 && t <= 330, `level 10 at ${t}s`);
+    assert.ok(t >= 60 && t <= 330, `level 10 at ${t}s`);
   }
 });
 

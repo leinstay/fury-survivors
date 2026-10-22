@@ -1,4 +1,5 @@
-// Guardian Shields: щиты вращаются вокруг игрока duration секунд, потом пауза cooldown.
+// Guardian Shields: щиты вращаются вокруг игрока duration секунд, потом пауза cooldown. Щиты бьют врагов и
+// ловят вражеские снаряды (и у эволюций и коллабов со щитами: они собраны из того же behavior).
 // Для супероружия duration огромный, щиты не гаснут.
 import { WEAPON_BEHAVIOR } from '../../data/weapons.js';
 
@@ -15,6 +16,7 @@ function addShield(w, sim) {
   p.pierce = 1e9;
   p.rehit = REHIT;
   p.rehitOwn = true; // каждый щит бьёт цель по своему таймеру, как книги в VS
+  p.blocks = true;   // ловит вражеские снаряды (sim._updateProjectiles)
   p.wid = w.id;
   p.slot = w.slot;
   p.ws = w;

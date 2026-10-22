@@ -8,6 +8,7 @@
 //   evolved: true,               // только у супероружия (см. combos.js); в карточки не попадает
 //   tint: 0xff9040,              // цвет снарядов (необязательно)
 //   parts: [...]                 // behavior 'combo': части коллаба, см. src/behaviors/weapons/combo.js
+//   power: 1.2,                  // behavior 'combo': множитель урона всех частей (подгонка без правки общих пресетов)
 //   levels: [                    // levels[0] = уровень 1; каждая следующая запись — полный набор чисел
 //     { damage, cooldown, amount, area, speed, duration, pierce, knockback, ... },
 //   ],
@@ -25,11 +26,11 @@
 // Пресеты частей коллабов: behavior, спрайт и числа чуть выше максимального уровня исходного оружия
 // (примерно 1.3-2× DPS уровня 7), коллаб целиком — примерно 1.5-2× суммы двух оружий уровня 7.
 const B = { behavior: 'melee_arc', sprite: 'proj_blade_arc', damage: 42, cooldown: 1.0, amount: 2, area: 84, knockback: 130 };
-const D = { behavior: 'projectile', sprite: 'proj_dagger', damage: 22, cooldown: 0.6, amount: 5, speed: 360, duration: 1.5, pierce: 3, knockback: 80 };
+const D = { behavior: 'projectile', sprite: 'proj_dagger', damage: 30, cooldown: 0.6, amount: 6, speed: 360, duration: 1.5, pierce: 3, knockback: 80 };
 const S = { behavior: 'orbit', sprite: 'proj_shield', damage: 25, cooldown: 0, amount: 5, area: 66, speed: 4.2, duration: 1e9, knockback: 120 };
 const H = { behavior: 'aura', sprite: 'proj_holy_ground', damage: 18, cooldown: 0.9, area: 115, knockback: 35 };
 const A = { behavior: 'boomerang', sprite: 'proj_axe', damage: 28, cooldown: 1.8, amount: 3, area: 195, speed: 270, duration: 4, knockback: 100 };
-const C = { behavior: 'chain', sprite: 'proj_chain', damage: 36, cooldown: 2.5, amount: 2, jumps: 5, area: 125, range: 300, knockback: 40 };
+const C = { behavior: 'chain', sprite: 'proj_chain', damage: 80, cooldown: 1.0, amount: 3, jumps: 6, area: 125, range: 300, knockback: 40 };
 const F = { behavior: 'area_drop', sprite: 'proj_firebomb', damage: 34, cooldown: 2.0, amount: 3, area: 70, duration: 3.5, fireDamage: 0.5, knockback: 80 };
 const part = (base, over, tint) => ({ ...base, ...over, ...(tint ? { tint } : {}) });
 
@@ -75,19 +76,19 @@ export const WEAPONS = {
     // VS Knife: L1 6.5 / 1.0 с, 1 нож; L8 16.5 × 6, pierce 3.
     icon: 'icon_throwing_daggers', sprite: 'proj_dagger', behavior: 'projectile', maxLevel: 7,
     levels: [
-      { damage: 7, cooldown: 1.0, amount: 1, speed: 280,
-        duration: 1.2, pierce: 0, knockback: 40 },
-      { damage: 7, cooldown: 1.0, amount: 2, speed: 280,
-        duration: 1.2, pierce: 0, knockback: 40 },
-      { damage: 10, cooldown: 1.0, amount: 2, speed: 300,
-        duration: 1.2, pierce: 1, knockback: 50 },
-      { damage: 10, cooldown: 0.95, amount: 3, speed: 300,
-        duration: 1.3, pierce: 1, knockback: 50 },
-      { damage: 13, cooldown: 0.95, amount: 3, speed: 320,
-        duration: 1.3, pierce: 2, knockback: 60 },
-      { damage: 13, cooldown: 0.9, amount: 4, speed: 320,
-        duration: 1.4, pierce: 2, knockback: 60 },
-      { damage: 16, cooldown: 0.9, amount: 5, speed: 340,
+      { damage: 8, cooldown: 0.9, amount: 2, speed: 280,
+        duration: 1.2, pierce: 1, knockback: 40 },
+      { damage: 10, cooldown: 0.9, amount: 3, speed: 280,
+        duration: 1.2, pierce: 1, knockback: 40 },
+      { damage: 12, cooldown: 0.9, amount: 3, speed: 300,
+        duration: 1.2, pierce: 2, knockback: 50 },
+      { damage: 14, cooldown: 0.85, amount: 4, speed: 300,
+        duration: 1.3, pierce: 2, knockback: 50 },
+      { damage: 16, cooldown: 0.85, amount: 4, speed: 320,
+        duration: 1.3, pierce: 3, knockback: 60 },
+      { damage: 22, cooldown: 0.8, amount: 5, speed: 320,
+        duration: 1.4, pierce: 3, knockback: 60 },
+      { damage: 28, cooldown: 0.7, amount: 6, speed: 340,
         duration: 1.4, pierce: 3, knockback: 70 },
     ],
   },
@@ -95,13 +96,20 @@ export const WEAPONS = {
     // VS King Bible: L1 10 урона, 1 книга, 3 с вращения, пауза 3 с; L8 30 × 4, 4 с.
     icon: 'icon_guardian_shields', sprite: 'proj_shield', behavior: 'orbit', maxLevel: 7,
     levels: [
-      { damage: 10, cooldown: 3.0, amount: 1, area: 44, speed: 2.8, duration: 3.0, knockback: 80 },
-      { damage: 10, cooldown: 3.0, amount: 2, area: 46, speed: 3.0, duration: 3.0, knockback: 80 },
-      { damage: 14, cooldown: 3.0, amount: 2, area: 48, speed: 3.2, duration: 3.2, knockback: 90 },
-      { damage: 14, cooldown: 3.0, amount: 3, area: 50, speed: 3.4, duration: 3.4, knockback: 90 },
-      { damage: 18, cooldown: 2.8, amount: 3, area: 54, speed: 3.6, duration: 3.6, knockback: 100 },
-      { damage: 22, cooldown: 2.8, amount: 4, area: 58, speed: 3.8, duration: 3.8, knockback: 100 },
-      { damage: 26, cooldown: 2.6, amount: 4, area: 62, speed: 4.0, duration: 4.0, knockback: 110 },
+      { damage: 12, cooldown: 2.0, amount: 2, area: 28, hitRadius: 12,
+        speed: 3.2, duration: 4.0, knockback: 40 },
+      { damage: 15, cooldown: 2.0, amount: 3, area: 30, hitRadius: 14,
+        speed: 3.3, duration: 4.0, knockback: 40 },
+      { damage: 20, cooldown: 2.0, amount: 3, area: 32, hitRadius: 15,
+        speed: 3.5, duration: 4.0, knockback: 45 },
+      { damage: 22, cooldown: 1.9, amount: 4, area: 34, hitRadius: 16,
+        speed: 3.7, duration: 4.0, knockback: 45 },
+      { damage: 26, cooldown: 1.8, amount: 4, area: 36, hitRadius: 20,
+        speed: 3.9, duration: 4.0, knockback: 50 },
+      { damage: 30, cooldown: 1.7, amount: 5, area: 38, hitRadius: 20,
+        speed: 4.1, duration: 4.0, knockback: 50 },
+      { damage: 36, cooldown: 1.6, amount: 6, area: 40, hitRadius: 22,
+        speed: 4.4, duration: 4.0, knockback: 55 },
     ],
   },
   holy_ground: {
@@ -110,10 +118,10 @@ export const WEAPONS = {
     levels: [
       { damage: 5, cooldown: 1.3, area: 55, knockback: 15 },
       { damage: 6, cooldown: 1.25, area: 62, knockback: 15 },
-      { damage: 7, cooldown: 1.2, area: 70, knockback: 20 },
-      { damage: 9, cooldown: 1.15, area: 78, knockback: 20 },
-      { damage: 11, cooldown: 1.1, area: 86, knockback: 25 },
-      { damage: 13, cooldown: 1.05, area: 95, knockback: 25 },
+      { damage: 8, cooldown: 1.2, area: 70, knockback: 20 },
+      { damage: 10, cooldown: 1.15, area: 78, knockback: 20 },
+      { damage: 12, cooldown: 1.1, area: 86, knockback: 25 },
+      { damage: 14, cooldown: 1.05, area: 95, knockback: 25 },
       { damage: 15, cooldown: 1.0, area: 105, knockback: 30 },
     ],
   },
@@ -123,26 +131,26 @@ export const WEAPONS = {
     levels: [
       { damage: 12, cooldown: 3.0, amount: 1, area: 110, speed: 200, duration: 4, knockback: 60 },
       { damage: 12, cooldown: 2.9, amount: 2, area: 120, speed: 210, duration: 4, knockback: 60 },
-      { damage: 17, cooldown: 2.8, amount: 2, area: 130, speed: 220, duration: 4, knockback: 70 },
-      { damage: 17, cooldown: 2.6, amount: 2, area: 145, speed: 230, duration: 4, knockback: 70 },
+      { damage: 16, cooldown: 2.8, amount: 2, area: 130, speed: 220, duration: 4, knockback: 70 },
+      { damage: 16, cooldown: 2.6, amount: 2, area: 145, speed: 230, duration: 4, knockback: 70 },
       { damage: 20, cooldown: 2.4, amount: 3, area: 155, speed: 240, duration: 4, knockback: 80 },
       { damage: 20, cooldown: 2.2, amount: 3, area: 170, speed: 250, duration: 4, knockback: 80 },
       { damage: 25, cooldown: 2.0, amount: 3, area: 185, speed: 260, duration: 4, knockback: 90 },
     ],
   },
   storm_chain: {
-    // VS Lightning Ring: L1 15 × 2 удара / 4.5 с; L8 65 × 6 / 4.5 с (~87 DPS на всю толпу).
-    // Молния бьёт (1 + jumps) врагов, всего amount × (1 + jumps) ударов за cooldown. Ранние уровни сильнее VS:
-    // стартовое оружие магессы, L1 с её атакой (×1.25) убивает первых врагов (кошка 16 HP) с одного удара.
+    // Молния бьёт (1 + jumps) врагов, всего amount × (1 + jumps) ударов за cooldown. Рост L1 → L7 ровный
+    // (~×1.6 за уровень): L1 наравне с чесноком, L7 наравне с остальными L7 (~900–1100 урона в секунду по толпе
+    // на 11-й минуте, замер бессмертным героем на месте).
     icon: 'icon_storm_chain', sprite: 'proj_chain', behavior: 'chain', maxLevel: 7,
     levels: [
-      { damage: 16, cooldown: 3.5, amount: 1, jumps: 1, area: 90, range: 230, knockback: 20 },
-      { damage: 16, cooldown: 3.4, amount: 1, jumps: 2, area: 95, range: 240, knockback: 20 },
-      { damage: 18, cooldown: 3.3, amount: 1, jumps: 2, area: 100, range: 250, knockback: 25 },
-      { damage: 18, cooldown: 3.2, amount: 2, jumps: 2, area: 105, range: 260, knockback: 25 },
-      { damage: 21, cooldown: 3.1, amount: 2, jumps: 3, area: 110, range: 270, knockback: 30 },
-      { damage: 24, cooldown: 3.0, amount: 2, jumps: 3, area: 115, range: 280, knockback: 30 },
-      { damage: 28, cooldown: 3.0, amount: 2, jumps: 4, area: 120, range: 290, knockback: 35 },
+      { damage: 16, cooldown: 1.25, amount: 1, jumps: 3, area: 90, range: 230, knockback: 20 },
+      { damage: 18, cooldown: 1.25, amount: 1, jumps: 4, area: 95, range: 240, knockback: 20 },
+      { damage: 22, cooldown: 1.2, amount: 1, jumps: 5, area: 100, range: 250, knockback: 25 },
+      { damage: 22, cooldown: 1.2, amount: 2, jumps: 5, area: 105, range: 260, knockback: 25 },
+      { damage: 34, cooldown: 1.15, amount: 2, jumps: 5, area: 110, range: 270, knockback: 30 },
+      { damage: 52, cooldown: 1.15, amount: 3, jumps: 5, area: 115, range: 280, knockback: 30 },
+      { damage: 75, cooldown: 1.1, amount: 3, jumps: 5, area: 120, range: 290, knockback: 35 },
     ],
   },
   firebomb: {
@@ -180,7 +188,7 @@ export const WEAPONS = {
     // Throwing Daggers + Storm Chain: град пробивающих клинков.
     icon: 'icon_thunder_knives', sprite: 'proj_dagger', behavior: 'projectile', maxLevel: 1, evolved: true,
     levels: [
-      { damage: 22, cooldown: 0.6, amount: 6, speed: 380,
+      { damage: 48, cooldown: 0.6, amount: 6, speed: 380,
         duration: 1.5, pierce: 5, knockback: 80 },
     ],
   },
@@ -287,7 +295,7 @@ export const WEAPONS = {
   hellfire: {
     icon: 'icon_hellfire', behavior: 'combo', maxLevel: 1, evolved: true,
     levels: [{ damage: 0, cooldown: 1 }],
-    parts: [part(H, { damage: 21 }, 0xff7040), part(F, {})],
+    parts: [part(H, { damage: 20 }, 0xff7040), part(F, {})],
   },
   // war_axe + storm_chain
   thunder_axe: {
@@ -311,14 +319,14 @@ export const WEAPONS = {
   crimson_arc: {
     icon: 'icon_crimson_arc', sprite: 'proj_blade_arc', behavior: 'melee_arc', maxLevel: 1, evolved: true, tint: 0xff5050,
     levels: [
-      { damage: 36, cooldown: 1.0, amount: 3, area: 96, knockback: 150 },
+      { damage: 15, cooldown: 1.0, amount: 3, area: 96, knockback: 150 },
     ],
   },
   // throwing_daggers + haste
   thousand_edge: {
     icon: 'icon_thousand_edge', sprite: 'proj_dagger', behavior: 'projectile', maxLevel: 1, evolved: true,
     levels: [
-      { damage: 20, cooldown: 0.3, amount: 3, speed: 420,
+      { damage: 34, cooldown: 0.3, amount: 3, speed: 420,
         duration: 1.4, pierce: 3, knockback: 50 },
     ],
   },
@@ -348,7 +356,7 @@ export const WEAPONS = {
   thunder_loop: {
     icon: 'icon_thunder_loop', sprite: 'proj_chain', behavior: 'chain', maxLevel: 1, evolved: true,
     levels: [
-      { damage: 40, cooldown: 2.4, amount: 3, jumps: 3, area: 140, range: 320, knockback: 45 },
+      { damage: 70, cooldown: 1.0, amount: 4, jumps: 5, area: 140, range: 320, knockback: 45 },
     ],
   },
   // firebomb + pickup

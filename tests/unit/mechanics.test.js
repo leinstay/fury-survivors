@@ -200,7 +200,7 @@ test('orbit: each shield rehits a target on its own timer', () => {
   const sim = createSim({ seed: 51 });
   god(sim);
   sim.player.weapons.length = 0;
-  sim.player.weapons.push({ id: 'guardian_shields', level: 7 }); // 4 щита, 4 рад/с: проход каждые 0.39 с
+  sim.player.weapons.push({ id: 'guardian_shields', level: 7 }); // 6 щитов, 4.4 рад/с: проход каждые 0.24 с
   sim._syncBuild();
   const w = sim.player.weapons[0];
   const P = w.params;
@@ -216,6 +216,6 @@ test('orbit: each shield rehits a target on its own timer', () => {
       if (ev.type === 'hit' && ev.weapon === 'guardian_shields' && Math.abs(ev.x - e.x) < 1 && Math.abs(ev.y - e.y) < 1) hits++;
     }
   }
-  // за 4 с вращения щиты проходят цель ~10 раз; общий на оружие таймер 0.5 с пропускал бы каждый второй проход
-  assert.ok(hits >= 9 && hits <= 12, `hits ${hits}`);
+  // за 4.3 с вращения щиты проходят цель ~18 раз; общий на оружие таймер 0.5 с пропускал бы два прохода из трёх
+  assert.ok(hits >= 15 && hits <= 21, `hits ${hits}`);
 });

@@ -762,7 +762,7 @@ class Sim {
     p.fx = ''; p.life0 = 0; // fx: зона рисуется слоями (render/zones.js), а не спрайтом
     // drawOff, drawLift: спрайт рисуется сдвинутым на drawOff px вдоль angle и на drawLift px вверх (взмах клинка);
     // cone > 0: удар конусом — x, y это вершина, radius длина, cone косинус половины угла вокруг angle
-    p.drawOff = 0; p.drawLift = 0; p.cone = 0; p.src = '';
+    p.drawOff = 0; p.drawLift = 0; p.cone = 0; p.src = ''; p.blocks = false;
     this.projectiles.push(p);
     return p;
   }
@@ -807,6 +807,13 @@ class Sim {
 
   _updateProjectiles(dt) {
     const arr = this.projectiles;
+    // щиты (orbit, p.blocks): вражеский снаряд, задевший щит, гаснет
+    const blockers = this.blockers || (this.blockers = []);
+    blockers.length = 0;
+    for (let i = 0; i < arr.length; i++) {
+      const b = arr[i];
+      if (b.blocks && b.life > 0 && b.owner === 'player' && !(b.ws && b.ws.owner.dead)) blockers.push(b);
+    }
     for (let i = arr.length - 1; i >= 0; i--) {
       const p = arr[i];
       if (p.bk) {
@@ -820,6 +827,9 @@ class Sim {
         if (p.owner === 'player') {
           // снаряды лежащего в гробу не бьют: аура и щиты вокруг гроба не делают его турелью
           if (!(p.ws && p.ws.owner.dead)) this._projectileHits(p);
+        } else if (this._blocked(p, blockers)) {
+          p.life = 0;
+          this.events.push({ type: 'block', x: p.x, y: p.y });
         } else {
           for (const t of this.players) {
             if (t.dead) continue;
@@ -842,6 +852,17 @@ class Sim {
         this.projPool.push(p);
       }
     }
+  }
+
+  _blocked(p, blockers) {
+    for (let i = 0; i < blockers.length; i++) {
+      const b = blockers[i];
+      const dx = p.x - b.x;
+      const dy = p.y - b.y;
+      const r = p.radius + b.radius;
+      if (dx * dx + dy * dy <= r * r) return true;
+    }
+    return false;
   }
 
   _projectileHits(p) {
