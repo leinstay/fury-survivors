@@ -52,6 +52,7 @@ export const en = {
   'hud.level': 'LV {n}',
   'hud.pause': 'II',
   'hud.score': 'Score {n}',
+  'hud.revive': 'Revive {s}s',
   'coop.your_pick': 'Your pick',
   'coop.partner_pick': 'Player {n} is choosing',
   'coop.waiting': 'Waiting for partner...',

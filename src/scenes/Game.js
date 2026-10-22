@@ -150,7 +150,9 @@ export class GameScene extends Phaser.Scene {
     // два сундука за кадр: sim уже выдал оба, показываем всё вместе
     // choice: экран выбора откроется по sim.state === 'chest'; applied: выбор уже показан на этом экране
     for (const ev of events) {
-      if (ev.type === 'chest' && !ev.choice && !ev.applied) this.pendingChest = (this.pendingChest || []).concat(ev.items || []);
+      if (ev.type !== 'chest' || ev.choice || ev.applied) continue;
+      if (this.ls) continue; // кооп: показ сундука обоим ведёт сим (state 'reveal')
+      this.pendingChest = (this.pendingChest || []).concat(ev.items || []);
     }
     handleSimEvents(this, events);
     if (this.ls) return; // кооп: хитстоп остановил бы тики только у одного клиента
@@ -283,6 +285,9 @@ export class GameScene extends Phaser.Scene {
     if (chest && !busy) {
       // сундук первым; LevelUp (sim.state === 'levelup') откроется в следующем кадре после resume
       this._open('Chest', { sim, act: this.act, items: chest });
+    } else if (sim.state === 'reveal' && !busy) {
+      // кооп: выпавшее из сундука видят оба, мир стоит (sim), экран закроется по смене sim.state
+      this._open('Chest', { sim, act: this.act, items: sim.chest.shown });
     } else if (sim.state === 'chest' && !busy) {
       this._open('Chest', { sim, act: this.act, choices: sim.chest.cards });
     } else if (sim.state === 'levelup' && !busy) {

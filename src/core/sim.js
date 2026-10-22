@@ -1,6 +1,8 @@
 // Симуляция игры. Чистая логика: без Phaser, без DOM, без Math.random.
 // Контракт полей и методов описан в docs/ARCHITECTURE.md.
-import { SIM, PLAYER, COMBAT, XP, DROPS, LEVEL_UP, HUD, SLOTS, GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
+import {
+  SIM, PLAYER, COMBAT, XP, DROPS, LEVEL_UP, HUD, SLOTS, GAME_WIDTH, GAME_HEIGHT, CHEST,
+} from '../data/constants.js';
 import { COOP } from '../data/coop.js';
 import { HEROES } from '../data/heroes.js';
 import { validHero, distinctHeroes } from './heroes.js';
@@ -103,7 +105,9 @@ class Sim {
     this.stamp = 0;
     this.frame = 0;
     this.pendingLevels = 0;
-    this.chest = { cards: [], applied: [] }; // выбор супероружия (state 'chest'); applied — что выдал последний выбор
+    // выбор супероружия из сундука (state 'chest'), см. chooseChest; кооп: показ выпавшего обоим (state 'reveal',
+    // shown — что выпало, revealT — сколько ещё показывать)
+    this.chest = { cards: [], shown: [], revealT: 0 };
 
     this.grid = new Grid(SIM.gridCellSize, 7, 1024);
     this.pgrid = new Grid(XP.mergeRadius * 2, 7, 2048);
@@ -131,6 +135,7 @@ class Sim {
     this.local = 0;         // индекс игрока за этим экраном (HUD, экраны выбора); сеть ставит 1 у гостя
     this.levelTurn = 0;     // чей ход выбирать карточку (по очереди, индекс растёт с каждым уровнем)
     this.picker = 0;        // индекс игрока, который выбирает сейчас (state 'levelup')
+    this.resumeT = 0;       // кооп: сколько ещё стоит мир после выбора (state 'resume')
     this.chest.player = 0;
     this._syncBuild();
     this._updateChunks();
@@ -219,6 +224,18 @@ class Sim {
 
   step(dt, input) {
     this.events.length = 0;
+    if (this.state === 'resume') {
+      // кооп: короткая пауза после выбора напарника, мир ещё стоит
+      if (dt > 0) this.resumeT -= dt;
+      if (this.resumeT <= 0) this.state = 'running';
+      return;
+    }
+    if (this.state === 'reveal') {
+      // кооп: показ сундука, мир стоит у обоих; время показа идёт по тикам, поэтому одинаково
+      if (dt > 0) this.chest.revealT -= dt;
+      if (this.chest.revealT <= 0) this.endReveal();
+      return;
+    }
     if (this.state !== 'running') return;
     if (!(dt > 0)) return;
     if (dt > 0.1) dt = 0.1;
@@ -1102,6 +1119,33 @@ class Sim {
     for (const it of items) this._applyCard(it, pl);
     this._syncBuild();
     this.events.push({ type: 'chest', items, player: pl.id });
+    if (this.coop) this._reveal(items, pl);
+  }
+
+  // Кооп: выпавшее из сундука видят оба, мир стоит CHEST.revealTime (или пока хозяин не закроет, endReveal).
+  _reveal(items, pl) {
+    if (this.state === 'reveal') this.chest.shown = this.chest.shown.concat(items);
+    else this.chest.shown = items.slice();
+    this.chest.player = pl.id;
+    this.chest.revealT = CHEST.revealTime;
+    this.state = 'reveal';
+  }
+
+  /** Конец показа сундука (таймер или хозяин сундука): игра идёт дальше, затем отложенные уровни. */
+  endReveal() {
+    if (this.state !== 'reveal') return;
+    this.state = 'running';
+    this.chest.shown = [];
+    this._checkLevel();
+    this.resumeDelay();
+  }
+
+  // Кооп: игра после выбора идёт не сразу, а через COOP.resumeDelay (state 'resume'): напарник не знает,
+  // когда другой нажмёт карточку, и не должен попасть под врагов в тот же миг.
+  resumeDelay() {
+    if (!this.coop || this.state !== 'running') return;
+    this.state = 'resume';
+    this.resumeT = COOP.resumeDelay;
   }
 
   // Выбор супероружия из сундука (state 'chest'); потом отложенные уровни.
@@ -1126,9 +1170,9 @@ class Sim {
     for (const it of items) this._applyCard(it, pl);
     this._syncBuild();
     this.chest.cards = [];
-    this.chest.applied = items; // экран сундука читает отсюда: за кадр может пройти несколько тиков
     this.state = 'running';
     this.events.push({ type: 'chest', items, applied: true, player: pl.id });
+    if (this.coop) { this._reveal(items, pl); return; } // уровни — после показа
     this._checkLevel();
   }
 
@@ -1231,6 +1275,7 @@ class Sim {
     this.pendingLevels--;
     this.levelTurn++;
     this._offerCards();
+    this.resumeDelay();
   }
 
   _applyCard(card, pl = this.player) {

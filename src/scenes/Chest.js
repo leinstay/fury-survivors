@@ -12,7 +12,6 @@ const INPUT_GUARD_MS = 250; // клавиши движения, зажатые �
 const CHOICE_W = 420;       // строка выбора супероружия: ряд «A + B > C» слева, название и описание справа
 const CHOICE_H = 70;        // до CHEST.maxChoices (3) строк столбиком
 const CHOICE_GAP = 6;
-const COOP_ITEMS_MS = 2500;  // кооп: экран с содержимым закрывается сам (сим напарника не ждёт)
 
 // Экран сундука поверх замороженной Game. data: { sim, items } — предметы уже применены, показ;
 // { sim, choices } — несколько готовых супероружий (sim.state === 'chest'): выбор карточки и подтверждение.
@@ -66,7 +65,7 @@ export class ChestScene extends Phaser.Scene {
         return;
       }
       // при выборе клавиши идут в навигацию (FocusNav), экран закрывает только подтверждение
-      if (!this.choices.length && this.time.now - this.revealAt > INPUT_GUARD_MS) this.close();
+      if (!this.choices.length && this.time.now - this.revealAt > INPUT_GUARD_MS) this.dismiss();
     };
     this.input.keyboard.on('keydown', this.keyHandler);
     this.input.on('pointerdown', () => this.advance());
@@ -75,7 +74,7 @@ export class ChestScene extends Phaser.Scene {
   advance() {
     if (this.closed) return;
     if (!this.revealed) this.reveal();
-    else if (!this.choices.length && this.time.now - this.revealAt > 120) this.close();
+    else if (!this.choices.length && this.time.now - this.revealAt > 120) this.dismiss();
   }
 
   // Чей сундук: в коопе выбирает тот, кто подобрал (sim.chest.player), второй смотрит.
@@ -90,19 +89,18 @@ export class ChestScene extends Phaser.Scene {
     this.padA = a;
     this.nav.update(time);
     if (this.choices.length && this.sim.state !== 'chest') {
-      // кооп: выбор применился (у обоих), показываем, что выпало, как обычный сундук
+      // кооп: выбор применился у обоих — показываем выпавшее (state 'reveal', мир стоит у обоих)
       this.choices = [];
-      this.items = this.sim.chest.applied || [];
       this.nav.clear();
       for (const o of this.choiceObjs) o.destroy();
       this.choiceObjs = [];
+      if (this.sim.state !== 'reveal') { this.close(); return; }
+      this.items = this.sim.chest.shown;
       this.revealAt = this.time.now;
-      if (!this.items.length) { this.close(); return; }
       this.drawItems();
     }
-    // кооп: сим не стоит, пока экран с предметами открыт, закрываем сами через паузу
-    if (this.act.coop && this.revealed && !this.choices.length &&
-        this.time.now - this.revealAt > COOP_ITEMS_MS) this.close();
+    // кооп: показ кончился (таймер сима или хозяин сундука закрыл)
+    if (this.act.coop && !this.choices.length && this.sim.state !== 'reveal') this.close();
   }
 
   reveal() {
@@ -246,6 +244,12 @@ export class ChestScene extends Phaser.Scene {
       const tag = it.isNew ? t('chest.new') : t('levelup.lv', { n: it.level });
       this.add.text(x, y + 14, tag, textStyle(16, it.isNew ? '#ffd84a' : '#9ad0ff', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5, 0);
     }
+  }
+
+  // Закрыть показ выпавшего: соло сразу; кооп — только хозяин сундука, командой (закроется у обоих).
+  dismiss() {
+    if (!this.act.coop) { this.close(); return; }
+    if (this.mine) this.act.revealDone();
   }
 
   close() {

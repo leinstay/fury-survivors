@@ -136,7 +136,10 @@ export const DROPS = {
 export const SLOTS = { weapons: 6, passives: 6 };
 
 // Сундук с несколькими готовыми супероружиями: показывает не больше maxChoices случайных (src/core/upgrades.js).
-export const CHEST = { maxChoices: 3 };
+export const CHEST = {
+  maxChoices: 3,
+  revealTime: 2.5,         // кооп: с показа содержимого сундука обоим, мир стоит (хозяин может закрыть раньше)
+};
 
 export const LEVEL_UP = {
   cards: 4,

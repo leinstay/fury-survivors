@@ -160,7 +160,8 @@ export function runBot(opts) {
   const marks = [60, 120, 180, 240, 300, 360, 420, 480, 540, 600, 720, 840];
   let mi = 0;
   let nextSecond = 1;
-  while (sim.time < until && (sim.state === 'running' || sim.state === 'levelup' || sim.state === 'chest')) {
+  const live = ['running', 'levelup', 'chest', 'reveal', 'resume'];
+  while (sim.time < until && live.includes(sim.state)) {
     if (sim.state === 'chest') { sim.chooseChest(0); continue; }
     if (sim.state === 'levelup') {
       const who = sim.players[sim.picker];

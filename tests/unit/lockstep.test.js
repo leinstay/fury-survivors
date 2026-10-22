@@ -98,10 +98,10 @@ test('lockstep: card choice is a command applied on the same tick by both, only 
   let tickA = -1;
   let tickB = -1;
   run(8, () => {
-    if (tickA < 0 && a.sim.state === 'running') tickA = a.tick;
-    if (tickB < 0 && b.sim.state === 'running') tickB = b.tick;
+    if (tickA < 0 && a.sim.state !== 'levelup') tickA = a.tick;
+    if (tickB < 0 && b.sim.state !== 'levelup') tickB = b.tick;
   });
-  assert.equal(a.sim.state, 'running');
+  assert.equal(a.sim.state, 'resume'); // мир трогается через COOP.resumeDelay
   assert.equal(tickA, tickB);
   assert.equal(hashSim(a.sim), hashSim(b.sim));
   assert.deepEqual(desyncs, []);
@@ -125,7 +125,7 @@ test('lockstep: pause stops the sim on both, resume continues, ticks keep flowin
   a.command({ k: 'resume' });
   run(6);
   assert.ok(!a.paused && !b.paused);
-  run(10);
+  run(45); // после паузы мир стоит ещё COOP.resumeDelay
   assert.ok(a.sim.time > t0 && a.sim.time === b.sim.time);
 });
 
@@ -147,7 +147,7 @@ test('lockstep: applyCommand respects whose turn and chest owner', () => {
   assert.equal(applyCommand(sim, 1, { k: 'card', i: 0 }), false);
   assert.equal(applyCommand(sim, 0, { k: 'reroll' }), true);
   assert.equal(applyCommand(sim, 0, { k: 'card', i: 0 }), true);
-  assert.equal(sim.state, 'running');
+  assert.equal(sim.state, 'resume');
   assert.equal(applyCommand(sim, 0, { k: 'nope' }), false);
 });
 

@@ -139,6 +139,10 @@ export function applyCommand(sim, who, cmd) {
       if (sim.state !== 'chest' || sim.chest.player !== who) return false;
       sim.skipChest();
       return true;
+    case 'revealDone':
+      if (sim.state !== 'reveal' || sim.chest.player !== who) return false;
+      sim.endReveal();
+      return true;
     case 'finish':
       sim.finishOvertime();
       return true;
@@ -229,7 +233,10 @@ class Lockstep {
       list.sort((a, b) => a.who - b.who); // порядок одинаковый у обоих: сначала игрок 0
       for (const c of list) {
         if (c.cmd.k === 'pause') this.paused = true;
-        else if (c.cmd.k === 'resume') this.paused = false;
+        else if (c.cmd.k === 'resume' && this.paused) {
+          this.paused = false;
+          this.sim.resumeDelay(); // мир трогается через COOP.resumeDelay, как после выбора карточки
+        }
         else applyCommand(this.sim, c.who, c.cmd);
       }
       this.cmds.delete(t);

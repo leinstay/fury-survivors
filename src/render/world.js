@@ -1,6 +1,6 @@
 // Синхронизация спрайтов с состоянием sim: пулы по uid, сортировка по y, вспышки, анимация.
 import { SPRITES } from '../../assets/sprites/manifest.js';
-import { GAME_WIDTH, GAME_HEIGHT, FX, LOW_QUALITY } from '../data/constants.js';
+import { GAME_WIDTH, GAME_HEIGHT, FX, LOW_QUALITY, RENDER_ZOOM } from '../data/constants.js';
 import { ENEMIES } from '../data/enemies.js';
 import { animateCharacter, applyHitSquash } from './anim.js';
 import { Decor } from './decor.js';
@@ -9,6 +9,10 @@ import { spriteScale } from './density.js';
 import { Zones } from './zones.js';
 import { lowQuality } from '../ui/settings.js';
 
+// Позиции и камера округляются в пиксели экрана (1 / RENDER_ZOOM пикселя мира) одним способом: тогда разница
+// «спрайт минус камера» меняется только монотонно. Раньше камера (середина между игроками) и спрайты
+// округлялись до пикселей мира каждый сам по себе, и при высоком fps герой дрожал на пиксель туда-обратно.
+const snap = (v) => Math.round(v * RENDER_ZOOM) / RENDER_ZOOM;
 const LERP_MAX = 40; // px за тик: дальше — перенос (спавн, телепорт), такое не сглаживаем
 
 const PICKUP_DEPTH = -100000;
@@ -175,7 +179,7 @@ export class World {
     const o = def && def.shadow; // своя тень: смещение по X (зеркалится с спрайтом) и ширина, px мира
     const w = o ? o.width : Math.max(8, sprite.width * Math.abs(sprite.baseScale || 1) * c.widthK);
     const sx = o ? x + o.dx * (sprite.flipX ? -1 : 1) : x;
-    s.setVisible(true).setPosition(Math.round(sx), Math.round(y + c.yOffset))
+    s.setVisible(true).setPosition(snap(sx), snap(y + c.yOffset))
         .setScale(w / 32, w * c.height / 16);
   }
 
@@ -279,8 +283,8 @@ export class World {
 
     // камера и фон: центр экрана — sim.view (игрок, в коопе середина между игроками)
     const cam = this.scene.cameras.main;
-    cam.scrollX = Math.round(vx - GAME_WIDTH / 2) + this.shake.x;
-    cam.scrollY = Math.round(vy - GAME_HEIGHT / 2) + this.shake.y;
+    cam.scrollX = snap(vx - GAME_WIDTH / 2) + this.shake.x;
+    cam.scrollY = snap(vy - GAME_HEIGHT / 2) + this.shake.y;
     this.shadowN = 0;
 
     // игроки
@@ -296,7 +300,7 @@ export class World {
           pl.clearTint();
         }
         this._lerp(p);
-        pl.setPosition(Math.round(this.ix), Math.round(this.iy) + COFFIN_Y);
+        pl.setPosition(snap(this.ix), snap(this.iy) + COFFIN_Y);
         pl.setDepth(this.iy);
         this._shadow(this.ix, this.iy, pl, cam);
         continue;
@@ -315,7 +319,7 @@ export class World {
       this._playerPos(p, i);
       const px = this.ix;
       const py = this.iy;
-      pl.setPosition(Math.round(px), Math.round(py) + lift);
+      pl.setPosition(snap(px), snap(py) + lift);
       const face = pr && pr.i === i && pr.face ? pr.face : p.facing;
       pl.setFlipX(face < 0);
       pl.setDepth(py);
@@ -337,7 +341,7 @@ export class World {
       this._lerp(e);
       const ex = this.ix;
       const ey = this.iy;
-      s.setPosition(Math.round(ex), Math.round(ey) + lift2);
+      s.setPosition(snap(ex), snap(ey) + lift2);
       this._shadow(ex, ey, s, cam);
       s.setFlipX(e.facing < 0);
       s.setDepth(ey);
@@ -355,7 +359,7 @@ export class World {
       if (isNew) s.setBlendMode(Phaser.BlendModes.ADD);
       const ed = ENEMIES[e.type] && ENEMIES[e.type].elite;
       this._lerp(e);
-      s.setPosition(Math.round(this.ix), Math.round(this.iy) - Math.round(e.size * 0.5));
+      s.setPosition(snap(this.ix), snap(this.iy) - Math.round(e.size * 0.5));
       s.setScale((e.size * halo.size) / HALO_SIZE);
       s.setTint(ed && ed.glow !== undefined ? ed.glow : ELITE_GLOW.color).setAlpha(halo.alpha);
       s.setDepth(e.y - 1);
@@ -381,7 +385,7 @@ export class World {
       const own = pr && e.ws && e.ws.owner && e.ws.owner.id === pr.i;
       const px = this.ix + (own ? pr.x : 0) + Math.cos(ang) * off;
       const py = this.iy + (own ? pr.y : 0) + Math.sin(ang) * off - lift;
-      s.setPosition(Math.round(px), Math.round(py));
+      s.setPosition(snap(px), snap(py));
       s.setRotation(ang);
       s.setScale((e.scale == null ? 1 : e.scale) * spriteScale(e.sprite));
       s.setAlpha(e.fx ? 0 : e.alpha == null ? 1 : e.alpha);
@@ -398,7 +402,7 @@ export class World {
       if (isNew) s.setBlendMode(Phaser.BlendModes.ADD);
       this._lerp(e);
       const own = pr && e.ws && e.ws.owner && e.ws.owner.id === pr.i;
-      s.setPosition(Math.round(this.ix + (own ? pr.x : 0)), Math.round(this.iy + (own ? pr.y : 0)));
+      s.setPosition(snap(this.ix + (own ? pr.x : 0)), snap(this.iy + (own ? pr.y : 0)));
       s.setScale((g.size * (e.scale == null ? 1 : e.scale)) / HALO_SIZE);
       s.setTint(e.tint || g.color).setAlpha(g.alpha * (e.alpha == null ? 1 : e.alpha));
       s.setDepth(PROJ_DEPTH + e.y - 0.5);
@@ -409,7 +413,7 @@ export class World {
       this._setKey(s, e.sprite);
       s.setScale(spriteScale(e.sprite));
       this._lerp(e);
-      s.setPosition(Math.round(this.ix), Math.round(this.iy));
+      s.setPosition(snap(this.ix), snap(this.iy));
       s.setDepth(PICKUP_DEPTH + this.iy);
     });
 

@@ -1,5 +1,6 @@
 // HUD: HP, XP, уровень, таймер, убийства, счёт, DPS-метр, миникарта, иконки оружия и пассивок, кнопка паузы на таче.
 import { GAME_WIDTH, GAME_HEIGHT, HUD } from '../data/constants.js';
+import { COOP } from '../data/coop.js';
 import { t, hasKey } from '../i18n/index.js';
 import { textStyle, COLORS } from './style.js';
 import { addIcon, iconKeyFor, displayName } from './icons.js';
@@ -260,8 +261,15 @@ export class Hud {
     const xpK = Math.min(1, shared.xp / Math.max(1, shared.xpNext));
     this.xpFill.width = Math.round(GAME_WIDTH * xpK);
     this.levelText.setText(t('hud.level', { n: shared.level }));
-    this.hpFill.width = Math.round(100 * Math.max(0, Math.min(1, p.hp / Math.max(1, p.maxHp))));
-    this.hpText.setText(`${Math.ceil(Math.max(0, p.hp))}/${Math.ceil(p.maxHp)}`);
+    if (p.dead) {
+      // кооп: свой гроб — вместо HP таймер оживления, полоска заполняется к оживлению
+      const k = 1 - p.coffinT / COOP.reviveTime;
+      this.hpFill.width = Math.round(100 * Math.max(0, Math.min(1, k)));
+      this.hpText.setText(t('hud.revive', { s: Math.ceil(p.coffinT) }));
+    } else {
+      this.hpFill.width = Math.round(100 * Math.max(0, Math.min(1, p.hp / Math.max(1, p.maxHp))));
+      this.hpText.setText(`${Math.ceil(Math.max(0, p.hp))}/${Math.ceil(p.maxHp)}`);
+    }
     this.timeText.setText(formatTime(sim.time));
     const score = computeScore({
       time: sim.time, kills: sim.kills, coins: sim.coins, victory: sim.won,

@@ -117,6 +117,43 @@ test('coop: a partner next to the coffin speeds up the revive', () => {
   assert.ok(near.players[0].coffinT < far.players[0].coffinT - 1);
 });
 
+// Кооп: после выбора мир стоит COOP.resumeDelay (state 'resume') — шагаем, пока игра не пойдёт.
+function settle(sim) {
+  for (let i = 0; i < 120 && sim.state === 'resume'; i++) sim.step(DT, { players: [idle, idle] });
+  assert.equal(sim.state, 'running');
+}
+
+test('coop: after a choice the world waits COOP.resumeDelay before it moves again', () => {
+  const sim = coop(13);
+  sim.player.xp = sim.player.xpNext;
+  sim.step(DT, { players: [idle, idle] });
+  sim.chooseCard(0, sim.picker);
+  assert.equal(sim.state, 'resume');
+  const t0 = sim.time;
+  let n = 0;
+  while (sim.state === 'resume' && n < 200) { sim.step(DT, { players: [idle, idle] }); n++; }
+  assert.equal(sim.time, t0, 'time stands still while resuming');
+  assert.ok(Math.abs(n * DT - COOP.resumeDelay) < 2 * DT, `${n} ticks`);
+});
+
+test('coop: a chest is shown to both with the world stopped, the owner can end the show', () => {
+  const sim = coop(14);
+  const b = sim.players[1];
+  sim._openChest(b);
+  assert.ok(sim.state === 'reveal' || sim.state === 'chest', sim.state);
+  if (sim.state === 'chest') sim.chooseChest(0);
+  assert.equal(sim.state, 'reveal');
+  assert.equal(sim.chest.player, 1);
+  assert.ok(sim.chest.shown.length > 0);
+  const t0 = sim.time;
+  for (let i = 0; i < 30; i++) sim.step(DT, { players: [idle, idle] });
+  assert.equal(sim.time, t0);
+  assert.equal(sim.state, 'reveal');
+  sim.endReveal();
+  assert.equal(sim.state, 'resume');
+  settle(sim);
+});
+
 test('coop: level-up cards alternate between players and apply to the chooser', () => {
   const sim = coop(9);
   const [a, b] = sim.players;
@@ -133,6 +170,7 @@ test('coop: level-up cards alternate between players and apply to the chooser', 
   sim.chooseCard(0, 0);
   assert.notEqual(build(a), before);
   assert.equal(build(b), JSON.stringify([[['storm_chain', 1]], []]));
+  settle(sim);
   sim.player.xp = sim.player.xpNext;
   sim.step(DT, { players: [idle, idle] });
   assert.equal(sim.picker, 1);
@@ -154,7 +192,8 @@ test('coop: each player has an own pool: banished cards and reroll/skip/banish b
   assert.ok(a.levelUp.banished.has(`${victim.kind}:${victim.id}`));
   assert.equal(b.levelUp.banished.size, 0);
   assert.ok(sim.skip(0));
-  assert.equal(sim.state, 'running');
+  assert.equal(sim.state, 'resume');
+  settle(sim);
   lvl();
   assert.equal(sim.picker, 1);
   assert.equal(b.levelUp.rerolls, a.levelUp.rerolls + 1);

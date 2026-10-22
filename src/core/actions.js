@@ -5,7 +5,8 @@
 /**
  * @param {!Object} sim
  * @param {?Object=} ls lockstep (core/lockstep.js) в коопе, иначе null
- * @return {!Object} { coop, local, card, reroll, skip, banish, chest, skipChest, pause, resume, finish, paused }
+ * @return {!Object} { coop, local, card, reroll, skip, banish, chest, skipChest, pause, resume, finish,
+ *     revealDone, paused }
  */
 export function createActions(sim, ls = null) {
   const cmd = (k, i) => ls.command(i === undefined ? { k } : { k, i });
@@ -21,6 +22,7 @@ export function createActions(sim, ls = null) {
       pause: () => {},
       resume: () => {},
       finish: () => sim.finishOvertime(),
+      revealDone: () => sim.endReveal(),
       get paused() { return false; },
     };
   }
@@ -35,6 +37,7 @@ export function createActions(sim, ls = null) {
     pause: () => cmd('pause'),
     resume: () => cmd('resume'),
     finish: () => cmd('finish'),
+    revealDone: () => cmd('revealDone'),
     get paused() { return ls.paused; },
   };
 }
