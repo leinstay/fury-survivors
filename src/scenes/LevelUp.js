@@ -5,6 +5,7 @@ import { addIcon } from '../ui/icons.js';
 import { displayName } from '../ui/icons.js';
 import { textStyle } from '../ui/style.js';
 import { addPanel } from '../ui/panel.js';
+import { createActions } from '../core/actions.js';
 
 const CARD_W = 140;
 const CARD_H = 180;
@@ -26,7 +27,9 @@ export class LevelUpScene extends Phaser.Scene {
 
   init(data) {
     this.sim = data.sim;
+    this.act = data.act || createActions(data.sim);
     this.banishMode = false;
+    this.shown = null; // набор карточек, который нарисован (sim меняет массив при новом наборе)
   }
 
   create() {
@@ -50,8 +53,23 @@ export class LevelUpScene extends Phaser.Scene {
     this.render();
   }
 
+  // Чей ход: в коопе карточки выбирает sim.levelUp.player, второй только смотрит.
+  get mine() {
+    return !this.act.coop || this.sim.levelUp.player === this.act.local;
+  }
+
   update(time) {
     this.nav.update(time);
+    // соло: sim меняется сразу в pick(); кооп: команда применяется через lockstep позже
+    if (this.sim.state !== 'levelup') { this.close(); return; }
+    if (this.sim.levelUp.cards !== this.shown) this.render();
+  }
+
+  close() {
+    if (this.closed) return;
+    this.closed = true;
+    if (!this.act.coop) this.scene.resume('Game');
+    this.scene.stop();
   }
 
   render() {
@@ -61,6 +79,8 @@ export class LevelUpScene extends Phaser.Scene {
     const before = new Set(this.children.list);
     const lu = this.sim.levelUp;
     const cards = lu.cards;
+    this.shown = cards;
+    const mine = this.mine;
     const total = cards.length * CARD_W + (cards.length - 1) * CARD_GAP;
     const x0 = (GAME_WIDTH - total) / 2 + CARD_W / 2;
     const cy = 150;
@@ -75,6 +95,7 @@ export class LevelUpScene extends Phaser.Scene {
       this.add.text(x, cy - 10, tag, textStyle(12, c.isNew ? '#ffd84a' : '#9ad0ff')).setOrigin(0.5, 0);
       this.add.text(x, cy + 10, cardDesc(c), textStyle(10, '#cccccc', { align: 'center', wordWrap: { width: CARD_W - 14 } })).setOrigin(0.5, 0);
       if (this.banishMode) this.add.rectangle(x, cy, CARD_W, CARD_H, 0xaa2020, 0.18);
+      if (!mine) return;
       this.nav.add({
         x, y: cy, w: CARD_W, h: CARD_H,
         setFocus: (f) => rect.setFocus(f),
@@ -89,9 +110,11 @@ export class LevelUpScene extends Phaser.Scene {
       const b = addButton(this, this.nav, { x, y: by, w: bw, h: bh, label: `${label} (${count})`, size: 12, onSelect: fn });
       b.setDisabled(count <= 0);
     };
-    mk(GAME_WIDTH / 2 - 124, t('levelup.reroll'), lu.rerolls, () => { this.sim.reroll(); this.after(); });
-    mk(GAME_WIDTH / 2, t('levelup.skip'), lu.skips, () => { this.sim.skip(); this.after(); });
-    mk(GAME_WIDTH / 2 + 124, t('levelup.banish'), lu.banishes, () => { this.banishMode = !this.banishMode; this.render(); });
+    if (mine) {
+      mk(GAME_WIDTH / 2 - 124, t('levelup.reroll'), lu.rerolls, () => { this.act.reroll(); this.after(); });
+      mk(GAME_WIDTH / 2, t('levelup.skip'), lu.skips, () => { this.act.skip(); this.after(); });
+      mk(GAME_WIDTH / 2 + 124, t('levelup.banish'), lu.banishes, () => { this.banishMode = !this.banishMode; this.render(); });
+    }
     if (this.banishMode) {
       this.add.text(GAME_WIDTH / 2, by + 28, t('levelup.banish_hint'), textStyle(10, '#ff8080')).setOrigin(0.5);
     }
@@ -104,19 +127,17 @@ export class LevelUpScene extends Phaser.Scene {
   pick(i) {
     if (this.banishMode) {
       this.banishMode = false;
-      this.sim.banish(i);
+      this.act.banish(i);
     } else {
-      this.sim.chooseCard(i);
+      this.act.card(i);
     }
     this.after();
   }
 
+  // Соло: sim уже изменился, закрываемся или рисуем новый набор. Кооп: ждём применения команды в update().
   after() {
-    if (this.sim.state === 'running') {
-      this.scene.resume('Game');
-      this.scene.stop();
-    } else {
-      this.render();
-    }
+    if (this.act.coop) return;
+    if (this.sim.state === 'running') this.close();
+    else this.render();
   }
 }

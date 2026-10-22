@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { collectConsoleErrors } from './helpers.js';
+import { collectConsoleErrors, startGame } from './helpers.js';
 
 // Сцены Chest, Victory, GameOver, Pause открываются на живом sim без ошибок.
 test('chest and result screens open without errors', async ({ page }) => {
@@ -8,9 +8,7 @@ test('chest and result screens open without errors', async ({ page }) => {
   const shot = (name) => (process.env.SHOT_DIR ? page.screenshot({ path: `${process.env.SHOT_DIR}/${name}.png` }) : null);
 
   await page.goto('/');
-  await page.waitForFunction(() => window.__game && window.__game.debug().scene === 'Menu', null, { timeout: 15_000 });
-  await page.keyboard.press('Enter');
-  await page.waitForFunction(() => window.__game.debug().scene === 'Game', null, { timeout: 5_000 });
+  await startGame(page);
   await page.waitForTimeout(500);
 
   const scenes = () => page.evaluate(() => window.__game.debug().scenes);

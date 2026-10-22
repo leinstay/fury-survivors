@@ -54,6 +54,7 @@ export const en = {
   'hud.revive': 'Revive in {s}s',
   'coop.your_pick': 'Your pick',
   'coop.partner_pick': 'Player {n} is choosing',
+  'coop.waiting': 'Waiting for partner...',
   'hud.dps_label': 'DPS',
   'boss.warning': 'WARNING! A BOSS APPROACHES',
   'hud.overtime': 'OVERTIME!',

@@ -6,6 +6,7 @@ import { addIcon, displayName, iconKeyFor } from '../ui/icons.js';
 import { textStyle } from '../ui/style.js';
 import { addPanel } from '../ui/panel.js';
 import { playSfx } from '../audio/sfx.js';
+import { createActions } from '../core/actions.js';
 
 // Билд в две колонки (оружие слева, пассивки справа): 6+6 строк не налезают на кнопки.
 export function addBuildList(scene, x, y, player) {
@@ -60,6 +61,8 @@ export class PauseScene extends Phaser.Scene {
 
   init(data) {
     this.sim = data.sim;
+    this.act = data.act || createActions(data.sim);
+    this.closed = false;
   }
 
   create() {
@@ -95,15 +98,24 @@ export class PauseScene extends Phaser.Scene {
     const start = !!(pad && pad.start);
     if (start && !this.padStart) this.resume();
     this.padStart = start;
+    // кооп: пауза общая, экран закрывается, когда команда resume применилась у обоих
+    if (this.act.coop && !this.act.paused) this.close();
   }
 
   resume() {
-    this.scene.resume('Game');
+    if (this.act.coop) { this.act.resume(); return; }
+    this.close();
+  }
+
+  close() {
+    if (this.closed) return;
+    this.closed = true;
+    if (!this.act.coop) this.scene.resume('Game');
     this.scene.stop();
   }
 
   finish() {
-    this.sim.finishOvertime();
+    this.act.finish();
     playSfx(this, 'victory');
     this.resume();
   }

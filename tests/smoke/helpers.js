@@ -9,3 +9,12 @@ export function collectConsoleErrors(page) {
     },
   };
 }
+
+// Из меню в забег: Play открывает выбор сложности, Enter там берёт сложность в фокусе (последнюю выбранную).
+export async function startGame(page) {
+  await page.waitForFunction(() => window.__game && window.__game.debug().scene === 'Menu', null, { timeout: 15_000 });
+  await page.keyboard.press('Enter'); // Play (фокус на первой кнопке)
+  await page.waitForTimeout(200);
+  await page.keyboard.press('Enter'); // сложность
+  await page.waitForFunction(() => window.__game.debug().scene === 'Game', null, { timeout: 5_000 });
+}

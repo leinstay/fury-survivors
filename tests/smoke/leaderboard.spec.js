@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { startGame } from './helpers.js';
 
 // Не зависит от Firebase: gstatic заблокирован, таблица обязана показать OFFLINE, а не упасть.
 test('leaderboard scene and nick input work offline', async ({ page }) => {
@@ -19,8 +20,7 @@ test('leaderboard scene and nick input work offline', async ({ page }) => {
   await page.keyboard.press('Escape');
   await page.waitForFunction(() => window.__game.debug().scene === 'Menu', null, { timeout: 5_000 });
 
-  await page.keyboard.press('Enter');
-  await page.waitForFunction(() => window.__game.debug().scene === 'Game', null, { timeout: 5_000 });
+  await startGame(page);
   await page.waitForTimeout(500);
   await page.evaluate(() => {
     const gs = window.__game.game.scene.getScene('Game');

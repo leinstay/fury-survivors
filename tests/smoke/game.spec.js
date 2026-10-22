@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { collectConsoleErrors } from './helpers.js';
+import { collectConsoleErrors, startGame } from './helpers.js';
 
 // Игра: Play, 30 с случайного движения, выбор карточек на LevelUp, без ошибок, fps и враги в норме.
 const MIN_FPS = 50;
@@ -10,9 +10,7 @@ test('plays 30s without errors', async ({ page }) => {
   const consoleErrors = collectConsoleErrors(page);
 
   await page.goto('/');
-  await page.waitForFunction(() => window.__game && window.__game.debug().scene === 'Menu', null, { timeout: 15_000 });
-  await page.keyboard.press('Enter'); // Play (фокус на первой кнопке)
-  await page.waitForFunction(() => window.__game.debug().scene === 'Game', null, { timeout: 5_000 });
+  await startGame(page);
 
   const fpsSamples = [];
   let maxEnemies = 0;

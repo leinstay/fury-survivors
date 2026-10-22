@@ -5,12 +5,14 @@ import { addIcon, displayName, iconKeyFor } from '../ui/icons.js';
 import { addPanel, PANEL } from '../ui/panel.js';
 import { textStyle } from '../ui/style.js';
 import { spriteScale } from '../render/density.js';
+import { createActions } from '../core/actions.js';
 
 const SHAKE_MS = 600;
 const INPUT_GUARD_MS = 250; // клавиши движения, зажатые в момент открытия, не должны закрывать экран
 const CHOICE_W = 420;       // строка выбора супероружия: ряд «A + B > C» слева, название и описание справа
 const CHOICE_H = 70;        // до CHEST.maxChoices (3) строк столбиком
 const CHOICE_GAP = 6;
+const COOP_ITEMS_MS = 2500;  // кооп: экран с содержимым закрывается сам (сим напарника не ждёт)
 
 // Экран сундука поверх замороженной Game. data: { sim, items } — предметы уже применены, показ;
 // { sim, choices } — несколько готовых супероружий (sim.state === 'chest'): выбор карточки и подтверждение.
@@ -21,6 +23,7 @@ export class ChestScene extends Phaser.Scene {
 
   init(data) {
     this.sim = data.sim;
+    this.act = data.act || createActions(data.sim);
     this.items = (data.items && data.items.length ? data.items : []);
     this.choices = (data.choices && data.choices.length ? data.choices : []);
     this.picked = -1;
@@ -75,12 +78,32 @@ export class ChestScene extends Phaser.Scene {
     else if (!this.choices.length && this.time.now - this.revealAt > 120) this.close();
   }
 
+  // Чей сундук: в коопе выбирает тот, кто подобрал (sim.chest.player), второй смотрит.
+  get mine() {
+    return !this.act.coop || this.sim.chest.player === this.act.local;
+  }
+
   update(time) {
     const pad = readPad();
     const a = !!(pad && pad.a);
     if (a && !this.padA && !(this.revealed && this.choices.length)) this.advance();
     this.padA = a;
     this.nav.update(time);
+    if (this.choices.length && this.sim.state !== 'chest') {
+      // кооп: выбор применился (у обоих), показываем, что выпало, как обычный сундук
+      const ev = this.sim.events.find((e) => e.type === 'chest' && e.applied);
+      this.choices = [];
+      this.items = ev ? ev.items : [];
+      this.nav.clear();
+      for (const o of this.choiceObjs) o.destroy();
+      this.choiceObjs = [];
+      this.revealAt = this.time.now;
+      if (!this.items.length) { this.close(); return; }
+      this.drawItems();
+    }
+    // кооп: сим не стоит, пока экран с предметами открыт, закрываем сами через паузу
+    if (this.act.coop && this.revealed && !this.choices.length &&
+        this.time.now - this.revealAt > COOP_ITEMS_MS) this.close();
   }
 
   reveal() {
@@ -155,17 +178,22 @@ export class ChestScene extends Phaser.Scene {
       });
     });
     const by = y0 + cards.length * (h + CHOICE_GAP) - h / 2 + 18;
-    this.confirmBtn = addButton(this, this.nav, { x: x - 78, y: by, w: 140, h: 28, label: t('chest.continue'), onSelect: () => this.confirm() });
-    addButton(this, this.nav, { x: x + 78, y: by, w: 140, h: 28, size: 12, label: t('chest.skip'), onSelect: () => this.skip() });
+    if (this.mine) {
+      this.confirmBtn = addButton(this, this.nav, { x: x - 78, y: by, w: 140, h: 28, label: t('chest.continue'), onSelect: () => this.confirm() });
+      addButton(this, this.nav, { x: x + 78, y: by, w: 140, h: 28, size: 12, label: t('chest.skip'), onSelect: () => this.skip() });
+    } else {
+      this.nav.clear();
+    }
     this.picked = 0;
     this.paintRow(0, false);
-    this.nav.focus(0);
+    if (this.mine) this.nav.focus(0);
     this.choiceObjs = this.children.list.filter((o) => !before.has(o) && o.type !== 'Zone');
   }
 
   // Пропуск супероружия: sim выдаёт обычный предмет, показываем его как обычный сундук.
   skip() {
     if (this.closed) return;
+    if (this.act.coop) { this.act.skipChest(); return; } // результат придёт через sim.state в update()
     const items = this.sim.skipChest();
     this.choices = [];
     this.items = items;
@@ -192,8 +220,8 @@ export class ChestScene extends Phaser.Scene {
 
   confirm() {
     if (this.picked < 0 || this.closed) return;
-    this.sim.chooseChest(this.picked);
-    this.close();
+    this.act.chest(this.picked);
+    if (!this.act.coop) this.close();
   }
 
   drawItem(x, y, w, h, it) {
@@ -224,7 +252,7 @@ export class ChestScene extends Phaser.Scene {
   close() {
     if (this.closed) return;
     this.closed = true;
-    this.scene.resume('Game');
+    if (!this.act.coop) this.scene.resume('Game');
     this.scene.stop();
   }
 }
