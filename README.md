@@ -63,7 +63,7 @@ npm run smoke
 
 - **Движок:** [Phaser](https://phaser.io) 3.90.0, лицензия MIT.
 - **Шрифт:** Jersey 15, Copyright 2023 The Soft Type Project Authors ([источник](https://github.com/scfried/soft-type-jersey)), SIL Open Font License 1.1; текст лицензии в `assets/fonts/OFL.txt`.
-- **Музыка:** «Guitar Vs. Piano 1.2», автор Goukisan, [Newgrounds Audio Portal](https://www.newgrounds.com/audio/listen/53576). Все права принадлежат автору; используется по решению владельца проекта. Запасной процедурный луп: `tools/make-music.mjs`.
+- **Музыка:** «Whispers of the Abyss (Loop)», файл предоставлен владельцем проекта. Все права принадлежат автору; используется по решению владельца проекта. Запасной процедурный луп: `tools/make-music.mjs`.
 - **Звуковые эффекты:** сгенерированы `tools/make-sfx.mjs` (собственный синтезатор в стиле sfxr, без чужих сэмплов).
 - **Графика:** сгенерирована моделью `openai/gpt-image-2.5-flare` через OpenRouter (листы, иконки, окружение) и анимирована в [PixelLab](https://pixellab.ai); чистка и нарезка скриптами из `tools/`.
 - Механики вдохновлены Vampire Survivors и HoloCure; ассеты и названия из них не используются.

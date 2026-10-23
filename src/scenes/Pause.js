@@ -37,6 +37,7 @@ const PAD = 8;
 const ROW = 24;
 const STEP = ROW + 4;
 const TOP = 46;
+const TITLE_Y = 27; // заголовок по линии полосы HP в HUD (ui/hud.js: y 21, высота 12)
 const LEFT_W = 300;
 const STAT_LINE = 18;
 
@@ -84,7 +85,7 @@ export class PauseScene extends Phaser.Scene {
   create() {
     resetFade(this);
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.75).setOrigin(0, 0);
-    this.add.text(GAME_WIDTH / 2, TOP / 2, t('pause.title'), textStyle(24, '#ffd84a', { stroke: '#000000', strokeThickness: 4 })).setOrigin(0.5);
+    this.add.text(GAME_WIDTH / 2, TITLE_Y, t('pause.title'), textStyle(24, '#ffd84a', { stroke: '#000000', strokeThickness: 4 })).setOrigin(0.5);
     this.nav = new FocusNav(this, { onBack: () => this.resume() });
     const pad = readPad();
     this.padStart = !!(pad && pad.start);

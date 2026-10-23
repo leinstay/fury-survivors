@@ -56,7 +56,7 @@ assets/
   sprites/manifest.js      ключ спрайта -> файл, размер кадра, точка опоры, кадры
   sprites/*.png            спрайты (заглушки и настоящие с тем же именем и кадром)
   audio/sfx/*.wav          эффекты (jsfxr)
-  audio/music/theme.mp3    фоновая музыка (Goukisan, см. README.md, Credits), заменяется подменой файла
+  audio/music/theme.mp3    фоновая музыка (Whispers of the Abyss, см. README.md, Credits), заменяется подменой файла
   fonts/                   пиксельный шрифт (OFL)
 tools/                     локальные скрипты Node, в игру не попадают
   gen-sprite.mjs           генерация через OpenRouter (ключ из .secrets/, бюджет из ledger)
