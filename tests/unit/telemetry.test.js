@@ -210,9 +210,22 @@ test('shield interception is attributed to its owner and is not claimed as preve
   const { sim, tr } = setup({ players: 2 });
   const other = createTelemetry({ sim, local: 1, coop: true });
   const projectile = { x: 0, y: 0, radius: 2, dmg: 25 };
-  const shield = { x: 0, y: 0, radius: 8, wid: 'guardian_shields',
+  const shield = { x: 0, y: 0, radius: 8, life: 1, blocks: true, wid: 'guardian_shields',
     ws: { owner: sim.players[1] } };
   assert.equal(sim._blocked(projectile, [shield]), true);
   assert.deepEqual(tr.blocks, {});
   assert.deepEqual(other.blocks.guardian_shields, { count: 1, interceptedRaw: 25 });
+});
+
+test('magnet telemetry measures banked ground XP before attraction, without inventing XP gain', () => {
+  const { sim, tr } = setup();
+  sim.dropPickup('xp_small', 80, 0, 20);
+  sim._collect({ kind: 'magnet', value: 0 }, sim.player);
+  assert.equal(tr.magnets.length, 1);
+  assert.equal(tr.magnets[0].groundXP, 20);
+  assert.equal(tr.economy.pickedXP, 0);
+  assert.equal(tr.snap(sim, 0).economy.groundXP, 20);
+  sim._collect({ kind: 'xp', value: 20 }, sim.player);
+  assert.equal(tr.snap(sim, 0).economy.pickedXP, 20);
+  assert.ok(sim.pickups.every((x) => x.pulled));
 });

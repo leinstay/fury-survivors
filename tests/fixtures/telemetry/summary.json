@@ -1,0 +1,162 @@
+{
+  "nRuns": 13,
+  "modes": {
+    "solo": 13,
+    "duo": 0
+  },
+  "picks": 969,
+  "voluntary": 736,
+  "autoHeals": 168,
+  "recipes": 33,
+  "incompleteIntervals": 429,
+  "byDifficulty": {
+    "normal": {
+      "n": 2,
+      "minutes": {
+        "60": {
+          "n": 2,
+          "level": 9
+        },
+        "180": {
+          "n": 2,
+          "level": 20
+        },
+        "300": {
+          "n": 2,
+          "level": 29
+        },
+        "600": {
+          "n": 1,
+          "level": 59
+        },
+        "900": {
+          "n": 1,
+          "level": 85
+        }
+      },
+      "exhaustionTimes": [
+        810.1
+      ]
+    },
+    "cursed": {
+      "n": 11,
+      "minutes": {
+        "60": {
+          "n": 11,
+          "level": 9
+        },
+        "180": {
+          "n": 10,
+          "level": 20
+        },
+        "300": {
+          "n": 9,
+          "level": 36
+        },
+        "600": {
+          "n": 5,
+          "level": 69
+        },
+        "900": {
+          "n": 5,
+          "level": 91
+        }
+      },
+      "exhaustionTimes": [
+        697.9,
+        832.6,
+        746,
+        849.1,
+        736.4
+      ]
+    }
+  },
+  "levelPauses": {
+    "19": 13.400000000000006,
+    "20": 36.69999999999999,
+    "21": 1.9000000000000057,
+    "39": 9,
+    "40": 56.60000000000002,
+    "41": 4.400000000000034
+  },
+  "warnings": [
+    {
+      "run": "run-0000",
+      "warnings": [
+        "legacy recipe version mapping unverified"
+      ]
+    },
+    {
+      "run": "run-0001",
+      "warnings": [
+        "legacy recipe version mapping unverified"
+      ]
+    },
+    {
+      "run": "run-0002",
+      "warnings": [
+        "legacy recipe version mapping unverified"
+      ]
+    },
+    {
+      "run": "run-0003",
+      "warnings": [
+        "legacy recipe version mapping unverified"
+      ]
+    },
+    {
+      "run": "run-0004",
+      "warnings": [
+        "legacy recipe version mapping unverified"
+      ]
+    },
+    {
+      "run": "run-0005",
+      "warnings": [
+        "legacy recipe version mapping unverified"
+      ]
+    },
+    {
+      "run": "run-0006",
+      "warnings": [
+        "legacy recipe version mapping unverified"
+      ]
+    },
+    {
+      "run": "run-0007",
+      "warnings": [
+        "legacy recipe version mapping unverified"
+      ]
+    },
+    {
+      "run": "run-0008",
+      "warnings": [
+        "legacy recipe version mapping unverified"
+      ]
+    },
+    {
+      "run": "run-0009",
+      "warnings": [
+        "legacy recipe version mapping unverified"
+      ]
+    },
+    {
+      "run": "run-0010",
+      "warnings": [
+        "legacy recipe version mapping unverified"
+      ]
+    },
+    {
+      "run": "run-0011",
+      "warnings": [
+        "legacy recipe version mapping unverified"
+      ]
+    },
+    {
+      "run": "run-0012",
+      "warnings": [
+        "legacy recipe version mapping unverified"
+      ]
+    }
+  ]
+}

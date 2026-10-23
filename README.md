@@ -45,7 +45,11 @@ npm test
 npm run smoke
 ```
 
-`npm test` запускает unit-тесты и headless-прогоны баланса на симуляции; `npm run smoke` запускает игру в Playwright и играет 30 секунд. `node tools/playtest.mjs` проходит забег в headless Chromium и умеет делать скриншот.
+`npm test` проверяет механики, телеметрию, данные, replay и соответствие headless/lockstep.
+`npm run smoke` проверяет настоящий интерфейс и WebRTC в Playwright общим поведением бота.
+Балансные эксперименты вынесены из unit-тестов: `npm run balance:quick`, `npm run sim:combat`.
+Производительность измеряется отдельно: `npm run perf`.
+Полные команды, условия приёмки и ограничения данных: [`docs/SIMULATION_GUIDE.md`](docs/SIMULATION_GUIDE.md).
 
 ## Структура проекта
 

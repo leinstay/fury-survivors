@@ -141,7 +141,8 @@ test('submit after a timeout waits for the same write instead of adding a second
     async add(doc) { await slow; added.push(doc); },
   });
   let clock = 0;
-  const lb = createLeaderboard({ loadBackend, now: () => clock, timeoutMs: 5, cooldownMs: 10000 });
+  const lb = createLeaderboard({ loadBackend, getIp: noIp, now: () => clock,
+    timeoutMs: 5, cooldownMs: 10000 });
   await assert.rejects(lb.submitScore(run()), { message: 'offline' });
   const again = lb.submitScore(run());
   release();

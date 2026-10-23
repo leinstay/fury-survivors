@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { startGame } from './helpers.js';
+import { startGame, clickSceneText, clickSceneItem } from './helpers.js';
 
 // Кодекс из меню и из паузы: вкладки, детали, забег в летописи, возврат без ошибок.
 // Firebase заблокирован: резервная копия молча не уходит. SHOT_DIR: куда сохранить скриншоты вкладок.
@@ -32,123 +32,67 @@ const SAMPLE = {
   })),
 };
 
-const scenes = (page) => page.evaluate(() => window.__game.debug().scenes);
-const click = (page, x, y) => page.mouse.click(x * 2, y * 2); // холст 1280×720, координаты сцен 640×360
 const TABS = ['armory', 'characters', 'bestiary', 'bosses', 'chronicle'];
-// вкладки во всю ширину панелей: отступ 8, зазор 6, ширина 120
-const tabX = (id) => 8 + 60 + TABS.indexOf(id) * 126;
+async function clickKey(page, key) {
+  const index = await page.evaluate((k) => window.__game.game.scene.getScene('Codex')
+    .nav.items.findIndex((item) => item.key === k), key);
+  expect(index, `Codex item ${key}`).toBeGreaterThanOrEqual(0);
+  await clickSceneItem(page, 'Codex', index);
+}
+async function tab(page, id) {
+  await clickKey(page, `tab:${id}`);
+  await page.waitForFunction((value) =>
+    window.__game.game.scene.getScene('Codex').tab === value, id);
+}
 
-test('codex opens from the menu and from pause, tabs switch without errors', async ({ page }) => {
-  test.setTimeout(180_000);
+test('codex opens from menu and pause, entries, tabs, history and restore work', async ({ page }) => {
   await page.route('**/www.gstatic.com/**', (r) => r.abort());
-  await page.addInitScript(([k, v]) => {
-    if (!sessionStorage.getItem('codex-seeded')) {
-      localStorage.setItem(k, v);
-      sessionStorage.setItem('codex-seeded', '1');
-    }
-  }, [KEY, JSON.stringify(SAMPLE)]);
-  const shot = (name) => (process.env.SHOT_DIR ? page.screenshot({ path: `${process.env.SHOT_DIR}/${name}.png` }) : null);
-
+  await page.addInitScript(([key, value]) => localStorage.setItem(key, value),
+      [KEY, JSON.stringify(SAMPLE)]);
+  const shot = (name) => process.env.SHOT_DIR ?
+    page.screenshot({ path: `${process.env.SHOT_DIR}/${name}.png` }) : null;
   await page.goto('/');
-  await page.waitForFunction(() => window.__game && window.__game.debug().scene === 'Menu', null, { timeout: 15_000 });
-  await page.waitForTimeout(500);
-  await shot('menu');
-  for (let i = 0; i < 3; i++) {
-    await page.keyboard.press('ArrowDown'); // Co-op, Leaderboard, Codex
-    await page.waitForTimeout(150);
+  await page.waitForFunction(() => window.__game?.debug().scene === 'Menu');
+  await clickSceneText(page, 'Menu', 'Codex');
+  await page.waitForFunction(() => window.__game.debug().scene === 'Codex');
+  for (const key of ['evolution:crimson_arc', 'collab:phantom_blades']) {
+    await clickKey(page, key);
+    await page.waitForFunction((value) =>
+      window.__game.game.scene.getScene('Codex').shown === value, key);
+    await shot(key.replace(':', '_'));
   }
-  await page.keyboard.press('Enter');
-  await page.waitForFunction(() => window.__game.debug().scene === 'Codex', null, { timeout: 5_000 });
-  await page.waitForTimeout(500);
-  await shot('armory');
-  // клавиатура: со вкладки вниз в сетку, вправо по записям
-  await page.keyboard.press('ArrowDown');
-  await page.waitForTimeout(120);
-  await page.keyboard.press('ArrowRight');
-  await page.waitForTimeout(120);
-  await page.keyboard.press('ArrowRight');
-  await page.waitForTimeout(200);
-  await shot('armory_locked');
-  await click(page, 28, 144); // первая эволюция (открыта: crimson_arc)
-  await page.waitForTimeout(200);
-  await shot('armory_evolution');
-  await click(page, 28, 198); // первый коллаб
-  await page.waitForTimeout(200);
-  await shot('armory_collab');
-  await click(page, 80, 198); // третий коллаб (открыт: phantom_blades, таблица по частям)
-  await page.waitForTimeout(200);
-  await shot('armory_collab_open');
-
-  const names = TABS;
-  for (let i = 1; i < names.length; i++) {
-    await click(page, tabX(names[i]), 40);
-    await page.waitForFunction((n) => window.__game.game.scene.getScene('Codex').tab === n, names[i]);
-    await page.waitForTimeout(600); // ходьба в превью успевает пройти несколько кадров
-    await shot(names[i]);
-  }
-  // боссы: закрытый босс; бестиарий: закрытый монстр
-  await click(page, tabX('bosses'), 40);
-  await page.waitForTimeout(200);
-  await click(page, 229, 122);
-  await page.waitForTimeout(300);
-  await shot('bosses_locked');
-  // летопись: страница 2, затем забег и назад к списку
-  await click(page, tabX('chronicle'), 40);
-  await page.waitForTimeout(200);
-  await click(page, 494, 310); // >
-  await page.waitForTimeout(200);
-  await shot('chronicle_page2');
-  await click(page, 444, 90); // первая строка страницы
+  for (const name of TABS) { await tab(page, name); await shot(name); }
+  await clickKey(page, 'next');
+  await page.waitForFunction(() => window.__game.game.scene.getScene('Codex').page === 1);
+  await clickKey(page, 'run:9');
   await page.waitForFunction(() => window.__game.game.scene.getScene('Codex').runIdx >= 0);
-  await page.waitForTimeout(200);
-  await shot('chronicle_run');
   await page.keyboard.press('Escape');
   await page.waitForFunction(() => window.__game.game.scene.getScene('Codex').runIdx === -1);
-  // восстановление: окно с полем id, неверный id, отмена
-  await click(page, 566, 342);
-  await page.waitForTimeout(200);
+  await clickKey(page, 'restore');
   const input = page.locator('input[maxlength="20"]');
-  await expect(input).toHaveCount(1);
-  await input.click();
-  await page.keyboard.type('short');
+  await expect(input).toBeVisible(); await input.fill('short');
   await page.keyboard.press('Enter');
-  await page.waitForTimeout(200);
-  await shot('chronicle_restore');
-  await page.keyboard.press('Escape'); // снять фокус с поля
-  await page.keyboard.press('Escape'); // закрыть окно
+  await expect(input).toHaveValue('SHORT');
+  await page.keyboard.press('Escape');
+  await expect(input).not.toBeFocused();
+  await page.keyboard.press('Escape');
   await expect(input).toHaveCount(0);
   await page.keyboard.press('Escape');
-  await page.waitForFunction(() => window.__game.debug().scene === 'Menu', null, { timeout: 5_000 });
+  await page.waitForFunction(() => window.__game.debug().scene === 'Menu');
 
-  // из паузы: кодекс поверх, назад в паузу, забег жив
   await startGame(page);
-  await page.waitForTimeout(800);
   await page.keyboard.press('Escape');
   await page.waitForFunction(() => window.__game.debug().scenes.includes('Pause'));
-  await page.waitForTimeout(300);
-  await shot('pause');
-  const btn = await page.evaluate(() => {
-    const p = window.__game.game.scene.getScene('Pause');
-    const it = p.nav.items.find((i) => i.text && i.text.text === 'Codex');
-    return it && { x: it.x, y: it.y };
-  });
-  expect(btn).toBeTruthy();
-  await click(page, btn.x, btn.y);
+  await clickSceneText(page, 'Pause', 'Codex');
   await page.waitForFunction(() => window.__game.debug().scenes.includes('Codex'));
-  await page.waitForTimeout(300);
-  for (let i = 1; i < names.length; i++) {
-    await click(page, tabX(names[i]), 40);
-    await page.waitForTimeout(150);
-  }
-  await shot('pause_codex');
+  for (const name of TABS) await tab(page, name);
   await page.keyboard.press('Escape');
   await page.waitForFunction(() => !window.__game.debug().scenes.includes('Codex'));
-  await page.waitForTimeout(300);
-  expect(await scenes(page)).toContain('Pause');
-  await page.keyboard.press('Escape'); // снова Esc: пауза закрывается, забег идёт
-  await page.waitForFunction(() => !window.__game.debug().scenes.includes('Pause'), null, { timeout: 5_000 });
-  const t0 = await page.evaluate(() => window.__game.game.scene.getScene('Game').sim.time);
-  await page.waitForTimeout(1000);
-  expect(await page.evaluate(() => window.__game.game.scene.getScene('Game').sim.time)).toBeGreaterThan(t0);
+  expect(await page.evaluate(() => window.__game.debug().scenes)).toContain('Pause');
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => !window.__game.debug().scenes.includes('Pause'));
+  const time = await page.evaluate(() => window.__game.game.scene.getScene('Game').sim.time);
+  await page.waitForFunction((before) =>
+    window.__game.game.scene.getScene('Game').sim.time > before, time);
   expect(await page.evaluate(() => window.__game.debug().errors)).toEqual([]);
 });

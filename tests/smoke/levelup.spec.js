@@ -13,7 +13,6 @@ test('level-up screen closes after every pick, not only the first', async ({ pag
       sim._checkLevel();
     });
     await page.waitForFunction(() => window.__game.debug().scenes.includes('LevelUp'), null, { timeout: 5_000 });
-    await page.waitForTimeout(300);
     await page.keyboard.press('Enter'); // первая карточка в фокусе
     await page.waitForFunction(() => !window.__game.debug().scenes.includes('LevelUp') &&
         window.__game.game.scene.isActive('Game'), null, { timeout: 5_000 });

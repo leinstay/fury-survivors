@@ -6,7 +6,7 @@
   "description": "Vampire Survivors-like on Phaser 3, no build step",
   "scripts": {
     "serve": "node tools/serve.mjs",
-    "test": "node --test tests/unit/*.test.js tests/balance/*.test.js",
+    "test": "node --test tests/unit/*.test.js tests/simulation/*.test.js",
     "smoke": "playwright test",
     "placeholders": "node tools/placeholders.mjs",
     "gen": "node tools/gen-sprite.mjs",
@@ -14,7 +14,18 @@
     "sheet": "node tools/contact-sheet.mjs",
     "sfx": "node tools/make-sfx.mjs",
     "music": "node tools/make-music.mjs",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "telemetry:export": "node --use-env-proxy tools/telemetry/export.mjs",
+    "telemetry:train": "node tools/telemetry/train.mjs",
+    "sim:run": "node tools/simulation/cli.mjs",
+    "sim:replay": "node tools/simulation/cli.mjs replay",
+    "balance:quick": "node tools/simulation/balance.mjs",
+    "balance:full": "node tools/simulation/balance.mjs --full",
+    "balance:report": "node tools/simulation/balance.mjs report",
+    "perf": "node tools/simulation/perf.mjs",
+    "sim:combat": "node tools/simulation/combat.mjs",
+    "build:manifest": "node tools/build-manifest.mjs",
+    "telemetry:report": "node tools/telemetry/report.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.1",

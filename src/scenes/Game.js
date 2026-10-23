@@ -59,7 +59,9 @@ export class GameScene extends Phaser.Scene {
       this.ls.lastRemoteT = this.now();
     } else {
       this.sim = this.givenSim || createSim({
-        hero: this.hero, stage: 'forest', seed: Date.now(), difficulty: this.difficulty,
+        hero: this.hero, stage: 'forest',
+        seed: globalThis.navigator?.webdriver && Number.isInteger(globalThis.__furyTestSeed) ?
+          globalThis.__furyTestSeed : Date.now(), difficulty: this.difficulty,
       });
       this.ls = null;
     }

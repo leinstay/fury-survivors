@@ -9,7 +9,7 @@ const bytes = (s) => new TextEncoder().encode(s).length;
 export function serializeRun(run) {
   const packed = { ...run, capture: { ...run.capture,
     dropped: { ...run.capture?.dropped }, stored: {}, total: {} } };
-  const keys = ['offers', 'movement', 'inputs', 'events', 'applications', 'decisions',
+  const keys = ['offers', 'movement', 'inputs', 'events', 'magnets', 'applications', 'decisions',
     'snaps', 'picks', 'levels'];
   for (const key of keys) {
     packed[key] = (run[key] || []).slice();
@@ -37,7 +37,7 @@ export function serializeRun(run) {
 // Сжатые подробности позволяют сохранить целый обычный забег под прежним лимитом.
 // Старые читатели по-прежнему видят picks/snaps/end; новый экспорт раскрывает detail.
 export async function encodeRun(run) {
-  const keys = ['decisions', 'offers', 'applications', 'inputs', 'movement', 'events'];
+  const keys = ['decisions', 'offers', 'applications', 'inputs', 'movement', 'events', 'magnets'];
   if (typeof CompressionStream !== 'undefined') {
     const detail = Object.fromEntries(keys.map((k) => [k, run[k] || []]));
     const stream = new Blob([JSON.stringify(detail)]).stream()

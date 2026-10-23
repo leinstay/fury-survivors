@@ -312,37 +312,6 @@ test('sim: every weapon fires and deals damage in a crowd', () => {
   }
 });
 
-test('sim: step stays fast with 400 enemies', () => {
-  const sim = createSim({ seed: 21 });
-  sim.player.stats.maxHp = 1e9; sim.player.maxHp = 1e9; sim.player.hp = 1e9;
-  sim.levelUp.skips = 1e9;
-  const go = (inp) => { if (sim.state === 'levelup') sim.skip(); sim.step(DT, inp); };
-  sim.player.weapons.push({ id: 'holy_ground', level: 3 }, { id: 'war_axe', level: 3 }, { id: 'storm_chain', level: 3 }, { id: 'throwing_daggers', level: 3 });
-  sim._syncBuild();
-  // враги как можно плотнее вокруг игрока
-  for (let i = 0; i < SIM.maxEnemies; i++) {
-    const a = i * 2.399;
-    const r = 30 + (i % 40) * 6;
-    sim.spawnEnemy(i % 3 === 0 ? 'harpy' : i % 3 === 1 ? 'catgirl' : 'slime', Math.cos(a) * r, Math.sin(a) * r);
-  }
-  for (let i = 0; i < 60; i++) go({ x: 0.7, y: 0.2 }); // прогрев
-  let worst = 0;
-  const t0 = performance.now();
-  const N = 300;
-  for (let i = 0; i < N; i++) {
-    if (sim.state === 'levelup') sim.skip();
-    const s = performance.now();
-    sim.step(DT, { x: 0.7, y: 0.2 });
-    worst = Math.max(worst, performance.now() - s);
-    // держим толпу: доспавниваем до лимита
-    while (sim.canSpawn()) sim.spawnEnemy('harpy', sim.player.x + 250, sim.player.y + (sim.enemies.length % 50) * 4);
-  }
-  const avg = (performance.now() - t0) / N;
-  assert.equal(sim.state, 'running');
-  assert.ok(sim.enemies.length >= 300, 'crowd is still there');
-  assert.ok(avg < 3, `avg step ${avg.toFixed(2)} ms`);
-  assert.ok(worst < 30, `worst step ${worst.toFixed(2)} ms`);
-});
 
 test('sim: chest with several ready evolutions waits for the choice', () => {
   const sim = createSim({ seed: 21 });

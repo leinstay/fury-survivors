@@ -38,7 +38,7 @@ export const chain = {
       for (let j = 0; j <= P.jumps && cur; j++) {
         cur.mark = stamp;
         segment(sim, x, y, cur.x, cur.y, w.def.sprite);
-        sim.damageEnemy(cur, P.damage, w.id, P.knockback || 0, x, y, w.owner);
+        sim.damageEnemy(cur, P.damage, w.id, P.knockback || 0, x, y, w.owner, `chain:${w.slot}`);
         x = cur.x; y = cur.y;
         cur = sim.nearestEnemy(x, y, P.area, stamp);
       }

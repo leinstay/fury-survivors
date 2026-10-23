@@ -42,7 +42,8 @@ function xpTierFor(value) {
  * @param {number} level текущий уровень
  * @return {number} опыт до следующего уровня
  */
-export function xpForLevel(level) {
+export function xpForLevel(level, scale = 1) {
+  level = 1 + Math.floor((level - 1) / scale);
   let need = XP.base;
   let from = 1;
   for (const s of XP.steps) {
@@ -594,7 +595,7 @@ class Sim {
   }
 
   // Урон врагу. (sx, sy) — источник для направления отбрасывания; by — игрок-владелец оружия (крит по его статам).
-  damageEnemy(e, dmg, wid, kb, sx, sy, by = this.player) {
+  damageEnemy(e, dmg, wid, kb, sx, sy, by = this.player, component = '') {
     if (e.dead || e.def.invulnerable) return; // жница: урон не проходит, чисел урона нет
     const crit = this.rng.next() < this.critChance(by);
     e.lastBy = by.id;
@@ -619,7 +620,7 @@ class Sim {
       e.ky = (dy / d) * k;
     }
     this._telemetry('hit', e, by, wid, amount, dealt,
-        kb > 0 && e.resist < 1 && !e.boss ? kb * (1 - e.resist) : 0);
+        kb > 0 && e.resist < 1 && !e.boss ? kb * (1 - e.resist) : 0, component);
     if (e.hp <= 0) this._killEnemy(e);
   }
 
@@ -883,6 +884,8 @@ class Sim {
   _blocked(p, blockers) {
     for (let i = 0; i < blockers.length; i++) {
       const b = blockers[i];
+      // Список составлен до обхода: щит мог уже истечь и вернуться в пул.
+      if (!b.blocks || b.life <= 0 || !b.ws || b.ws.owner.dead) continue;
       const dx = p.x - b.x;
       const dy = p.y - b.y;
       const r = p.radius + b.radius;
@@ -918,7 +921,8 @@ class Sim {
         if (this._seen(p, e.uid)) continue;
         this._remember(p, e.uid);
       }
-      this.damageEnemy(e, p.dmg, p.wid, p.kb, p.x, p.y, p.ws ? p.ws.owner : this.player);
+      this.damageEnemy(e, p.dmg, p.wid, p.kb, p.x, p.y, p.ws ? p.ws.owner : this.player,
+          p.ws ? `${p.ws.def.behavior}:${p.ws.slot}` : '');
       if (!p.once && --p.pierce < 0) { p.life = 0; break; }
     }
     // разрушаемые объекты
@@ -1141,6 +1145,7 @@ class Sim {
   }
 
   _collect(pk, by = this.player) {
+    this._telemetry('pickup', pk, by);
     const pl = by;
     switch (pk.kind) {
       case 'xp':
@@ -1299,7 +1304,7 @@ class Sim {
     while (pl.xp >= pl.xpNext) {
       pl.xp -= pl.xpNext;
       pl.level++;
-      pl.xpNext = xpForLevel(pl.level);
+      pl.xpNext = xpForLevel(pl.level, this.coop ? COOP.xpLevelScale : 1);
       this.pendingLevels++;
       this.events.push({ type: 'levelup', level: pl.level });
     }

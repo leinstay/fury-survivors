@@ -305,7 +305,8 @@ export class LobbyScene extends Phaser.Scene {
   start() {
     if (this.role !== 'host' || !this.conn || !this.partner) return;
     if (!this.hero || !this.partnerHero || this.partnerHero === this.hero || this.mismatch) return; // кто-то без героя или гость не уступил
-    const seed = (Date.now() ^ Math.floor(Math.random() * 0x7fffffff)) >>> 0;
+    const seed = globalThis.navigator?.webdriver && Number.isInteger(globalThis.__furyTestSeed) ?
+      globalThis.__furyTestSeed : (Date.now() ^ Math.floor(Math.random() * 0x7fffffff)) >>> 0;
     const names = this.names();
     const heroes = distinctHeroes(2, this.heroes());
     const sessionId = globalThis.crypto.randomUUID();

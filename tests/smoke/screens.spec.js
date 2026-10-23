@@ -1,73 +1,61 @@
 import { test, expect } from '@playwright/test';
-import { collectConsoleErrors, startGame } from './helpers.js';
+import { collectConsoleErrors, startGame, waitChestReady, clickSceneItem } from './helpers.js';
 
-// Сцены Chest, Victory, GameOver, Pause открываются на живом sim без ошибок.
-test('chest and result screens open without errors', async ({ page }) => {
-  test.setTimeout(40_000);
-  const consoleErrors = collectConsoleErrors(page);
-  const shot = (name) => (process.env.SHOT_DIR ? page.screenshot({ path: `${process.env.SHOT_DIR}/${name}.png` }) : null);
-
-  await page.goto('/');
-  await startGame(page);
-  await page.waitForTimeout(500);
-
-  const scenes = () => page.evaluate(() => window.__game.debug().scenes);
-
-  // Сундук: обычный предмет, закрытие по Enter возвращает Game
+// Explicit fixture for rare screens; never used to estimate balance or win rate.
+test('chest rewards and an evolution choice apply, pause and result screens work', async ({ page }) => {
+  const errors = collectConsoleErrors(page);
+  await page.goto('/'); await startGame(page);
   await page.evaluate(() => {
-    const g = window.__game.game;
-    const gs = g.scene.getScene('Game');
-    const sim = gs.sim;
-    gs.scene.pause();
-    gs.scene.launch('Chest', { sim, items: [{ kind: 'weapon', id: 'blade_arc', level: 3, isNew: false }] });
+    const gs = window.__game.game.scene.getScene('Game');
+    gs.sim._openChest(gs.sim.player);
+    gs.handleEvents(gs.sim.events);
   });
-  await page.waitForFunction(() => window.__game.debug().scenes.includes('Chest'));
-  await page.waitForTimeout(1000);
-  await shot('chest');
+  await waitChestReady(page);
+  const upgraded = await page.evaluate(() =>
+    window.__game.game.scene.getScene('Game').sim.player.weapons[0].level);
+  expect(upgraded).toBe(2);
   await page.keyboard.press('Enter');
   await page.waitForFunction(() => !window.__game.debug().scenes.includes('Chest'));
-  expect(await scenes()).toContain('Game');
-
-  // Сундук: эволюция, пропуск анимации клавишей
+  await page.waitForFunction(() => window.__game.game.scene.getScene('Game').sim.state === 'running');
   await page.evaluate(() => {
-    const g = window.__game.game;
-    const gs = g.scene.getScene('Game');
-    const sim = gs.sim;
-    gs.scene.pause();
-    gs.scene.launch('Chest', { sim, items: [{ kind: 'evolution', id: 'aegis_storm', level: 1, isNew: true, from: ['blade_arc', 'guardian_shields'] }] });
+    const gs = window.__game.game.scene.getScene('Game');
+    gs.sim.player.weapons = [{ id: 'blade_arc', level: 7 }];
+    gs.sim.player.passives = [{ id: 'attack', level: 1 }];
+    gs.sim._syncBuild(); gs.sim._openChest(gs.sim.player);
   });
-  await page.waitForFunction(() => window.__game.debug().scenes.includes('Chest'));
-  await page.waitForTimeout(300);
-  await page.keyboard.press('Space'); // пропуск анимации
-  await page.waitForTimeout(500);
-  await shot('chest_evo');
+  await waitChestReady(page);
+  const ids = await page.evaluate(() =>
+    window.__game.game.scene.getScene('Chest').choices.map((c) => c.id));
+  expect(ids).toEqual(['crimson_arc']);
+  await clickSceneItem(page, 'Chest', 2); // Skip evolution; the ordinary reward is still real.
+  await waitChestReady(page);
   await page.keyboard.press('Enter');
   await page.waitForFunction(() => !window.__game.debug().scenes.includes('Chest'));
-
-  // Пауза
+  expect(await page.evaluate(() => window.__game.game.scene.getScene('Game')
+    .sim.player.weapons[0].id)).toBe('blade_arc');
+  await page.waitForFunction(() => window.__game.game.scene.getScene('Game').sim.state === 'running');
+  await page.evaluate(() => {
+    const gs = window.__game.game.scene.getScene('Game');
+    gs.sim._openChest(gs.sim.player);
+  });
+  await waitChestReady(page);
+  await clickSceneItem(page, 'Chest', 1); // Continue, through UI
+  await page.waitForFunction(() => !window.__game.debug().scenes.includes('Chest'));
+  expect(await page.evaluate(() => window.__game.game.scene.getScene('Game')
+    .sim.player.weapons[0].id)).toBe('crimson_arc');
+  await page.waitForFunction(() => window.__game.game.scene.getScene('Game').sim.state === 'running');
   await page.keyboard.press('Escape');
   await page.waitForFunction(() => window.__game.debug().scenes.includes('Pause'));
-  await page.waitForTimeout(200);
-  await shot('pause');
   await page.keyboard.press('Escape');
   await page.waitForFunction(() => !window.__game.debug().scenes.includes('Pause'));
-
-  // Итоги
   for (const name of ['Victory', 'GameOver']) {
     await page.evaluate((n) => {
-      const g = window.__game.game;
-      const gs = g.scene.getScene('Game');
-    const sim = gs.sim;
-      sim.damageByWeapon = { blade_arc: 1200, throwing_daggers: 800, storm_chain: 300 };
-      gs.scene.pause();
-      gs.scene.launch(n, { sim });
+      const gs = window.__game.game.scene.getScene('Game');
+      gs.scene.pause(); gs.scene.launch(n, { sim: gs.sim });
     }, name);
     await page.waitForFunction((n) => window.__game.debug().scenes.includes(n), name);
-    await page.waitForTimeout(600);
-    await shot(name.toLowerCase());
     await page.evaluate((n) => window.__game.game.scene.stop(n), name);
   }
-
   expect(await page.evaluate(() => window.__game.debug().errors)).toEqual([]);
-  expect(consoleErrors.get()).toEqual([]);
+  expect(errors.get()).toEqual([]);
 });

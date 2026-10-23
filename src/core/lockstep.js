@@ -3,6 +3,7 @@
 // нельзя посчитать, пока не пришёл ввод напарника на него (advance возвращает false — «ждём»). Команды экранов
 // (выбор карточки, сундук, пауза) идут тем же путём и применяются на одном тике у обоих. Раз в hashEvery тиков
 // клиенты сравнивают хеш состояния: расхождение — событие onDesync. Без Phaser и DOM (тесты в Node).
+import { BUILD } from '../data/build.js';
 import * as CONSTANTS from '../data/constants.js';
 import { createSim } from './sim.js';
 import { HEROES, HERO_BASE } from '../data/heroes.js';
@@ -83,7 +84,8 @@ let fingerprint = null; // считается один раз (~50 мс): мен
 
 export function simFingerprint(fresh = false) {
   if (fingerprint !== null && !fresh) return fingerprint;
-  const data = JSON.stringify([CONSTANTS, HEROES, HERO_BASE, WEAPONS, WEAPON_BEHAVIOR, PASSIVES,
+  const data = JSON.stringify([BUILD, CONSTANTS, HEROES, HERO_BASE, WEAPONS, WEAPON_BEHAVIOR,
+    PASSIVES,
     COMBOS, ENEMIES, BOSS, BOSSES, PICKUPS, COOP, DIFFICULTIES, forest]);
   fingerprint = fnv(`${data}|${runFingerprint()}`);
   return fingerprint;

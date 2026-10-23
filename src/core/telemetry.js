@@ -1,5 +1,6 @@
 // Балансная телеметрия v2. Старые picks/snaps/end остаются читаемыми.
 // Наблюдатель не расходует RNG и не меняет игровое состояние. Ника и IP нет.
+import { BUILD } from '../data/build.js';
 import { SIM } from '../data/constants.js';
 import { TELEMETRY } from '../data/telemetry.js';
 
@@ -31,6 +32,7 @@ class Telemetry {
     this.kills = 0;
     this.killsBy = {};
     this.combat = {};
+    this.economy = { generatedXP: 0, pickedXP: 0 };
     this.blocks = {};
     this.targetHistory = new WeakMap();
     this.hurt = {};
@@ -42,6 +44,7 @@ class Telemetry {
     this.applications = [];
     this.inputs = [];
     this.movement = [];
+    this.magnets = [];
     this.events = [];
     this.dropped = {};
     this.lastInput = '';
@@ -119,6 +122,7 @@ class Telemetry {
       history = { uid: target.uid, attackers: new Set() };
       this.targetHistory.set(target, history);
     }
+    if (target.hp <= 0 && by.id === this.local) this.economy.generatedXP += target.xp;
     const source = `${by.id}:${weapon}`;
     if (by.id === this.local) {
       const row = this.combat[weapon] || (this.combat[weapon] = {
@@ -145,8 +149,19 @@ class Telemetry {
     history.attackers.add(source);
   }
 
+  pickup(sim, pickup, by) {
+    if (!this.finished && by.id === this.local && pickup.kind === 'magnet') {
+      this.append('magnets', { t: r1(sim.time), tick: sim.frame, level: sim.player.level,
+        groundXP: sim.pickups.filter((x) => x.kind === 'xp').reduce((n, x) => n + x.value, 0),
+        pickedXP: this.economy.pickedXP }, TELEMETRY.maxEvents);
+    }
+    if (!this.finished && by.id === this.local && pickup.kind === 'xp') {
+      this.economy.pickedXP += pickup.value;
+    }
+  }
+
   block(sim, projectile, shield) {
-    if (this.finished || shield.ws?.owner.id !== this.local) return;
+    if (this.finished || shield.ws?.owner?.id !== this.local) return;
     const weapon = shield.wid;
     const row = this.blocks[weapon] || (this.blocks[weapon] = { count: 0, interceptedRaw: 0 });
     row.count++;
@@ -255,6 +270,8 @@ class Telemetry {
     return {
       t: Math.round(t), tick: sim.frame, lv: sim.player.level, xp: Math.round(sim.player.xp),
       hp: Math.round(p.hp), mhp: Math.round(p.maxHp), dead: !!p.dead,
+      economy: { ...this.economy,
+        groundXP: sim.pickups.filter((x) => x.kind === 'xp').reduce((n, x) => n + x.value, 0) },
       en: sim.enemies.length - (sim.deadN || 0), k: this.kills,
       w: p.weapons.map((w) => [w.id, w.level, Math.round(p.damageByWeapon[w.id] || 0),
         Math.round(p.rawByWeapon[w.id] || 0), p.hitsByWeapon[w.id] || 0,
@@ -275,7 +292,7 @@ class Telemetry {
     if (sim.time < TELEMETRY.minTime) return null;
     const p = sim.players[this.local] || sim.player;
     return {
-      v: TELEMETRY.version, sessionId: this.sessionId, local: this.local,
+      v: TELEMETRY.version, source: BUILD.source, sessionId: this.sessionId, local: this.local,
       seed: sim.seed, fingerprint: this.fingerprint, tickRate: SIM.tickRate,
       capture: { input: 'active-tick-changes', movementEvery: TELEMETRY.movementEvery,
         distanceBins: TELEMETRY.distanceBins.slice(),
@@ -285,12 +302,12 @@ class Telemetry {
       heroes: sim.players.map((x) => x.hero), stage: sim.stage || 'forest',
       difficulty: sim.difficulty, status, time: r1(sim.time),
       level: sim.player.level, kills: this.kills, score,
-      won: sim.won, revives: p.revives, distance: r1(p.dist),
+      economy: { ...this.economy }, won: sim.won, revives: p.revives, distance: r1(p.dist),
       overtime: sim.overtime >= 0 ? r1(sim.overtime) : -1,
       killedBy: status === 'dead' ? this.lastHurt : '', hurt: this.hurt, bosses: this.bosses,
       levels: this.levels, picks: this.picks, snaps: this.snaps, end: this.snap(sim, sim.time),
       decisions: this.decisions, offers: this.offers, applications: this.applications,
-      inputs: this.inputs, movement: this.movement, events: this.events,
+      inputs: this.inputs, movement: this.movement, events: this.events, magnets: this.magnets,
     };
   }
 }
