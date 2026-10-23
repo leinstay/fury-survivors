@@ -107,7 +107,11 @@ test('sim: reroll, banish, skip use their limits', () => {
   assert.ok(sim.reroll());
   assert.equal(sim.levelUp.rerolls, LEVEL_UP.rerolls - 1);
   const victim = sim.levelUp.cards[1];
+  const shown = sim.levelUp.cards;
   assert.ok(sim.banish(1));
+  // экран LevelUp перерисовывается по смене массива: баниш даёт новый (в коопе он применяется позже нажатия)
+  assert.notEqual(sim.levelUp.cards, shown);
+  assert.equal(shown[1], victim, 'old set is left as it was');
   assert.equal(sim.levelUp.banishes, LEVEL_UP.banishes - 1);
   assert.ok(sim.levelUp.cards.every((c) => !(c.kind === victim.kind && c.id === victim.id)));
   assert.ok(sim.skip());
@@ -310,6 +314,41 @@ test('sim: every weapon fires and deals damage in a crowd', () => {
     run(sim, 6);
     assert.ok((sim.damageByWeapon[id] || 0) > 0, `${id} dealt no damage`);
   }
+});
+
+test('sim: every weapon breaks props on its own, with no enemies around', () => {
+  for (const id of Object.keys(WEAPONS)) {
+    const sim = createSim({ seed: 22 });
+    sim.director = { update() {} }; // без врагов: оружие с наведением должно само выбрать объект
+    sim.player.weapons.length = 0;
+    sim.player.weapons.push({ id, level: 1 });
+    sim._syncBuild();
+    const prop = sim.props[0];
+    prop.hp = 1;
+    prop.x = sim.player.x + 50;
+    prop.y = sim.player.y;
+    sim.props = [prop];
+    run(sim, 8);
+    assert.ok(prop.dead, `${id} did not break a prop`);
+  }
+});
+
+test('sim: lightning breaks props on its path to an enemy', () => {
+  const sim = createSim({ seed: 23 });
+  sim.director = { update() {} };
+  sim.player.weapons.length = 0;
+  sim.player.weapons.push({ id: 'storm_chain', level: 1 });
+  sim._syncBuild();
+  const prop = sim.props[0];
+  prop.hp = 1;
+  prop.x = sim.player.x + 60;
+  prop.y = sim.player.y + 2;
+  sim.props = [prop];
+  const e = sim.spawnEnemy('slime', sim.player.x + 120, sim.player.y);
+  e.hp = e.maxHp = 1e9;
+  run(sim, 2);
+  assert.ok(prop.dead, 'prop between the hero and the target');
+  assert.ok((sim.damageByWeapon.storm_chain || 0) > 0, 'lightning still hits the enemy');
 });
 
 

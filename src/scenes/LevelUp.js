@@ -148,7 +148,8 @@ export class LevelUpScene extends Phaser.Scene {
 
   // Соло: sim уже изменился, закрываемся или рисуем новый набор. Кооп: ждём применения команды в update().
   after() {
-    if (this.act.coop) return;
+    // кооп: только снять подсветку баниша; новый набор карточек нарисует update(), когда команда применится
+    if (this.act.coop) { this.render(); return; }
     if (this.sim.state !== 'levelup') this.close();
     else this.render();
   }

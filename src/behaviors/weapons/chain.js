@@ -1,7 +1,9 @@
-// Storm Chain: молния бьёт ближайшего врага и перескакивает на соседей. Урон мгновенный, снаряды только для вида.
+// Storm Chain: молния бьёт ближайшего врага и перескакивает на соседей. Урон мгновенный, снаряды только для вида,
+// поэтому разрушаемые объекты молния ломает сама: те, что на её пути, а без врагов рядом бьёт ближайший объект.
 import { WEAPON_BEHAVIOR } from '../../data/weapons.js';
 
-const { visualLife: VISUAL_LIFE, linkStep: LINK_STEP, maxLinks: MAX_LINKS } = WEAPON_BEHAVIOR.chain;
+const { visualLife: VISUAL_LIFE, linkStep: LINK_STEP, maxLinks: MAX_LINKS, propWidth: PROP_WIDTH } =
+  WEAPON_BEHAVIOR.chain;
 
 function segment(sim, x0, y0, x1, y1, sprite) {
   const dx = x1 - x0;
@@ -27,7 +29,15 @@ export const chain = {
     const P = w.params;
     const pl = w.owner;
     const first = sim.nearestEnemy(pl.x, pl.y, P.range);
-    if (!first) { w.cooldown = 0.15; return; }
+    if (!first) {
+      const prop = sim.nearestProp(pl.x, pl.y, P.range);
+      if (!prop) { w.cooldown = 0.15; return; }
+      w.cooldown = P.cooldown;
+      segment(sim, pl.x, pl.y, prop.x, prop.y, w.def.sprite);
+      sim.hitPropsOnSegment(pl.x, pl.y, prop.x, prop.y, PROP_WIDTH, sim.nextStamp());
+      sim.events.push({ type: 'weaponFire', weapon: w.id });
+      return;
+    }
     w.cooldown = P.cooldown;
     const stamp = sim.nextStamp();
     for (let b = 0; b < P.amount; b++) {
@@ -38,6 +48,7 @@ export const chain = {
       for (let j = 0; j <= P.jumps && cur; j++) {
         cur.mark = stamp;
         segment(sim, x, y, cur.x, cur.y, w.def.sprite);
+        sim.hitPropsOnSegment(x, y, cur.x, cur.y, PROP_WIDTH, stamp);
         sim.damageEnemy(cur, P.damage, w.id, P.knockback || 0, x, y, w.owner, `chain:${w.slot}`);
         x = cur.x; y = cur.y;
         cur = sim.nearestEnemy(x, y, P.area, stamp);
