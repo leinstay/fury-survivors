@@ -115,7 +115,7 @@ node tools/slice-sheet.mjs <sheet> [--report]
 
 - Эффекты: `node tools/make-sfx.mjs [имя...]` (или `npm run sfx`) пишет `assets/audio/sfx/<имя>.wav` (22050 Гц, моно, 16 бит) из пресетов `PRESETS` в начале скрипта; поля пресета описаны там же комментарием (`wave`, `freq`, `slide`, `attack/sustain/decay`, `steps`, `lp`, `noiseMix`). Синтез детерминирован. Новый звук: пресет, имя в `SFX_NAMES` в `src/audio/sfx.js` (оттуда загрузка и лимит одновременных), вызов `playSfx(scene, '<имя>')` или ветка в обработчике событий того же файла.
 - Подмена звука файлом: положи wav с тем же именем в `assets/audio/sfx/`. После этого запускай `make-sfx.mjs` только с явными именами: без аргументов он перезапишет все эффекты.
-- Музыка: `assets/audio/music/theme.mp3`, трек «Whispers of the Abyss (Loop)» (2:40, 128 кбит/с, источник в README.md, раздел Credits), ключ `music_theme` в `src/audio/sfx.js`. Запасной процедурный луп: `node tools/make-music.mjs` пишет `theme.wav` (ля минор, 140 bpm, ~41 с); чтобы играл он, поменяй путь в `preloadAudio`. Источник и лицензию внешнего файла впиши в раздел Credits в `README.md`.
+- Музыка: `assets/audio/music/theme.mp3`, трек «Whispers of the Abyss (Loop)» (2:40, 128 кбит/с, royalty-free, в Credits не указывается), ключ `music_theme` в `src/audio/sfx.js`. Запасной процедурный луп: `node tools/make-music.mjs` пишет `theme.wav` (ля минор, 140 bpm, ~41 с); чтобы играл он, поменяй путь в `preloadAudio`. Источник и лицензию внешнего файла впиши в раздел Credits в `README.md`.
 
 ## Шрифт
 
