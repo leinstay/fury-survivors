@@ -284,7 +284,7 @@ class Telemetry {
     };
   }
 
-  finish(sim, { status, score = 0 }) {
+  finish(sim, { status, score = 0, diagnostics = null }) {
     if (this.finished) return null;
     this.observe(sim);
     this.finished = true;
@@ -301,6 +301,8 @@ class Telemetry {
       initial: this.initial, mode: this.coop ? 'duo' : 'solo', hero: p.hero,
       heroes: sim.players.map((x) => x.hero), stage: sim.stage || 'forest',
       difficulty: sim.difficulty, status, time: r1(sim.time),
+      terminal: { state: sim.state, picker: sim.picker, pendingLevels: sim.pendingLevels,
+        resumeT: sim.resumeT, diagnostics: diagnostics ? structuredClone(diagnostics) : null },
       level: sim.player.level, kills: this.kills, score,
       economy: { ...this.economy }, won: sim.won, revives: p.revives, distance: r1(p.dist),
       overtime: sim.overtime >= 0 ? r1(sim.overtime) : -1,

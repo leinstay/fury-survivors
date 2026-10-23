@@ -115,3 +115,12 @@ movement и levels это позволяет отличать обход кри�
 
 Основная проверяемая выгрузка теперь `npm run telemetry:export -- --from ...Z --to ...Z --out tools/out/telemetry`.
 Нормализатор `tools/telemetry/data.mjs` отмечает неполные v1 интервалы, а не дописывает нулевой урон.
+
+## Диагностика остановки дуо
+
+Итоговый `terminal` сохраняет state/picker/pendingLevels/resumeT в момент окончания
+записи. При завершении из Game также передаётся `terminal.diagnostics`: сетевой tick,
+paused/local, waitT/silence, имя overlay и active/closed/alpha/input/keyboard его сцены.
+Снимок копируется до отправки; он не влияет на игровой RNG. Так disconnect на 6:11
+можно отличить от обычного выхода, незавершённого выбора и невидимого экрана.
+Старые записи без terminal остаются читаемыми; отсутствие поля не считается running.

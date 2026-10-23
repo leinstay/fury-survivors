@@ -170,7 +170,15 @@ export class GameScene extends Phaser.Scene {
     const sim = this.sim;
     const score = computeScore({ time: sim.time, kills: sim.kills, coins: sim.coins, victory: status === 'victory' });
     recordRun(tr.finish(sim, { status, at: Date.now(), score }));
-    if (this.telemetry) sendRun(this.telemetry.finish(sim, { status, score }));
+    const ui = this.overlay ? this.scene.get(this.overlay) : null;
+    const diagnostics = this.ls ? {
+      tick: this.ls.tick, paused: this.ls.paused, local: sim.local,
+      waitT: this.ls.waitT, silence: this.ls.silence(this.now()), overlay: this.overlay,
+      ui: ui ? { active: this.scene.isActive(this.overlay), closed: ui.closed,
+        alpha: ui.cameras?.main?.alpha ?? null, input: ui.input?.enabled ?? null,
+        keyboard: ui.input?.keyboard?.enabled ?? null } : null,
+    } : null;
+    if (this.telemetry) sendRun(this.telemetry.finish(sim, { status, score, diagnostics }));
     this.telemetry = null;
   }
 
@@ -259,11 +267,14 @@ export class GameScene extends Phaser.Scene {
     s.maxDt = Math.max(s.maxDt, rawDt);
     const span = now - s.t0;
     if (span < NET.statsEvery) return;
+    const ui = this.overlay ? this.scene.get(this.overlay) : null;
     netLog('stats', `stalled ${Math.round(100 * s.stalls / s.frames)}% of frames,`,
         `ticks/s ${((this.ls.tick - s.tick0) / span).toFixed(1)}, fps ${(s.frames / span).toFixed(0)},`,
         `longest frame ${Math.round(s.maxDt * 1000)}ms, drift ${drift.toFixed(1)},`,
         `lead ${this.ls.advantage()} ticks (partner ${this.ls.remoteAdv}), sim ${formatTime(this.sim.time)},`,
-        `state ${this.sim.state}, paused ${this.ls.paused}, overlay ${this.overlay || 'none'}, picker ${this.sim.picker}`);
+        `state ${this.sim.state}, paused ${this.ls.paused}, overlay ${this.overlay || 'none'},`,
+        `picker ${this.sim.picker}, local ${this.sim.local}, resume ${this.sim.resumeT},`,
+        `ui ${ui ? `closed=${ui.closed} input=${ui.input?.enabled} alpha=${ui.cameras?.main?.alpha}` : 'none'}`);
     this.stats = null;
   }
 
@@ -331,12 +342,13 @@ export class GameScene extends Phaser.Scene {
       this._open('Pause', { sim, act: this.act });
     } else if ((sim.state === 'gameover' || sim.state === 'victory' || this.lost) && !this.ended) {
       this.ended = true;
+      const over = sim.state === 'gameover' || sim.state === 'victory';
+      // Capture the stuck screen before closing the channel and destroying overlays.
+      this._finishRun(runStatus(sim, this.lost && !over));
       fadeOutMusic();
       if (this.net) this.net.close();
       if (this.overlay) { this.scene.stop(this.overlay); this.overlay = null; }
       this.scene.pause('Game');
-      const over = sim.state === 'gameover' || sim.state === 'victory';
-      this._finishRun(runStatus(sim, this.lost && !over));
       this.scene.launch(sim.state === 'victory' ? 'Victory' : 'GameOver', {
         sim, coop: this.coop, lost: this.lost && !over,
       });

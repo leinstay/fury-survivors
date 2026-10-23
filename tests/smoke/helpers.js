@@ -58,18 +58,20 @@ export async function driveGame(page, until = 12, onProgress = async () => {}) {
     held.clear();
   };
   try {
-    for (let guard = 0; guard < 1000; guard++) {
+    for (let guard = 0; guard < Math.max(1000, until * 30); guard++) {
       const r = await page.evaluate(() => {
         const sim = window.__game.game.scene.getScene('Game').sim;
         const o = window.__smokeObserve(sim, sim.local);
         const p = window.__smokePolicy;
         return { scene: window.__game.debug().scene, time: sim.time, frame: sim.frame,
-          state: sim.state, pickCount: window.__game.game.scene.getScene('Game').telemetry.picks.length,
+          state: sim.state,
+          pickCount: window.__game.game.scene.getScene('Game').telemetry?.picks.length || 0,
           command: ['chest', 'levelup'].includes(sim.state) ? p.choose(o) : null,
           input: p.move(o) };
       });
       await onProgress(r);
       if (r.time >= until) return r;
+      if (['GameOver', 'Victory'].includes(r.scene)) throw new Error(`Scene ended early: ${r.scene}`);
       if (['gameover', 'victory'].includes(r.state)) throw new Error(`Ended before ${until}s`);
       if (r.scene === 'LevelUp' && r.command) {
         await release();
@@ -118,6 +120,11 @@ export async function driveGame(page, until = 12, onProgress = async () => {}) {
       }
     }
     throw new Error('Browser drive watchdog');
+  } catch (error) {
+    try {
+      error.message += `\nBrowser state: ${JSON.stringify(await page.evaluate(() => window.__game.debug()))}`;
+    } catch { /* page may already be closed after the test timeout */ }
+    throw error;
   } finally { await release(); }
 }
 

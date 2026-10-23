@@ -229,3 +229,16 @@ test('magnet telemetry measures banked ground XP before attraction, without inve
   assert.equal(tr.snap(sim, 0).economy.pickedXP, 20);
   assert.ok(sim.pickups.every((x) => x.pulled));
 });
+
+test('disconnect captures the pending choice and network/UI diagnostics without sharing mutable data', () => {
+  const { sim, tr } = setup({ players: 2 });
+  sim.time = 371;
+  offer(sim);
+  const diagnostics = { paused: false, overlay: 'LevelUp', ui: { input: false, alpha: 0 } };
+  const run = tr.finish(sim, { status: 'disconnected', diagnostics });
+  diagnostics.ui.alpha = 1;
+  assert.equal(run.terminal.state, 'levelup');
+  assert.equal(run.terminal.picker, sim.picker);
+  assert.equal(run.terminal.pendingLevels, 1);
+  assert.equal(run.terminal.diagnostics.ui.alpha, 0);
+});

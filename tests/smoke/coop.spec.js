@@ -13,7 +13,11 @@ const SIGNAL = `window.__furySignal = {
 }; window.__furyTestSeed = 1111;`;
 
 test('real WebRTC duo: both UI players act and matching ticks have matching state', async ({ context }) => {
-  test.setTimeout(120000);
+  const stressSeconds = Number(process.env.FURY_DUO_STRESS_SECONDS || 0);
+  test.setTimeout(stressSeconds ? 600000 : 240000);
+  // Browser fixtures must never upload synthetic runs to production telemetry.
+  await context.route('**/www.gstatic.com/**', (route) => route.abort());
+  await context.route('**/firestore.googleapis.com/**', (route) => route.abort());
   const pages = [await context.newPage(), await context.newPage()];
   const errors = pages.map(collectConsoleErrors);
   for (const p of pages) {
@@ -45,6 +49,21 @@ test('real WebRTC duo: both UI players act and matching ticks have matching stat
   await host.waitForFunction(() => performance.now() - window.__lobbyWaitStart > 3500);
   await clickSceneText(host, 'Lobby', 'Start');
   for (const p of pages) await p.waitForFunction(() => window.__game.debug().scene === 'Game');
+  if (stressSeconds) {
+    // Opt-in UI stress only: accelerate network ticks and suppress incoming damage.
+    // Drafts, XP, weapon combat and real controls remain active; this is not balance evidence.
+    for (const p of pages) {await p.evaluate(async () => {
+      const gs = window.__game.game.scene.getScene('Game');
+      // The 3s lobby regression timeout is intentionally shorter than production.
+      // Restore production tolerance for a long, software-rendered diagnostic run.
+      (await import('/src/data/constants.js')).NET.dropAfter = 20;
+      const step = gs._stepCoop.bind(gs);
+      gs._stepCoop = (dt, input) => step(dt * 4, input);
+      gs.sim.hurtPlayer = () => {};
+      // Keep the real overlay cameras/UI; omit expensive world rendering on software GL.
+      gs.cameras.main.setVisible(false);
+    });}
+  }
   for (const p of pages) {await p.evaluate(() => {
     const ls = window.__game.game.scene.getScene('Game').ls;
     window.__smokeHashes = [];
@@ -54,7 +73,15 @@ test('real WebRTC duo: both UI players act and matching ticks have matching stat
       send(message);
     };
   });}
-  await Promise.all(pages.map((p) => driveGame(p, 12)));
+  await Promise.all(pages.map((p, i) => {
+    let next = 30;
+    return driveGame(p, stressSeconds || 12, async (r) => {
+      if (stressSeconds && r.time >= next) {
+        console.log(`UI stress player ${i}: ${r.time.toFixed(1)}s, ${r.scene}, ${r.state}`);
+        next += 30;
+      }
+    });
+  }));
   const snapshot = (p) => p.evaluate(() => {
     const gs = window.__game.game.scene.getScene('Game');
     return { names: gs.sim.players.map((x) => x.name), heroes: gs.sim.heroes,
@@ -75,54 +102,85 @@ test('real WebRTC duo: both UI players act and matching ticks have matching stat
   expect(a.desynced || b.desynced).toBe(false);
   // Explicit UI/network regression fixture at 6:11. Apply at a common future tick so
   // both WebRTC clients keep the same simulation state, regardless of browser timing.
-  const at = Math.max(a.tick, b.tick) + 120;
-  for (const p of pages) {await p.evaluate((tick) => {
-    const gs = window.__game.game.scene.getScene('Game');
-    const ls = gs.ls;
-    const advance = ls.advance.bind(ls);
-    let installed = false;
-    let stalePause = false;
-    ls.advance = (...args) => {
-      if (!installed && ls.tick === tick) {
-        installed = true;
-        const sim = gs.sim;
-        sim.time = 371; sim.state = 'running'; sim.pendingLevels = 0;
-        sim.levelTurn = 1; sim.pickups = []; sim.enemies = []; sim.deadN = 0;
-        sim.director.update = () => {};
-        sim.player.xp = sim.player.xpNext;
-        sim._checkLevel();
+  const firstTick = Math.max(a.tick, b.tick) + 120;
+  for (const scenario of [
+    { owner: 1, time: 371, idleMs: 65000, stale: false },
+    { owner: 0, time: 375, idleMs: 0, stale: true },
+  ]) {
+    const snapshots = await Promise.all(pages.map(snapshot));
+    const at = scenario.time === 371 ? firstTick :
+      Math.max(...snapshots.map((x) => x.tick)) + 120;
+    for (const p of pages) {await p.evaluate(({ tick, scenario }) => {
+      const gs = window.__game.game.scene.getScene('Game');
+      const ls = gs.ls;
+      const advance = ls.advance.bind(ls);
+      let installed = false;
+      let stalePause = false;
+      ls.advance = (...args) => {
+        if (!installed && ls.tick === tick) {
+          installed = true;
+          const sim = gs.sim;
+          sim.time = scenario.time; sim.state = 'running'; sim.pendingLevels = 0;
+          sim.levelTurn = scenario.owner; sim.pickups = []; sim.enemies = []; sim.deadN = 0;
+          sim.director.update = () => {};
+          sim.player.xp = sim.player.xpNext;
+          sim._checkLevel();
+        }
+        if (scenario.stale && installed && !stalePause && ls.local !== scenario.owner &&
+            gs.sim.state === 'resume') {
+          stalePause = true; ls.command({ k: 'pause' });
+        }
+        return advance(...args);
+      };
+    }, { tick: at, scenario });}
+    for (const p of pages) {await p.waitForFunction(({ owner, time }) => {
+      const gs = window.__game.game.scene.getScene('Game');
+      return gs.sim.time === time && gs.sim.picker === owner &&
+        gs.scene.isActive('LevelUp') && !gs.scene.get('LevelUp').closed;
+    }, scenario);}
+    if (scenario.idleMs) {
+      for (const p of pages) {await p.evaluate(() => {
+        const gs = window.__game.game.scene.getScene('Game');
+        window.__idleChoice = { at: performance.now(), tick: gs.ls.tick };
+      });}
+      // Actual wall-clock idle: no keyboard, pointer, pause or synthetic network commands.
+      await Promise.all(pages.map((p) => p.waitForFunction((ms) =>
+        performance.now() - window.__idleChoice.at >= ms, scenario.idleMs,
+      { timeout: 75000, polling: 1000 })));
+      for (const p of pages) {
+        const held = await p.evaluate(() => {
+          const gs = window.__game.game.scene.getScene('Game');
+          const ui = gs.scene.get('LevelUp');
+          return { ticks: gs.ls.tick - window.__idleChoice.tick, paused: gs.ls.paused,
+            state: gs.sim.state, closed: ui.closed, alpha: ui.cameras.main.alpha,
+            input: ui.input.enabled, lost: gs.lost };
+        });
+        expect(held).toMatchObject({ paused: false, state: 'levelup', closed: false,
+          alpha: 1, input: true, lost: false });
+        expect(held.ticks).toBeGreaterThan(1200);
       }
-      // Model an Escape already in transit when the guest selects their card.
-      if (installed && !stalePause && ls.local === 0 && gs.sim.state === 'resume') {
-        stalePause = true; ls.command({ k: 'pause' });
-      }
-      return advance(...args);
-    };
-  }, at);}
-  for (const p of pages) {await p.waitForFunction(() => {
-    const gs = window.__game.game.scene.getScene('Game');
-    return gs.sim.time === 371 && gs.sim.picker === 1 &&
-      gs.scene.isActive('LevelUp') && !gs.scene.get('LevelUp').closed;
-  });}
-  await host.keyboard.press('Escape');
-  await guest.keyboard.press('Escape');
-  await clickSceneItem(guest, 'LevelUp', 0);
-  for (const p of pages) {await p.waitForFunction(() => {
-    const gs = window.__game.game.scene.getScene('Game');
-    return gs.sim.time > 372 && gs.sim.state === 'running' && !gs.ls.paused &&
-      !gs.scene.isActive('LevelUp') && !gs.scene.isActive('Pause');
-  }, null, { timeout: 15000 });}
+    }
+    if (scenario.stale) {
+      await host.keyboard.press('Escape'); await guest.keyboard.press('Escape');
+    }
+    await clickSceneItem(pages[scenario.owner], 'LevelUp', 0);
+    for (const p of pages) {await p.waitForFunction((time) => {
+      const gs = window.__game.game.scene.getScene('Game');
+      return gs.sim.time > time + 1 && gs.sim.state === 'running' && !gs.ls.paused &&
+        !gs.scene.isActive('LevelUp') && !gs.scene.isActive('Pause');
+    }, scenario.time, { timeout: 15000 });}
+  }
   // Ordinary shared pause and resume must still work after the rejected stale command.
   await host.keyboard.press('Escape');
   for (const p of pages) await p.waitForFunction(() => window.__game.debug().scenes.includes('Pause'));
   await clickSceneText(guest, 'Pause', 'Resume');
   for (const p of pages) {await p.waitForFunction(() => {
     const gs = window.__game.game.scene.getScene('Game');
-    return !gs.ls.paused && gs.sim.time > 373 && !gs.scene.isActive('Pause');
+    return !gs.ls.paused && gs.sim.time > 377 && !gs.scene.isActive('Pause');
   });}
   const [afterA, afterB] = await Promise.all(pages.map(snapshot));
   expect(afterA.desynced || afterB.desynced).toBe(false);
-  const afterHashes = afterA.parts.filter(([tick]) => tick >= at &&
+  const afterHashes = afterA.parts.filter(([tick]) => tick >= firstTick &&
     afterB.parts.some(([other]) => other === tick));
   expect(afterHashes.length).toBeGreaterThan(0);
   for (const [tick, hash] of afterHashes) {

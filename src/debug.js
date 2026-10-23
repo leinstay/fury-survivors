@@ -63,6 +63,19 @@ export function installDebug(game) {
         hp: sim ? sim.player.hp : null,
         level: sim ? sim.player.level : null,
         time: sim ? sim.time : null,
+        network: gameScene?.ls ? {
+          tick: gameScene.ls.tick, paused: gameScene.ls.paused, local: sim.local,
+          picker: sim.picker, pendingLevels: sim.pendingLevels, resumeT: sim.resumeT,
+          waitT: gameScene.ls.waitT, silence: gameScene.ls.silence(gameScene.now()),
+          pendingCommands: gameScene.ls.pendingCmds.length, overlay: gameScene.overlay,
+        } : null,
+        overlays: ['LevelUp', 'Chest', 'Pause'].map((key) => {
+          const ui = game.scene.getScene(key);
+          return { key, active: game.scene.isActive(key), paused: game.scene.isPaused(key),
+            closed: ui?.closed ?? null, alpha: ui?.cameras?.main?.alpha ?? null,
+            input: ui?.input?.enabled ?? null, keyboard: ui?.input?.keyboard?.enabled ?? null,
+            items: ui?.nav?.items.length ?? 0 };
+        }),
         weapons: sim ? sim.player.weapons.map((w) => ({ id: w.id, level: w.level })) : [],
         errors: errors.slice(),
       };
