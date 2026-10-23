@@ -28,42 +28,42 @@ const elite = () => ({ hpMul: 8, damageMul: 1.5, sizeMul: 1.5, xpMul: 6, glow: 0
 
 export const ENEMIES = {
   harpy: {
-    sprite: 'harpy', behavior: 'swarm', hp: 5, speed: 78, damage: 5, xp: 2, size: 7, knockbackResist: 0,
+    sprite: 'harpy', behavior: 'swarm', hp: 10, speed: 78, damage: 5, xp: 2, size: 7, knockbackResist: 0,
     params: { wobble: 40, wobbleFreq: 5 },
     elite: elite(),
   },
   slime: {
-    sprite: 'slime', behavior: 'chase', hp: 12, speed: 40, damage: 10, xp: 2, size: 11, knockbackResist: 0.3,
+    sprite: 'slime', behavior: 'chase', hp: 24, speed: 40, damage: 10, xp: 2, size: 11, knockbackResist: 0.3,
     params: {},
     elite: elite(),
   },
   catgirl: {
-    sprite: 'catgirl', behavior: 'chase', hp: 16, speed: 60, damage: 10, xp: 3, size: 9, knockbackResist: 0,
+    sprite: 'catgirl', behavior: 'chase', hp: 32, speed: 60, damage: 10, xp: 3, size: 9, knockbackResist: 0,
     params: {},
     elite: elite(),
   },
   ghost: {
-    sprite: 'ghost', behavior: 'phase', hp: 10, speed: 75, damage: 5, xp: 2, size: 9, knockbackResist: 0.5,
+    sprite: 'ghost', behavior: 'phase', hp: 20, speed: 75, damage: 5, xp: 2, size: 9, knockbackResist: 0.5,
     params: { aimEvery: 1.5 },
     elite: elite(),
   },
   foxgirl: {
-    sprite: 'foxgirl', behavior: 'dash', hp: 80, speed: 50, damage: 12, xp: 6, size: 9, knockbackResist: 0.2,
+    sprite: 'foxgirl', behavior: 'dash', hp: 160, speed: 50, damage: 12, xp: 6, size: 9, knockbackResist: 0.2,
     params: { range: 140, windup: 0.55, dashSpeed: 240, dashTime: 0.35, cooldown: 2.4 },
     elite: elite(),
   },
   succubus: {
-    sprite: 'succubus', behavior: 'ranged', hp: 50, speed: 45, damage: 10, xp: 5, size: 9, knockbackResist: 0.2,
+    sprite: 'succubus', behavior: 'ranged', hp: 100, speed: 45, damage: 10, xp: 5, size: 9, knockbackResist: 0.2,
     params: { keep: 150, range: 260, cooldown: 2.4, projSpeed: 110, projDamage: 12, projLife: 4 },
     elite: elite(),
   },
   bunnygirl: {
-    sprite: 'bunnygirl', behavior: 'chase', hp: 30, speed: 63, damage: 10, xp: 4, size: 8, knockbackResist: 0,
+    sprite: 'bunnygirl', behavior: 'chase', hp: 60, speed: 63, damage: 10, xp: 4, size: 8, knockbackResist: 0,
     params: {},
     elite: elite(),
   },
   lamia: {
-    sprite: 'lamia', behavior: 'chase', hp: 200, speed: 48, damage: 14, xp: 12, size: 11, knockbackResist: 0.6,
+    sprite: 'lamia', behavior: 'chase', hp: 400, speed: 48, damage: 14, xp: 12, size: 11, knockbackResist: 0.6,
     params: {},
     elite: elite(),
   },
