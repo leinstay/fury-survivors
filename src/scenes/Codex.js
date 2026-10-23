@@ -42,6 +42,8 @@ const LEFT = { x: M, w: 300 };
 const RIGHT = { x: M + 300 + GAP, w: GAME_WIDTH - 2 * M - 300 - GAP };
 // Ширина итогов в хронике, забеги справа от них.
 const TOTALS_W = 240;
+// Шаг строк в блоках «Stats» и «Your record» справа: 8 статов героя влезают до низа панели.
+const STAT_LINE = 12;
 const DARK = 0x000000;
 const MOVING = { moving: true };
 // Параметры оружия в таблице (порядок строк); показываются только те, что есть у оружия.
@@ -493,7 +495,7 @@ export class CodexScene extends Phaser.Scene {
     }
 
     // статы и свой счёт двумя колонками
-    const sy = T + 148;
+    const sy = T + 140;
     const stats = [];
     if (def.invulnerable) stats.push([t('codex.stat.hp'), t('codex.invulnerable')]);
     else if (def.hpPerLevel) stats.push([t('codex.stat.hp_level'), t('codex.stat.hp_per_level', { n: def.hpPerLevel })]);
@@ -511,8 +513,8 @@ export class CodexScene extends Phaser.Scene {
     [[t('codex.stats'), stats, L], [t('codex.rec.title'), mine, L + colW + 2 * PAD]].forEach(([title, list, x]) => {
       this.add.text(x, sy, title, textStyle(10, '#ffd84a')).setOrigin(0, 0);
       list.forEach(([k, v], i) => {
-        this.add.text(x, sy + 15 + i * 13, k, textStyle(9, COLORS.dim)).setOrigin(0, 0);
-        this.add.text(x + colW, sy + 15 + i * 13, String(v), textStyle(9)).setOrigin(1, 0);
+        this.add.text(x, sy + 15 + i * STAT_LINE, k, textStyle(9, COLORS.dim)).setOrigin(0, 0);
+        this.add.text(x + colW, sy + 15 + i * STAT_LINE, String(v), textStyle(9)).setOrigin(1, 0);
       });
     });
   }
@@ -552,8 +554,9 @@ export class CodexScene extends Phaser.Scene {
     const T = TOP + PAD;
     const key = def.sprite;
     if (this.textures.exists(key)) {
-      const sp = this.add.sprite(L + 52, T + 132, key, 0).setOrigin(0.5, 1);
-      sp.baseScale = fitScale(key, 104, 128);
+      // рамка 112×128 (вся колонка слева от текста): магесса с посохом 110 px шириной идёт в полный размер
+      const sp = this.add.sprite(L + 56, T + 132, key, 0).setOrigin(0.5, 1);
+      sp.baseScale = fitScale(key, 112, 128);
       sp.setScale(sp.baseScale);
       this.anims.push({ sprite: sp, key, y: T + 132, seed: 0 });
     }
@@ -592,13 +595,13 @@ export class CodexScene extends Phaser.Scene {
       [t('codex.rec.best'), String(best)],
       [t('codex.rec.longest'), formatTime(longest)],
     ];
-    const sy = T + 148;
+    const sy = T + 140;
     const colW = (RIGHT.w - 4 * PAD) / 2;
     [[t('codex.stats'), stats, L], [t('codex.rec.title'), mine, L + colW + 2 * PAD]].forEach(([title, list, cx]) => {
       this.add.text(cx, sy, title, textStyle(10, '#ffd84a')).setOrigin(0, 0);
       list.forEach(([k, v], i) => {
-        this.add.text(cx, sy + 15 + i * 13, k, textStyle(9, COLORS.dim)).setOrigin(0, 0);
-        this.add.text(cx + colW, sy + 15 + i * 13, v, textStyle(9)).setOrigin(1, 0);
+        this.add.text(cx, sy + 15 + i * STAT_LINE, k, textStyle(9, COLORS.dim)).setOrigin(0, 0);
+        this.add.text(cx + colW, sy + 15 + i * STAT_LINE, v, textStyle(9)).setOrigin(1, 0);
       });
     });
   }

@@ -78,12 +78,12 @@ export function handleSimEvents(scene, events) {
 
 // Музыка играет только в забеге: старт с начала трека с плавным нарастанием, в конце забега плавное затухание.
 // Затухание идёт по таймеру страницы, а не твину сцены: сцена Game на экране итогов стоит на паузе.
-// fade: 0..1, множитель громкости поверх ползунка и AUDIO.gain.
+// fade: 0..1, множитель громкости поверх ползунка и AUDIO.musicGain.
 let fade = 1;
 let fadeTimer = null;
 
 function musicVolume() {
-  return getVolume('music') * AUDIO.gain * fade;
+  return getVolume('music') * AUDIO.musicGain * fade;
 }
 
 function fadeTo(target, seconds, done) {
