@@ -262,7 +262,8 @@ export class GameScene extends Phaser.Scene {
     netLog('stats', `stalled ${Math.round(100 * s.stalls / s.frames)}% of frames,`,
         `ticks/s ${((this.ls.tick - s.tick0) / span).toFixed(1)}, fps ${(s.frames / span).toFixed(0)},`,
         `longest frame ${Math.round(s.maxDt * 1000)}ms, drift ${drift.toFixed(1)},`,
-        `lead ${this.ls.advantage()} ticks (partner ${this.ls.remoteAdv}), sim ${formatTime(this.sim.time)}`);
+        `lead ${this.ls.advantage()} ticks (partner ${this.ls.remoteAdv}), sim ${formatTime(this.sim.time)},`,
+        `state ${this.sim.state}, paused ${this.ls.paused}, overlay ${this.overlay || 'none'}, picker ${this.sim.picker}`);
     this.stats = null;
   }
 

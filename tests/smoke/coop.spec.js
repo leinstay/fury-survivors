@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { collectConsoleErrors, clickSceneText, driveGame } from './helpers.js';
+import { collectConsoleErrors, clickSceneText, clickSceneItem, driveGame } from './helpers.js';
 
 // Local signalling replaces Firestore, but data and commands travel over real WebRTC.
 const SIGNAL = `window.__furySignal = {
@@ -73,6 +73,61 @@ test('real WebRTC duo: both UI players act and matching ticks have matching stat
   expect(common.length).toBeGreaterThan(0);
   for (const [tick, parts] of common) expect(b.parts.find(([t]) => t === tick)[1]).toEqual(parts);
   expect(a.desynced || b.desynced).toBe(false);
+  // Explicit UI/network regression fixture at 6:11. Apply at a common future tick so
+  // both WebRTC clients keep the same simulation state, regardless of browser timing.
+  const at = Math.max(a.tick, b.tick) + 120;
+  for (const p of pages) {await p.evaluate((tick) => {
+    const gs = window.__game.game.scene.getScene('Game');
+    const ls = gs.ls;
+    const advance = ls.advance.bind(ls);
+    let installed = false;
+    let stalePause = false;
+    ls.advance = (...args) => {
+      if (!installed && ls.tick === tick) {
+        installed = true;
+        const sim = gs.sim;
+        sim.time = 371; sim.state = 'running'; sim.pendingLevels = 0;
+        sim.levelTurn = 1; sim.pickups = []; sim.enemies = []; sim.deadN = 0;
+        sim.director.update = () => {};
+        sim.player.xp = sim.player.xpNext;
+        sim._checkLevel();
+      }
+      // Model an Escape already in transit when the guest selects their card.
+      if (installed && !stalePause && ls.local === 0 && gs.sim.state === 'resume') {
+        stalePause = true; ls.command({ k: 'pause' });
+      }
+      return advance(...args);
+    };
+  }, at);}
+  for (const p of pages) {await p.waitForFunction(() => {
+    const gs = window.__game.game.scene.getScene('Game');
+    return gs.sim.time === 371 && gs.sim.picker === 1 &&
+      gs.scene.isActive('LevelUp') && !gs.scene.get('LevelUp').closed;
+  });}
+  await host.keyboard.press('Escape');
+  await guest.keyboard.press('Escape');
+  await clickSceneItem(guest, 'LevelUp', 0);
+  for (const p of pages) {await p.waitForFunction(() => {
+    const gs = window.__game.game.scene.getScene('Game');
+    return gs.sim.time > 372 && gs.sim.state === 'running' && !gs.ls.paused &&
+      !gs.scene.isActive('LevelUp') && !gs.scene.isActive('Pause');
+  }, null, { timeout: 15000 });}
+  // Ordinary shared pause and resume must still work after the rejected stale command.
+  await host.keyboard.press('Escape');
+  for (const p of pages) await p.waitForFunction(() => window.__game.debug().scenes.includes('Pause'));
+  await clickSceneText(guest, 'Pause', 'Resume');
+  for (const p of pages) {await p.waitForFunction(() => {
+    const gs = window.__game.game.scene.getScene('Game');
+    return !gs.ls.paused && gs.sim.time > 373 && !gs.scene.isActive('Pause');
+  });}
+  const [afterA, afterB] = await Promise.all(pages.map(snapshot));
+  expect(afterA.desynced || afterB.desynced).toBe(false);
+  const afterHashes = afterA.parts.filter(([tick]) => tick >= at &&
+    afterB.parts.some(([other]) => other === tick));
+  expect(afterHashes.length).toBeGreaterThan(0);
+  for (const [tick, hash] of afterHashes) {
+    expect(afterB.parts.find(([other]) => other === tick)[1]).toEqual(hash);
+  }
   await host.evaluate(() => window.__game.game.scene.getScene('Game').scene.start('Menu'));
   await guest.waitForFunction(() => window.__game.debug().scenes.includes('GameOver'));
   for (const p of pages) expect(await p.evaluate(() => window.__game.debug().errors)).toEqual([]);

@@ -129,6 +129,33 @@ test('lockstep: pause stops the sim on both, resume continues, ticks keep flowin
   assert.ok(a.sim.time > t0 && a.sim.time === b.sim.time);
 });
 
+for (const chooser of [0, 1]) {
+  test(`lockstep: delayed pause crossing player ${chooser}'s choice cannot freeze resume`, () => {
+    const { a, b, pump, desyncs } = pair(9, { delay: 3, lag: 1 });
+    const run = (n) => {
+      for (let i = 0; i < n; i++) {
+        a.advance({ x: 0, y: 0 }, DT); b.advance({ x: 0, y: 0 }, DT); pump();
+      }
+    };
+    // Escape was sent while running; XP is collected before that command reaches its tick.
+    [a, b][1 - chooser].command({ k: 'pause' });
+    for (const ls of [a, b]) {
+      ls.sim.time = 371;
+      ls.sim.levelTurn = chooser;
+      ls.sim.player.xp = ls.sim.player.xpNext;
+      ls.sim._checkLevel();
+    }
+    [a, b][chooser].command({ k: 'card', i: 0 });
+    run(60);
+    assert.equal(a.paused, false);
+    assert.equal(b.paused, false);
+    assert.equal(a.sim.state, 'running');
+    assert.ok(a.sim.time > 371);
+    assert.equal(hashSim(a.sim), hashSim(b.sim));
+    assert.deepEqual(desyncs, []);
+  });
+}
+
 test('lockstep: a diverged state is reported as a desync', () => {
   const { a, b, pump, desyncs } = pair(4, { delay: 2, lag: 1, hashEvery: 10 });
   const idle = { x: 0, y: 0 };

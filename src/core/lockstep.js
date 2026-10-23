@@ -234,7 +234,11 @@ class Lockstep {
     if (list) {
       list.sort((a, b) => a.who - b.who); // порядок одинаковый у обоих: сначала игрок 0
       for (const c of list) {
-        if (c.cmd.k === 'pause') this.paused = true;
+        if (c.cmd.k === 'pause') {
+          // Escape мог быть отправлен до levelup/chest и приехать уже после выбора.
+          // В resume пауза остановила бы таймер, а экран Pause там не открывается.
+          if (this.sim.state === 'running') this.paused = true;
+        }
         else if (c.cmd.k === 'resume' && this.paused) {
           this.paused = false;
           this.sim.resumeDelay(); // мир трогается через SIM.resumeDelay, как после выбора карточки
