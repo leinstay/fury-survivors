@@ -8,6 +8,7 @@ import { addPanel } from '../ui/panel.js';
 import { formatTime } from '../ui/hud.js';
 import { fetchTop10 } from '../services/leaderboard.js';
 import { DEFAULT_DIFFICULTY } from '../data/difficulty.js';
+import { pairLabel } from '../core/nick.js';
 
 const COL = { place: 110, name: 140, score: 318, time: 392, kills: 464, mode: 540 };
 const HEAD_Y = 76;
@@ -93,7 +94,7 @@ export class LeaderboardScene extends Phaser.Scene {
       const st = textStyle(12, color);
       this.rowObjs.push(
         this.add.text(COL.place, y, String(i + 1), st),
-        this.add.text(COL.name, y, r.name, st),
+        this.add.text(COL.name, y, pairLabel(r.name), st),
         this.add.text(COL.score, y, String(r.score), st).setOrigin(1, 0),
         this.add.text(COL.time, y, formatTime(r.time), st).setOrigin(1, 0),
         this.add.text(COL.kills, y, String(r.kills), st).setOrigin(1, 0),

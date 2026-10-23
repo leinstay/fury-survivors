@@ -37,7 +37,7 @@ const STAT_ROWS = [
   ['stat.crt', (s) => fmtPct(Math.min(1, (s.crit ?? 0) * (s.luck ?? 1)))], // с учётом удачи, как в sim.critChance
   ['stat.pickup', (s) => fmtPct(s.pickup ?? 1)],
   ['stat.haste', (s) => fmtPct(s.haste ?? 1)],
-  ['stat.luck', (s) => fmtPct(s.luck ?? 1)],
+  ['stat.luck', (s) => `x${Math.round((s.luck ?? 1) * 100) / 100}`], // множитель шансов крита и дропа
   ['stat.armor', (s) => String(Math.round((s.armor ?? 0) * 10) / 10)],
 ];
 

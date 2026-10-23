@@ -11,7 +11,7 @@ service cloud.firestore {
     // Общая форма записи таблицы: соло и кооп отличаются только именем (ник или пара 'HOST+GUEST').
     // ip: необязательная строка (публичный IP отправителя, см. IP_FIELD в src/data/leaderboard.js).
     function scoreShape(d) {
-      return d.keys().hasOnly(['name', 'score', 'time', 'kills', 'level', 'victory', 'difficulty', 'ip', 'createdAt'])
+      return d.keys().hasOnly(['name', 'score', 'time', 'kills', 'level', 'victory', 'difficulty', 'ip', 'hero', 'stage', 'createdAt'])
         && d.score is int
         && d.score > 0 && d.score < 10000000
         && d.time is int
@@ -23,6 +23,10 @@ service cloud.firestore {
         && d.victory is bool
         && (!('difficulty' in d) || d.difficulty in ['normal', 'cursed'])
         && (!('ip' in d) || (d.ip is string && d.ip.size() <= 45))
+        // hero: id героя (кооп: пара 'heroine+mage' в порядке ников), stage: id зоны; у старых записей нет
+        // (читаются как heroine и forest)
+        && (!('hero' in d) || (d.hero is string && d.hero.matches('^[a-z_]{1,20}([+][a-z_]{1,20})?$')))
+        && (!('stage' in d) || (d.stage is string && d.stage.matches('^[a-z_]{1,20}$')))
         && d.createdAt == request.time;
     }
     match /fury_scores/{id} {

@@ -1,4 +1,4 @@
-// Кодекс: оружие (Armory), монстры (Bestiary), боссы (Bosses) и летопись забегов (Chronicle).
+// Кодекс: оружие (Armory), герои (Characters), монстры (Bestiary), боссы (Bosses) и летопись забегов (Chronicle).
 // Открывается из меню и из паузы (from: 'Pause': пауза и забег остаются под кодексом, назад — в паузу).
 // Записи открываются по мере игры (src/core/codex.js); закрытые — тёмный силуэт и «???».
 // Вид перестраивается целиком (render) при смене вкладки, страницы, забега; детали справа — при смене фокуса.
@@ -11,6 +11,7 @@ import { COMBOS } from '../data/combos.js';
 import { ENEMIES } from '../data/enemies.js';
 import { BOSSES } from '../data/bosses.js';
 import { HEROES } from '../data/heroes.js';
+import { heroTraits } from '../core/heroes.js';
 import { DEFAULT_DIFFICULTY } from '../data/difficulty.js';
 import { SPRITES } from '../../assets/sprites/manifest.js';
 import { FocusNav, addButton } from '../ui/focus.js';
@@ -24,15 +25,23 @@ import { animateCharacter } from '../render/anim.js';
 import { isSeen, weaponDps, PICKUP_KINDS, validCodexId } from '../core/codex.js';
 import { getCodex, fetchCodex, replaceCodex } from '../services/codex.js';
 
-const TABS = ['armory', 'bestiary', 'bosses', 'chronicle'];
+const TABS = ['armory', 'characters', 'bestiary', 'bosses', 'chronicle'];
 // Рабочая область: от вкладок до нижней строки кнопок. Слева сетка (или итоги), справа детали.
-const TOP = 56;
-const BOTTOM = 326;
+// Одна сетка отступов: M от края экрана, GAP между панелями и кнопками, PAD внутри панели.
+const M = 8;
+const GAP = 6;
+const PAD = 8;
+const TAB = { y: 40, h: 20, w: (GAME_WIDTH - 2 * M - (TABS.length - 1) * GAP) / TABS.length };
+const TOP = TAB.y + TAB.h / 2 + GAP;
+const BAR = { h: 22, w: 120 };
+const BOTTOM = GAME_HEIGHT - M - BAR.h - GAP;
+const BAR_Y = BOTTOM + GAP + BAR.h / 2;
 const MID_Y = (TOP + BOTTOM) / 2;
 const AREA_H = BOTTOM - TOP;
-const LEFT = { x: 8, w: 300 };
-const RIGHT = { x: 314, w: 318 };
-const BAR_Y = 342;
+const LEFT = { x: M, w: 300 };
+const RIGHT = { x: M + 300 + GAP, w: GAME_WIDTH - 2 * M - 300 - GAP };
+// Ширина итогов в хронике, забеги справа от них.
+const TOTALS_W = 240;
 const DARK = 0x000000;
 const MOVING = { moving: true };
 // Параметры оружия в таблице (порядок строк); показываются только те, что есть у оружия.
@@ -72,7 +81,12 @@ function fmtParam(k, v) {
   return String(round2(v));
 }
 
+// Строки таблицы пассивки: по умолчанию одна (стат), удача множит сразу два шанса.
+const PASSIVE_ROWS = { crit: ['crit_chance'], luck: ['crit_chance', 'drop_chance'] };
+
 function fmtPassive(def, v) {
+  // удача множит шансы: x1.1 понятнее, чем +10% рядом с +5% крита
+  if (def.stat === 'luck') return `x${round2(1 + v)}`;
   if (def.mode === 'mul' || def.stat === 'crit') return `+${Math.round(v * 100)}%`;
   if (def.stat === 'regen') return t('codex.per_s', { v: round2(v) });
   return `+${round2(v)}`;
@@ -202,12 +216,14 @@ export class CodexScene extends Phaser.Scene {
       this.add.text(cx, 18, t('codex.title'), textStyle(20, COLORS.accent, { stroke: '#000000', strokeThickness: 4 })).setOrigin(0.5);
       TABS.forEach((id, i) => {
         this.button(`tab:${id}`, {
-          x: cx + (i - 1.5) * 112, y: 40, w: 104, h: 20, size: 11, label: t(`codex.tab.${id}`),
+          x: M + TAB.w / 2 + i * (TAB.w + GAP), y: TAB.y, w: TAB.w, h: TAB.h, size: 11, label: t(`codex.tab.${id}`),
           selected: id === this.tab, onSelect: () => this.setTab(id),
         });
       });
-      this.button('back', { x: 52, y: BAR_Y, w: 84, h: 22, size: 12, label: t('codex.back'), onSelect: () => this.back() });
+      // Back по левому краю панелей
+      this.button('back', { x: M + BAR.w / 2, y: BAR_Y, w: BAR.w, h: BAR.h, size: 12, label: t('codex.back'), onSelect: () => this.back() });
       if (this.tab === 'armory') entry = this.buildArmory();
+      else if (this.tab === 'characters') entry = this.buildHeroes();
       else if (this.tab === 'bestiary') entry = this.buildFoes('enemy');
       else if (this.tab === 'bosses') entry = this.buildFoes('boss');
       else this.buildChronicle();
@@ -278,6 +294,7 @@ export class CodexScene extends Phaser.Scene {
     this.detailObjs = this.capture(() => {
       addPanel(this, RIGHT.x + RIGHT.w / 2, MID_Y, RIGHT.w, AREA_H);
       if (entry.kind === 'enemy' || entry.kind === 'boss') this.foeDetail(entry);
+      else if (entry.kind === 'hero') this.heroDetail(entry);
       else this.armoryDetail(entry);
     });
   }
@@ -286,15 +303,17 @@ export class CodexScene extends Phaser.Scene {
 
   buildArmory() {
     addPanel(this, LEFT.x + LEFT.w / 2, MID_Y, LEFT.w, AREA_H);
-    const step = 26;
+    const size = 24;
+    const step = size + 2;
     const cols = 11;
-    const x0 = LEFT.x + 20;
-    let y = TOP + 8;
+    const pad = (LEFT.w - (cols * step - 2)) / 2;
+    const x0 = LEFT.x + pad + size / 2;
+    let y = TOP + pad;
     let first = null;
     let found = 0;
     let total = 0;
     for (const sec of armoryEntries()) {
-      this.add.text(LEFT.x + 8, y, t(`codex.sec.${sec.sec}`), textStyle(10, '#ffd84a')).setOrigin(0, 0);
+      this.add.text(LEFT.x + pad, y, t(`codex.sec.${sec.sec}`), textStyle(10, '#ffd84a')).setOrigin(0, 0);
       y += 26;
       sec.items.forEach((it, i) => {
         const x = x0 + (i % cols) * step;
@@ -304,28 +323,28 @@ export class CodexScene extends Phaser.Scene {
         total++;
         if (it.seen) found++;
         if (!first || this.sel.armory === it.key) first = it;
-        this.cell(it.key, x, cy, 24, 24, it, () => {
+        this.cell(it.key, x, cy, size, size, it, () => {
           const icon = addIcon(this, x, cy, iconKeyFor(it.kind, it.id), 20, it.kind, it.id);
           if (!it.seen) darken(icon);
         });
       });
       y += Math.ceil(sec.items.length / cols) * step + 2;
     }
-    this.add.text(LEFT.x + LEFT.w - 8, BOTTOM - 8, t('codex.found', { n: found, m: total }),
+    this.add.text(LEFT.x + LEFT.w - pad, BOTTOM - pad, t('codex.found', { n: found, m: total }),
         textStyle(9, COLORS.dim)).setOrigin(1, 1);
     return first;
   }
 
   armoryDetail(it) {
-    const L = RIGHT.x + 10;
-    let y = TOP + 8;
+    const L = RIGHT.x + PAD;
+    let y = TOP + PAD;
     const icon = addIcon(this, L + 14, y + 14, iconKeyFor(it.kind, it.id), 28, it.kind, it.id);
     if (!it.seen) darken(icon);
     this.add.text(L + 36, y, it.seen ? displayName(it.kind, it.id) : t('codex.locked'), textStyle(14)).setOrigin(0, 0);
     this.add.text(L + 36, y + 18, t(`codex.kind.${it.type}`), textStyle(9, COLORS.dim)).setOrigin(0, 0);
     y += 36;
     const desc = it.seen ? t(`${it.kind}.${it.id}.desc`) : t('codex.locked_desc');
-    const d = this.add.text(L, y, desc, textStyle(10, '#dddddd', { wordWrap: { width: RIGHT.w - 20 } })).setOrigin(0, 0);
+    const d = this.add.text(L, y, desc, textStyle(10, '#dddddd', { wordWrap: { width: RIGHT.w - 2 * PAD } })).setOrigin(0, 0);
     y += d.height + 8;
     if (it.from) {
       y = this.recipe(L, y, it) + 8;
@@ -358,7 +377,7 @@ export class CodexScene extends Phaser.Scene {
   // Таблица: строки — параметры, столбцы — уровни (или части коллаба). Изменившееся к прошлому уровню ярче.
   table(L, y, heads, rows) {
     const labelW = 64;
-    const colW = Math.min(36, Math.floor((RIGHT.w - 20 - labelW) / Math.max(1, heads.length)));
+    const colW = Math.min(36, Math.floor((RIGHT.w - 2 * PAD - labelW) / Math.max(1, heads.length)));
     const head = textStyle(9, COLORS.dim);
     heads.forEach((h, i) => {
       this.add.text(L + labelW + (i + 1) * colW, y, h, head).setOrigin(1, 0);
@@ -388,7 +407,9 @@ export class CodexScene extends Phaser.Scene {
   passiveTable(L, y, def) {
     if (!def) return;
     const heads = def.levels.map((_, i) => t('codex.col.lv', { n: i + 1 }));
-    this.table(L, y, heads, [{ label: t(`trait.${def.stat}`), cells: def.levels.map((v) => fmtPassive(def, v)) }]);
+    const cells = def.levels.map((v) => fmtPassive(def, v));
+    const labels = PASSIVE_ROWS[def.stat] ? PASSIVE_ROWS[def.stat].map((k) => t(`codex.p.${k}`)) : [t(`trait.${def.stat}`)];
+    this.table(L, y, heads, labels.map((label) => ({ label, cells })));
   }
 
   // ---------- Bestiary / Bosses ----------
@@ -402,10 +423,11 @@ export class CodexScene extends Phaser.Scene {
     const cols = boss ? 2 : 4;
     const w = boss ? 138 : 66;
     const h = boss ? 116 : 70;
-    const sx = w + 6;
-    const sy = h + 6;
-    const x0 = LEFT.x + 6 + w / 2 + 3;
-    const y0 = TOP + 8 + h / 2;
+    const sx = w + GAP;
+    const sy = h + GAP;
+    const pad = (LEFT.w - cols * sx + GAP) / 2;
+    const x0 = LEFT.x + pad + w / 2;
+    const y0 = TOP + pad + h / 2;
     let first = null;
     let found = 0;
     ids.forEach((id, i) => {
@@ -425,16 +447,22 @@ export class CodexScene extends Phaser.Scene {
             textStyle(8, e.seen ? '#ffffff' : COLORS.dim)).setOrigin(0.5, 1);
       });
     });
-    this.add.text(LEFT.x + LEFT.w - 8, BOTTOM - 8, t('codex.found', { n: found, m: ids.length }),
+    this.add.text(LEFT.x + LEFT.w - pad, BOTTOM - pad, t('codex.found', { n: found, m: ids.length }),
         textStyle(9, COLORS.dim)).setOrigin(1, 1);
+    // элитки у всех монстров одинаковые: одна строка на вкладку
+    const el = !boss && Object.values(ENEMIES).find((d) => d.elite);
+    if (el) {
+      this.add.text(LEFT.x + pad, BOTTOM - pad, t('codex.elite', { hp: el.elite.hpMul, dmg: el.elite.damageMul }),
+          textStyle(9, '#ff9ab0')).setOrigin(0, 1);
+    }
     return first;
   }
 
   foeDetail(e) {
     const boss = e.kind === 'boss';
     const def = (boss ? BOSSES : ENEMIES)[e.id];
-    const L = RIGHT.x + 10;
-    const T = TOP + 6;
+    const L = RIGHT.x + PAD;
+    const T = TOP + PAD;
     // слева фигура с циклом ходьбы, справа имя, описание, атаки
     const key = def.sprite;
     if (this.textures.exists(key)) {
@@ -445,7 +473,7 @@ export class CodexScene extends Phaser.Scene {
       else sp.setTintFill(DARK);
     }
     const tx = L + 112;
-    const tw = RIGHT.w - 136;
+    const tw = RIGHT.w - 2 * PAD - 112;
     this.add.text(tx, T + 2, e.seen ? displayName(e.kind, e.id) : t('codex.locked'), textStyle(14)).setOrigin(0, 0);
     this.add.text(tx, T + 20, t(`codex.kind.${e.kind}`), textStyle(9, COLORS.dim)).setOrigin(0, 0);
     const d = this.add.text(tx, T + 34, e.seen ? t(`${e.kind}.${e.id}.desc`) : t('codex.foe_locked_desc'),
@@ -479,18 +507,100 @@ export class CodexScene extends Phaser.Scene {
     mine.push([t('codex.rec.kills'), rec.kills || 0]);
     if (!boss) mine.push([t('codex.rec.elites'), rec.elites || 0]);
     mine.push([t('codex.rec.hits'), rec.hits || 0], [t('codex.rec.taken'), fmtBig(rec.taken || 0)]);
-    const colW = (RIGHT.w - 30) / 2;
-    [[t('codex.stats'), stats, L], [t('codex.rec.title'), mine, L + colW + 10]].forEach(([title, list, x]) => {
+    const colW = (RIGHT.w - 4 * PAD) / 2;
+    [[t('codex.stats'), stats, L], [t('codex.rec.title'), mine, L + colW + 2 * PAD]].forEach(([title, list, x]) => {
       this.add.text(x, sy, title, textStyle(10, '#ffd84a')).setOrigin(0, 0);
       list.forEach(([k, v], i) => {
         this.add.text(x, sy + 15 + i * 13, k, textStyle(9, COLORS.dim)).setOrigin(0, 0);
         this.add.text(x + colW, sy + 15 + i * 13, String(v), textStyle(9)).setOrigin(1, 0);
       });
     });
-    if (!boss && def.elite) {
-      this.add.text(L, BOTTOM - 8, t('codex.elite', { hp: def.elite.hpMul, dmg: def.elite.damageMul }),
-          textStyle(9, '#ff9ab0')).setOrigin(0, 1);
+  }
+
+  // ---------- Characters ----------
+
+  // Герои всегда открыты (их выбирают в меню): крупные ячейки как у боссов.
+  buildHeroes() {
+    addPanel(this, LEFT.x + LEFT.w / 2, MID_Y, LEFT.w, AREA_H);
+    const w = 138;
+    const h = 116;
+    const pad = (LEFT.w - 2 * w - GAP) / 2;
+    const x0 = LEFT.x + pad + w / 2;
+    const y0 = TOP + pad + h / 2;
+    let first = null;
+    Object.keys(HEROES).forEach((id, i) => {
+      const x = x0 + (i % 2) * (w + GAP);
+      const y = y0 + Math.floor(i / 2) * (h + GAP);
+      const e = { kind: 'hero', id, key: `hero:${id}`, seen: true };
+      if (!first || this.sel.characters === e.key) first = e;
+      this.cell(e.key, x, y, w, h, e, () => {
+        const key = HEROES[id].sprite;
+        if (this.textures.exists(key)) {
+          this.add.sprite(x, y + h / 2 - 14, key, 0).setOrigin(0.5, 1)
+              .setScale(fitScale(key, w - 8, h - 18));
+        }
+        this.add.text(x, y + h / 2 - 3, t(`hero.${id}.name`), textStyle(8)).setOrigin(0.5, 1);
+      });
+    });
+    return first;
+  }
+
+  heroDetail(e) {
+    const def = HEROES[e.id];
+    const st = def.stats;
+    const L = RIGHT.x + PAD;
+    const T = TOP + PAD;
+    const key = def.sprite;
+    if (this.textures.exists(key)) {
+      const sp = this.add.sprite(L + 52, T + 132, key, 0).setOrigin(0.5, 1);
+      sp.baseScale = fitScale(key, 104, 128);
+      sp.setScale(sp.baseScale);
+      this.anims.push({ sprite: sp, key, y: T + 132, seed: 0 });
     }
+    const tx = L + 112;
+    const tw = RIGHT.w - 2 * PAD - 112;
+    this.add.text(tx, T + 2, t(`hero.${e.id}.name`), textStyle(14)).setOrigin(0, 0);
+    this.add.text(tx, T + 20, t('codex.kind.hero'), textStyle(9, COLORS.dim)).setOrigin(0, 0);
+    const d = this.add.text(tx, T + 34, t(`hero.${e.id}.desc`),
+        textStyle(10, '#dddddd', { wordWrap: { width: tw } })).setOrigin(0, 0);
+    let y = T + 40 + d.height;
+    // черты (как на карточке выбора) и стартовое оружие
+    let x = tx;
+    for (const tr of heroTraits(e.id)) {
+      const tt = this.add.text(x, y, `${tr.up ? '+' : '-'}${t(`trait.${tr.stat}`)}`,
+          textStyle(9, tr.up ? '#8cff6a' : '#ff7a7a')).setOrigin(0, 0);
+      x += tt.width + 6;
+    }
+    y += 16;
+    this.add.text(tx, y, t('codex.start_weapon'), textStyle(9, COLORS.dim)).setOrigin(0, 0);
+    addIcon(this, tx + 70, y + 5, iconKeyFor('weapon', def.startWeapon), 12, 'weapon', def.startWeapon);
+    this.add.text(tx + 80, y, displayName('weapon', def.startWeapon), textStyle(9)).setOrigin(0, 0);
+
+    const pct = (v) => `${Math.round(v * 100)}%`;
+    const stats = [
+      [t('stat.hp'), String(st.maxHp)], [t('stat.atk'), pct(st.atk)], [t('stat.spd'), String(st.speed)],
+      [t('stat.crt'), pct(st.crit)], [t('stat.haste'), pct(st.haste)], [t('stat.pickup'), pct(st.pickup)],
+      [t('stat.luck'), `x${round2(st.luck)}`], [t('stat.armor'), String(st.armor)],
+    ];
+    // свой счёт героем: забеги из итогов, победы, лучший счёт и время — по истории забегов
+    const runs = this.codex.runs.filter((r) => r.hero === e.id);
+    const best = runs.reduce((m, r) => Math.max(m, r.score || 0), 0);
+    const longest = runs.reduce((m, r) => Math.max(m, r.time || 0), 0);
+    const mine = [
+      [t('codex.rec.runs'), String(this.codex.totals.heroes[e.id] || 0)],
+      [t('codex.rec.wins'), String(runs.filter((r) => r.status === 'victory').length)],
+      [t('codex.rec.best'), String(best)],
+      [t('codex.rec.longest'), formatTime(longest)],
+    ];
+    const sy = T + 148;
+    const colW = (RIGHT.w - 4 * PAD) / 2;
+    [[t('codex.stats'), stats, L], [t('codex.rec.title'), mine, L + colW + 2 * PAD]].forEach(([title, list, cx]) => {
+      this.add.text(cx, sy, title, textStyle(10, '#ffd84a')).setOrigin(0, 0);
+      list.forEach(([k, v], i) => {
+        this.add.text(cx, sy + 15 + i * 13, k, textStyle(9, COLORS.dim)).setOrigin(0, 0);
+        this.add.text(cx + colW, sy + 15 + i * 13, v, textStyle(9)).setOrigin(1, 0);
+      });
+    });
   }
 
   // ---------- Chronicle ----------
@@ -500,19 +610,27 @@ export class CodexScene extends Phaser.Scene {
     const run = this.runIdx >= 0 ? this.codex.runs[this.runIdx] : null;
     if (run) this.runSummary(run);
     else this.runList();
-    // id кодекса (тап копирует) и восстановление по id
+    // id кодекса кликабельным текстом внизу итогов (клик копирует), восстановление по id справа
     const idLabel = () => t('codex.id', { id: this.codex.id });
-    const idBtn = this.button('id', {
-      x: 334, y: BAR_Y, w: 300, h: 22, size: 10, label: idLabel(), color: '#9ad0ff',
+    const idText = this.add.text(LEFT.x + PAD, BOTTOM - PAD, idLabel(), textStyle(9, '#9ad0ff')).setOrigin(0, 1);
+    const item = {
+      x: idText.x + idText.width / 2, y: idText.y - idText.height / 2,
+      w: idText.width + 6, h: idText.height + 4,
+      disabled: false,
+      setFocus: (f) => idText.setColor(f ? '#ffd84a' : '#9ad0ff'),
+      setLabel: (s) => idText.setText(s),
+      text: idText,
       onSelect: () => {
         copyText(this.codex.id);
         this.flashId(t('codex.copied'));
       },
-    });
-    this.idBtn = idBtn;
+    };
+    item.setFocus(false);
+    this.idBtn = this.keyed(this.nav.add(item), 'id');
     this.idLabel = idLabel;
+    // Restore по правому краю панелей
     this.button('restore', {
-      x: 566, y: BAR_Y, w: 120, h: 22, size: 12, label: t('codex.restore'), onSelect: () => this.openModal(),
+      x: GAME_WIDTH - M - BAR.w / 2, y: BAR_Y, w: BAR.w, h: BAR.h, size: 12, label: t('codex.restore'), onSelect: () => this.openModal(),
     });
     if (this.pendingFlash) {
       this.flashId(this.pendingFlash);
@@ -529,12 +647,11 @@ export class CodexScene extends Phaser.Scene {
   }
 
   totals() {
-    const w = 240;
+    const w = TOTALS_W;
     const L = LEFT.x;
     addPanel(this, L + w / 2, MID_Y, w, AREA_H);
     const tt = this.codex.totals;
-    this.add.text(L + 8, TOP + 6, t('codex.tot.title'), textStyle(11, '#ffd84a')).setOrigin(0, 0);
-    const heroes = Object.keys(HEROES).map((id) => `${displayName('hero', id)} ${tt.heroes[id] || 0}`).join('  ');
+    this.add.text(L + PAD, TOP + PAD, t('codex.tot.title'), textStyle(11, '#ffd84a')).setOrigin(0, 0);
     const rows = [
       [t('codex.tot.runs'), `${tt.runs.solo} / ${tt.runs.duo}`],
       [t('codex.tot.wins'), `${tt.wins.solo} / ${tt.wins.duo}`],
@@ -548,41 +665,42 @@ export class CodexScene extends Phaser.Scene {
       null,
       ...PICKUP_KINDS.filter((k) => k !== 'coin').map((k) => [t(`codex.pick.${k}`), String(tt.pickups[k] || 0)]),
       null,
-      [t('codex.tot.heroes'), heroes],
+      // по зонам: забеги и лучший счёт
+      ...Object.entries(tt.stages).map(([id, z]) => [t(`stage.${id}.name`), t('codex.tot.stage', { runs: z.runs, best: z.best })]),
     ];
-    let y = TOP + 24;
+    let y = TOP + PAD + 18;
     for (const r of rows) {
       if (!r) { y += 5; continue; }
-      this.add.text(L + 10, y, r[0], textStyle(10, COLORS.dim)).setOrigin(0, 0);
-      this.add.text(L + w - 10, y, r[1], textStyle(10)).setOrigin(1, 0);
+      this.add.text(L + PAD, y, r[0], textStyle(10, COLORS.dim)).setOrigin(0, 0);
+      this.add.text(L + w - PAD, y, r[1], textStyle(10)).setOrigin(1, 0);
       y += 14;
     }
   }
 
   runList() {
-    const L = LEFT.x + 248;
-    const w = GAME_WIDTH - 8 - L;
+    const L = LEFT.x + TOTALS_W + GAP;
+    const w = GAME_WIDTH - M - L;
     const cx = L + w / 2;
     addPanel(this, cx, MID_Y, w, AREA_H);
     const runs = this.codex.runs;
     const per = CODEX.runsPerPage;
     const pages = Math.max(1, Math.ceil(runs.length / per));
     this.page = Math.min(this.page, pages - 1);
-    this.add.text(L + 8, TOP + 6, t('codex.runs.title'), textStyle(11, '#ffd84a')).setOrigin(0, 0);
+    this.add.text(L + PAD, TOP + PAD, t('codex.runs.title'), textStyle(11, '#ffd84a')).setOrigin(0, 0);
     if (!runs.length) {
       this.add.text(cx, MID_Y, t('codex.runs.empty'), textStyle(11, COLORS.dim)).setOrigin(0.5);
       return;
     }
-    const rw = w - 12;
+    const rw = w - 2 * PAD;
     const rl = cx - rw / 2;
     for (let k = 0; k < per; k++) {
       const i = this.page * per + k;
       const r = runs[i];
       if (!r) break;
-      const y = TOP + 34 + k * 23;
+      const y = TOP + PAD + 28 + k * 23;
       const panel = addPanel(this, cx, y, rw, 20);
       const st = textStyle(9);
-      const mode = r.mode === 'duo' ? (r.partner ? `${t('codex.mode.duo')} +${r.partner}` : t('codex.mode.duo')) : t('codex.mode.solo');
+      const mode = r.mode === 'duo' ? (r.partner ? `${t('codex.mode.duo')} & ${r.partner}` : t('codex.mode.duo')) : t('codex.mode.solo');
       const cursed = r.difficulty && r.difficulty !== DEFAULT_DIFFICULTY;
       this.add.text(rl + 6, y, fmtDate(r.at), textStyle(9, COLORS.dim)).setOrigin(0, 0.5);
       this.add.text(rl + 70, y, mode, st).setOrigin(0, 0.5);
@@ -603,7 +721,7 @@ export class CodexScene extends Phaser.Scene {
       item.setFocus(false);
       this.keyed(this.nav.add(item), `run:${i}`);
     }
-    const py = BOTTOM - 16;
+    const py = BOTTOM - PAD - 10;
     const prev = this.button('prev', { x: cx - 50, y: py, w: 28, h: 20, size: 12, label: t('codex.prev'), onSelect: () => this.turn(-1) });
     this.add.text(cx, py, t('codex.page', { n: this.page + 1, m: pages }), textStyle(10, COLORS.dim)).setOrigin(0.5);
     const next = this.button('next', { x: cx + 50, y: py, w: 28, h: 20, size: 12, label: t('codex.next'), onSelect: () => this.turn(1) });
@@ -623,17 +741,18 @@ export class CodexScene extends Phaser.Scene {
   }
 
   runSummary(r) {
-    const L = LEFT.x + 248;
-    const w = GAME_WIDTH - 8 - L;
+    const L = LEFT.x + TOTALS_W + GAP;
+    const w = GAME_WIDTH - M - L;
     const cx = L + w / 2;
     addPanel(this, cx, MID_Y, w, AREA_H);
-    const x0 = L + 10;
-    const T = TOP + 6;
+    const x0 = L + PAD;
+    const T = TOP + PAD;
     const mode = r.mode === 'duo' ? (r.partner ? t('codex.mode.duo_with', { name: r.partner }) : t('codex.mode.duo')) : t('codex.mode.solo');
     this.add.text(x0, T, `${fmtDate(r.at)}   ${mode}`, textStyle(11)).setOrigin(0, 0);
     const cursed = r.difficulty && r.difficulty !== DEFAULT_DIFFICULTY;
     let x = x0;
     for (const [s, c] of [[displayName('hero', r.hero), '#dddddd'],
+      [t(`stage.${r.stage}.name`), '#9ad0ff'],
       [t(`difficulty.${r.difficulty}.name`), cursed ? COLORS.cursed : COLORS.dim],
       [t(`codex.status.${r.status}`), STATUS_COLOR[r.status]]]) {
       const tx = this.add.text(x, T + 16, s, textStyle(10, c)).setOrigin(0, 0);
@@ -671,7 +790,7 @@ export class CodexScene extends Phaser.Scene {
     // урон и DPS по оружию
     const ty = T + 130;
     this.add.text(x0, ty, t('codex.run.damage'), textStyle(10, '#ffd84a')).setOrigin(0, 0);
-    const right = L + w - 10;
+    const right = L + w - PAD;
     this.add.text(right - 52, ty + 2, t('codex.run.dmg'), textStyle(9, COLORS.dim)).setOrigin(1, 0);
     this.add.text(right, ty + 2, t('codex.run.dps'), textStyle(9, COLORS.dim)).setOrigin(1, 0);
     const dmg = Object.entries(r.damage).sort((a, b) => b[1] - a[1]).slice(0, 6);
@@ -686,7 +805,7 @@ export class CodexScene extends Phaser.Scene {
       this.add.text(right, ry, String(Math.round(weaponDps(r, id))), textStyle(9)).setOrigin(1, 0);
     });
     this.button('runback', {
-      x: L + 52, y: BOTTOM - 14, w: 84, h: 20, size: 11, label: `< ${t('codex.run.back')}`, onSelect: () => this.back(),
+      x: L + PAD + 42, y: BOTTOM - PAD - 10, w: 84, h: 20, size: 11, label: `< ${t('codex.run.back')}`, onSelect: () => this.back(),
     });
   }
 

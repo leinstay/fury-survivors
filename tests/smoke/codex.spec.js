@@ -34,7 +34,9 @@ const SAMPLE = {
 
 const scenes = (page) => page.evaluate(() => window.__game.debug().scenes);
 const click = (page, x, y) => page.mouse.click(x * 2, y * 2); // холст 1280×720, координаты сцен 640×360
-const TAB_X = [152, 264, 376, 488];
+const TABS = ['armory', 'characters', 'bestiary', 'bosses', 'chronicle'];
+// вкладки во всю ширину панелей: отступ 8, зазор 6, ширина 120
+const tabX = (id) => 8 + 60 + TABS.indexOf(id) * 126;
 
 test('codex opens from the menu and from pause, tabs switch without errors', async ({ page }) => {
   test.setTimeout(180_000);
@@ -77,21 +79,21 @@ test('codex opens from the menu and from pause, tabs switch without errors', asy
   await page.waitForTimeout(200);
   await shot('armory_collab_open');
 
-  const names = ['armory', 'bestiary', 'bosses', 'chronicle'];
+  const names = TABS;
   for (let i = 1; i < names.length; i++) {
-    await click(page, TAB_X[i], 40);
+    await click(page, tabX(names[i]), 40);
     await page.waitForFunction((n) => window.__game.game.scene.getScene('Codex').tab === n, names[i]);
     await page.waitForTimeout(600); // ходьба в превью успевает пройти несколько кадров
     await shot(names[i]);
   }
   // боссы: закрытый босс; бестиарий: закрытый монстр
-  await click(page, TAB_X[2], 40);
+  await click(page, tabX('bosses'), 40);
   await page.waitForTimeout(200);
   await click(page, 229, 122);
   await page.waitForTimeout(300);
   await shot('bosses_locked');
   // летопись: страница 2, затем забег и назад к списку
-  await click(page, TAB_X[3], 40);
+  await click(page, tabX('chronicle'), 40);
   await page.waitForTimeout(200);
   await click(page, 494, 310); // >
   await page.waitForTimeout(200);
@@ -135,7 +137,7 @@ test('codex opens from the menu and from pause, tabs switch without errors', asy
   await page.waitForFunction(() => window.__game.debug().scenes.includes('Codex'));
   await page.waitForTimeout(300);
   for (let i = 1; i < names.length; i++) {
-    await click(page, TAB_X[i], 40);
+    await click(page, tabX(names[i]), 40);
     await page.waitForTimeout(150);
   }
   await shot('pause_codex');

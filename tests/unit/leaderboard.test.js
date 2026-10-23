@@ -88,6 +88,9 @@ test('submit writes a normalized document; failed write does not start cooldown'
   assert.equal(f.added[1].difficulty, 'cursed');
   await lb.submitScore(run({ difficulty: 'nope' }));
   assert.equal(f.added[2].difficulty, 'normal');
+  await lb.submitScore(run({ hero: 'heroine+mage', stage: 'forest' }));
+  assert.equal(f.added[3].hero, 'heroine+mage');
+  assert.equal(f.added[3].stage, 'forest');
 
   let fail = true;
   const flaky = createLeaderboard({
@@ -97,6 +100,26 @@ test('submit writes a normalized document; failed write does not start cooldown'
   await assert.rejects(flaky.submitScore(run()), { message: 'offline' });
   fail = false;
   await flaky.submitScore(run());
+});
+
+test('old records without hero and stage read as heroine and forest', async () => {
+  const rows = createLeaderboard({ getIp: noIp }).topTen([{ name: 'old', score: 5 }, { name: 'new', score: 9, hero: 'mage', stage: 'forest' }]);
+  assert.deepEqual(rows.map((r) => [r.name, r.hero, r.stage]), [['NEW', 'mage', 'forest'], ['OLD', 'heroine', 'forest']]);
+});
+
+test('rules without hero/stage: the write is retried without them', async () => {
+  const added = [];
+  let strict = true;
+  const lb = createLeaderboard({
+    now: () => 1e9, getIp: noIp,
+    loadBackend: async () => ({ top: async () => [], add: async (d) => {
+      if (strict && 'hero' in d) { strict = false; const e = new Error('x'); e.code = 'permission-denied'; throw e; }
+      added.push(d);
+    } }),
+  });
+  await lb.submitScore(run({ hero: 'mage', stage: 'forest' }));
+  assert.equal(added.length, 1);
+  assert.ok(!('hero' in added[0]) && !('stage' in added[0]));
 });
 
 test('timeout gives offline; module seam works', async () => {

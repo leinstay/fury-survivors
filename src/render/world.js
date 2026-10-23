@@ -394,7 +394,8 @@ export class World {
         if (e.tint) s.setTint(e.tint);
         else s.clearTint();
       }
-      s.setDepth((SPRITES[e.sprite]?.layer === 'ground' ? GROUND_DEPTH : PROJ_DEPTH) + e.y);
+      if (e.ySort) s.setDepth(py);
+      else s.setDepth((SPRITES[e.sprite]?.layer === 'ground' ? GROUND_DEPTH : PROJ_DEPTH) + e.y);
     });
     const glow = FX.projGlow;
     this.pools.glows.sync(this._glowing(sim.projectiles), () => 'fx_halo', (s, e, isNew) => {

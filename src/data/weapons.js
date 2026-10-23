@@ -23,12 +23,23 @@
 //   chain      : amount — число молний, jumps — перескоков на следующего врага, area — дальность перескока, range — дальность цели
 //   area_drop  : amount — число бомб, area — радиус взрыва, duration — время огня на земле, fireDamage — доля урона огня за тик
 
+// Лестница радиусов колец: уровни Holy Ground 1..7, дальше ауры и щиты супероружия. Все ауры стоят ровно на
+// ступенях, а орбиты (щиты) — так, что внешний край спрайта идёт по линии кольца (onRing). Меньше первой
+// ступени не бывает. Проверяет tests/unit/data.test.js.
+export const RINGS = [55, 62, 70, 78, 86, 95, 105, 115, 130, 150];
+// Видимый радиус спрайта на орбите (px мира при size 1) по направлению от героя: шар щита без искр,
+// у кинжала и полумесяца половина толщины (летят вдоль орбиты).
+export const ORBIT_R = { proj_shield: 7, proj_axe: 10, proj_dagger: 4, proj_crescent: 27 };
+// Радиус орбиты, при котором внешний край спрайта (r с учётом size) лежит на кольце k.
+const onRing = (k, r) => Math.round(RINGS[k] - r);
+const SHIELD_R = ORBIT_R.proj_shield;
+
 // Пресеты частей коллабов: behavior, спрайт и числа чуть выше максимального уровня исходного оружия
 // (примерно 1.3-2× DPS уровня 7), коллаб целиком — примерно 1.5-2× суммы двух оружий уровня 7.
 const B = { behavior: 'melee_arc', sprite: 'proj_blade_arc', damage: 42, cooldown: 1.0, amount: 2, area: 84, knockback: 130 };
 const D = { behavior: 'projectile', sprite: 'proj_dagger', damage: 30, cooldown: 0.6, amount: 6, speed: 360, duration: 1.5, pierce: 3, knockback: 80 };
-const S = { behavior: 'orbit', sprite: 'proj_shield', damage: 25, cooldown: 0, amount: 5, area: 66, speed: 4.2, duration: 1e9, knockback: 120 };
-const H = { behavior: 'aura', sprite: 'proj_holy_ground', damage: 18, cooldown: 0.9, area: 115, knockback: 35 };
+const S = { behavior: 'orbit', sprite: 'proj_shield', damage: 25, cooldown: 0, amount: 5, area: onRing(3, SHIELD_R), speed: 4.2, duration: 1e9, knockback: 120 };
+const H = { behavior: 'aura', sprite: 'proj_holy_ground', damage: 18, cooldown: 0.9, area: RINGS[7], knockback: 35 };
 const A = { behavior: 'boomerang', sprite: 'proj_axe', damage: 28, cooldown: 1.8, amount: 3, area: 195, speed: 270, duration: 4, knockback: 100 };
 const C = { behavior: 'chain', sprite: 'proj_chain', damage: 80, cooldown: 1.0, amount: 3, jumps: 6, area: 125, range: 300, knockback: 40 };
 const F = { behavior: 'area_drop', sprite: 'proj_firebomb', damage: 34, cooldown: 2.0, amount: 3, area: 70, duration: 3.5, fireDamage: 0.5, knockback: 80 };
@@ -96,19 +107,19 @@ export const WEAPONS = {
     // VS King Bible: L1 10 урона, 1 книга, 3 с вращения, пауза 3 с; L8 30 × 4, 4 с.
     icon: 'icon_guardian_shields', sprite: 'proj_shield', behavior: 'orbit', maxLevel: 7,
     levels: [
-      { damage: 12, cooldown: 2.0, amount: 2, area: 28, hitRadius: 12,
+      { damage: 12, cooldown: 2.0, amount: 2, area: onRing(0, SHIELD_R), hitRadius: 12,
         speed: 3.2, duration: 4.0, knockback: 40 },
-      { damage: 15, cooldown: 2.0, amount: 3, area: 30, hitRadius: 14,
+      { damage: 15, cooldown: 2.0, amount: 3, area: onRing(0, SHIELD_R), hitRadius: 14,
         speed: 3.3, duration: 4.0, knockback: 40 },
-      { damage: 20, cooldown: 2.0, amount: 3, area: 32, hitRadius: 15,
+      { damage: 20, cooldown: 2.0, amount: 3, area: onRing(1, SHIELD_R), hitRadius: 15,
         speed: 3.5, duration: 4.0, knockback: 45 },
-      { damage: 22, cooldown: 1.9, amount: 4, area: 34, hitRadius: 16,
+      { damage: 22, cooldown: 1.9, amount: 4, area: onRing(1, SHIELD_R), hitRadius: 16,
         speed: 3.7, duration: 4.0, knockback: 45 },
-      { damage: 26, cooldown: 1.8, amount: 4, area: 36, hitRadius: 20,
+      { damage: 26, cooldown: 1.8, amount: 4, area: onRing(2, SHIELD_R), hitRadius: 20,
         speed: 3.9, duration: 4.0, knockback: 50 },
-      { damage: 30, cooldown: 1.7, amount: 5, area: 38, hitRadius: 20,
+      { damage: 30, cooldown: 1.7, amount: 5, area: onRing(2, SHIELD_R), hitRadius: 20,
         speed: 4.1, duration: 4.0, knockback: 50 },
-      { damage: 36, cooldown: 1.6, amount: 6, area: 40, hitRadius: 22,
+      { damage: 36, cooldown: 1.6, amount: 6, area: onRing(3, SHIELD_R), hitRadius: 22,
         speed: 4.4, duration: 4.0, knockback: 55 },
     ],
   },
@@ -116,13 +127,13 @@ export const WEAPONS = {
     // VS Garlic: L1 5 урона раз в 1.3 с; L8 15 раз в 1.0 с, area 100% -> 200%. cooldown — период удара по врагу.
     icon: 'icon_holy_ground', sprite: 'proj_holy_ground', behavior: 'aura', maxLevel: 7,
     levels: [
-      { damage: 5, cooldown: 1.3, area: 55, knockback: 15 },
-      { damage: 6, cooldown: 1.25, area: 62, knockback: 15 },
-      { damage: 8, cooldown: 1.2, area: 70, knockback: 20 },
-      { damage: 10, cooldown: 1.15, area: 78, knockback: 20 },
-      { damage: 12, cooldown: 1.1, area: 86, knockback: 25 },
-      { damage: 14, cooldown: 1.05, area: 95, knockback: 25 },
-      { damage: 15, cooldown: 1.0, area: 105, knockback: 30 },
+      { damage: 5, cooldown: 1.3, area: RINGS[0], knockback: 15 },
+      { damage: 6, cooldown: 1.25, area: RINGS[1], knockback: 15 },
+      { damage: 8, cooldown: 1.2, area: RINGS[2], knockback: 20 },
+      { damage: 10, cooldown: 1.15, area: RINGS[3], knockback: 20 },
+      { damage: 12, cooldown: 1.1, area: RINGS[4], knockback: 25 },
+      { damage: 14, cooldown: 1.05, area: RINGS[5], knockback: 25 },
+      { damage: 15, cooldown: 1.0, area: RINGS[6], knockback: 30 },
     ],
   },
   war_axe: {
@@ -180,7 +191,8 @@ export const WEAPONS = {
     // Blade Arc + Guardian Shields: щиты-клинки, всегда активные.
     icon: 'icon_aegis_storm', sprite: 'proj_crescent', behavior: 'orbit', maxLevel: 1, evolved: true,
     levels: [
-      { damage: 36, cooldown: 0, amount: 6, area: 70, speed: 4.5,
+      { damage: 36, cooldown: 0, amount: 6, area: onRing(4, ORBIT_R.proj_crescent * 0.45),
+        speed: 4.5,
         duration: 1e9, knockback: 130, size: 0.45, hitRadius: 14 },
     ],
   },
@@ -230,7 +242,7 @@ export const WEAPONS = {
   knife_carousel: {
     icon: 'icon_knife_carousel', behavior: 'combo', maxLevel: 1, evolved: true,
     levels: [{ damage: 0, cooldown: 1 }],
-    parts: [part(S, { amount: 8, area: 58, sprite: 'proj_dagger' }), part(D, {})],
+    parts: [part(S, { amount: 8, area: onRing(2, ORBIT_R.proj_dagger), sprite: 'proj_dagger' }), part(D, {})],
   },
   // throwing_daggers + holy_ground
   holy_rain: {
@@ -256,15 +268,16 @@ export const WEAPONS = {
     icon: 'icon_sanctuary', behavior: 'combo', maxLevel: 1, evolved: true,
     levels: [{ damage: 0, cooldown: 1 }],
     parts: [
-      part(H, { damage: 30, area: 130 }),
-      part(S, { damage: 30, area: 125, amount: 6 }, 0xffe080),
+      part(H, { damage: 30, area: RINGS[8] }),
+      part(S, { damage: 30, area: onRing(8, SHIELD_R), amount: 6 }, 0xffe080),
     ],
   },
   // guardian_shields + war_axe
   bulwark_spin: {
     icon: 'icon_bulwark_spin', sprite: 'proj_axe', behavior: 'orbit', maxLevel: 1, evolved: true,
     levels: [
-      { damage: 30, cooldown: 0, amount: 5, area: 74, speed: 4.6, duration: 1e9, knockback: 140 },
+      { damage: 30, cooldown: 0, amount: 5, area: onRing(4, ORBIT_R.proj_axe), speed: 4.6,
+        duration: 1e9, knockback: 140 },
     ],
   },
   // guardian_shields + storm_chain
@@ -334,7 +347,7 @@ export const WEAPONS = {
   aegis_bastion: {
     icon: 'icon_aegis_bastion', sprite: 'proj_shield', behavior: 'orbit', maxLevel: 1, evolved: true, tint: 0xa0c8ff,
     levels: [
-      { damage: 22, cooldown: 0, amount: 6, area: 72, speed: 4.4,
+      { damage: 22, cooldown: 0, amount: 6, area: onRing(4, SHIELD_R * 1.4), speed: 4.4,
         duration: 1e9, knockback: 160, size: 1.4, hitRadius: 14 },
     ],
   },
@@ -342,7 +355,7 @@ export const WEAPONS = {
   soul_garden: {
     icon: 'icon_soul_garden', sprite: 'proj_holy_ground', behavior: 'aura', maxLevel: 1, evolved: true, tint: 0x80ffa0,
     levels: [
-      { damage: 22, cooldown: 0.7, area: 150, knockback: 40 },
+      { damage: 22, cooldown: 0.7, area: RINGS[9], knockback: 40 },
     ],
   },
   // war_axe + crit

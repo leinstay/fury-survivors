@@ -18,6 +18,7 @@ import { WEAPONS } from '../data/weapons.js';
 import { PASSIVES } from '../data/passives.js';
 import { ENEMIES } from '../data/enemies.js';
 import { BOSSES } from '../data/bosses.js';
+import { DEFAULT_HERO } from '../data/heroes.js';
 
 export const CODEX_KINDS = ['weapon', 'passive', 'enemy', 'boss'];
 export const RUN_STATUSES = ['victory', 'dead', 'disconnected', 'quit'];
@@ -50,7 +51,7 @@ function emptyTotals() {
   return {
     runs: { solo: 0, duo: 0 }, wins: { solo: 0, duo: 0 },
     time: 0, dist: 0, kills: 0, damage: 0, coins: 0, pickups: {},
-    best: { solo: 0, duo: 0 }, heroes: {},
+    best: { solo: 0, duo: 0 }, heroes: {}, stages: {},
   };
 }
 
@@ -82,6 +83,18 @@ function levelList(raw) {
       .slice(0, 12).map((it) => [it[0].slice(0, 40), Math.max(1, Math.floor(num(it[1])))]);
 }
 
+// Итоги по зонам: { stageId: { runs, wins, best, time } }. Старый кодекс без зон: всё уже сыгранное — лес.
+function stageMap(o) {
+  const out = {};
+  if (o && typeof o === 'object') {
+    for (const [id, z] of Object.entries(o)) {
+      if (!/^[a-z_]{1,40}$/.test(id) || !z || typeof z !== 'object') continue;
+      out[id] = { runs: num(z.runs), wins: num(z.wins), best: num(z.best), time: num(z.time) };
+    }
+  }
+  return out;
+}
+
 /** Запись забега из чего угодно (localStorage, Firestore): лишнее отброшено, битое обнулено. */
 export function normalizeRun(r) {
   if (!r || typeof r !== 'object') return null;
@@ -89,7 +102,8 @@ export function normalizeRun(r) {
     at: num(r.at),
     mode: RUN_MODES.includes(r.mode) ? r.mode : 'solo',
     partner: str(r.partner, 12),
-    hero: str(r.hero, 40),
+    hero: str(r.hero, 40) || DEFAULT_HERO, // до выбора героев была только героиня
+    stage: str(r.stage, 40) || 'forest',   // до зон был только лес
     difficulty: str(r.difficulty, 40),
     status: RUN_STATUSES.includes(r.status) ? r.status : 'quit',
     time: num(r.time), level: Math.max(1, Math.floor(num(r.level))),
@@ -131,7 +145,19 @@ export function normalizeCodex(raw) {
     damage: num(t.damage), coins: num(t.coins),
     pickups: numMap(t.pickups, (k) => PICKUP_KINDS.includes(k)),
     best: pair(t.best), heroes: numMap(t.heroes),
+    stages: stageMap(t.stages),
   };
+  // кодекс до зон: всё сыгранное — в лесу
+  if (!t.stages) {
+    const tt = c.totals;
+    const runs = tt.runs.solo + tt.runs.duo;
+    if (runs > 0) {
+      tt.stages.forest = {
+        runs, wins: tt.wins.solo + tt.wins.duo,
+        best: Math.max(tt.best.solo, tt.best.duo), time: tt.time,
+      };
+    }
+  }
   c.runs = (Array.isArray(raw.runs) ? raw.runs : []).map(normalizeRun).filter(Boolean)
       .slice(0, CODEX.maxRuns);
   return c;
@@ -297,7 +323,7 @@ class RunTracker {
     for (const [id, v] of Object.entries(this.held)) if (v > 0) held[id] = Math.round(v * 10) / 10;
     const run = normalizeRun({
       at, mode: this.coop ? 'duo' : 'solo', partner: this.coop ? this.partner : '',
-      hero: p.hero, difficulty: sim.difficulty, status,
+      hero: p.hero, stage: sim.stage || 'forest', difficulty: sim.difficulty, status,
       time: Math.round(sim.time * 10) / 10, level: sim.player.level, kills: this.kills,
       coins: this.coop ? this.coins : sim.coins, score, dist: Math.round(this.dist),
       damage, held,
@@ -341,6 +367,12 @@ export function mergeRun(codex, result) {
   }
   t.best[run.mode] = Math.max(t.best[run.mode], run.score);
   if (run.hero) t.heroes[run.hero] = (t.heroes[run.hero] || 0) + 1;
+  // по зонам: забеги, победы, лучший счёт, время
+  const z = t.stages[run.stage] || (t.stages[run.stage] = { runs: 0, wins: 0, best: 0, time: 0 });
+  z.runs++;
+  if (run.status === 'victory') z.wins++;
+  z.best = Math.max(z.best, run.score);
+  z.time += run.time;
   codex.runs.unshift(run);
   if (codex.runs.length > CODEX.maxRuns) codex.runs.length = CODEX.maxRuns;
   return codex;

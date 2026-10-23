@@ -163,9 +163,15 @@ export class MenuScene extends Phaser.Scene {
     const status = this.add.text(cx, 300, '', textStyle(10, '#ff8080')).setOrigin(0.5);
     const say = (key) => status.setText(key ? t(key) : '');
 
-    // поля и кнопки в одном столбце: стрелки фокуса ходят сверху вниз (Name → Create → Code → Back)
-    this.add.text(cx - 85, 146, t('coop.name'), textStyle(11, '#aaaaaa')).setOrigin(1, 0.5);
-    const nameRect = { x: cx, y: 146, w: 150, h: 24 };
+    // поля и кнопки в одном столбце: стрелки фокуса ходят сверху вниз (Name → Create → Code → Back).
+    // Все строки одной ширины и высоты, подписи в плейсхолдерах; группы хоста и гостя разделены шире.
+    const W = 240;
+    const H = 26;
+    const GAP = 6;
+    const left = cx - W / 2;
+    const half = (W - GAP) / 2;
+    const rows = { name: 146, create: 180, code: 224, back: 268 };
+    const nameRect = { x: cx, y: rows.name, w: W, h: H };
     const namePanel = addPanel(this, nameRect.x, nameRect.y, nameRect.w, nameRect.h);
     const name = createTextInput(this, nameRect, { maxLength: NICK.max, placeholder: t('result.nick_hint') });
     name.el.value = readNick();
@@ -181,14 +187,13 @@ export class MenuScene extends Phaser.Scene {
     };
 
     addButton(this, this.nav, {
-      x: cx, y: 186, w: 220, h: 30, label: t('coop.create'),
+      x: cx, y: rows.create, w: W, h: H, size: 12, label: t('coop.create'),
       onSelect: () => { const n = nick(); if (n) this.lobby({ role: 'host', nick: n }); },
     });
 
-    this.add.text(cx - 95, 230, t('coop.code_hint'), textStyle(11, '#aaaaaa')).setOrigin(1, 0.5);
-    const codeRect = { x: cx - 30, y: 230, w: 100, h: 24 };
+    const codeRect = { x: left + half / 2, y: rows.code, w: half, h: H };
     const codePanel = addPanel(this, codeRect.x, codeRect.y, codeRect.w, codeRect.h);
-    const code = createTextInput(this, codeRect, { maxLength: ROOMS.codeLength, placeholder: '•••••' });
+    const code = createTextInput(this, codeRect, { maxLength: ROOMS.codeLength, placeholder: t('coop.code_hint') });
     this.nav.add({
       x: codeRect.x, y: codeRect.y, w: codeRect.w, h: codeRect.h,
       setFocus: (f) => codePanel.setFocus(f), onSelect: () => code.el.focus(),
@@ -200,11 +205,11 @@ export class MenuScene extends Phaser.Scene {
       if (!c) { say('coop.need_code'); code.el.focus(); return; }
       this.lobby({ role: 'guest', nick: n, code: c });
     };
-    addButton(this, this.nav, { x: cx + 95, y: 230, w: 110, h: 26, size: 12, label: t('coop.connect'), onSelect: connect });
+    addButton(this, this.nav, { x: left + W - half / 2, y: rows.code, w: half, h: H, size: 12, label: t('coop.connect'), onSelect: connect });
     code.el.addEventListener('nick-enter', connect);
     name.el.addEventListener('nick-enter', () => code.el.focus());
 
-    addButton(this, this.nav, { x: cx, y: 272, w: 120, h: 28, label: t('settings.back'), onSelect: () => this.show('main') });
+    addButton(this, this.nav, { x: cx, y: rows.back, w: W, h: H, size: 12, label: t('settings.back'), onSelect: () => this.show('main') });
     this.inputs = [name, code];
     this.events.once('shutdown', () => this._dropInputs());
     this.objs = this.children.list.filter((o) => !before.has(o) && o.type !== 'Zone');

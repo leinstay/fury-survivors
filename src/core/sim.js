@@ -72,7 +72,8 @@ class Sim {
     this.heroes = o.players > 1 ?
       distinctHeroes(Math.min(o.players, COOP.players), o.heroes || []) : [validHero(o.hero)];
     this.heroDef = HEROES[this.heroes[0]];
-    this.stageDef = STAGES[o.stage || 'forest'];
+    this.stage = STAGES[o.stage] ? o.stage : 'forest'; // id зоны: кодекс и таблица рекордов
+    this.stageDef = STAGES[this.stage];
     this.difficulty = DIFFICULTIES[o.difficulty] ? o.difficulty : DEFAULT_DIFFICULTY;
     this.diff = DIFFICULTIES[this.difficulty];
     this.seed = o.seed === undefined ? 1 : o.seed;
@@ -748,7 +749,7 @@ class Sim {
         vx: 0, vy: 0, life: 0, radius: 0, dmg: 0, kb: 0, pierce: 0, rehit: 0, rehitOwn: false,
         once: false, hitTime: new Float64Array(HIT_MEM),
         a: 0, b: 0, c: 0, wid: '', ws: null, bk: null, slot: 0, hitN: 0, hitUid: new Int32Array(HIT_MEM), tint: 0, fx: '', life0: 0,
-        drawOff: 0, drawLift: 0, cone: 0,
+        drawOff: 0, drawLift: 0, cone: 0, src: '', blocks: false, ySort: false,
       };
     }
     p.uid = ++this.uid;
@@ -762,7 +763,7 @@ class Sim {
     p.fx = ''; p.life0 = 0; // fx: зона рисуется слоями (render/zones.js), а не спрайтом
     // drawOff, drawLift: спрайт рисуется сдвинутым на drawOff px вдоль angle и на drawLift px вверх (взмах клинка);
     // cone > 0: удар конусом — x, y это вершина, radius длина, cone косинус половины угла вокруг angle
-    p.drawOff = 0; p.drawLift = 0; p.cone = 0; p.src = ''; p.blocks = false;
+    p.drawOff = 0; p.drawLift = 0; p.cone = 0; p.src = ''; p.blocks = false; p.ySort = false;
     this.projectiles.push(p);
     return p;
   }

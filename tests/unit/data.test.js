@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { SPRITES } from '../../assets/sprites/manifest.js';
 import { HEROES, DEFAULT_HERO } from '../../src/data/heroes.js';
-import { WEAPONS } from '../../src/data/weapons.js';
+import { WEAPONS, RINGS, ORBIT_R } from '../../src/data/weapons.js';
 import { PASSIVES } from '../../src/data/passives.js';
 import { COMBOS } from '../../src/data/combos.js';
 import { ENEMIES } from '../../src/data/enemies.js';
@@ -183,4 +183,23 @@ test('data: pickups, props drops and timeline are consistent', () => {
 test('data: i18n table has every derived key', () => {
   // Строки пишет другой агент; тест проверяет только те ключи, которые уже есть в таблице, на пустоту.
   for (const [k, v] of Object.entries(en)) assert.ok(v.length > 0, k);
+});
+
+test('auras and orbits sit on the ring ladder (orbit sprite edge on a ring, never inside the first)', () => {
+  const half = (sprite, size = 1) => {
+    assert.ok(ORBIT_R[sprite], `ORBIT_R has no ${sprite}`);
+    return ORBIT_R[sprite] * size;
+  };
+  const check = (name, sprite, lv) => {
+    if (lv.behavior === 'aura' || (!lv.behavior && WEAPONS[name].behavior === 'aura')) {
+      assert.ok(RINGS.includes(lv.area), `${name}: aura area ${lv.area} not on RINGS`);
+    } else if (lv.behavior === 'orbit' || (!lv.behavior && WEAPONS[name].behavior === 'orbit')) {
+      const edge = lv.area + half(lv.sprite || sprite, lv.size);
+      assert.ok(RINGS.some((r) => Math.abs(r - edge) <= 1), `${name}: orbit edge ${edge} not on RINGS`);
+    }
+  };
+  for (const [name, w] of Object.entries(WEAPONS)) {
+    for (const lv of w.levels) check(name, w.sprite, lv);
+    for (const part of w.parts || []) check(name, part.sprite, part);
+  }
 });

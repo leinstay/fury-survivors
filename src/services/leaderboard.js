@@ -3,7 +3,7 @@
 // Firebase SDK подтягивается ленивым import() с gstatic при первом использовании; без сети
 // игра работает полностью. Неудачная загрузка не кэшируется.
 import {
-  MODES, SCORE_FORMULA, LIMITS, BOARD, DIFFICULTY_FIELD, IP_FIELD,
+  MODES, SCORE_FORMULA, LIMITS, BOARD, DIFFICULTY_FIELD, IP_FIELD, HERO_FIELD, STAGE_FIELD,
 } from '../data/leaderboard.js';
 import { loadFirestore } from './firebase.js';
 import { validateName } from '../core/nick.js';
@@ -24,6 +24,9 @@ export function computeScore(
 }
 
 const int = (v) => Math.floor(Number(v));
+
+// Строковое поле записи по шаблону (test(undefined) проверил бы строку 'undefined').
+const isField = (f, v) => typeof v === 'string' && f.re.test(v);
 
 /**
  * Чистая: выкидывает битые строки; при одинаковом ip остаётся только лучшая запись (под каким бы ником
@@ -52,6 +55,8 @@ export function topTen(entries, limit = BOARD.rows) {
       difficulty: DIFFICULTY_FIELD.values.includes(e[DIFFICULTY_FIELD.key]) ?
         e[DIFFICULTY_FIELD.key] : DIFFICULTY_FIELD.fallback,
       ip: typeof e[IP_FIELD.key] === 'string' ? e[IP_FIELD.key] : '',
+      hero: isField(HERO_FIELD, e[HERO_FIELD.key]) ? e[HERO_FIELD.key] : HERO_FIELD.fallback,
+      stage: isField(STAGE_FIELD, e[STAGE_FIELD.key]) ? e[STAGE_FIELD.key] : STAGE_FIELD.fallback,
       order: rows.length,
     });
   }
@@ -136,7 +141,7 @@ export function fetchIp(o = {}) {
 }
 
 /** Проверка и нормализация документа до отправки; null если не годится. */
-function buildDoc({ name, score, time, kills, level, victory, difficulty }, mode = 'solo') {
+function buildDoc({ name, score, time, kills, level, victory, difficulty, hero, stage }, mode = 'solo') {
   const nick = validateName(name, mode);
   if (!nick.ok) return null;
   const doc = {
@@ -145,6 +150,8 @@ function buildDoc({ name, score, time, kills, level, victory, difficulty }, mode
     difficulty: DIFFICULTY_FIELD.values.includes(difficulty)
       ? difficulty : DIFFICULTY_FIELD.fallback,
   };
+  if (isField(HERO_FIELD, hero)) doc[HERO_FIELD.key] = hero;
+  if (isField(STAGE_FIELD, stage)) doc[STAGE_FIELD.key] = stage;
   const inR = (v, lo, hi) => Number.isFinite(v) && v >= lo && v <= hi;
   if (!inR(doc.score, 1, LIMITS.scoreMax) || !inR(doc.time, 0, LIMITS.timeMax)
     || !inR(doc.kills, 0, LIMITS.killsMax) || !inR(doc.level, 1, LIMITS.levelMax)) return null;
@@ -208,7 +215,17 @@ export function createLeaderboard({
       inflight = (async () => {
         const ip = await getIp();
         if (ip) doc[IP_FIELD.key] = ip;
-        return (await backend()).add(doc);
+        const be = await backend();
+        try {
+          return await be.add(doc);
+        } catch (err) {
+          // правила без полей hero/stage (ещё не опубликованы): та же запись без них
+          if (classify(err) !== 'denied' || !(HERO_FIELD.key in doc || STAGE_FIELD.key in doc)) throw err;
+          const old = { ...doc };
+          delete old[HERO_FIELD.key];
+          delete old[STAGE_FIELD.key];
+          return be.add(old);
+        }
       })();
       inflight.then(() => { lastSubmit = now(); }, () => {}).finally(() => { inflight = null; });
     }

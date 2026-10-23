@@ -18,7 +18,11 @@ export const FIRESTORE_DB_ID = null;
 export const COLLECTION = 'fury_scores';
 // Кооп: своя таблица. Имя записи — пара ников через PAIR.sep (хост первым), пара с другими никами уникальна.
 export const COLLECTION_COOP = 'fury_scores_coop';
-export const PAIR = { sep: '+' };
+export const PAIR = { sep: '+', shown: ' & ' }; // sep — в базе (правила), shown — на экране
+// Герой (в коопе пара героев в порядке ников через PAIR.sep) и зона записи. У старых записей полей нет:
+// при чтении это fallback (на момент добавления был только лес и, до выбора героев, только героиня).
+export const HERO_FIELD = { key: 'hero', re: /^[a-z_]{1,20}(\+[a-z_]{1,20})?$/, fallback: 'heroine' };
+export const STAGE_FIELD = { key: 'stage', re: /^[a-z_]{1,20}$/, fallback: 'forest' };
 // Режимы таблицы: коллекция и как читать поле name.
 export const MODES = { solo: { collection: COLLECTION }, coop: { collection: COLLECTION_COOP } };
 // Публичный IP отправителя в документе (ip): при одинаковом IP в таблице остаётся только лучшая запись

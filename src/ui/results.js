@@ -45,7 +45,7 @@ export function buildResults(scene, sim,
   const cursed = sim.difficulty && sim.difficulty !== DEFAULT_DIFFICULTY;
   if (coop) {
     // кооп: пара ников из лобби (хост первым) и сложность одной строкой; потеря связи вместо смерти
-    const pair = sim.players.map((p) => p.name || '?').join(` ${PAIR.sep} `);
+    const pair = sim.players.map((p) => p.name || '?').join(PAIR.shown);
     const diff = cursed ? `${t(`difficulty.${sim.difficulty}.name`)}  ·  ` : '';
     scene.add.text(cx, 46, lost ? t('result.lost') : `${diff}${t('result.players')}: ${pair}`,
         textStyle(10, lost ? '#ff8080' : cursed ? COLORS.cursed : '#9ad0ff')).setOrigin(0.5);
@@ -123,7 +123,8 @@ export function buildResults(scene, sim,
     try {
       await submitScore({
         name: bn.value, score, time: sim.time, kills: sim.kills, level: sim.player.level, victory,
-        difficulty: sim.difficulty,
+        difficulty: sim.difficulty, stage: sim.stage,
+        hero: sim.players.map((p) => p.hero).join(PAIR.sep), // в коопе пара в порядке ников
       }, mode);
     } catch (err) {
       busy = false;

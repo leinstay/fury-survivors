@@ -42,3 +42,12 @@ export function validateName(raw, mode = 'solo') {
   if (parts.length !== 2) return { ok: false, error: 'chars' };
   return pairName(parts[0], parts[1]);
 }
+
+/**
+ * Пара ников для экрана: 'BOB+STEVE' -> 'BOB & STEVE' (в базе остаётся PAIR.sep).
+ * @param {string} name
+ * @return {string}
+ */
+export function pairLabel(name) {
+  return String(name ?? '').split(PAIR.sep).join(PAIR.shown);
+}

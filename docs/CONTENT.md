@@ -12,6 +12,8 @@
 
 Behavior: `melee_arc`, `projectile`, `orbit`, `aura`, `boomerang`, `chain`, `area_drop`. Смысл полей уровня по behavior расписан в шапке `src/data/weapons.js`.
 
+Радиусы `aura` и `orbit` берутся с одной лестницы колец `RINGS` (`src/data/weapons.js`): аура ставит `area: RINGS[k]`, орбита `area: onRing(k, ORBIT_R[спрайт] * size)`, тогда видимый край снаряда идёт ровно по линии кольца. Новый спрайт на орбите добавь в `ORBIT_R`. Проверка в `tests/unit/data.test.js`.
+
 1. `src/data/weapons.js`: запись по образцу `throwing_daggers`:
    ```js
    throwing_daggers: {
