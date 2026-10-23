@@ -365,13 +365,20 @@ export class CodexScene extends Phaser.Scene {
     };
     put(t('codex.recipe'), COLORS.dim);
     it.from.forEach((id, i) => {
-      if (i > 0) put('+', COLORS.dim);
       const kind = WEAPONS[id] ? 'weapon' : 'passive';
-      if (!it.seen) { put(t('codex.locked')); return; }
-      addIcon(this, x + 7, y + 7, iconKeyFor(kind, id), 14, kind, id);
-      x += 17;
-      put(kind === 'weapon' ? t('codex.recipe_lv', { name: displayName(kind, id), n: WEAPONS[id].maxLevel }) :
-        displayName(kind, id));
+      const label = !it.seen ? t('codex.locked') : kind === 'weapon' ?
+        t('codex.recipe_lv', { name: displayName(kind, id), n: WEAPONS[id].maxLevel }) :
+        displayName(kind, id);
+      const tx = this.add.text(0, 0, label, textStyle(10)).setOrigin(0, 0.5);
+      const width = tx.width + (it.seen ? 17 : 0) + (i > 0 ? 12 : 0);
+      if (x + width > RIGHT.x + RIGHT.w - PAD) { x = L; y += 14; }
+      if (i > 0) put('+', COLORS.dim);
+      if (it.seen) {
+        addIcon(this, x + 7, y + 7, iconKeyFor(kind, id), 14, kind, id);
+        x += 17;
+      }
+      tx.setPosition(x, y + 7);
+      x += tx.width + 4;
     });
     return y + 14;
   }
@@ -401,8 +408,21 @@ export class CodexScene extends Phaser.Scene {
     const cols = def.parts ? def.parts : def.levels;
     const heads = def.parts ? def.parts.map((p) => t(`codex.beh.${p.behavior}`)) :
       cols.length === 1 ? [t('codex.col.value')] : cols.map((_, i) => t('codex.col.lv', { n: i + 1 }));
+    const label = (k) => {
+      if (def.parts) return k; // части могут иметь разные единицы: здесь общий параметр
+      if (k === 'area') {
+        return ({ melee_arc: 'reach', orbit: 'orbit_radius', chain: 'jump_radius',
+          area_drop: 'blast_radius', aura: 'radius', boomerang: 'reach' })[def.behavior] || k;
+      }
+      if (k === 'speed') return def.behavior === 'orbit' ? 'orbit_speed' : 'shot_speed';
+      if (k === 'cooldown' && def.behavior === 'aura') return 'hit_interval';
+      if (k === 'cooldown' && def.behavior === 'orbit') return 'rest_time';
+      return k;
+    };
     const rows = PARAMS.filter((k) => cols.some((c) => c[k] !== undefined))
-        .map((k) => ({ label: t(`codex.p.${k}`), cells: cols.map((c) => fmtParam(k, c[k])) }));
+        .map((k) => ({ label: t(`codex.p.${label(k)}`),
+          cells: cols.map((c) => fmtParam(k, k === 'damage' && c[k] !== undefined ?
+            c[k] * (def.power || 1) : c[k])) }));
     this.table(L, y, heads, rows);
   }
 
@@ -510,13 +530,15 @@ export class CodexScene extends Phaser.Scene {
     if (!boss) mine.push([t('codex.rec.elites'), rec.elites || 0]);
     mine.push([t('codex.rec.hits'), rec.hits || 0], [t('codex.rec.taken'), fmtBig(rec.taken || 0)]);
     const colW = (RIGHT.w - 4 * PAD) / 2;
-    [[t('codex.stats'), stats, L], [t('codex.rec.title'), mine, L + colW + 2 * PAD]].forEach(([title, list, x]) => {
+    [[t('codex.base_stats'), stats, L], [t('codex.rec.title'), mine, L + colW + 2 * PAD]].forEach(([title, list, x]) => {
       this.add.text(x, sy, title, textStyle(10, '#ffd84a')).setOrigin(0, 0);
       list.forEach(([k, v], i) => {
         this.add.text(x, sy + 15 + i * STAT_LINE, k, textStyle(9, COLORS.dim)).setOrigin(0, 0);
         this.add.text(x + colW, sy + 15 + i * STAT_LINE, String(v), textStyle(9)).setOrigin(1, 0);
       });
     });
+    this.add.text(L, BOTTOM - 4, t('codex.scaling_note'),
+        textStyle(8, COLORS.dim, { wordWrap: { width: RIGHT.w - 2 * PAD } })).setOrigin(0, 1);
   }
 
   // ---------- Characters ----------
@@ -597,7 +619,7 @@ export class CodexScene extends Phaser.Scene {
     ];
     const sy = T + 140;
     const colW = (RIGHT.w - 4 * PAD) / 2;
-    [[t('codex.stats'), stats, L], [t('codex.rec.title'), mine, L + colW + 2 * PAD]].forEach(([title, list, cx]) => {
+    [[t('codex.base_stats'), stats, L], [t('codex.rec.title'), mine, L + colW + 2 * PAD]].forEach(([title, list, cx]) => {
       this.add.text(cx, sy, title, textStyle(10, '#ffd84a')).setOrigin(0, 0);
       list.forEach(([k, v], i) => {
         this.add.text(cx, sy + 15 + i * STAT_LINE, k, textStyle(9, COLORS.dim)).setOrigin(0, 0);

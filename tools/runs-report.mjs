@@ -2,6 +2,7 @@
 // по минутам средний уровень и по каждому оружию средний урон за минуту (нанесено / замах) у тех, кто его держал.
 // node tools/runs-report.mjs [--difficulty cursed] [--mode solo] [--ver 2617f0] [--json out.json]
 import { writeFileSync } from 'node:fs';
+import { gunzipSync } from 'node:zlib';
 
 const BASE = 'https://firestore.googleapis.com/v1/projects/fury-survivors/databases/(default)/documents/fury_runs';
 const args = process.argv.slice(2);
@@ -12,12 +13,20 @@ async function fetchAll() {
   let token = '';
   do {
     const res = await fetch(`${BASE}?pageSize=300${token ? `&pageToken=${token}` : ''}`);
+    if (!res.ok) throw new Error(`Firestore HTTP ${res.status}`);
     const j = await res.json();
     for (const d of j.documents || []) {
       const f = d.fields || {};
       try {
-        out.push({ ver: f.ver?.stringValue || '', at: d.createTime, ...JSON.parse(f.data.stringValue) });
-      } catch { /* битая запись */ }
+        const run = JSON.parse(f.data.stringValue);
+        if (run.detail?.encoding === 'gzip-base64') {
+          const raw = gunzipSync(Buffer.from(run.detail.data, 'base64'),
+              { maxOutputLength: 32 * 1024 * 1024 });
+          Object.assign(run, JSON.parse(raw.toString('utf8')));
+          delete run.detail;
+        }
+        out.push({ ver: f.ver?.stringValue || '', at: d.createTime, ...run });
+      } catch (err) { console.warn(`Нечитаемая запись ${d.name}: ${err.message}`); }
     }
     token = j.nextPageToken || '';
   } while (token);
@@ -28,6 +37,8 @@ const runs = (await fetchAll()).filter((r) => (!opt('difficulty') || r.difficult
   && (!opt('mode') || r.mode === opt('mode')) && (!opt('ver') || r.ver === opt('ver')));
 if (opt('json')) writeFileSync(opt('json'), JSON.stringify(runs));
 console.log(`забегов: ${runs.length}`);
+const incomplete = runs.filter((r) => Object.values(r.capture?.dropped || {}).some((n) => n > 0));
+if (incomplete.length) console.warn(`С сокращённой телеметрией: ${incomplete.length}; см. capture.dropped в JSON`);
 const byMin = new Map();
 for (const r of runs) {
   let prev = null;

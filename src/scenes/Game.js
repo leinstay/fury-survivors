@@ -1,5 +1,5 @@
 import { createSim } from '../core/sim.js';
-import { createLockstep } from '../core/lockstep.js';
+import { createLockstep, simFingerprint } from '../core/lockstep.js';
 import { createActions } from '../core/actions.js';
 import { GameInput } from '../ui/input.js';
 import { Hud, formatTime } from '../ui/hud.js';
@@ -12,7 +12,7 @@ import { netLog } from '../services/net.js';
 import { createRunTracker, runStatus } from '../core/codex.js';
 import { recordRun } from '../services/codex.js';
 import { createTelemetry } from '../core/telemetry.js';
-import { sendRun } from '../services/telemetry.js';
+import { sendRun, flushRuns } from '../services/telemetry.js';
 import { computeScore } from '../services/leaderboard.js';
 
 const MAX_DT = SIM.maxFrameDt;
@@ -35,6 +35,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   create() {
+    flushRuns();
     const co = this.coop;
     if (co) {
       this.sim = createSim({
@@ -70,7 +71,10 @@ export class GameScene extends Phaser.Scene {
     });
     // Телеметрия для баланса: срезы раз в минуту, итог отправляется вместе с кодексом.
     this.telemetry = this.givenSim ? null :
-      createTelemetry({ local: this.sim.local || 0, coop: !!co });
+      createTelemetry({ sim: this.sim, local: this.sim.local || 0, coop: !!co,
+        sessionId: co?.sessionId || globalThis.crypto.randomUUID(),
+        clock: () => performance.now(),
+        fingerprint: simFingerprint().toString(16).padStart(8, '0') });
     this.acc = 0;
     this.waitSince = -1; // кооп: момент (с), с которого ждём ввод напарника; -1 — не ждём
     this.overlay = null; // открытый поверх экран (кооп: Game не ставится на паузу)
@@ -172,7 +176,6 @@ export class GameScene extends Phaser.Scene {
   handleEvents(events) {
     if (!events.length) return;
     if (this.tracker) this.tracker.onEvents(events);
-    if (this.telemetry) this.telemetry.onEvents(events, this.sim);
     this.fx.onEvents(events);
     this.hud.onEvents(events);
     // два сундука за кадр: sim уже выдал оба, показываем всё вместе
@@ -300,7 +303,6 @@ export class GameScene extends Phaser.Scene {
     if (this.ls) this._stepCoop(delta / 1000, input);
     else this._stepSolo(dt, input);
     if (this.tracker) this.tracker.observe(sim);
-    if (this.telemetry) this.telemetry.observe(sim);
     this._predict(input);
     this.hitCool -= dt;
     this.fx.update(dt);

@@ -96,10 +96,18 @@ test('online co-op: lobby, connect by code, synced game, partner leaves', async 
     return {
       diff: s.difficulty, names: s.players.map((q) => q.name), heroes: s.players.map((q) => q.hero),
       desynced: gs.desynced, tick: gs.ls.tick,
+      telemetrySession: gs.telemetry.sessionId, telemetryLocal: gs.telemetry.local,
+      inputSamples: gs.telemetry.inputs.length,
     };
   });
   const a = await snap(host);
   const b = await snap(guest);
+  expect(a.telemetrySession).toBeTruthy();
+  expect(a.telemetrySession).toBe(b.telemetrySession);
+  expect(a.telemetryLocal).toBe(0);
+  expect(b.telemetryLocal).toBe(1);
+  expect(a.inputSamples).toBeGreaterThan(0);
+  expect(b.inputSamples).toBeGreaterThan(0);
   expect(a.diff).toBe('cursed');
   expect(a.names).toEqual(['ANN', 'BOB']);
   expect(b.names).toEqual(['ANN', 'BOB']);

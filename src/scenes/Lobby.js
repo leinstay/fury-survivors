@@ -200,7 +200,9 @@ export class LobbyScene extends Phaser.Scene {
           const names = Array.isArray(m.names) ? m.names.slice(0, 2).map(nickOf)
             : [this.partner, this.nick];
           const heroes = distinctHeroes(2, Array.isArray(m.heroes) ? m.heroes : this.heroes());
-          this.startGame(m.seed, m.difficulty, names, heroes);
+          this.startGame(m.seed, m.difficulty, names, heroes,
+              typeof m.sessionId === 'string' && /^[a-zA-Z0-9_-]{1,64}$/.test(m.sessionId) ?
+                m.sessionId : '');
         }
         break;
       case 'leave':
@@ -306,18 +308,21 @@ export class LobbyScene extends Phaser.Scene {
     const seed = (Date.now() ^ Math.floor(Math.random() * 0x7fffffff)) >>> 0;
     const names = this.names();
     const heroes = distinctHeroes(2, this.heroes());
-    this.conn.send({ type: 'start', seed, difficulty: this.difficulty, names, heroes });
-    this.startGame(seed, this.difficulty, names, heroes);
+    const sessionId = globalThis.crypto.randomUUID();
+    this.conn.send({ type: 'start', seed, difficulty: this.difficulty, names, heroes, sessionId });
+    this.startGame(seed, this.difficulty, names, heroes, sessionId);
   }
 
-  startGame(seed, difficulty, names, heroes) {
+  startGame(seed, difficulty, names, heroes, sessionId) {
     if (this.started || !this.conn) return;
     this.started = true;
     const conn = this.conn;
     conn.onMessage(null); // Game поставит свой обработчик; до того сообщения копятся
     conn.onClose(null);
     const local = this.role === 'host' ? 0 : 1;
-    this.scene.start('Game', { coop: { net: conn, local, seed, difficulty, names, heroes } });
+    this.scene.start('Game', {
+      coop: { net: conn, local, seed, difficulty, names, heroes, sessionId },
+    });
   }
 
   leave() {

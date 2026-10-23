@@ -6,7 +6,7 @@
   "description": "Vampire Survivors-like on Phaser 3, no build step",
   "scripts": {
     "serve": "node tools/serve.mjs",
-    "test": "node --test tests/unit/ tests/balance/",
+    "test": "node --test tests/unit/*.test.js tests/balance/*.test.js",
     "smoke": "playwright test",
     "placeholders": "node tools/placeholders.mjs",
     "gen": "node tools/gen-sprite.mjs",

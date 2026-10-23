@@ -20,5 +20,13 @@ test('level-up screen closes after every pick, not only the first', async ({ pag
   }
   expect(await page.evaluate(() => window.__game.game.scene.getScene('Game').sim.player.level)).toBe(4);
   expect(await page.evaluate(() => window.__game.debug().errors)).toEqual([]);
+  const telemetry = await page.evaluate(() => {
+    const tr = window.__game.game.scene.getScene('Game').telemetry;
+    return { offers: tr.offers.length, takes: tr.decisions.filter((d) => d.pick[1] === 'take'),
+      inputs: tr.inputs.length };
+  });
+  expect(telemetry.offers).toBeGreaterThanOrEqual(3);
+  expect(telemetry.takes).toHaveLength(3);
+  expect(telemetry.takes.every((d) => d.offerId && d.decisionMs >= 0)).toBe(true);
   expect(errs.get()).toEqual([]);
 });
