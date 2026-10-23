@@ -42,7 +42,7 @@ const D = { behavior: 'projectile', sprite: 'proj_dagger', damage: 30, cooldown:
 const S = { behavior: 'orbit', sprite: 'proj_shield', damage: 25, cooldown: 0, amount: 5, area: onRing(2, SHIELD_R), speed: 4.2, duration: 1e9, knockback: 120 };
 const H = { behavior: 'aura', sprite: 'proj_holy_ground', damage: 18, cooldown: 0.9, area: RINGS[7], knockback: 35 };
 const A = { behavior: 'boomerang', sprite: 'proj_axe', damage: 28, cooldown: 1.8, amount: 3, area: 195, speed: 270, duration: 4, knockback: 100 };
-const C = { behavior: 'chain', sprite: 'proj_chain', damage: 80, cooldown: 1.0, amount: 3, jumps: 6, area: 125, range: 300, knockback: 40 };
+const C = { behavior: 'chain', sprite: 'proj_chain', damage: 40, cooldown: 1.0, amount: 3, jumps: 6, area: 125, range: 300, knockback: 40 };
 const F = { behavior: 'area_drop', sprite: 'proj_firebomb', damage: 34, cooldown: 2.0, amount: 3, area: 70, duration: 3.5, fireDamage: 0.5, knockback: 80 };
 const part = (base, over, tint) => ({ ...base, ...over, ...(tint ? { tint } : {}) });
 
@@ -156,13 +156,13 @@ export const WEAPONS = {
     // на 11-й минуте, замер бессмертным героем на месте).
     icon: 'icon_storm_chain', sprite: 'proj_chain', behavior: 'chain', maxLevel: 7,
     levels: [
-      { damage: 16, cooldown: 1.25, amount: 1, jumps: 3, area: 90, range: 230, knockback: 20 },
+      { damage: 18, cooldown: 1.25, amount: 1, jumps: 3, area: 90, range: 230, knockback: 20 },
       { damage: 18, cooldown: 1.25, amount: 1, jumps: 4, area: 95, range: 240, knockback: 20 },
       { damage: 22, cooldown: 1.2, amount: 1, jumps: 5, area: 100, range: 250, knockback: 25 },
       { damage: 22, cooldown: 1.2, amount: 2, jumps: 5, area: 105, range: 260, knockback: 25 },
-      { damage: 34, cooldown: 1.15, amount: 2, jumps: 5, area: 110, range: 270, knockback: 30 },
-      { damage: 52, cooldown: 1.15, amount: 3, jumps: 5, area: 115, range: 280, knockback: 30 },
-      { damage: 75, cooldown: 1.1, amount: 3, jumps: 5, area: 120, range: 290, knockback: 35 },
+      { damage: 30, cooldown: 1.15, amount: 2, jumps: 5, area: 110, range: 270, knockback: 30 },
+      { damage: 30, cooldown: 1.15, amount: 3, jumps: 5, area: 115, range: 280, knockback: 30 },
+      { damage: 35, cooldown: 1.1, amount: 3, jumps: 5, area: 120, range: 290, knockback: 35 },
     ],
   },
   firebomb: {
@@ -370,7 +370,7 @@ export const WEAPONS = {
   thunder_loop: {
     icon: 'icon_thunder_loop', sprite: 'proj_chain', behavior: 'chain', maxLevel: 1, evolved: true,
     levels: [
-      { damage: 70, cooldown: 1.0, amount: 4, jumps: 5, area: 140, range: 320, knockback: 45 },
+      { damage: 35, cooldown: 1.0, amount: 4, jumps: 5, area: 140, range: 320, knockback: 45 },
     ],
   },
   // firebomb + pickup

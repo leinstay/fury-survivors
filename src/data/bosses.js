@@ -42,7 +42,7 @@ export const BOSS = {
 
 export const BOSSES = {
   kitsune_empress: {
-    sprite: 'kitsune_empress', behavior: 'boss', hp: 1600, hpPerLevel: 120, speed: 38, damage: 17, xp: 0, size: 36, knockbackResist: 1,
+    sprite: 'kitsune_empress', behavior: 'boss', hp: 3200, hpPerLevel: 240, speed: 38, damage: 17, xp: 0, size: 36, knockbackResist: 1,
     attacks: [
       { type: 'fan', cooldown: 3.6, count: 3, spread: 36, speed: 110, damage: 8, life: 4, volleys: 2, interval: 0.5 },
       { type: 'blink', cooldown: 8, delay: 0.7, distance: 80, fadeIn: 0.35 },
@@ -52,7 +52,7 @@ export const BOSSES = {
     drop: 'chest',
   },
   harpy_queen: {
-    sprite: 'harpy_queen', behavior: 'boss', hp: 11000, hpPerLevel: 220, speed: 62, damage: 15, xp: 0, size: 36, knockbackResist: 1,
+    sprite: 'harpy_queen', behavior: 'boss', hp: 22000, hpPerLevel: 440, speed: 62, damage: 15, xp: 0, size: 36, knockbackResist: 1,
     attacks: [
       { type: 'dash', cooldown: 4.5, windup: 0.55, speed: 340, time: 0.55 },
       { type: 'ring', cooldown: 7, count: 14, volleys: 5, interval: 0.28, spin: 0.22, speed: 100, damage: 15, life: 4.5 },
@@ -62,7 +62,7 @@ export const BOSSES = {
     drop: 'chest',
   },
   dryad_queen: {
-    sprite: 'dryad_queen', behavior: 'boss', hp: 30000, hpPerLevel: 450, speed: 34, damage: 14, xp: 0, size: 38, knockbackResist: 1,
+    sprite: 'dryad_queen', behavior: 'boss', hp: 60000, hpPerLevel: 900, speed: 34, damage: 14, xp: 0, size: 38, knockbackResist: 1,
     attacks: [
       { type: 'dash', cooldown: 5, windup: 0.8, speed: 260, time: 0.6 },
       { type: 'summon', cooldown: 8, enemy: 'catgirl', count: 6, radius: 90 },
