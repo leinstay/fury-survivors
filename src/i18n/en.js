@@ -19,9 +19,8 @@ export const en = {
   'settings.shake': 'Screen shake',
   'settings.on': 'On',
   'settings.off': 'Off',
-  'settings.quality': 'Graphics',
-  'settings.quality.high': 'High',
-  'settings.quality.low': 'Low',
+  'settings.glow': 'Projectile glow',
+  'settings.hero_glow': 'Hero glow',
   'settings.minimap': 'Minimap',
   'settings.dps': 'DPS meter',
   'settings.fullscreen': 'Fullscreen',
@@ -153,7 +152,7 @@ export const en = {
   'difficulty.normal.desc': 'The forest as it is.',
   'difficulty.cursed.name': 'Cursed',
   'difficulty.cursed.short': 'Cursed',
-  'difficulty.cursed.desc': '+50% enemies.',
+  'difficulty.cursed.desc': '+50% enemies, +25% enemy HP.',
 
   // Герои
   'hero.heroine.name': 'Hero',

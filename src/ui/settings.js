@@ -1,16 +1,17 @@
 // Настройки в localStorage. Громкость 0..1 (положение ползунка; реальная громкость ещё умножается
-// на AUDIO.gain в sfx.js), shake — тряска экрана вкл/выкл, остальное — варианты из OPTIONS.
+// на AUDIO.gain в sfx.js), shake, glow, heroGlow — вкл/выкл, остальное — варианты из OPTIONS.
+// glow — свечение снарядов (выкл: без шейдеров и с меньшим числом частиц, по умолчанию выкл на таче),
+// heroGlow — белое свечение вокруг своего героя (видно себя в толпе и в коопе).
 // v2: шкала сменилась, старые сохранения не переносим.
 import { HEROES, DEFAULT_HERO } from '../data/heroes.js';
 
 const KEY = 'fury-survivors.settings.v2';
 const DEFAULTS = {
-  music: 1, sfx: 1, shake: true, quality: null, minimap: 'full', dps: 'full', difficulty: 'normal',
+  music: 1, sfx: 1, shake: true, glow: true, heroGlow: true, minimap: 'full', dps: 'full', difficulty: 'normal',
   hero: DEFAULT_HERO,
 };
 // Допустимые значения строковых настроек; порядок = порядок переключения кнопкой.
 export const OPTIONS = {
-  quality: ['high', 'low'],          // low: без свечения снарядов и элит, меньше частиц (по умолчанию на таче)
   minimap: ['full', 'transparent'],  // радар не выключается
   dps: ['full', 'transparent', 'off'],
   difficulty: ['normal', 'cursed'],  // последний выбор перед забегом (data/difficulty.js)
@@ -27,7 +28,7 @@ export function isMobile() {
 function load() {
   if (data) return data;
   data = { ...DEFAULTS };
-  data.quality = isMobile() ? 'low' : 'high';
+  data.glow = !isMobile();
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) || '{}');
     for (const k in DEFAULTS) {
@@ -56,7 +57,7 @@ export function setVolume(kind, v) {
   save();
 }
 
-// Переключатели (shake, quality, minimap, dps).
+// Переключатели (shake, glow, heroGlow, minimap, dps).
 export function getSetting(key) {
   return load()[key];
 }
@@ -74,7 +75,7 @@ export function cycleSetting(key) {
   return v;
 }
 
-// Низкое качество графики: без свечения, меньше частиц.
+// Свечение снарядов выключено: без шейдеров свечения, меньше частиц.
 export function lowQuality() {
-  return getSetting('quality') === 'low';
+  return !getSetting('glow');
 }

@@ -17,7 +17,7 @@ function addShield(w, sim) {
   p.rehit = REHIT;
   p.rehitOwn = true; // каждый щит бьёт цель по своему таймеру, как книги в VS
   p.blocks = true;   // ловит вражеские снаряды (sim._updateProjectiles)
-  p.ySort = true;    // рисуется по глубине как персонажи: над героем щит проходит за ним
+  p.ySort = true;    // над своим героем щит проходит за ним, в остальном поверх всего (render/world.js)
   p.wid = w.id;
   p.slot = w.slot;
   p.ws = w;

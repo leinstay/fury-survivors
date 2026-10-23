@@ -3,11 +3,12 @@
 // id: {
 //   spawnMul,   // множитель частоты спавна, минимумов и размеров колец, стен, пролётов и орд (как Curse в VS)
 //   xpMul,      // множитель опыта с врагов
+//   hpMul,      // множитель HP обычных врагов и элит (не боссов), в соло и коопе
 // }
 // Очки не умножаются: больше врагов — больше килов, а значит и очков. Таблица рекордов хранит id в поле difficulty
 // (старые записи без поля считаются normal).
 export const DIFFICULTIES = {
-  normal: { spawnMul: 1, xpMul: 1 },
-  cursed: { spawnMul: 1.5, xpMul: 1 },   // только больше врагов, опыт с врага как на normal
+  normal: { spawnMul: 1, xpMul: 1, hpMul: 1 },
+  cursed: { spawnMul: 1.5, xpMul: 1, hpMul: 1.25 },   // больше врагов и толще, опыт с врага как на normal
 };
 export const DEFAULT_DIFFICULTY = 'normal';

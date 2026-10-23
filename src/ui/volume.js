@@ -40,7 +40,8 @@ export function addVolumeSliders(scene, nav, { x, y, w, gap = 30 }) {
   };
   const onOff = (v) => t(v ? 'settings.on' : 'settings.off');
   cycle('settings.shake', () => onOff(getSetting('shake')), () => setSetting('shake', !getSetting('shake')));
-  cycle('settings.quality', () => t(`settings.quality.${getSetting('quality')}`), () => cycleSetting('quality'));
+  cycle('settings.glow', () => onOff(getSetting('glow')), () => setSetting('glow', !getSetting('glow')));
+  cycle('settings.hero_glow', () => onOff(getSetting('heroGlow')), () => setSetting('heroGlow', !getSetting('heroGlow')));
   cycle('settings.minimap', () => t(`settings.mode.${getSetting('minimap')}`), () => cycleSetting('minimap'));
   cycle('settings.dps', () => t(`settings.mode.${getSetting('dps')}`), () => cycleSetting('dps'));
   if (canFullscreen()) {

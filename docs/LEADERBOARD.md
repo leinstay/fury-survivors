@@ -26,7 +26,7 @@
 ## Данные
 
 - Проект `fury-survivors`, база `(default)` (`FIRESTORE_DB_ID = null`), коллекции `fury_scores` (соло) и `fury_scores_coop` (кооп, своя таблица); кодекс игрока лежит в `fury_codex/{id}` (резервная копия, см. `docs/ARCHITECTURE.md`, «Кодекс»).
-- Документ: `{ name, score, time, kills, level, victory, difficulty, ip, createdAt }`. `time` целые секунды, `createdAt` серверное время, `difficulty` `'normal' | 'cursed'` (`src/data/difficulty.js`); записи без поля (до появления сложности) читаются как `normal`, правила допускают его отсутствие.
+- Документ: `{ name, score, time, kills, level, victory, difficulty, hero, stage, ip, createdAt }`. `hero` id героя (в коопе `'heroine+mage'`), `stage` id зоны (`'forest'`); записи без них читаются как `heroine` и `forest`, правила допускают их отсутствие. `time` целые секунды, `createdAt` серверное время, `difficulty` `'normal' | 'cursed'` (`src/data/difficulty.js`); записи без поля (до появления сложности) читаются как `normal`, правила допускают его отсутствие.
 - `name`: в соло ник, в коопе пара `HOST+GUEST` (хост первым; пара с другими никами это другая запись). Отправить может любой из двоих, лучшая запись пары остаётся.
 - `ip`: публичный IP отправителя (запрос к `api.ipify.org` при отправке, до 3 с; не вышло — поля нет). При чтении `topTen` сначала оставляет на каждый IP только лучшую запись (под любым ником), потом лучшую на имя. Записи без `ip` (старые) участвуют только во второй проверке.
 - Лобби коопа: коллекция `rooms`, документ на лобби (id = код из 5 символов): `{ offer, createdAt }` пишет хост, `{ answer, answeredAt }` один раз дописывает гость; после соединения хост документ удаляет. Брошенные лобби можно чистить TTL-политикой по `createdAt` (Firestore → TTL, необязательно).

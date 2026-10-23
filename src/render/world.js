@@ -7,7 +7,7 @@ import { Decor } from './decor.js';
 import { Roads } from './roads.js';
 import { spriteScale } from './density.js';
 import { Zones } from './zones.js';
-import { lowQuality } from '../ui/settings.js';
+import { lowQuality, getSetting } from '../ui/settings.js';
 
 // Позиции и камера округляются в пиксели экрана (1 / RENDER_ZOOM пикселя мира) одним способом: тогда разница
 // «спрайт минус камера» меняется только монотонно. Раньше камера (середина между игроками) и спрайты
@@ -25,6 +25,13 @@ const ELITE_GLOW = {
   color: 0xff3d6e, strength: 3, pulse: 0.35, pulseSpeed: 5,
   quality: 0.1, distance: 10, padding: 10,
 };
+
+// Щит на орбите проходит за своим героем, когда он выше ног героя и ближе этого по x (полуширина героя +
+// радиус шара); в остальное время рисуется поверх всего, как прочие снаряды.
+const ORBIT_BEHIND_DX = 22;
+
+// Свечение своего героя (настройка heroGlow): как у элит, только белое.
+const HERO_GLOW = { ...ELITE_GLOW, color: 0xffffff, strength: 2 };
 
 function dropGlow(s) {
   s.preFX.remove(s.eliteGlow);
@@ -156,6 +163,8 @@ export class World {
     if (!scene.textures.exists('fx_halo')) makeHalo(scene);
     this.shake = { x: 0, y: 0 }; // смещение камеры от fx (тряска)
     this.predict = null;         // { i, x, y, face, moving } — свой герой по своему вводу (Game._predict)
+    this.drawnX = [];            // где нарисован герой i в этом кадре (NaN для гроба)
+    this.drawnY = [];
     this.alpha = 1;              // доля шага между прошлым и текущим тиком: сущности рисуются между ними
     this.ix = 0;                 // результат _lerp
     this.iy = 0;
@@ -187,14 +196,18 @@ export class World {
   // На низком качестве вместо шейдера простой аддитивный ореол под элитой (пул halos).
   _glow(s, e, time) {
     if (!s.preFX || this.low) return; // Canvas-рендер без эффектов
-    const g = ELITE_GLOW;
+    const ed = ENEMIES[e.type] && ENEMIES[e.type].elite;
+    const color = ed && ed.glow !== undefined ? ed.glow : ELITE_GLOW.color;
+    this._addGlow(s, ELITE_GLOW, color, time, e.uid);
+  }
+
+  // Glow-шейдер вокруг силуэта s с пульсом силы (элиты и свой герой).
+  _addGlow(s, g, color, time, seed) {
     if (!s.eliteGlow) {
-      const ed = ENEMIES[e.type] && ENEMIES[e.type].elite;
       s.preFX.setPadding(g.padding);
-      s.eliteGlow = s.preFX.addGlow(ed && ed.glow !== undefined ? ed.glow : g.color,
-          g.strength, 0, false, g.quality, g.distance);
+      s.eliteGlow = s.preFX.addGlow(color, g.strength, 0, false, g.quality, g.distance);
     }
-    s.eliteGlow.outerStrength = g.strength * (1 + g.pulse * Math.sin(time * g.pulseSpeed + e.uid));
+    s.eliteGlow.outerStrength = g.strength * (1 + g.pulse * Math.sin(time * g.pulseSpeed + seed));
   }
 
   _tex(key) {
@@ -292,6 +305,7 @@ export class World {
       const p = sim.players[i];
       const pl = this.playerSprites[i];
       if (p.dead) {
+        if (pl.eliteGlow) dropGlow(pl);
         if (!pl.coffin) {
           pl.coffin = true;
           pl.setTexture('fx_coffin', 0).setOrigin(0.5, 1).setScale(1).setFlipX(false).setAlpha(1);
@@ -302,6 +316,7 @@ export class World {
         this._lerp(p);
         pl.setPosition(snap(this.ix), snap(this.iy) + COFFIN_Y);
         pl.setDepth(this.iy);
+        this.drawnX[i] = NaN;
         this._shadow(this.ix, this.iy, pl, cam);
         continue;
       }
@@ -323,7 +338,12 @@ export class World {
       const face = pr && pr.i === i && pr.face ? pr.face : p.facing;
       pl.setFlipX(face < 0);
       pl.setDepth(py);
+      this.drawnX[i] = px;
+      this.drawnY[i] = py;
       pl.setAlpha(p.iframes > 0 && Math.floor(time * 16) % 2 === 0 ? 0.35 : 1);
+      // свой герой со свечением (настройка читается каждый кадр: переключение в паузе видно сразу)
+      if (i === sim.local && pl.preFX && getSetting('heroGlow')) this._addGlow(pl, HERO_GLOW, HERO_GLOW.color, time, 0);
+      else if (pl.eliteGlow) dropGlow(pl);
       this._tint(pl, p.hurtFlash > 0, false);
       this._shadow(px, py, pl, cam);
     }
@@ -394,7 +414,10 @@ export class World {
         if (e.tint) s.setTint(e.tint);
         else s.clearTint();
       }
-      if (e.ySort) s.setDepth(py);
+      const oi = e.ySort && e.ws.owner ? e.ws.owner.id : -1;
+      const hy = this.drawnY[oi];
+      const behind = oi >= 0 && py < hy && Math.abs(px - this.drawnX[oi]) < ORBIT_BEHIND_DX;
+      if (behind) s.setDepth(hy - 0.5);
       else s.setDepth((SPRITES[e.sprite]?.layer === 'ground' ? GROUND_DEPTH : PROJ_DEPTH) + e.y);
     });
     const glow = FX.projGlow;

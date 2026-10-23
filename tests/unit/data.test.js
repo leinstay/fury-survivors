@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { SPRITES } from '../../assets/sprites/manifest.js';
 import { HEROES, DEFAULT_HERO } from '../../src/data/heroes.js';
-import { WEAPONS, RINGS, ORBIT_R } from '../../src/data/weapons.js';
+import { WEAPONS, RINGS, ORBIT_R, WEAPON_BEHAVIOR } from '../../src/data/weapons.js';
 import { PASSIVES } from '../../src/data/passives.js';
 import { COMBOS } from '../../src/data/combos.js';
 import { ENEMIES } from '../../src/data/enemies.js';
@@ -185,15 +185,19 @@ test('data: i18n table has every derived key', () => {
   for (const [k, v] of Object.entries(en)) assert.ok(v.length > 0, k);
 });
 
-test('auras and orbits sit on the ring ladder (orbit sprite edge on a ring, never inside the first)', () => {
+test('auras, blade arcs and orbits sit on the ring ladder (orbit sprite edge on a ring, never inside the first)', () => {
   const half = (sprite, size = 1) => {
     assert.ok(ORBIT_R[sprite], `ORBIT_R has no ${sprite}`);
     return ORBIT_R[sprite] * size;
   };
   const check = (name, sprite, lv) => {
-    if (lv.behavior === 'aura' || (!lv.behavior && WEAPONS[name].behavior === 'aura')) {
+    const beh = lv.behavior || WEAPONS[name].behavior;
+    if (beh === 'aura') {
       assert.ok(RINGS.includes(lv.area), `${name}: aura area ${lv.area} not on RINGS`);
-    } else if (lv.behavior === 'orbit' || (!lv.behavior && WEAPONS[name].behavior === 'orbit')) {
+    } else if (beh === 'melee_arc') {
+      const reach = lv.area * WEAPON_BEHAVIOR.melee_arc.arcRadius;
+      assert.ok(RINGS.includes(reach), `${name}: arc reach ${reach} not on RINGS`);
+    } else if (beh === 'orbit') {
       const edge = lv.area + half(lv.sprite || sprite, lv.size);
       assert.ok(RINGS.some((r) => Math.abs(r - edge) <= 1), `${name}: orbit edge ${edge} not on RINGS`);
     }

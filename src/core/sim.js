@@ -389,7 +389,8 @@ class Sim {
     }
     const mins = this.time / 60;
     const sc = this.stageDef.scaling || EMPTY;
-    let hpScale = (1 + (sc.hpPerMinute || 0) * mins) * (this.coop && !isBoss ? COOP.enemyHpMul : 1);
+    let hpScale = (1 + (sc.hpPerMinute || 0) * mins) *
+        (isBoss ? 1 : (this.coop ? COOP.enemyHpMul : 1) * this.diff.hpMul);
     let dmgScale = 1 + (sc.damagePerMinute || 0) * mins;
     if (this.overtime >= 0) {
       const ot = this.stageDef.overtime;

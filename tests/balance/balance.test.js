@@ -14,7 +14,8 @@ test('balance: level at 5:00 is in range', () => {
   // считаем только забеги, дожившие до 5:00
   for (const r of withUpgrades.filter((x) => x.time >= 300)) {
     const lv = r.levelAt[300];
-    assert.ok(lv >= 8 && lv <= 28, `level at 5:00 = ${lv}`); // слабые базовые оружия подтянуты к чесноку: растёт быстрее
+    // слабые базовые оружия подтянуты к чесноку, щиты на кольце T2 (шире прежнего): растёт быстрее
+    assert.ok(lv >= 8 && lv <= 30, `level at 5:00 = ${lv}`);
   }
 });
 
