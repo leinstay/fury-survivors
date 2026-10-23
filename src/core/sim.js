@@ -97,6 +97,9 @@ class Sim {
     this.dpsNext = 1;       // время закрытия текущей секунды
     this.projTint = 0;
     this.events = [];
+    // Выборы игроков для телеметрии (src/core/telemetry.js забирает и чистит): в отличие от events не
+    // стираются в начале шага, ведь карточку и сундук выбирают между шагами. На игру не влияют.
+    this.pickLog = [];
     this.enemies = [];
     this.projectiles = [];
     this.telegraphs = [];   // предупреждения об ударах по земле { uid, x, y, radius, delay, t, dmg }
@@ -167,6 +170,8 @@ class Sim {
       },
       // урон своим оружием: за забег и окно DPS (HUD и итоги показывают своего игрока)
       damageByWeapon: {}, dps: 0, dpsByWeapon: {}, dpsAcc: {}, dpsBuckets: [],
+      // телеметрия: полный урон ударов с перебором и число ударов по оружию (src/core/telemetry.js)
+      rawByWeapon: {}, hitsByWeapon: {},
     };
   }
 
@@ -580,6 +585,7 @@ class Sim {
     if (e.dead || e.def.invulnerable) return; // жница: урон не проходит, чисел урона нет
     const crit = this.rng.next() < this.critChance(by);
     e.lastBy = by.id;
+    e.lastWid = wid;
     const amount = crit ? dmg * COMBAT.critMul : dmg;
     const dealt = amount < e.hp ? amount : e.hp;
     e.hp -= amount;
@@ -588,6 +594,8 @@ class Sim {
     this.dpsAcc[wid] = (this.dpsAcc[wid] || 0) + dealt;
     by.damageByWeapon[wid] = (by.damageByWeapon[wid] || 0) + dealt;
     by.dpsAcc[wid] = (by.dpsAcc[wid] || 0) + dealt;
+    by.rawByWeapon[wid] = (by.rawByWeapon[wid] || 0) + amount;
+    by.hitsByWeapon[wid] = (by.hitsByWeapon[wid] || 0) + 1;
     this.events.push({ type: 'hit', x: e.x, y: e.y, amount: Math.max(1, Math.round(amount)), crit, weapon: wid });
     if (kb > 0 && e.resist < 1 && !e.boss) {
       const dx = e.x - sx;
@@ -615,6 +623,7 @@ class Sim {
     this.events.push({
       type: 'kill', x: e.x, y: e.y, enemy: e.type, elite: e.elite, boss: e.boss, final: !!(e.boss && e.def.final),
       sprite: e.sprite, size: e.size, by: e.lastBy || 0, // by — игрок, чей удар добил (кодекс)
+      weapon: e.lastWid || '', // чем добил (телеметрия)
     });
     if (e.xp > 0) this.dropPickup(xpTierFor(e.xp), e.x, e.y, e.xp);
     if (e.boss) {
@@ -1152,6 +1161,7 @@ class Sim {
     for (const it of items) this._applyCard(it, pl);
     this._syncBuild();
     this.events.push({ type: 'chest', items, player: pl.id });
+    this.pickLog.push({ act: 'chest', player: pl.id, card: null, offered: items });
     if (this.coop) this._reveal(items, pl);
   }
 
@@ -1186,6 +1196,7 @@ class Sim {
     if (this.state !== 'chest') return;
     const card = this.chest.cards[i];
     if (!card) return;
+    this.pickLog.push({ act: 'evo', player: this.chest.player, card, offered: this.chest.cards });
     this._closeChest([card]);
   }
 
@@ -1194,6 +1205,7 @@ class Sim {
   skipChest() {
     if (this.state !== 'chest') return [];
     const items = UP.chestItems(this.players[this.chest.player], this.rng, true);
+    this.pickLog.push({ act: 'evoSkip', player: this.chest.player, card: null, offered: this.chest.cards });
     this._closeChest(items);
     return items;
   }
@@ -1205,6 +1217,7 @@ class Sim {
     this.chest.cards = [];
     this.state = 'running';
     this.events.push({ type: 'chest', items, applied: true, player: pl.id });
+    this.pickLog.push({ act: 'chest', player: pl.id, card: null, offered: items });
     if (this.coop) { this._reveal(items, pl); return; } // уровни — после показа
     this._checkLevel();
   }
@@ -1298,6 +1311,7 @@ class Sim {
       this.pendingLevels--;
       this.levelTurn++;
       this.events.push({ type: 'autoHeal', player: pl.id });
+      this.pickLog.push({ act: 'heal', player: pl.id, card: cards[0], offered: [] });
     }
     this.state = 'running';
   }
@@ -1331,6 +1345,7 @@ class Sim {
     const pl = this.players[who];
     const card = pl.levelUp.cards[i];
     if (!card) return;
+    this.pickLog.push({ act: 'take', player: who, card, offered: pl.levelUp.cards });
     this._applyCard(card, pl);
     this._syncBuild();
     this._afterChoice(pl);
@@ -1342,6 +1357,7 @@ class Sim {
     const lu = pl.levelUp;
     if (lu.rerolls <= 0) return false;
     lu.rerolls--;
+    this.pickLog.push({ act: 'reroll', player: who, card: null, offered: lu.cards });
     lu.cards = UP.drawCards(pl, this.rng, lu.banished);
     return true;
   }
@@ -1351,6 +1367,7 @@ class Sim {
     const pl = this.players[who];
     if (pl.levelUp.skips <= 0) return false;
     pl.levelUp.skips--;
+    this.pickLog.push({ act: 'skip', player: who, card: null, offered: pl.levelUp.cards });
     this._afterChoice(pl);
     return true;
   }
@@ -1364,6 +1381,7 @@ class Sim {
     const card = cards[i];
     if (!card || card.kind === 'heal') return false;
     lu.banishes--;
+    this.pickLog.push({ act: 'banish', player: who, card, offered: cards.slice() });
     lu.banished.add(UP.cardKey(card));
     const repl = UP.drawCards(pl, this.rng, lu.banished, 1, cards);
     if (repl.length) cards[i] = repl[0];

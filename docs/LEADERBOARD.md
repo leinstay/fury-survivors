@@ -25,7 +25,7 @@
 
 ## Данные
 
-- Проект `fury-survivors`, база `(default)` (`FIRESTORE_DB_ID = null`), коллекции `fury_scores` (соло) и `fury_scores_coop` (кооп, своя таблица); кодекс игрока лежит в `fury_codex/{id}` (резервная копия, см. `docs/ARCHITECTURE.md`, «Кодекс»).
+- Проект `fury-survivors`, база `(default)` (`FIRESTORE_DB_ID = null`), коллекции `fury_scores` (соло) и `fury_scores_coop` (кооп, своя таблица); кодекс игрока лежит в `fury_codex/{id}` (резервная копия, см. `docs/ARCHITECTURE.md`, «Кодекс»); телеметрия для баланса в `fury_runs` (каждый забег каждого игрока, только создание, чтение открыто; разбор: `node tools/runs-report.mjs`).
 - Документ: `{ name, score, time, kills, level, victory, difficulty, hero, stage, ip, createdAt }`. `hero` id героя (в коопе `'heroine+mage'`), `stage` id зоны (`'forest'`); записи без них читаются как `heroine` и `forest`, правила допускают их отсутствие. `time` целые секунды, `createdAt` серверное время, `difficulty` `'normal' | 'cursed'` (`src/data/difficulty.js`); записи без поля (до появления сложности) читаются как `normal`, правила допускают его отсутствие.
 - `name`: в соло ник, в коопе пара `HOST+GUEST` (хост первым; пара с другими никами это другая запись). Отправить может любой из двоих, лучшая запись пары остаётся.
 - `ip`: публичный IP отправителя (запрос к `api.ipify.org` при отправке, до 3 с; не вышло — поля нет). При чтении `topTen` сначала оставляет на каждый IP только лучшую запись (под любым ником), потом лучшую на имя. Записи без `ip` (старые) участвуют только во второй проверке.

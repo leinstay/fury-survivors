@@ -11,6 +11,8 @@ import { handleSimEvents, startMusic, fadeOutMusic } from '../audio/sfx.js';
 import { netLog } from '../services/net.js';
 import { createRunTracker, runStatus } from '../core/codex.js';
 import { recordRun } from '../services/codex.js';
+import { createTelemetry } from '../core/telemetry.js';
+import { sendRun } from '../services/telemetry.js';
 import { computeScore } from '../services/leaderboard.js';
 
 const MAX_DT = SIM.maxFrameDt;
@@ -66,6 +68,9 @@ export class GameScene extends Phaser.Scene {
       local: this.sim.local || 0, coop: !!co,
       partner: co && co.names ? co.names[1 - co.local] || '' : '',
     });
+    // Телеметрия для баланса: срезы раз в минуту, итог отправляется вместе с кодексом.
+    this.telemetry = this.givenSim ? null :
+      createTelemetry({ local: this.sim.local || 0, coop: !!co });
     this.acc = 0;
     this.waitSince = -1; // кооп: момент (с), с которого ждём ввод напарника; -1 — не ждём
     this.overlay = null; // открытый поверх экран (кооп: Game не ставится на паузу)
@@ -159,12 +164,15 @@ export class GameScene extends Phaser.Scene {
     const sim = this.sim;
     const score = computeScore({ time: sim.time, kills: sim.kills, coins: sim.coins, victory: status === 'victory' });
     recordRun(tr.finish(sim, { status, at: Date.now(), score }));
+    if (this.telemetry) sendRun(this.telemetry.finish(sim, { status, score }));
+    this.telemetry = null;
   }
 
   // Единая точка обработки событий sim: эффекты, звук, хитстоп.
   handleEvents(events) {
     if (!events.length) return;
     if (this.tracker) this.tracker.onEvents(events);
+    if (this.telemetry) this.telemetry.onEvents(events, this.sim);
     this.fx.onEvents(events);
     this.hud.onEvents(events);
     // два сундука за кадр: sim уже выдал оба, показываем всё вместе
@@ -292,6 +300,7 @@ export class GameScene extends Phaser.Scene {
     if (this.ls) this._stepCoop(delta / 1000, input);
     else this._stepSolo(dt, input);
     if (this.tracker) this.tracker.observe(sim);
+    if (this.telemetry) this.telemetry.observe(sim);
     this._predict(input);
     this.hitCool -= dt;
     this.fx.update(dt);

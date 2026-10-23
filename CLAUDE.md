@@ -19,6 +19,7 @@ src/
     net.js                 сеть: комнаты Firestore (код, таймауты), STUN
     leaderboard.js         таблица: лимиты ника, пара ников, кулдаун
     codex.js               кодекс: история (maxRuns), px на метр, радиус «увидел», минимум для quit
+    telemetry.js           телеметрия для баланса: коллекция fury_runs, шаг срезов, лимиты
     heroes.js              герои: статы, стартовое оружие, спрайт (heroine мечница, mage магесса); выбор в меню и лобби
     weapons.js             оружие: behavior + уровни (урон, кулдаун, количество, area...)
     passives.js            пассивки и статы по уровням
@@ -40,6 +41,7 @@ src/
     roads.js               дороги: детерминированная сетка по чанкам
     heroes.js              выбор героя: validHero, freeHero, distinctHeroes (в коопе герои разные)
     codex.js               кодекс: трекер забега (события, кадры), mergeRun, normalizeCodex
+    telemetry.js           телеметрия забега: срезы раз в минуту (уровень, урон и замах по оружию), выборы карточек (sim.pickLog), уровни, боссы, причина смерти
   behaviors/
     weapons/<type>.js      melee_arc, projectile, orbit, aura, boomerang, chain, area_drop, combo
     enemies/<type>.js      chase, dash, ranged, swarm, phase, boss, drift (стена и пролёт: прямой курс, исчезает за краем)
@@ -47,7 +49,7 @@ src/
     anim.js                процедурная ходьба/покачивание/наклон/вспышка/смерть
     fx.js                  частицы, числа урона, тряска, хитстоп
   scenes/                  Boot, Menu (выбор героя, вид Co-op), Lobby (код, герои, сложность, старт), Game, LevelUp, Chest, Pause, GameOver, Victory, Leaderboard, Codex (Armory, Bestiary, Bosses, Chronicle; из меню и паузы)
-  services/                leaderboard.js (таблицы соло и коопа, ip), net.js (WebRTC + сигналинг через Firestore rooms, логи `[fury-net]` в консоль), codex.js (кодекс в localStorage + копия в Firestore fury_codex/{id}, восстановление по id), firebase.js, nick-store.js
+  services/                leaderboard.js (таблицы соло и коопа, ip), net.js (WebRTC + сигналинг через Firestore rooms, логи `[fury-net]` в консоль), codex.js (кодекс в localStorage + копия в Firestore fury_codex/{id}, восстановление по id), telemetry.js (забег в Firestore fury_runs), firebase.js, nick-store.js
   ui/                      фокус-навигация (focus.js) (клава/мышь/геймпад), HUD (счёт, DPS, миникарта), экранный джойстик; settings.js настройки (свечение снарядов, свечение своего героя, миникарта, DPS, последний герой и сложность); hero-picker.js карточки выбора героя (сетка от 3 героев); dom-input.js текстовое поле (ник, код) поверх холста; clipboard.js копирование в буфер (код лобби по тапу); text-align.js центрует текст по пикселям; fullscreen.js полный экран на телефоне (кнопка Play и настройка, не любое касание)
   audio/sfx.js             воспроизведение звуков, рандом тона, лимит одновременных
   debug.js                 window.__game.debug(), запись ошибок в localStorage
@@ -77,6 +79,7 @@ tools/                     локальные скрипты Node, в игру �
   placeholders.mjs         заглушки по manifest.js
   make-sfx.mjs             генерация звуков из пресетов jsfxr
   contact-sheet.mjs        превью-лист спрайтов для проверки человеком
+  runs-report.mjs          разбор телеметрии fury_runs: по минутам уровень и урон/замах по оружию
   gen-ledger.json          учёт трат на генерацию
 tests/
   unit/                    node --test: grid, stats, upgrades, data-валидация

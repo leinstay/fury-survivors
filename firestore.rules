@@ -78,5 +78,29 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time;
       allow delete: if false;
     }
+    // Телеметрия для баланса (src/services/telemetry.js, TELEMETRY в src/data/telemetry.js): каждый забег
+    // каждого игрока одним документом, только создание. data — JSON забега строкой (срезы раз в минуту,
+    // выборы карточек, уровни, урон по оружию); ника и IP нет, поэтому читать можно всем (разбор баланса).
+    match /fury_runs/{id} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasOnly(
+            ['v', 'ver', 'mode', 'difficulty', 'status', 'time', 'level', 'hero', 'data', 'createdAt'])
+        && request.resource.data.keys().hasAll(['v', 'data', 'createdAt'])
+        && request.resource.data.v is int
+        && request.resource.data.v >= 1 && request.resource.data.v < 1000
+        && request.resource.data.ver is string && request.resource.data.ver.size() <= 16
+        && request.resource.data.mode in ['solo', 'duo']
+        && request.resource.data.difficulty is string && request.resource.data.difficulty.size() <= 20
+        && request.resource.data.status is string && request.resource.data.status.size() <= 20
+        && request.resource.data.time is int
+        && request.resource.data.time >= 0 && request.resource.data.time <= 86400
+        && request.resource.data.level is int
+        && request.resource.data.level >= 1 && request.resource.data.level <= 9999
+        && request.resource.data.hero is string && request.resource.data.hero.size() <= 20
+        && request.resource.data.data is string
+        && request.resource.data.data.size() < 200000
+        && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
   }
 }
