@@ -3,7 +3,7 @@ import { audit } from '../../../tools/telemetry/audit.mjs';
 import { COOP } from '../../../src/data/coop.js';
 const S0 = { ...COOP.slots };
 const names = ['bots-baseline', 'H1-smoothA', 'H2-A-cursed08', 'H3-A-scale15', 'H4-A-scale2', 'H5-A-scale2-xp1',
-  'H6-regen03', 'C1', 'C2', 'C3', 'C4', 'V-baseline', 'V-C4', 'V-C4-noevo', 'V-baseline-noevo', 'W1', 'W2', 'W3', 'W4', 'W5', 'C4W4', 'C4W5'];
+  'H6-regen03', 'C1', 'C2', 'C3', 'C4', 'V-baseline', 'V-C4', 'V-C4-noevo', 'V-baseline-noevo', 'W1', 'W2', 'W3', 'W4', 'W5', 'C4W4', 'C4W5', 'R1', 'R2', 'V-R2'];
 const out = { generated: new Date().toISOString(), cohorts: {} };
 for (const n of names) {
   const d = JSON.parse(readFileSync(`tools/out/audit/${n}.json`, 'utf8'));
