@@ -1,5 +1,5 @@
 // Генерация картинки через OpenRouter. Ключ читается только здесь, из .secrets/, и никуда не пишется.
-// Без файла ключа (облачная сессия) запрос уходит без Authorization: заголовок подставляет прокси окружения.
+// Облачная сессия: ключ из env OPENROUTER_API_KEY; без ключа запрос уходит без Authorization (заголовок может подставить прокси).
 // Учёт трат в tools/gen-ledger.json, жёсткий стоп по ledger.stop. Одновременно работает один процесс (lock-файл).
 //
 // node tools/gen-sprite.mjs <name> [--ref path]... [--aspect 3:2] [--quality high] [--moderation low] [--bg transparent]
@@ -39,6 +39,8 @@ function parseArgs(argv) {
 }
 
 function readKey() {
+  // облачная сессия: ключ из переменной окружения (настройки окружения), локально — из .secrets/
+  if (process.env.OPENROUTER_API_KEY) return process.env.OPENROUTER_API_KEY.trim();
   if (!existsSync(KEY_FILE)) return null;
   const raw = readFileSync(KEY_FILE, 'utf8');
   const m = raw.match(/sk-or-[A-Za-z0-9_-]+/);
