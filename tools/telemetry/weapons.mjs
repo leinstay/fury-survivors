@@ -4,6 +4,7 @@
 // добивания целей, которые раньше били другие источники, доля попаданий ближе 64 px.
 // Это ассоциации в настоящих забегах, а не причинные сравнения: их дают контролируемые пробы sim:combat.
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { decodeRun } from './data.mjs';
 
 const PHASES = [['early', 0, 300], ['mid', 300, 600], ['late', 600, 900]];
@@ -73,7 +74,7 @@ export function weaponTable(records) {
   return { weapons: out, bladeContext: pairOut };
 }
 
-if (process.argv[2]) {
+if (process.argv[2] && resolve(process.argv[1]) === resolve(import.meta.filename)) {
   const d = JSON.parse(readFileSync(process.argv[2], 'utf8'));
   console.log(JSON.stringify(weaponTable(Array.isArray(d) ? d : d.records), null, 1));
 }
