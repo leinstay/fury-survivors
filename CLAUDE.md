@@ -80,6 +80,8 @@ tools/                     локальные скрипты Node, в игру �
   make-sfx.mjs             генерация звуков из пресетов jsfxr
   contact-sheet.mjs        превью-лист спрайтов для проверки человеком
   runs-report.mjs          разбор телеметрии fury_runs: по минутам уровень и урон/замах по оружию
+  telemetry/               export (выгрузка fury_runs), audit (сессии, остаток сборки по минутам), holdout, weapons, movement, audit-chart
+  simulation/audit-bots.mjs когорта ботов с телеметрией той же схемы; результаты аудита: docs/BALANCE_AUDIT.md
   gen-ledger.json          учёт трат на генерацию
 tests/
   unit/                    node --test: grid, stats, upgrades, data-валидация
