@@ -79,15 +79,16 @@ tools/                     локальные скрипты Node, в игру �
   placeholders.mjs         заглушки по manifest.js
   make-sfx.mjs             генерация звуков из пресетов jsfxr
   contact-sheet.mjs        превью-лист спрайтов для проверки человеком
-  runs-report.mjs          разбор телеметрии fury_runs: по минутам уровень и урон/замах по оружию
-  telemetry/               export (выгрузка fury_runs), audit (сессии, остаток сборки по минутам), holdout, weapons, movement, audit-chart
+  runs-report.mjs          разбор телеметрии fury_runs: по минутам уровень и урон/замах по оружию (--archive: с архивом чистки)
+  firestore-cleanup.mjs    чистка Firestore (Spark без TTL): отчёт по месту, --apply архивирует старые забеги и удаляет их и брошенные лобби (docs/FIRESTORE.md)
+  telemetry/               export (выгрузка fury_runs), audit (сессии, остаток сборки по минутам), holdout, weapons, movement, food, audit-chart
   simulation/audit-bots.mjs когорта ботов с телеметрией той же схемы; результаты аудита: docs/BALANCE_AUDIT.md
   gen-ledger.json          учёт трат на генерацию
 tests/
   unit/                    node --test: grid, stats, upgrades, data-валидация
   balance/                 node --test: headless-бот играет забег на core/sim (players: 2 — кооп)
   smoke/                   Playwright: запуск, старт, 30 с игры, нет ошибок, fps; coop.spec.js два окна по WebRTC
-docs/                      CONTENT.md, ARCHITECTURE.md, ASSETS.md, LEADERBOARD.md, COOP.md (сводка коопа: сделано, руками, ограничения)
+docs/                      CONTENT.md, ARCHITECTURE.md, ASSETS.md, LEADERBOARD.md, COOP.md (сводка коопа: сделано, руками, ограничения), FIRESTORE.md (коллекции, лимиты Spark, что и когда чистить)
 references/                референсы, НЕ в git (скриншоты чужих игр)
 .secrets/                  ключи, НЕ в git, никогда не читать в коде игры
 ```

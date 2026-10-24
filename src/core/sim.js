@@ -484,6 +484,45 @@ class Sim {
     return ++this.stamp;
   }
 
+  // Ближайший целый разрушаемый объект (бочка, фонарь, вагонетка) в радиусе maxDist или null. Оружие с
+  // наведением бьёт по нему, когда врагов рядом нет: окружение ломает любое оружие, а не только то, что
+  // само попадает в объект по пути.
+  nearestProp(x, y, maxDist) {
+    const props = this.props;
+    let best = null;
+    let bd = maxDist * maxDist;
+    for (let i = 0; i < props.length; i++) {
+      const o = props[i];
+      if (o.dead) continue;
+      const dx = o.x - x;
+      const dy = o.y - y;
+      const d2 = dx * dx + dy * dy;
+      if (d2 < bd) { bd = d2; best = o; }
+    }
+    return best;
+  }
+
+  // Мгновенный удар по отрезку (молния): ломает объекты, которых касается отрезок шириной width.
+  // mark — штамп залпа (nextStamp): один залп бьёт объект один раз, сколько бы звеньев через него ни прошло.
+  hitPropsOnSegment(x0, y0, x1, y1, width, mark) {
+    const props = this.props;
+    const dx = x1 - x0;
+    const dy = y1 - y0;
+    const len2 = dx * dx + dy * dy;
+    for (let i = 0; i < props.length; i++) {
+      const o = props[i];
+      if (o.dead || o.mark === mark) continue;
+      let k = len2 > 0 ? ((o.x - x0) * dx + (o.y - y0) * dy) / len2 : 0;
+      k = k < 0 ? 0 : k > 1 ? 1 : k;
+      const ex = o.x - (x0 + dx * k);
+      const ey = o.y - (y0 + dy * k);
+      const r = o.radius + width;
+      if (ex * ex + ey * ey > r * r) continue;
+      o.mark = mark;
+      this._damageProp(o);
+    }
+  }
+
   _updateEnemies(dt) {
     const en = this.enemies;
     const pl = this.view;
@@ -1061,7 +1100,7 @@ class Sim {
         this.props.push({
           uid: ++this.uid, sprite: def.sprite, x: at.x, y: at.y, angle: at.angle,
           breakable: true, hp: def.hp || 1, radius: SIM.propRadius,
-          drop: def.drop || EMPTY, dead: false,
+          drop: def.drop || EMPTY, dead: false, mark: 0,
           hitAt: new Float64Array(SLOT_COUNT).fill(NEVER),
         });
       }
@@ -1414,16 +1453,19 @@ class Sim {
     const pl = this.players[who];
     const lu = pl.levelUp;
     if (lu.banishes <= 0) return false;
-    const cards = lu.cards;
-    const card = cards[i];
+    const card = lu.cards[i];
     if (!card || card.kind === 'heal') return false;
-    this._logPick({ act: 'banish', player: who, card, offered: cards.slice() });
+    this._logPick({ act: 'banish', player: who, card, offered: lu.cards.slice() });
     lu.banishes--;
     lu.banished.add(UP.cardKey(card));
+    // Новый массив, а не правка старого: экран LevelUp перерисовывается по смене lu.cards (в коопе команда
+    // применяется позже нажатия, и правка на месте оставляла бы на экране изгнанную карточку).
+    const cards = lu.cards.slice();
     const repl = UP.drawCards(pl, this.rng, lu.banished, 1, cards);
     if (repl.length) cards[i] = repl[0];
     else cards.splice(i, 1);
     if (cards.length === 0) cards.push(UP.healCard());
+    lu.cards = cards;
     this._telemetry('offer', who, 'levelup', cards);
     return true;
   }

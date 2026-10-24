@@ -11,7 +11,9 @@ export const projectile = {
     if (w.cooldown > 0) return;
     const P = w.params;
     const pl = w.owner;
-    const t = sim.nearestEnemy(pl.x, pl.y, TARGET_RANGE);
+    // врагов рядом нет: в ближайший разрушаемый объект (окружение ломает любое оружие)
+    const t = sim.nearestEnemy(pl.x, pl.y, TARGET_RANGE)
+      || sim.nearestProp(pl.x, pl.y, TARGET_RANGE);
     if (!t) { w.cooldown = 0.1; return; }
     w.cooldown = P.cooldown;
     const base = Math.atan2(t.y - pl.y, t.x - pl.x);

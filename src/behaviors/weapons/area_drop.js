@@ -10,14 +10,18 @@ export const areaDrop = {
     if (w.cooldown > 0) return;
     const P = w.params;
     const pl = w.owner;
-    if (!sim.nearestEnemy(pl.x, pl.y, TARGET_RANGE)) { w.cooldown = 0.15; return; }
+    // врагов рядом нет: первая бомба в ближайший разрушаемый объект, остальные вокруг, как при нехватке целей
+    const enemy = sim.nearestEnemy(pl.x, pl.y, TARGET_RANGE);
+    const prop = enemy ? null : sim.nearestProp(pl.x, pl.y, TARGET_RANGE);
+    if (!enemy && !prop) { w.cooldown = 0.15; return; }
     w.cooldown = P.cooldown;
     const stamp = sim.nextStamp();
     for (let i = 0; i < P.amount; i++) {
-      const t = sim.nearestEnemy(pl.x, pl.y, TARGET_RANGE, stamp);
+      const t = prop ? null : sim.nearestEnemy(pl.x, pl.y, TARGET_RANGE, stamp);
       let tx;
       let ty;
       if (t) { t.mark = stamp; tx = t.x; ty = t.y; }
+      else if (prop && i === 0) { tx = prop.x; ty = prop.y; }
       else { tx = pl.x + (sim.rng.next() - 0.5) * 200; ty = pl.y + (sim.rng.next() - 0.5) * 200; }
       const p = sim.addProjectile('player', w.def.sprite);
       p.x = pl.x; p.y = pl.y;

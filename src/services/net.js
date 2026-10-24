@@ -50,6 +50,10 @@ function firestoreSignal() {
       const snap = await fs.getDoc(fs.doc(db, ROOMS.collection, code));
       return snap.exists() ? snap.data() : null;
     },
+    async beat(code) {
+      const { fs, db } = await get();
+      await fs.updateDoc(fs.doc(db, ROOMS.collection, code), { aliveAt: fs.serverTimestamp() });
+    },
     async answer(code, sdp) {
       const { fs, db } = await get();
       const ref = fs.doc(db, ROOMS.collection, code);
@@ -63,6 +67,28 @@ function firestoreSignal() {
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Время из документа комнаты в мс: Timestamp Firestore или число (тестовый сигналинг), иначе null.
+function stampMs(v) {
+  if (v && typeof v.toMillis === 'function') return v.toMillis();
+  return typeof v === 'number' ? v : null;
+}
+
+/**
+ * Брошена ли комната: хост давно не отмечался к моменту ответа гостя (время сервера с обеих сторон).
+ * Без aliveAt (хост ни разу не отметился: старые правила базы) ориентир createdAt и предел waitMs.
+ * @param {?Object} d документ комнаты после answer
+ * @return {boolean}
+ */
+export function roomAbandoned(d) {
+  if (!d) return false;
+  const answered = stampMs(d.answeredAt);
+  if (answered === null) return false;
+  const alive = stampMs(d.aliveAt);
+  if (alive !== null) return answered - alive > ROOMS.staleMs;
+  const created = stampMs(d.createdAt);
+  return created !== null && answered - created > ROOMS.waitMs;
+}
 
 // Логи соединения в консоль браузера (не мешают игре): что нашёл ICE, как меняется состояние, какой путь выбран.
 // Найти: фильтр «fury-net» в консоли (F12).
@@ -236,16 +262,26 @@ export async function createRoom(opts = {}) {
   netLog('host', 'room', code, 'waiting for answer');
   status('waiting');
   let cancelled = false;
+  // Закрытие вкладки: удалить комнату сразу (запрос может не успеть уйти, тогда спасает aliveAt).
+  const onHide = () => { if (signal.remove) signal.remove(code); };
+  const win = typeof window !== 'undefined' && window.addEventListener ? window : null;
+  if (win) win.addEventListener('pagehide', onHide);
   const conn = (async () => {
     const until = Date.now() + ROOMS.waitMs;
     let answer = null;
+    let beatAt = Date.now();
     while (!cancelled && Date.now() < until) {
       await sleep(ROOMS.pollMs);
       if (cancelled) break;
+      if (signal.beat && Date.now() - beatAt >= ROOMS.beatMs) {
+        beatAt = Date.now();
+        signal.beat(code).catch(() => {}); // не вышло (сеть, старые правила) — гость сверится с createdAt
+      }
       let d = null;
       try { d = await signal.read(code); } catch (e) { continue; }
       if (d && d.answer) { answer = d.answer; break; }
     }
+    if (win) win.removeEventListener('pagehide', onHide);
     if (cancelled) { status('cancelled'); throw new Error('cancelled'); }
     // документ комнаты не нужен ни после соединения, ни после провала: иначе брошенные коды копятся
     if (signal.remove) signal.remove(code);
@@ -272,6 +308,7 @@ export async function createRoom(opts = {}) {
     code, conn,
     cancel() {
       cancelled = true;
+      if (win) win.removeEventListener('pagehide', onHide);
       try { pc.close(); } catch (e) { /* уже закрыт */ }
       if (signal.remove) signal.remove(code);
     },
@@ -312,6 +349,15 @@ export async function joinRoom(code, opts = {}) {
     await gathered(pc);
     netLog('guest', 'answer candidates', candidateSummary(pc.localDescription.sdp));
     await signal.answer(code, pc.localDescription.sdp);
+    // Живой хост забирает answer и удаляет документ; если документ на месте и хост давно не отмечался,
+    // комната брошена: не ждём connectMs, убираем её и говорим «не найдено».
+    let after = null;
+    try { after = await signal.read(code); } catch (e) { after = null; }
+    if (roomAbandoned(after)) {
+      netLog('guest', 'room', code, 'abandoned by host');
+      if (signal.remove) signal.remove(code);
+      throw new Error('notfound');
+    }
     const ch = await Promise.race([chP, sleep(ROOMS.connectMs).then(() => { throw new Error('timeout'); })]);
     await openChannel(ch);
     netLog('guest', 'channel open');

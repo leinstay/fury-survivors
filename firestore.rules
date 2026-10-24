@@ -43,8 +43,9 @@ service cloud.firestore {
         && request.resource.data.name.matches('^[A-Za-z0-9]{3,6}\\+[A-Za-z0-9]{3,6}$');
       allow update, delete: if false;
     }
-    // Лобби коопа (src/services/net.js): хост кладёт offer, гость один раз дописывает answer.
-    // Документ живёт до соединения (хост удаляет), брошенные можно чистить TTL-политикой по createdAt.
+    // Лобби коопа (src/services/net.js): хост кладёт offer и, пока ждёт, раз в ROOMS.beatMs обновляет aliveAt;
+    // гость один раз дописывает answer. Документ живёт до соединения (хост удаляет). Брошенную комнату
+    // (хост давно не отмечался) удаляет гость, который в неё зашёл, остальные — tools/firestore-cleanup.mjs.
     match /rooms/{code} {
       allow get: if true;   // только по коду: список открытых лобби не отдаём
       allow list: if false;
@@ -54,10 +55,12 @@ service cloud.firestore {
         && request.resource.data.offer.size() < 20000
         && request.resource.data.createdAt == request.time;
       allow update: if !('answer' in resource.data)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['answer', 'answeredAt'])
-        && request.resource.data.answer is string
-        && request.resource.data.answer.size() < 20000
-        && request.resource.data.answeredAt == request.time;
+        && ((request.resource.data.diff(resource.data).affectedKeys().hasOnly(['answer', 'answeredAt'])
+            && request.resource.data.answer is string
+            && request.resource.data.answer.size() < 20000
+            && request.resource.data.answeredAt == request.time)
+          || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['aliveAt'])
+            && request.resource.data.aliveAt == request.time));
       allow delete: if true;
     }
     // Резервная копия кодекса игрока (src/services/codex.js, CODEX в src/data/codex.js). Имя документа —

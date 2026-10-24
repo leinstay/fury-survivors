@@ -53,7 +53,8 @@ export const WEAPON_BEHAVIOR = {
   boomerang: { targetRange: 320, hitRadius: 10 },
   area_drop: { targetRange: 300, flight: 0.5, fireTick: 0.5 }, // flight — полёт бомбы, fireTick — период урона огня
   // молния рисуется звеньями-спрайтами: одно на linkStep px отрезка, не больше maxLinks, живут visualLife с
-  chain: { visualLife: 0.14, linkStep: 18, maxLinks: 7 },
+  // propWidth — полуширина удара молнии по разрушаемым объектам вдоль её пути, px.
+  chain: { visualLife: 0.14, linkStep: 18, maxLinks: 7, propWidth: 4 },
   // hitRadius по умолчанию (перекрывается params.hitRadius; спрайт щита 22 px мира), rehit — повторный удар
   // того же щита по той же цели (у каждого щита свой таймер).
   orbit: { hitRadius: 12, rehit: 0.5 },

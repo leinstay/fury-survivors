@@ -1,35 +1,55 @@
 // Разбор телеметрии (коллекция fury_runs, src/core/telemetry.js): читает все забеги через REST и печатает
 // по минутам средний уровень и по каждому оружию средний урон за минуту (нанесено / замах) у тех, кто его держал.
-// node tools/runs-report.mjs [--difficulty cursed] [--mode solo] [--ver 2617f0] [--json out.json]
-import { writeFileSync } from 'node:fs';
+// node tools/runs-report.mjs [--difficulty cursed] [--mode solo] [--ver 2617f0] [--json out.json] [--archive]
+// --archive: ещё и забеги, удалённые из базы tools/firestore-cleanup.mjs (tools/out/firestore-archive/fury_runs-*.jsonl)
+import { writeFileSync, readFileSync, readdirSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { gunzipSync } from 'node:zlib';
 
 const BASE = 'https://firestore.googleapis.com/v1/projects/fury-survivors/databases/(default)/documents/fury_runs';
 const args = process.argv.slice(2);
 const opt = (k) => { const i = args.indexOf(`--${k}`); return i >= 0 ? args[i + 1] : ''; };
 
-async function fetchAll() {
+// Документы из архива чистки: по строке JSON на документ, в том же виде, что отдаёт REST.
+function archived() {
+  const dir = join(import.meta.dirname, 'out', 'firestore-archive');
+  if (!args.includes('--archive') || !existsSync(dir)) return [];
+  return readdirSync(dir).filter((f) => /^fury_runs-.*\.jsonl$/.test(f))
+      .flatMap((f) => readFileSync(join(dir, f), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l)));
+}
+
+// Все документы fury_runs из базы (REST, постранично).
+async function fetchDocs() {
   const out = [];
   let token = '';
   do {
     const res = await fetch(`${BASE}?pageSize=300${token ? `&pageToken=${token}` : ''}`);
     if (!res.ok) throw new Error(`Firestore HTTP ${res.status}`);
     const j = await res.json();
-    for (const d of j.documents || []) {
-      const f = d.fields || {};
-      try {
-        const run = JSON.parse(f.data.stringValue);
-        if (run.detail?.encoding === 'gzip-base64') {
-          const raw = gunzipSync(Buffer.from(run.detail.data, 'base64'),
-              { maxOutputLength: 32 * 1024 * 1024 });
-          Object.assign(run, JSON.parse(raw.toString('utf8')));
-          delete run.detail;
-        }
-        out.push({ ver: f.ver?.stringValue || '', at: d.createTime, ...run });
-      } catch (err) { console.warn(`Нечитаемая запись ${d.name}: ${err.message}`); }
-    }
+    out.push(...(j.documents || []));
     token = j.nextPageToken || '';
   } while (token);
+  return out;
+}
+
+async function fetchAll() {
+  const out = [];
+  const seen = new Set();
+  for (const d of [...archived(), ...await fetchDocs()]) {
+    if (seen.has(d.name)) continue;
+    seen.add(d.name);
+    const f = d.fields || {};
+    try {
+      const run = JSON.parse(f.data.stringValue);
+      if (run.detail?.encoding === 'gzip-base64') {
+        const raw = gunzipSync(Buffer.from(run.detail.data, 'base64'),
+            { maxOutputLength: 32 * 1024 * 1024 });
+        Object.assign(run, JSON.parse(raw.toString('utf8')));
+        delete run.detail;
+      }
+      out.push({ ver: f.ver?.stringValue || '', at: d.createTime, ...run });
+    } catch (err) { console.warn(`Нечитаемая запись ${d.name}: ${err.message}`); }
+  }
   return out;
 }
 

@@ -143,6 +143,7 @@ Behavior: `chase`, `dash`, `ranged`, `swarm`, `phase` (`boss` только дл�
 1. В `props` этапа: `{ sprite: 'barrel', density: 0.6, breakable: true, hp: 1, drop: { food: 0.3, coin: 0.35, magnet: 0.05 } }`.
    - `drop`: `{ pickupId: шанс }`, ключи из `src/data/pickups.js`, шансы в `(0, 1]`, суммарно умножаются на `luck`, выпадает максимум один предмет (кумулятивный бросок).
    - `hp` по умолчанию 1; каждое попадание снимает 1.
+   - Ломает любое оружие. Снаряды бьют объекты по пути; оружие с наведением (кинжалы, топор, бомба, молния) без врагов в радиусе целится в ближайший объект (`sim.nearestProp`); молния бьёт мгновенно, поэтому ломает объекты вдоль своего пути сама (`sim.hitPropsOnSegment`). Новое поведение оружия с мгновенным уроном должно делать так же: тест `every weapon breaks props on its own` проходит по всем записям `WEAPONS`.
 2. manifest: спрайт (`art('barrel', 18, 20, { origin: FEET })`), опора у основания.
 3. Sim шлёт `{ type: 'propBreak', x, y, sprite }` при поломке (рендер: осколки и звук).
 4. Тест: `props: break from weapons, push propBreak, drop by table` (`tests/unit/mechanics.test.js`), `data: pickups, props drops...`.
