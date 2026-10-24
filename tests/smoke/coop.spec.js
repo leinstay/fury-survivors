@@ -18,10 +18,19 @@ test('real WebRTC duo: both UI players act and matching ticks have matching stat
   // Browser fixtures must never upload synthetic runs to production telemetry.
   await context.route('**/www.gstatic.com/**', (route) => route.abort());
   await context.route('**/firestore.googleapis.com/**', (route) => route.abort());
-  const pages = [await context.newPage(), await context.newPage()];
+  // Второй игрок в отдельном окне (popup), а не во второй вкладке: новый headless Chromium почти
+  // не даёт кадров фоновой вкладке (~6 в секунду против ~40), меню опрашивает клавиши в кадре и теряет
+  // нажатия, а lockstep ждёт отстающего. Окна одного контекста делят localStorage (сигналинг выше).
+  await context.addInitScript(SIGNAL);
+  const first = await context.newPage();
+  await first.goto('/');
+  const [second] = await Promise.all([context.waitForEvent('page'),
+    first.evaluate(() => window.open('/', '_blank', 'popup,width=1280,height=720'))]);
+  const pages = [first, second];
+  await second.setViewportSize({ width: 1280, height: 720 });
   const errors = pages.map(collectConsoleErrors);
   for (const p of pages) {
-    await p.addInitScript(SIGNAL); await p.goto('/');
+    await p.goto('/');
     await p.waitForFunction(() => window.__game?.debug().scene === 'Menu');
     await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter');
     await p.waitForFunction(() => window.__game.game.scene.getScene('Menu').view === 'coop');
