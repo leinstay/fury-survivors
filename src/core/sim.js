@@ -790,8 +790,18 @@ class Sim {
     // drawOff, drawLift: спрайт рисуется сдвинутым на drawOff px вдоль angle и на drawLift px вверх (взмах клинка);
     // cone > 0: удар конусом — x, y это вершина, radius длина, cone косинус половины угла вокруг angle
     p.drawOff = 0; p.drawLift = 0; p.cone = 0; p.src = ''; p.blocks = false; p.ySort = false;
+    p.boss = false;
     this.projectiles.push(p);
     return p;
+  }
+
+  // Сколько снарядов обычных врагов летит сейчас (снаряды боссов не считаются). Для COMBAT.maxEnemyShots.
+  enemyShots() {
+    let n = 0;
+    for (const p of this.projectiles) {
+      if (p.owner === 'enemy' && p.life > 0 && !p.boss) n++;
+    }
+    return n;
   }
 
   // Снаряд врага. src — id стрелявшего (кодекс: кто попал).

@@ -86,6 +86,7 @@ export function createMetrics(sim, { detailed = false } = {}) {
   const blocks = {};
   const incoming = sim.players.map(() => ({ damage: 0, hits: 0, sources: {} }));
   const targetHistory = new WeakMap();
+  const shots = { sum: 0, n: 0, max: 0 }; // снаряды обычных врагов на экране за минуту
   const recorder = {
     hit(s, e, p, weapon, raw, dealt, kb, component) {
       if (e.hp <= 0) economy.generatedXP += e.xp;
@@ -148,6 +149,8 @@ export function createMetrics(sim, { detailed = false } = {}) {
         row.sources[e.src || '?'] = (row.sources[e.src || '?'] || 0) + e.amount;
       }}
       if (s.time >= nextOpportunity) {
+        const shotsNow = s.enemyShots();
+        shots.sum += shotsNow; shots.n++; shots.max = Math.max(shots.max, shotsNow);
         const elapsed = s.time - lastOpportunity;
         lastOpportunity = s.time;
         nextOpportunity += 0.25;
@@ -174,6 +177,7 @@ export function createMetrics(sim, { detailed = false } = {}) {
       }
       if (s.time >= next) {
         minutes.push({ t: next, level: s.player.level, xp: s.player.xp,
+          enemyShots: { mean: shots.n ? shots.sum / shots.n : 0, max: shots.max },
           generatedXP: economy.generatedXP, pickedXP: economy.pickedXP,
           groundXP: s.pickups.filter((x) => x.kind === 'xp').reduce((sum, x) => sum + x.value, 0),
           players: s.players.map((p) => ({ hp: p.hp, maxHp: p.maxHp, dead: p.dead,
@@ -181,6 +185,7 @@ export function createMetrics(sim, { detailed = false } = {}) {
             weapons: p.weapons.map((w) => [w.id, w.level]),
             passives: p.passives.map((x) => [x.id, x.level]) })) });
         next += 60;
+        shots.sum = 0; shots.n = 0; shots.max = 0;
       }
     },
   };
