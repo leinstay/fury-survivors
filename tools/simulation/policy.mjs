@@ -107,7 +107,9 @@ export function createPolicy({ seed = 1, profile, evolution = true, model = MODE
       (profile.collection === 'opportunistic' && magnet));
     const options = o.pickups.filter((x) => ['xp', 'heal', 'chest', 'magnet'].includes(x.kind) &&
       !(x.kind === 'xp' && banking))
-      .map((x) => ({ ...x, priority: (x.kind === 'heal' ? (p.hp / p.maxHp < 0.6 ? 5 : 0.1) :
+      // Еда как у людей (телеметрия v2: подбор при ~85% HP): при почти полном HP её оставляют на потом.
+      .filter((x) => x.kind !== 'heal' || p.hp / p.maxHp < 0.92)
+      .map((x) => ({ ...x, priority: (x.kind === 'heal' ? 2 + 10 * (1 - p.hp / p.maxHp) :
         x.kind === 'magnet' ? (banking ? 12 : 5) : x.kind === 'chest' ? 2.5 : 1) / Math.max(24, Math.hypot(x.x - p.x, x.y - p.y)) }));
     const dead = o.allies.find((q) => q.dead);
     if (dead) {

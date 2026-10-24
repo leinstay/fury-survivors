@@ -1,7 +1,7 @@
 import { COMBOS } from '../../src/data/combos.js';
 
 // Frozen human mixture: exploration profiles are never implicitly added to this population.
-export const PROFILE_VERSION = 'human-provisional-2';
+export const PROFILE_VERSION = 'human-provisional-3';
 export const PROFILES = [
   { id: 'focus', weight: 0.25, intent: 'focus', collection: 'bank', bankSeconds: 75, reaction: 0.24, courage: 0.7, temperature: 0.65 },
   { id: 'evolution', weight: 0.25, intent: 'evolution', collection: 'opportunistic', reaction: 0.28, courage: 0.8,
