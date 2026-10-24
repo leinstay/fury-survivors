@@ -72,7 +72,7 @@ export const COMBAT = {
   separation: 0.35,        // доля перекрытия, которую враги раздвигают за шаг
   armorMinDamage: 1,       // урон не падает ниже этого значения
   enemyProjectileRadius: 4, // радиус попадания вражеского снаряда
-  maxEnemyShots: Infinity, // одновременно летящих снарядов обычных врагов (не боссов); выше лимита враг не стреляет
+  maxEnemyShots: 12,       // одновременно летящих снарядов обычных врагов (не боссов); выше лимита враг не стреляет
   weaponStartCooldown: 0.3, // задержка первого выстрела нового оружия до init behavior, с
 };
 
@@ -119,10 +119,11 @@ export const LOW_QUALITY = {
 export const XP = {
   // Опыт до следующего уровня, как в Vampire Survivors: 5 на 1 -> 2, затем прибавка за каждый уровень
   // steps[i].per, пока уровень меньше steps[i].below (+10 до 20-го, +13 до 40-го, дальше +16),
-  // плюс extra на пороговом уровне.
+  // плюс extra на пороговом уровне (сейчас порогов нет).
   base: 5,
   steps: [{ below: 20, per: 10 }, { below: 40, per: 13 }, { below: Infinity, per: 16 }],
-  thresholds: [{ level: 20, extra: 600 }, { level: 40, extra: 2400 }],
+  // Без доплат на 20/40 (в VS они идут с компенсацией Growth +100%, у нас её нет; docs/BALANCE_AUDIT.md).
+  thresholds: [],
   mergeRadius: 24,         // кристаллы рядом сливаются, когда их больше mergeAbove
   mergeAbove: 300,
   mergeInterval: 0.5,      // с между проходами слияния

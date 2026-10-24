@@ -143,8 +143,11 @@ test('sim: several pending levels give several card sets', () => {
 test('sim: xp curve', () => {
   assert.equal(xpForLevel(1), XP.base);
   assert.equal(xpForLevel(2), 15);   // как в VS: 5, затем +10 за уровень
-  assert.equal(xpForLevel(20), 5 + 10 * 19 + 600);
-  assert.equal(xpForLevel(21), 5 + 10 * 19 + 13);
+  // Доплаты на пороговых уровнях берутся из XP.thresholds (сейчас пусто).
+  const extra = (lv) => XP.thresholds.filter((t) => t.level === lv)
+    .reduce((n, t) => n + t.extra, 0);
+  assert.equal(xpForLevel(20), 5 + 10 * 19 + extra(20));
+  assert.equal(xpForLevel(21), 5 + 10 * 19 + 13 + extra(21));
 });
 
 test('sim: contact damage, i-frames, gameover', () => {

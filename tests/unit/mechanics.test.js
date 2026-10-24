@@ -176,6 +176,8 @@ test('boss: hp/maxHp readable, pose, rage at 50% hp, win on death', () => {
   const poses = new Set();
   for (let i = 0; i < 20 * 60; i++) { tick(sim); poses.add(boss.pose); }
   assert.ok(poses.has('windup') && poses.has('cast'), [...poses].join());
+  // Стартовое оружие могло набить уровень: дальше проверяем в обычном ходе, а не на экране выбора.
+  while (sim.state !== 'running') tick(sim);
   boss.hp = boss.maxHp * 0.49;
   sim.step(DT, idle);
   assert.equal(boss.rage, true);

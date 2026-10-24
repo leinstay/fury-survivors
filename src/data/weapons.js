@@ -73,35 +73,36 @@ export const WEAPON_BEHAVIOR = {
 
 export const WEAPONS = {
   blade_arc: {
-    // VS Whip: L1 10 урона / 1.35 с; L8 40 × 2 (обе стороны), area 120%.
+    // VS Whip: L1 10 урона / 1.35 с; L8 40 × 2 (обе стороны), area 120%. Наш урон за удар выше: ближний бой
+    // бьёт сильнее дальнобойного (docs/BALANCE_AUDIT.md 6.4), а HP врагов удвоены; удар на 2 ступени колец длиннее.
     icon: 'icon_blade_arc', sprite: 'proj_blade_arc', behavior: 'melee_arc', maxLevel: 7,
     levels: [
-      { damage: 10, cooldown: 1.35, amount: 1, area: RINGS[1], knockback: 90 },
-      { damage: 10, cooldown: 1.35, amount: 2, area: RINGS[1], knockback: 90 },
-      { damage: 15, cooldown: 1.3, amount: 2, area: RINGS[2], knockback: 100 },
-      { damage: 15, cooldown: 1.3, amount: 2, area: RINGS[2], knockback: 100 },
-      { damage: 22, cooldown: 1.25, amount: 2, area: RINGS[3], knockback: 110 },
-      { damage: 28, cooldown: 1.2, amount: 2, area: RINGS[3], knockback: 110 },
-      { damage: 36, cooldown: 1.2, amount: 2, area: RINGS[4], knockback: 120 },
+      { damage: 20, cooldown: 1.0, amount: 1, area: RINGS[3], knockback: 90 },
+      { damage: 20, cooldown: 1.0, amount: 2, area: RINGS[3], knockback: 90 },
+      { damage: 26, cooldown: 0.95, amount: 2, area: RINGS[4], knockback: 100 },
+      { damage: 30, cooldown: 0.9, amount: 2, area: RINGS[4], knockback: 100 },
+      { damage: 38, cooldown: 0.9, amount: 2, area: RINGS[5], knockback: 110 },
+      { damage: 46, cooldown: 0.85, amount: 2, area: RINGS[6], knockback: 110 },
+      { damage: 56, cooldown: 0.8, amount: 2, area: RINGS[7], knockback: 120 },
     ],
   },
   throwing_daggers: {
     // VS Knife: L1 6.5 / 1.0 с, 1 нож; L8 16.5 × 6, pierce 3.
     icon: 'icon_throwing_daggers', sprite: 'proj_dagger', behavior: 'projectile', maxLevel: 7,
     levels: [
-      { damage: 8, cooldown: 0.9, amount: 2, speed: 280,
+      { damage: 6, cooldown: 0.9, amount: 2, speed: 280,
         duration: 1.2, pierce: 1, knockback: 40 },
-      { damage: 10, cooldown: 0.9, amount: 3, speed: 280,
+      { damage: 7, cooldown: 0.9, amount: 3, speed: 280,
         duration: 1.2, pierce: 1, knockback: 40 },
-      { damage: 12, cooldown: 0.9, amount: 3, speed: 300,
+      { damage: 8, cooldown: 0.9, amount: 3, speed: 300,
         duration: 1.2, pierce: 2, knockback: 50 },
-      { damage: 14, cooldown: 0.85, amount: 4, speed: 300,
+      { damage: 10, cooldown: 0.85, amount: 4, speed: 300,
         duration: 1.3, pierce: 2, knockback: 50 },
-      { damage: 16, cooldown: 0.85, amount: 4, speed: 320,
+      { damage: 11, cooldown: 0.85, amount: 4, speed: 320,
         duration: 1.3, pierce: 3, knockback: 60 },
-      { damage: 22, cooldown: 0.8, amount: 5, speed: 320,
+      { damage: 15, cooldown: 0.8, amount: 5, speed: 320,
         duration: 1.4, pierce: 3, knockback: 60 },
-      { damage: 28, cooldown: 0.7, amount: 6, speed: 340,
+      { damage: 20, cooldown: 0.7, amount: 6, speed: 340,
         duration: 1.4, pierce: 3, knockback: 70 },
     ],
   },
@@ -129,41 +130,40 @@ export const WEAPONS = {
     // VS Garlic: L1 5 урона раз в 1.3 с; L8 15 раз в 1.0 с, area 100% -> 200%. cooldown — период удара по врагу.
     icon: 'icon_holy_ground', sprite: 'proj_holy_ground', behavior: 'aura', maxLevel: 7,
     levels: [
-      { damage: 5, cooldown: 1.3, area: RINGS[0], knockback: 15 },
-      { damage: 6, cooldown: 1.25, area: RINGS[1], knockback: 15 },
-      { damage: 8, cooldown: 1.2, area: RINGS[2], knockback: 20 },
-      { damage: 10, cooldown: 1.15, area: RINGS[3], knockback: 20 },
-      { damage: 12, cooldown: 1.1, area: RINGS[4], knockback: 25 },
-      { damage: 14, cooldown: 1.05, area: RINGS[5], knockback: 25 },
-      { damage: 15, cooldown: 1.0, area: RINGS[6], knockback: 30 },
+      { damage: 10, cooldown: 1.04, area: RINGS[0], knockback: 15 },
+      { damage: 12, cooldown: 1.0, area: RINGS[1], knockback: 15 },
+      { damage: 16, cooldown: 0.96, area: RINGS[2], knockback: 20 },
+      { damage: 20, cooldown: 0.92, area: RINGS[3], knockback: 20 },
+      { damage: 24, cooldown: 0.88, area: RINGS[4], knockback: 25 },
+      { damage: 28, cooldown: 0.84, area: RINGS[5], knockback: 25 },
+      { damage: 30, cooldown: 0.8, area: RINGS[6], knockback: 30 },
     ],
   },
   war_axe: {
     // VS Axe: L1 20 / 4.0 с; L8 80 × 3, pierce 7. Наш топор возвращается и бьёт дважды, поэтому урон ниже.
     icon: 'icon_war_axe', sprite: 'proj_axe', behavior: 'boomerang', maxLevel: 7,
     levels: [
-      { damage: 12, cooldown: 3.0, amount: 1, area: 110, speed: 200, duration: 4, knockback: 60 },
-      { damage: 12, cooldown: 2.9, amount: 2, area: 120, speed: 210, duration: 4, knockback: 60 },
-      { damage: 16, cooldown: 2.8, amount: 2, area: 130, speed: 220, duration: 4, knockback: 70 },
-      { damage: 16, cooldown: 2.6, amount: 2, area: 145, speed: 230, duration: 4, knockback: 70 },
-      { damage: 20, cooldown: 2.4, amount: 3, area: 155, speed: 240, duration: 4, knockback: 80 },
-      { damage: 20, cooldown: 2.2, amount: 3, area: 170, speed: 250, duration: 4, knockback: 80 },
-      { damage: 25, cooldown: 2.0, amount: 3, area: 185, speed: 260, duration: 4, knockback: 90 },
+      { damage: 19, cooldown: 1.5, amount: 1, area: 110, speed: 200, duration: 4, knockback: 60 },
+      { damage: 19, cooldown: 1.45, amount: 2, area: 120, speed: 210, duration: 4, knockback: 60 },
+      { damage: 26, cooldown: 1.4, amount: 2, area: 130, speed: 220, duration: 4, knockback: 70 },
+      { damage: 26, cooldown: 1.3, amount: 2, area: 145, speed: 230, duration: 4, knockback: 70 },
+      { damage: 32, cooldown: 1.2, amount: 3, area: 155, speed: 240, duration: 4, knockback: 80 },
+      { damage: 32, cooldown: 1.1, amount: 3, area: 170, speed: 250, duration: 4, knockback: 80 },
+      { damage: 40, cooldown: 1.0, amount: 3, area: 185, speed: 260, duration: 4, knockback: 90 },
     ],
   },
   storm_chain: {
-    // Молния бьёт (1 + jumps) врагов, всего amount × (1 + jumps) ударов за cooldown. Рост L1 → L7 ровный
-    // (~×1.6 за уровень): L1 наравне с чесноком, L7 наравне с остальными L7 (~900–1100 урона в секунду по толпе
-    // на 11-й минуте, замер бессмертным героем на месте).
+    // Молния бьёт (1 + jumps) врагов, всего amount × (1 + jumps) ударов за cooldown. Самая дальнобойная и бьёт
+    // много целей, поэтому урон за удар у неё ниже всех (docs/BALANCE_AUDIT.md 6.4).
     icon: 'icon_storm_chain', sprite: 'proj_chain', behavior: 'chain', maxLevel: 7,
     levels: [
-      { damage: 18, cooldown: 1.25, amount: 1, jumps: 3, area: 90, range: 230, knockback: 20 },
-      { damage: 18, cooldown: 1.25, amount: 1, jumps: 4, area: 95, range: 240, knockback: 20 },
-      { damage: 22, cooldown: 1.2, amount: 1, jumps: 5, area: 100, range: 250, knockback: 25 },
-      { damage: 22, cooldown: 1.2, amount: 2, jumps: 5, area: 105, range: 260, knockback: 25 },
-      { damage: 30, cooldown: 1.15, amount: 2, jumps: 5, area: 110, range: 270, knockback: 30 },
-      { damage: 30, cooldown: 1.15, amount: 3, jumps: 5, area: 115, range: 280, knockback: 30 },
-      { damage: 35, cooldown: 1.1, amount: 3, jumps: 5, area: 120, range: 290, knockback: 35 },
+      { damage: 7, cooldown: 1.25, amount: 1, jumps: 2, area: 90, range: 230, knockback: 20 },
+      { damage: 7, cooldown: 1.25, amount: 1, jumps: 3, area: 95, range: 240, knockback: 20 },
+      { damage: 9, cooldown: 1.2, amount: 1, jumps: 4, area: 100, range: 250, knockback: 25 },
+      { damage: 9, cooldown: 1.2, amount: 2, jumps: 4, area: 105, range: 260, knockback: 25 },
+      { damage: 11, cooldown: 1.15, amount: 2, jumps: 4, area: 110, range: 270, knockback: 30 },
+      { damage: 11, cooldown: 1.15, amount: 3, jumps: 4, area: 115, range: 280, knockback: 30 },
+      { damage: 14, cooldown: 1.1, amount: 3, jumps: 4, area: 120, range: 290, knockback: 35 },
     ],
   },
   firebomb: {
