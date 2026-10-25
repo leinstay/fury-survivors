@@ -1,72 +1,70 @@
 # Fury Survivors
 
-Небольшая игра в духе Vampire Survivors / HoloCure. Весь проект собрал Claude Code по одному брифу, [`VISION.md`](VISION.md), за два пятичасовых лимита Claude Code. Opus 5.5 вёл сессию, планировал работу, писал большую часть кода и проверял её; субагенты Sonnet 5.5 параллельно брали отдельные задачи по коду (см. [`.claude/agents/coder.md`](.claude/agents/coder.md)). Графику рисовала модель GPT 2.5 Flare. Анимации из PixelLab.
+A small game in the spirit of Vampire Survivors and HoloCure, built on Phaser 3 with no build step. The whole project was assembled by Claude Code from a single brief, [VISION.md](VISION.md), in two five-hour Claude Code sessions. Opus 5.5 ran the session, planned the work, wrote most of the code and reviewed it, while Sonnet 5.5 subagents took separate coding tasks in parallel (see [.claude/agents/coder.md](.claude/agents/coder.md)). The art was drawn by GPT 2.5 Flare and animated in PixelLab.
 
-Позже, ещё за два пятичасовых лимита Claude Code, в игру добавили вторую героиню и сетевой мультиплеер на двоих, а также сложность Cursed, овертайм с жницей, дороги и новое окружение, миникарту и DPS-метр.
+Two more five-hour sessions added a second heroine, two-player online co-op, the Cursed difficulty, overtime with the Reaper, roads and new scenery, a minimap and a DPS meter. The game runs in the browser at https://leinstay.github.io/fury-survivors/.
 
-**Играть:** https://leinstay.github.io/fury-survivors/
+## Features
 
-## Что в игре
+* Two heroes. Hero fights with a blade (Blade Arc), Mage with chain lightning (Storm Chain). Each has their own strengths and weaknesses.
+* One stage, 15 minutes in a forest with sandy roads, crossroads and roadside objects. Enemy waves follow a timeline, with special events (an enemy wall, a flock flyover, a horde around a chest), elites that drop chests, and a boss every five minutes. Kitsune Empress comes at 5:00, Harpy Queen at 10:00 and the final Dryad Queen at 15:00.
+* Overtime after the final boss. Endless waves that keep getting stronger, played for score, until the invulnerable Banshee Reaper arrives at 20:00.
+* Normal or Cursed difficulty (50% more enemies with 25% more HP), chosen before a run.
+* 7 weapons with 7 levels each, 9 passives, card picks with reroll, skip and ban.
+* 28 super weapons. There is a collab for every pair of weapons and an evolution for every weapon plus passive. If several are ready, the chest lets you choose, and an evolution can be skipped.
+* 8 enemy types, 3 bosses with their own attacks and the invulnerable overtime Reaper.
+* Two-player online co-op. The host creates a lobby and shares a code, the second player joins by code, each picks their own hero and the host picks the difficulty. One screen, shared experience, cards taken in turns from each player's own pool, a coffin instead of death, and more enemies for two. P2P over WebRTC, lobby through Firestore.
+* HUD with score, minimap and a per-weapon DPS meter.
+* Online leaderboards on Cloud Firestore, solo and co-op separately.
 
-- Два героя на выбор: Hero с клинком (Blade Arc) и Mage с цепной молнией (Storm Chain), у каждого свои сильные и слабые стороны.
-- Один этап: 15 минут в лесу с песчаными дорогами, перекрёстками и придорожными объектами. Волны врагов по таймлайну, особые события (стена врагов, пролёт стаи, орда вокруг сундука), элиты, из которых падают сундуки, и босс каждые пять минут: Kitsune Empress в 5:00, Harpy Queen в 10:00 и финальная Dryad Queen в 15:00.
-- После финального босса овертайм: бесконечные крепнущие волны ради очков, на 20:00 приходит неуязвимая Banshee Reaper.
-- Сложность Normal или Cursed (+50% врагов, у врагов +25% HP), выбирается перед забегом.
-- 7 видов оружия по 7 уровней, 9 пассивок, выбор карточек с реролом, пропуском и баном.
-- 28 супероружий: коллаб для каждой пары оружия и эволюция каждого оружия с пассивкой. Если готово несколько, сундук даёт выбрать, эволюцию можно пропустить.
-- 8 типов врагов, 3 босса со своими атаками и неуязвимая жница овертайма.
-- Онлайн-кооп на двоих: хост создаёт лобби и даёт код, второй входит по коду, каждый берёт своего героя, сложность выбирает хост. Один экран, общий опыт, карточки по очереди из своего пула, гроб вместо смерти; врагов на двоих больше. P2P по WebRTC, лобби через Firestore.
-- HUD: счёт, миникарта, DPS-метр по оружию.
-- Онлайн-таблицы рекордов на Cloud Firestore: соло и кооп отдельно.
+## Controls
 
-## Управление
-
-| Действие | Клавиатура | Геймпад | Сенсор |
+| Action | Keyboard | Gamepad | Touch |
 |---|---|---|---|
-| Движение | WASD / стрелки | левый стик / крестовина | вести пальцем где угодно |
-| Выбор | Enter / пробел | A | тап |
-| Назад / пауза | Esc | B / Start | кнопка паузы |
+| Move | WASD / arrows | left stick / d-pad | drag anywhere |
+| Select | Enter / Space | A | tap |
+| Back / pause | Esc | B / Start | pause button |
 
-## Запуск локально
+## Running
 
-Нужен Node.js 20+. Сборки нет: игра состоит из обычных ES-модулей, Phaser 3.90 лежит в `vendor/`.
+You need Node.js 20 or newer. There is no build step. The game is plain ES modules and Phaser 3.90 lives in `vendor/`.
 
 ```bash
 npm install
 npm run serve
 ```
 
-Затем откройте http://localhost:8080. Подойдёт и любой другой статический сервер.
+Then open http://localhost:8080. Any other static server works too.
 
-## Тесты
+## Tests
 
 ```bash
 npm test
 npm run smoke
 ```
 
-`npm test` проверяет механики, телеметрию, данные, replay и соответствие headless/lockstep.
-`npm run smoke` проверяет настоящий интерфейс и WebRTC в Playwright общим поведением бота.
-Балансные эксперименты вынесены из unit-тестов: `npm run balance:quick`, `npm run sim:combat`.
-Производительность измеряется отдельно: `npm run perf`.
-Полные команды, условия приёмки и ограничения данных: [`docs/SIMULATION_GUIDE.md`](docs/SIMULATION_GUIDE.md).
+`npm test` checks mechanics, telemetry, data, replay and headless/lockstep parity. `npm run smoke` drives the real UI and WebRTC in Playwright with a shared bot behaviour. Balance experiments are kept out of the unit tests and run with `npm run balance:quick` and `npm run sim:combat`. Performance is measured separately with `npm run perf`. The full list of commands, acceptance criteria and data limits is in [docs/SIMULATION_GUIDE.md](docs/SIMULATION_GUIDE.md).
 
-## Структура проекта
+## Layout
 
-- `src/data/`: весь баланс и контент (оружие, пассивки, комбо, враги, боссы, таймлайн этапа).
-- `src/core/`: симуляция без Phaser, запускается в Node для тестов.
-- `src/behaviors/`: поведения оружия и врагов, регистрируются по имени.
-- `src/render/`, `src/scenes/`, `src/ui/`: слой Phaser.
-- `src/services/`: таблица рекордов и сетевой кооп (Firestore, WebRTC).
-- `assets/sprites/manifest.js`: все спрайты по ключам; `assets/raw/`: оригиналы от модели.
-- `tools/`: скрипты для ассетов (генерация через OpenRouter, нарезка, анимация PixelLab, звуки).
+```
+src/data/            all balance and content (weapons, passives, combos, enemies, bosses, stage timeline)
+src/core/            simulation without Phaser, runs in Node for tests
+src/behaviors/       weapon and enemy behaviours, registered by name
+src/render/, src/scenes/, src/ui/    the Phaser layer
+src/services/        leaderboard and online co-op (Firestore, WebRTC)
+assets/sprites/manifest.js    every sprite by key; assets/raw/ holds the model's originals
+tools/               asset scripts (generation through OpenRouter, slicing, PixelLab animation, sounds)
+```
 
-Подробнее: [`CLAUDE.md`](CLAUDE.md) (карта и правила), [`docs/CONTENT.md`](docs/CONTENT.md), [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/ASSETS.md`](docs/ASSETS.md), [`docs/LEADERBOARD.md`](docs/LEADERBOARD.md).
+More in [CLAUDE.md](CLAUDE.md) (map and rules), [docs/CONTENT.md](docs/CONTENT.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/ASSETS.md](docs/ASSETS.md) and [docs/LEADERBOARD.md](docs/LEADERBOARD.md).
 
-## Авторы и лицензии
+## License and credits
 
-- **Движок:** [Phaser](https://phaser.io) 3.90.0, лицензия MIT.
-- **Шрифт:** Jersey 15, Copyright 2023 The Soft Type Project Authors ([источник](https://github.com/scfried/soft-type-jersey)), SIL Open Font License 1.1; текст лицензии в `assets/fonts/OFL.txt`.
-- **Звуковые эффекты:** сгенерированы `tools/make-sfx.mjs` (собственный синтезатор в стиле sfxr, без чужих сэмплов).
-- **Графика:** сгенерирована моделью `openai/gpt-image-2.5-flare` через OpenRouter (листы, иконки, окружение) и анимирована в [PixelLab](https://pixellab.ai); чистка и нарезка скриптами из `tools/`.
-- Механики вдохновлены Vampire Survivors и HoloCure; ассеты и названия из них не используются.
+The repository has no license file yet.
+
+* [Phaser](https://phaser.io) 3.90.0: MIT License
+* Jersey 15 font by The Soft Type Project Authors (<https://github.com/scfried/soft-type-jersey>): SIL Open Font License 1.1, text in `assets/fonts/OFL.txt`
+* Sound effects generated by `tools/make-sfx.mjs`, an in-house sfxr-style synthesizer with no third-party samples
+* Art generated by `openai/gpt-image-2.5-flare` through OpenRouter and animated in [PixelLab](https://pixellab.ai), then cleaned and sliced by the scripts in `tools/`
+* Mechanics inspired by Vampire Survivors and HoloCure. No assets or names from either game are used.
