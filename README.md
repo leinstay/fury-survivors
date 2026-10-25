@@ -61,7 +61,7 @@ More in [CLAUDE.md](CLAUDE.md) (map and rules), [docs/CONTENT.md](docs/CONTENT.m
 
 ## License and credits
 
-The repository has no license file yet.
+MIT License, see [LICENSE](LICENSE).
 
 * [Phaser](https://phaser.io) 3.90.0: MIT License
 * Jersey 15 font by The Soft Type Project Authors (<https://github.com/scfried/soft-type-jersey>): SIL Open Font License 1.1, text in `assets/fonts/OFL.txt`
