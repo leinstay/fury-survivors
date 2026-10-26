@@ -9,7 +9,8 @@ const DOC = 'docs/ASSETS.md';
 // Спрайты не из листов: процедурные и собранные из готовой анимации.
 const TOOLS = { grass: 'tools/make-grass.mjs', proj_blade_arc: 'tools/make-slash.mjs', proj_crescent: 'tools/make-slash.mjs', menu_bg: '`assets/raw/menu_bg.png` (tools/snap-image.mjs)',
   heroine_menu: 'tools/crop-raw.mjs', heroine_portrait: 'заглушка (tools/placeholders.mjs)',
-  mage: '`assets/raw/mage_walk_pixellab/` (PixelLab по `assets/raw/mage.png`, tools/hd-frames.mjs ×0.4282)',
+  heroine: '`assets/raw/heroine_walk256_pixellab/` (стойка PixelLab Edit Pro + ходьба Animate V3, 256×256, tools/hd-frames.mjs ×0.5)',
+  mage: '`assets/raw/mage_walk256_pixellab/` (стойка PixelLab Edit Pro + ходьба Animate V3, 256×256, tools/hd-frames.mjs ×0.5)',
   mage_portrait: 'заглушка (tools/placeholders.mjs)',
   mage_menu: '`assets/raw/roster/mage.png`: вырезка из `assets/raw/mage.png` (tools/crop-raw.mjs), уменьшена ×261/637 по копии героини на том же листе' };
 

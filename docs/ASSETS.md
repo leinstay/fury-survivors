@@ -131,9 +131,9 @@ node tools/slice-sheet.mjs <sheet> [--report]
 
 | Ключ | Кадр | Кадров | density | Источник |
 |---|---|---|---|---|
-| `heroine` | 110×110 | 9 | 2 | `assets/raw/heroine_walk_pixellab/` (PixelLab, tools/hd-frames.mjs) |
+| `heroine` | 128×128 | 9 | 2 | `assets/raw/heroine_walk256_pixellab/` (стойка PixelLab Edit Pro + ходьба Animate V3, 256×256, tools/hd-frames.mjs ×0.5) |
 | `heroine_portrait` | 48×48 | 1 | 1 | заглушка (tools/placeholders.mjs) |
-| `mage` | 110×110 | 9 | 2 | `assets/raw/mage_walk_pixellab/` (PixelLab по `assets/raw/mage.png`, tools/hd-frames.mjs ×0.4282) |
+| `mage` | 128×128 | 9 | 2 | `assets/raw/mage_walk256_pixellab/` (стойка PixelLab Edit Pro + ходьба Animate V3, 256×256, tools/hd-frames.mjs ×0.5) |
 | `mage_menu` | 205×279 | 1 | 2 | `assets/raw/roster/mage.png`: вырезка из `assets/raw/mage.png` (tools/crop-raw.mjs), уменьшена ×261/637 по копии героини на том же листе |
 | `mage_portrait` | 48×48 | 1 | 1 | заглушка (tools/placeholders.mjs) |
 | `heroine_menu` | 139×261 | 1 | 2 | tools/crop-raw.mjs |

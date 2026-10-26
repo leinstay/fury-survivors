@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { SPRITES, CHAR } from '../../assets/sprites/manifest.js';
+import { SPRITES, CHAR, CHAR_OLD } from '../../assets/sprites/manifest.js';
 import { HEROES } from '../../src/data/heroes.js';
 import { ENEMIES } from '../../src/data/enemies.js';
 import { pngSize, frameCount } from '../../tools/sprite-frames.mjs';
@@ -19,12 +19,15 @@ test('sprites: strip width is a whole number of frames, height is one frame', ()
   }
 });
 
-test('sprites: heroes and regular enemies use the CHAR×CHAR frame, count from strip width', () => {
+// Герои уже на CHAR, враги до новых анимаций на CHAR_OLD.
+test('sprites: heroes use CHAR×CHAR, regular enemies CHAR or CHAR_OLD, count from strip width', () => {
+  const heroes = new Set(Object.values(HEROES).map((d) => d.sprite));
   const keys = new Set([...Object.values(HEROES), ...Object.values(ENEMIES)].map((d) => d.sprite));
   for (const key of keys) {
     const s = SPRITES[key];
-    assert.equal(s.frameWidth, CHAR, `${key}: frameWidth`);
-    assert.equal(s.frameHeight, CHAR, `${key}: frameHeight`);
+    assert.equal(s.frameWidth, s.frameHeight, `${key}: square frame`);
+    if (heroes.has(key)) assert.equal(s.frameWidth, CHAR, `${key}: hero frame`);
+    else assert.ok([CHAR, CHAR_OLD].includes(s.frameWidth), `${key}: enemy frame ${s.frameWidth}`);
     assert.equal(s.frames, undefined, `${key}: frames comes from the strip, not manifest`);
     assert.ok(frameCount(s, root) >= 2, `${key}: walk strip`);
   }

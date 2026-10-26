@@ -25,7 +25,9 @@ const HD = 2;
 
 // Кадр всех персонажей, кроме боссов и жницы: CHAR×CHAR, ноги на нижней строке по центру.
 // Лента — сколько угодно квадратов вправо: кадр 0 стойка, остальные цикл ходьбы. Число кадров берётся из ширины PNG.
-export const CHAR = 110;
+// Исходник 256×256 (запас над головой), в игру ровно ×0.5. Враги пока на прежнем кадре CHAR_OLD, до новых анимаций.
+export const CHAR = 128;
+export const CHAR_OLD = 110;
 // Тень персонажа по ширине прежнего кадра 77 px (77 × 0.5 мира × widthK 0.5), а не по запасу кадра 110.
 const CHAR_SHADOW = { dx: 0, width: 19 };
 
@@ -56,18 +58,17 @@ const FEET = [0.5, 1];
 
 // Персонаж (не босс): кадр CHAR×CHAR, число кадров по ширине ленты. Анимации PixelLab: стойка вставлена
 // переходом на стыке последний -> 1 (seam), иначе цикл дёргается.
-function chara(key, color, shape = 'humanoid') {
-  return art(key, CHAR, CHAR, { frames: null, seam: true, density: HD, origin: FEET, color, shape, shadow: CHAR_SHADOW });
+function chara(key, color, shape = 'humanoid', frame = CHAR_OLD) {
+  return art(key, frame, frame, { frames: null, seam: true, density: HD, origin: FEET, color, shape, shadow: CHAR_SHADOW });
 }
 
 export const SPRITES = Object.fromEntries([
   // Герои и портрет
-  // Героиня: кадры PixelLab в исходной детализации, плавно уменьшены в 0.4 (tools/hd-frames.mjs --canvas 110x110),
-  // показ 1:1 на холсте.
-  chara('heroine', '#e0603a'),
+  // Героиня и магесса: стойка Edit Pro + ходьба Animate V3 в холсте 256×256 (assets/raw/<key>_walk256_pixellab),
+  // лента tools/hd-frames.mjs 0.5 → кадр 128, показ 1:1 на холсте.
+  chara('heroine', '#e0603a', 'humanoid', CHAR),
   item('heroine_portrait', 48, 48, '#e0603a', 'rect'),
-  // магесса: PixelLab по assets/raw/mage.png (холст 256×256, лента ×0.4282 — тот же размер пикселя, что у героини)
-  chara('mage', '#6a5cff'),
+  chara('mage', '#6a5cff', 'humanoid', CHAR),
   art('mage_menu', 205, 279, { density: HD, origin: FEET }),
   item('mage_portrait', 48, 48, '#6a5cff', 'rect'),
   // Героиня в меню: вырезана из сырого листа в исходном разрешении модели (tools/crop-raw.mjs), пиксель картинки = пиксель холста.
