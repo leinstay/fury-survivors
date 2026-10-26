@@ -186,7 +186,10 @@ export class World {
     this.shadowN++;
     const def = SPRITES[sprite.spriteKey];
     const o = def && def.shadow; // своя тень: смещение по X (зеркалится с спрайтом) и ширина, px мира
-    const w = o ? o.width : Math.max(8, sprite.width * Math.abs(sprite.baseScale || 1) * c.widthK);
+    const scale = Math.abs(sprite.baseScale || 1);
+    // своя ширина задана для обычного размера: элита крупнее (sizeMul), тень растёт вместе с ней
+    const w = o ? o.width * scale * ((def && def.density) || 1) :
+        Math.max(8, sprite.width * scale * c.widthK);
     const sx = o ? x + o.dx * (sprite.flipX ? -1 : 1) : x;
     s.setVisible(true).setPosition(snap(sx), snap(y + c.yOffset))
         .setScale(w / 32, w * c.height / 16);

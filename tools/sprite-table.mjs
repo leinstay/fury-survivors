@@ -3,6 +3,7 @@
 // node tools/sprite-table.mjs
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { SPRITES } from '../assets/sprites/manifest.js';
+import { frameCount } from './sprite-frames.mjs';
 
 const DOC = 'docs/ASSETS.md';
 // Спрайты не из листов: процедурные и собранные из готовой анимации.
@@ -31,7 +32,7 @@ function source(key) {
 
 const fmt = (d) => (d == null ? 1 : Number.isInteger(d) ? d : +d.toFixed(2));
 const rows = Object.entries(SPRITES).map(([key, s]) =>
-  `| \`${key}\` | ${s.frameWidth}×${s.frameHeight} | ${s.frames || 1} | ${fmt(s.density)}${s.smooth ? ', smooth' : ''} | ${source(key)} |`);
+  `| \`${key}\` | ${s.frameWidth}×${s.frameHeight} | ${frameCount(s)} | ${fmt(s.density)}${s.smooth ? ', smooth' : ''} | ${source(key)} |`);
 
 const head = `## Таблица спрайтов
 

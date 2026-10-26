@@ -6,6 +6,7 @@ import { deflateSync } from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { SPRITES } from '../assets/sprites/manifest.js';
+import { frameCount } from './sprite-frames.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -84,7 +85,8 @@ function inside(shape, x, y, cx, footY, w, h, frame) {
 }
 
 export function renderPlaceholder(s) {
-  const W = s.frameWidth * s.frames;
+  const frames = frameCount(s, root);
+  const W = s.frameWidth * frames;
   const H = s.frameHeight;
   const buf = Buffer.alloc(W * H * 4);
   const [r, g, b] = hex(s.color);
@@ -93,7 +95,7 @@ export function renderPlaceholder(s) {
   // Опора у ног (origin y ниже 0.75) или фигура по центру кадра.
   const footY = s.origin[1] >= 0.75 ?
       Math.round(s.frameHeight * s.origin[1]) : Math.round((s.frameHeight + sh) / 2);
-  for (let f = 0; f < s.frames; f++) {
+  for (let f = 0; f < frames; f++) {
     const shade = 1 - (f % 4) * 0.08;
     const mask = (x, y) => {
       if (x < 0 || y < 0 || x >= s.frameWidth || y >= H) return false;

@@ -5,6 +5,14 @@
 import { SPRITES } from '../../assets/sprites/manifest.js';
 import { FX } from '../data/constants.js';
 
+// i-й кадр цикла ходьбы: walk из manifest, иначе 1..frames-1, у seam после последнего кадра стойка 0.
+export function walkFrame(def, i) {
+  if (def.walk) return def.walk[i % def.walk.length];
+  const n = def.frames - 1 + (def.seam ? 1 : 0);
+  const k = i % n;
+  return k < def.frames - 1 ? k + 1 : 0;
+}
+
 // Применяет позу к спрайту и возвращает вертикальное смещение (целые px мира, вверх отрицательное).
 // e: сущность sim (moving, boss, pose), seed: стабильное число для фазы.
 export function animateCharacter(sprite, key, e, time, seed) {
@@ -18,7 +26,7 @@ export function animateCharacter(sprite, key, e, time, seed) {
   let lift = 0;
   if (frames >= 2 && moving) {
     const i = Math.floor(time * W.fps + seed);
-    sprite.setFrame(def.walk ? def.walk[i % def.walk.length] : 1 + (i % (frames - 1)));
+    sprite.setFrame(walkFrame(def, i));
   } else {
     sprite.setFrame(0);
     if (flyer) lift = Math.round(Math.sin(time * W.hoverSpeed + seed) * W.hover) - W.hoverHeight;

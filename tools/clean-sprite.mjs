@@ -20,6 +20,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { SPRITES } from '../assets/sprites/manifest.js';
+import { frameCount } from './sprite-frames.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const PALETTE = JSON.parse(readFileSync(join(root, 'tools', 'palette.json'), 'utf8'));
@@ -500,7 +501,7 @@ function feetCenter(img) {
 export async function cleanSprite(input, key, opts = {}) {
   const spec = SPRITES[key];
   if (!spec) throw new Error(`unknown sprite key "${key}" (see assets/sprites/manifest.js)`);
-  const frames = opts.frames || spec.frames;
+  const frames = opts.frames || frameCount(spec, root);
   const { data, info } = await sharp(join(root, input)).ensureAlpha().raw()
       .toBuffer({ resolveWithObject: true });
   const w = info.width;

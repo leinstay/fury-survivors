@@ -48,7 +48,7 @@ Behavior: `melee_arc`, `projectile`, `orbit`, `aura`, `boomerang`, `chain`, `are
 Герои перечислены только в `src/data/heroes.js`. Меню (картинки у кнопок), карточки выбора в соло и в лобби коопа, сим и тесты читают этот список сами, правок в сценах не нужно.
 
 1. `src/data/heroes.js`: запись `id: { sprite, portrait, menu?, startWeapon, stats }`. `stats` с полным набором `maxHp, atk, speed, crit, pickup, haste, luck, armor, regen`. `menu: { art, side }` необязательно: картинка у кнопок главного меню, `side: 'left'` рисуется отражённой, несколько на одной стороне встают дальше от кнопок по порядку. Порядок записей = порядок карточек выбора.
-2. Спрайты в `assets/sprites/manifest.js`: лента ходьбы (как `heroine`/`mage`: 9 кадров, `walk: WALK_LOOP`, `density: HD`, `origin: FEET`, кадр 0 стойка), портрет 48×48 и картинка меню. Как сделать ленту того же размера пикселя: `docs/ASSETS.md` (PixelLab, `hd-frames.mjs`, пример магессы).
+2. Спрайты в `assets/sprites/manifest.js`: лента ходьбы `chara('<id>', '#цвет')` (кадр 110×110, число кадров по ширине PNG, кадр 0 стойка, см. `docs/ASSETS.md`), портрет 48×48 и картинка меню. Как сделать ленту того же размера пикселя: `docs/ASSETS.md` (PixelLab, `hd-frames.mjs`, пример магессы).
 3. i18n: `hero.<id>.name`. Статы игроку числами не показываются: на карточке выбора черты относительно среднего героя `HERO_BASE` (`+ATK` зелёным, `-HP` красным, `core/heroes.js heroTraits`); подписи `trait.<stat>` уже есть.
 4. Тест `data: every hero is complete` проверяет спрайты, картинку меню, имя и набор статов; `data: hero start weapons exist` проверяет оружие.
 

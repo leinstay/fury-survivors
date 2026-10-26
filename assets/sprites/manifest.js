@@ -4,8 +4,10 @@
 // Поля:
 //   file         путь от index.html
 //   frameWidth, frameHeight
-//   frames       число кадров в strip-PNG (горизонтальная полоса)
+//   frames       число кадров в strip-PNG (горизонтальная полоса). Можно не указывать: src/scenes/Boot.js считает его
+//                по ширине загруженной картинки (ширина / frameWidth), tests/unit/sprites.test.js проверяет, что делится.
 //   walk         порядок кадров цикла ходьбы (по умолчанию 1..frames-1), см. src/render/anim.js
+//   seam         true: цикл 1..frames-1, затем стойка 0 переходом на стыке (вместо walk, от числа кадров не зависит)
 //   origin       [x, y] точка опоры в долях кадра; у персонажей это ноги
 //   size         видимый размер фигуры в px [w, h] (для заглушек и проверки чистки)
 //   color        цвет заглушки (только tools/placeholders.mjs)
@@ -21,16 +23,11 @@
 // Кадр в px текстуры = px холста; в мире он вдвое меньше.
 const HD = 2;
 
-// Персонаж листа roster: кадр 112×112 (56×56 мира), ноги на нижней строке. Один кадр стойки, ходьба процедурная (src/render/anim.js).
-// Все персонажи уменьшены одним множителем (sheets.json roster.hd), пропорции между ними как на листе.
-function girl(key, color, shape = 'humanoid', frame = 112) {
-  return [key, { file: `assets/sprites/${key}.png`, frameWidth: frame, frameHeight: frame, frames: 1, origin: [0.5, 1], size: [frame, frame], color, shape, density: HD }];
-}
-
-// Босс: кадр 288×288 (144×144 мира), множитель уменьшения в 1.5 раза больше, чем у обычных.
-function boss(key, color, shape = 'humanoid') {
-  return girl(key, color, shape, 288);
-}
+// Кадр всех персонажей, кроме боссов и жницы: CHAR×CHAR, ноги на нижней строке по центру.
+// Лента — сколько угодно квадратов вправо: кадр 0 стойка, остальные цикл ходьбы. Число кадров берётся из ширины PNG.
+export const CHAR = 110;
+// Тень персонажа по ширине прежнего кадра 77 px (77 × 0.5 мира × widthK 0.5), а не по запасу кадра 110.
+const CHAR_SHADOW = { dx: 0, width: 19 };
 
 function item(key, w, h, color, shape = 'round', frames = 1, origin = [0.5, 0.5]) {
   return [key, { file: `assets/sprites/${key}.png`, frameWidth: w, frameHeight: h, frames, origin, size: [w - 4, h - 4], color, shape }];
@@ -43,55 +40,64 @@ function icon(key, color) {
 }
 
 // Объект из листа (tools/slice-sheet.mjs): кадр w×h, рисунок вписывается в size (по умолчанию весь кадр).
-function art(key, w, h, { frames = 1, origin = [0.5, 0.5], size = [w, h], density, layer, walk, smooth, color = '#888888', shape = 'rect', shadow } = {}) {
-  const spec = { file: `assets/sprites/${key}.png`, frameWidth: w, frameHeight: h, frames, origin, size, color, shape };
+// frames: null — число кадров по ширине PNG (src/scenes/Boot.js).
+function art(key, w, h, { frames = 1, origin = [0.5, 0.5], size = [w, h], density, layer, walk, seam, smooth, color = '#888888', shape = 'rect', shadow } = {}) {
+  const spec = { file: `assets/sprites/${key}.png`, frameWidth: w, frameHeight: h, origin, size, color, shape };
+  if (frames) spec.frames = frames;
   if (density) spec.density = density;
   if (layer) spec.layer = layer;
   if (walk) spec.walk = walk;
+  if (seam) spec.seam = true;
   if (smooth) spec.smooth = true;
   if (shadow) spec.shadow = shadow; // { dx, width } px мира: тень не под центром кадра (коса жницы уводит центр)
   return [key, spec];
 }
 const FEET = [0.5, 1];
-// Анимации PixelLab: кадр 0 стойка, 1..8 цикл. Стойка вставлена переходом на стыке 8 -> 1, иначе цикл дёргается.
-const WALK_LOOP = [1, 2, 3, 4, 5, 6, 7, 8, 0];
+
+// Персонаж (не босс): кадр CHAR×CHAR, число кадров по ширине ленты. Анимации PixelLab: стойка вставлена
+// переходом на стыке последний -> 1 (seam), иначе цикл дёргается.
+function chara(key, color, shape = 'humanoid') {
+  return art(key, CHAR, CHAR, { frames: null, seam: true, density: HD, origin: FEET, color, shape, shadow: CHAR_SHADOW });
+}
 
 export const SPRITES = Object.fromEntries([
   // Герои и портрет
-  // Героиня: кадры PixelLab в исходной детализации, плавно уменьшены в 0.4 (tools/hd-frames.mjs), показ 1:1 на холсте.
-  art('heroine', 77, 102, { frames: 9, walk: WALK_LOOP, density: HD, origin: FEET, color: '#e0603a', shape: 'humanoid' }),
+  // Героиня: кадры PixelLab в исходной детализации, плавно уменьшены в 0.4 (tools/hd-frames.mjs --canvas 110x110),
+  // показ 1:1 на холсте.
+  chara('heroine', '#e0603a'),
   item('heroine_portrait', 48, 48, '#e0603a', 'rect'),
-  // магесса: PixelLab по assets/raw/mage.png (холст 256×256, лента ×0.4282 — тот же размер пикселя, что у героини);
-  // кадр шире из-за посоха, тень по ширине героини под ногами
-  art('mage', 110, 110, { frames: 9, walk: WALK_LOOP, density: HD, origin: FEET, color: '#6a5cff', shape: 'humanoid', shadow: { dx: 0, width: 19 } }),
+  // магесса: PixelLab по assets/raw/mage.png (холст 256×256, лента ×0.4282 — тот же размер пикселя, что у героини)
+  chara('mage', '#6a5cff'),
   art('mage_menu', 205, 279, { density: HD, origin: FEET }),
   item('mage_portrait', 48, 48, '#6a5cff', 'rect'),
   // Героиня в меню: вырезана из сырого листа в исходном разрешении модели (tools/crop-raw.mjs), пиксель картинки = пиксель холста.
   art('heroine_menu', 139, 261, { density: HD, origin: FEET }),
 
   // Враги
-  // Ходьба/парение PixelLab (assets/raw/<key>_anim_pixellab, у кошки catgirl_walk_pixellab): 9 кадров, лента через tools/hd-frames.mjs.
-  art('catgirl', 77, 102, { frames: 9, walk: WALK_LOOP, density: HD, origin: FEET, color: '#d9a441', shape: 'humanoid' }),
-  art('foxgirl', 77, 102, { frames: 9, walk: WALK_LOOP, density: HD, origin: FEET, color: '#e3803a', shape: 'humanoid' }),
-  art('succubus', 77, 102, { frames: 9, walk: WALK_LOOP, density: HD, origin: FEET, color: '#b33a6b', shape: 'humanoid' }),
-  art('slime', 77, 102, { frames: 9, walk: WALK_LOOP, density: HD, origin: FEET, color: '#5ac46a', shape: 'blob' }),
-  art('ghost', 77, 102, { frames: 9, walk: WALK_LOOP, density: HD, origin: FEET, color: '#cfd8ff', shape: 'flyer' }),
-  art('bunnygirl', 77, 102, { frames: 9, walk: WALK_LOOP, density: HD, origin: FEET, color: '#f0f0f0', shape: 'humanoid' }),
-  art('harpy', 77, 102, { frames: 9, walk: WALK_LOOP, density: HD, origin: FEET, color: '#a07850', shape: 'flyer' }),
-  art('lamia', 77, 102, { frames: 9, walk: WALK_LOOP, density: HD, origin: FEET, color: '#2f7a4a', shape: 'blob' }),
+  // Ходьба/парение PixelLab (assets/raw/<key>_anim_pixellab, у кошки catgirl_walk_pixellab), лента через
+  // tools/hd-frames.mjs 0.4 --canvas 110x110.
+  chara('catgirl', '#d9a441'),
+  chara('foxgirl', '#e3803a'),
+  chara('succubus', '#b33a6b'),
+  chara('slime', '#5ac46a', 'blob'),
+  chara('ghost', '#cfd8ff', 'flyer'),
+  chara('bunnygirl', '#f0f0f0'),
+  chara('harpy', '#a07850', 'flyer'),
+  chara('lamia', '#2f7a4a', 'blob'),
 
 
-  // Боссы: анимация PixelLab в масштабе 1 (обычные враги 0.4), примерно втрое выше героини.
-  art('kitsune_empress', 192, 256, { frames: 9, walk: WALK_LOOP, density: HD, origin: FEET, color: '#f08a3a', shape: 'humanoid' }),
-  art('harpy_queen', 192, 256, { frames: 9, walk: WALK_LOOP, density: HD, origin: FEET, color: '#8a6040', shape: 'flyer' }),
+  // Боссы: анимация PixelLab в масштабе 1 (обычные враги 0.4), примерно втрое выше героини. Свой кадр,
+  // число кадров тоже по ширине ленты.
+  art('kitsune_empress', 192, 256, { frames: null, seam: true, density: HD, origin: FEET, color: '#f08a3a', shape: 'humanoid' }),
+  art('harpy_queen', 192, 256, { frames: null, seam: true, density: HD, origin: FEET, color: '#8a6040', shape: 'flyer' }),
   // Банши-жница овертайма: парение PixelLab (assets/raw/reaper_anim_pixellab, холст 192×256, максимум API),
   // лента увеличена в 1.5 (tools/hd-frames.mjs 1.5): рост в полтора босса. Тело левее центра кадра из-за косы,
   // тень сдвинута (shadow.dx, зеркалится вместе со спрайтом).
   art('reaper', 288, 384, {
-    frames: 9, walk: WALK_LOOP, density: HD, origin: FEET, color: '#9fd8ff', shape: 'flyer',
+    frames: null, seam: true, density: HD, origin: FEET, color: '#9fd8ff', shape: 'flyer',
     shadow: { dx: -17, width: 50 },
   }),
-  art('dryad_queen', 192, 256, { frames: 9, walk: WALK_LOOP, density: HD, origin: FEET, color: '#3f8a4a', shape: 'humanoid' }),
+  art('dryad_queen', 192, 256, { frames: null, seam: true, density: HD, origin: FEET, color: '#3f8a4a', shape: 'humanoid' }),
 
   // Предметы
   art('xp_small', 20, 24, { density: HD }),

@@ -6,6 +6,7 @@ import { mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { SPRITES } from '../assets/sprites/manifest.js';
+import { frameCount } from './sprite-frames.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -31,10 +32,11 @@ async function main() {
   for (const key of a.keys) {
     const s = SPRITES[key];
     if (!s) throw new Error(`unknown key ${key}`);
-    const w = s.frameWidth * s.frames * a.scale;
+    const n = frameCount(s, root);
+    const w = s.frameWidth * n * a.scale;
     const h = s.frameHeight * a.scale;
     const img = await sharp(join(root, s.file)).resize(w, h, { kernel: 'nearest' }).png().toBuffer();
-    rows.push({ key, s, img, w, h });
+    rows.push({ key, s, n, img, w, h });
   }
   const W = Math.max(...rows.map((r) => r.w)) + GAP * 2;
   const H = rows.reduce((sum, r) => sum + r.h + LABEL + GAP, GAP);
@@ -52,13 +54,13 @@ async function main() {
   let y = GAP;
   let overlay = '';
   for (const r of rows) {
-    overlay += `<text x="${GAP}" y="${y + 13}" font-family="monospace" font-size="13" fill="#111">${esc(r.key)}  ${r.s.frameWidth}x${r.s.frameHeight} x${r.s.frames}</text>`;
+    overlay += `<text x="${GAP}" y="${y + 13}" font-family="monospace" font-size="13" fill="#111">${esc(r.key)}  ${r.s.frameWidth}x${r.s.frameHeight} x${r.n}</text>`;
     y += LABEL;
     layers.push({ input: r.img, left: GAP, top: y });
     // Опора: красная линия по ногам, синие метки центра каждого кадра.
     const oy = y + Math.round(r.s.frameHeight * r.s.origin[1]) * a.scale;
     overlay += `<line x1="${GAP}" x2="${GAP + r.w}" y1="${oy}" y2="${oy}" stroke="#e02020" stroke-width="1" opacity="0.6"/>`;
-    for (let f = 0; f < r.s.frames; f++) {
+    for (let f = 0; f < r.n; f++) {
       const ox = GAP + (f * r.s.frameWidth + r.s.frameWidth * r.s.origin[0]) * a.scale;
       overlay += `<line x1="${ox}" x2="${ox}" y1="${oy - 6}" y2="${oy + 6}" stroke="#2050e0" stroke-width="1"/>`;
       overlay += `<rect x="${GAP + f * r.s.frameWidth * a.scale}" y="${y}" width="${r.s.frameWidth * a.scale}" height="${r.h}" fill="none" stroke="#888" stroke-width="1" opacity="0.5"/>`;

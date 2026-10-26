@@ -32,9 +32,14 @@ export class BootScene extends Phaser.Scene {
   }
 
   create() {
-    // smooth: спрайт, который оружие сильно масштабирует (взмах), хранится крупнее показа и уменьшается линейно.
     for (const [key, s] of Object.entries(SPRITES)) {
-      if (s.smooth) this.textures.get(key).setFilter(Phaser.Textures.FilterMode.LINEAR);
+      const tex = this.textures.get(key);
+      // Число кадров по ширине ленты: художник доклеивает квадраты вправо, manifest не трогает.
+      const w = tex.source[0].width;
+      if (w % s.frameWidth) console.error(`sprite ${key}: width ${w} is not a multiple of frame ${s.frameWidth}`);
+      s.frames = Math.max(1, Math.floor(w / s.frameWidth));
+      // smooth: спрайт, который оружие сильно масштабирует (взмах), хранится крупнее показа и уменьшается линейно.
+      if (s.smooth) tex.setFilter(Phaser.Textures.FilterMode.LINEAR);
     }
     this.fontReady.then(() => this.scene.start('Menu'));
   }

@@ -136,7 +136,7 @@ async function writeHd(sheet, data, w, boxes, masks) {
   for (const [key, { spec, frames }] of strips) {
     const fw = spec.frameWidth;
     const fh = spec.frameHeight;
-    const n = spec.frames;
+    const n = spec.frames || frames.length; // без frames в manifest: сколько кадров нарезано с листа
     const layers = [];
     for (let f = 0; f < n; f++) {
       const im = frames[f] || frames[0];
@@ -334,7 +334,7 @@ async function main() {
   for (const [key, { spec, frames }] of strips) {
     const fw = spec.frameWidth;
     const fh = spec.frameHeight;
-    const n = spec.frames;
+    const n = spec.frames || frames.length; // без frames в manifest: сколько кадров нарезано с листа
     const buf = Buffer.alloc(fw * n * fh * 4);
     const place = (im) => [
       Math.round(fw * spec.origin[0] - im.w / 2),

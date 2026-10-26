@@ -11,6 +11,7 @@ import { COMBOS } from '../../src/data/combos.js';
 import { ENEMIES } from '../../src/data/enemies.js';
 import { BOSSES } from '../../src/data/bosses.js';
 import { PICKUPS } from '../../src/data/pickups.js';
+import { frameCount } from '../../tools/sprite-frames.mjs';
 import { forest } from '../../src/data/stages/forest.js';
 import { en } from '../../src/i18n/en.js';
 
@@ -19,7 +20,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 test('manifest: every sprite has a file and sane frame', () => {
   for (const [key, s] of Object.entries(SPRITES)) {
     assert.ok(existsSync(join(root, s.file)), `${key}: missing ${s.file}`);
-    assert.ok(s.frameWidth > 0 && s.frameHeight > 0 && s.frames >= 1, `${key}: bad frame`);
+    assert.ok(s.frameWidth > 0 && s.frameHeight > 0 && frameCount(s, root) >= 1, `${key}: bad frame`);
     assert.ok(s.origin[0] >= 0 && s.origin[0] <= 1 && s.origin[1] >= 0 && s.origin[1] <= 1, `${key}: bad origin`);
   }
 });
@@ -52,7 +53,7 @@ test('data: every hero is complete (sprites, menu art, name, full stats), defaul
   assert.ok(HEROES[DEFAULT_HERO], 'DEFAULT_HERO');
   const stats = Object.keys(HEROES[DEFAULT_HERO].stats).sort();
   for (const [id, h] of Object.entries(HEROES)) {
-    assert.ok(SPRITES[h.sprite] && SPRITES[h.sprite].frames > 1, `${id}: walk strip`);
+    assert.ok(SPRITES[h.sprite] && frameCount(SPRITES[h.sprite], root) > 1, `${id}: walk strip`);
     assert.ok(SPRITES[h.portrait], `${id}: portrait`);
     if (h.menu) {
       assert.ok(SPRITES[h.menu.art], `${id}: menu art`);

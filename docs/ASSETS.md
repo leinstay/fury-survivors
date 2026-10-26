@@ -36,9 +36,11 @@ node tools/gen-sprite.mjs <name> [--ref path]... [--aspect 3:2] [--quality mediu
   Множители: персонажи 0.392 (как героиня), боссы 0.588, окружение 0.28, предметы и снаряды 0.152, взмах 0.62 (кадр 256, density 4, smooth), святой круг 0.28, иконки 0.31.
   Кадр в manifest в px холста (вдвое больше мира). Элемент `{ "key", "hd": false }` только даёт исходник (`--raw`): так у героини и кошки, у них свои ленты ходьбы.
 - Иконки лежат в кадре 96×96, `src/ui/icons.js` один раз уменьшает их под каждый размер показа и рисует 1:1.
-- Анимация персонажа: PixelLab `animate-with-text-v3` (первый кадр до 256×256, исходник из `assets/raw/roster/`), кадры в `assets/raw/<анимация>/`, лента через `node tools/hd-frames.mjs <out.png> <scale> <кадры...>` и `density: 2` в manifest. По сетке такие кадры не резать: детализация в 1 px.
+- Анимация персонажа: PixelLab `animate-with-text-v3` (первый кадр до 256×256, исходник из `assets/raw/roster/`), кадры в `assets/raw/<анимация>/`, лента через `node tools/hd-frames.mjs <out.png> <scale> --canvas 110x110 <кадры...>` и `chara(...)` в manifest. По сетке такие кадры не резать: детализация в 1 px.
+  Единый кадр персонажа (все, кроме боссов и жницы): 110×110 (`CHAR` в manifest), ноги на нижней строке по центру, рисунок без масштабирования, запас вокруг под волосы и оружие. Кадр 0 стойка, дальше цикл ходьбы. Число кадров берётся из ширины PNG (`src/scenes/Boot.js`): 4, 9 или 24 кадра — доклеить квадраты 110×110 вправо, код и manifest не трогать. `tests/unit/sprites.test.js` проверяет, что ширина делится на кадр. Боссы и жница на своём кадре, число кадров у них тоже по ширине.
+  Запас кадра не возвращает то, что срезано в самом исходнике PixelLab: у героини, магессы и боссов фигура касается верхнего края холста 192×256 (256×256), волосы обрезаны уже там. Это лечится только новым первым кадром с запасом сверху и перегенерацией.
   Первый кадр: исходник из `assets/raw/roster/<ключ>.png`, уменьшенный в 256/261 (как героиня), низом в холст 192×256; запуск `tools/pixellab-anim.mjs`.
-  Шов цикла: если стойка (кадр 0) по силуэту ближе к кадрам 8 и 1, чем они друг к другу, её ставят переходом (`walk: [1..8, 0]`, так у героини).
+  Шов цикла: если стойка (кадр 0) по силуэту ближе к кадрам 8 и 1, чем они друг к другу, её ставят переходом (`seam: true`: цикл 1..N-1, затем 0; так у всех анимаций PixelLab). Свой порядок кадров при желании: `walk: [...]`.
 
 ### План анимаций PixelLab по персонажам
 
@@ -129,20 +131,20 @@ node tools/slice-sheet.mjs <sheet> [--report]
 
 | Ключ | Кадр | Кадров | density | Источник |
 |---|---|---|---|---|
-| `heroine` | 77×102 | 9 | 2 | `assets/raw/heroine_walk_pixellab/` (PixelLab, tools/hd-frames.mjs) |
+| `heroine` | 110×110 | 9 | 2 | `assets/raw/heroine_walk_pixellab/` (PixelLab, tools/hd-frames.mjs) |
 | `heroine_portrait` | 48×48 | 1 | 1 | заглушка (tools/placeholders.mjs) |
 | `mage` | 110×110 | 9 | 2 | `assets/raw/mage_walk_pixellab/` (PixelLab по `assets/raw/mage.png`, tools/hd-frames.mjs ×0.4282) |
 | `mage_menu` | 205×279 | 1 | 2 | `assets/raw/roster/mage.png`: вырезка из `assets/raw/mage.png` (tools/crop-raw.mjs), уменьшена ×261/637 по копии героини на том же листе |
 | `mage_portrait` | 48×48 | 1 | 1 | заглушка (tools/placeholders.mjs) |
 | `heroine_menu` | 139×261 | 1 | 2 | tools/crop-raw.mjs |
-| `catgirl` | 77×102 | 9 | 2 | `assets/raw/catgirl_walk_pixellab/` (PixelLab, tools/hd-frames.mjs) |
-| `foxgirl` | 77×102 | 9 | 2 | `assets/raw/foxgirl_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
-| `succubus` | 77×102 | 9 | 2 | `assets/raw/succubus_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
-| `slime` | 77×102 | 9 | 2 | `assets/raw/slime_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
-| `ghost` | 77×102 | 9 | 2 | `assets/raw/ghost_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
-| `bunnygirl` | 77×102 | 9 | 2 | `assets/raw/bunnygirl_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
-| `harpy` | 77×102 | 9 | 2 | `assets/raw/harpy_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
-| `lamia` | 77×102 | 9 | 2 | `assets/raw/lamia_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
+| `catgirl` | 110×110 | 9 | 2 | `assets/raw/catgirl_walk_pixellab/` (PixelLab, tools/hd-frames.mjs) |
+| `foxgirl` | 110×110 | 9 | 2 | `assets/raw/foxgirl_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
+| `succubus` | 110×110 | 9 | 2 | `assets/raw/succubus_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
+| `slime` | 110×110 | 9 | 2 | `assets/raw/slime_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
+| `ghost` | 110×110 | 9 | 2 | `assets/raw/ghost_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
+| `bunnygirl` | 110×110 | 9 | 2 | `assets/raw/bunnygirl_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
+| `harpy` | 110×110 | 9 | 2 | `assets/raw/harpy_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
+| `lamia` | 110×110 | 9 | 2 | `assets/raw/lamia_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
 | `kitsune_empress` | 192×256 | 9 | 2 | `assets/raw/kitsune_empress_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
 | `harpy_queen` | 192×256 | 9 | 2 | `assets/raw/harpy_queen_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
 | `reaper` | 288×384 | 9 | 2 | `assets/raw/reaper_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
