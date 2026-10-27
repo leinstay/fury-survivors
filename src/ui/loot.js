@@ -27,6 +27,9 @@ const CARD = { w: 196, h: 226, y: 64, gap: 8 };
 // (до 290) и ряд кнопок.
 const SUB_Y = 45;
 const HEARTS_Y = 55;
+// Сетка карточки лута (px от верха карточки): зона картинки iconTop…iconTop+iconH под самый высокий предмет
+// (3 клетки по cell), название, мета, первая строка статов и шаг строк.
+const CARD_GRID = { cell: 12, iconTop: 8, iconH: 36, titleY: 48, metaY: 63, statsY: 77, line: 11 };
 const ROW_W = 150; // кнопки нижнего ряда: Take all, Disassemble all, Continue (и End run у 3-го и 4-го сундука)
 const ROW_W4 = 140;
 
@@ -237,17 +240,19 @@ export function buildLoot(scene, sim, onDone) {
       return;
     }
     const it = e.item;
-    const C = 12;
     const [w, h] = it.shape;
-    drawItemBox(scene, mid - (w * C) / 2, CARD.y + 8, w * C, h * C, it);
-    let y = CARD.y + 12 + h * C;
-    const title = scene.add.text(mid, y, itemTitle(it), textStyle(11, RARITY_CSS[it.rarity],
-        { wordWrap: { width: CARD.w - 12 }, align: 'center' })).setOrigin(0.5, 0);
-    y += title.height + 2;
+    // сетка как у карточек уровня: картинка по центру зоны постоянной высоты, название, строка меты и строки
+    // статов — каждая на своей линии, одинаковой у всех карточек (не зависят от формы предмета)
+    const G = CARD_GRID;
+    drawItemBox(scene, mid - (w * G.cell) / 2, CARD.y + G.iconTop + (G.iconH - h * G.cell) / 2,
+        w * G.cell, h * G.cell, it);
+    const title = scene.add.text(mid, CARD.y + G.titleY, itemTitle(it),
+        textStyle(11, RARITY_CSS[it.rarity])).setOrigin(0.5, 0);
+    if (title.width > CARD.w - 12) title.setScale((CARD.w - 12) / title.width, 1);
     const meta = [t(`item.rarity.${it.rarity}`), t('item.tier', { n: it.tier }),
       `${t(`item.kind.${it.type}`)} ${w}×${h}`];
-    scene.add.text(mid, y, meta.join(' · '), textStyle(8, COLORS.dim)).setOrigin(0.5, 0);
-    y += 12;
+    scene.add.text(mid, CARD.y + G.metaY, meta.join(' · '), textStyle(8, COLORS.dim)).setOrigin(0.5, 0);
+    let y = CARD.y + G.statsY;
     if (it.unique) {
       scene.add.text(L + 6, y, t(`unique.${it.unique}.desc`), textStyle(8, '#ffd8a0',
           { wordWrap: { width: CARD.w - 12 } })).setOrigin(0, 0);
@@ -255,7 +260,7 @@ export function buildLoot(scene, sim, onDone) {
       for (const l of affixLines(it)) {
         const a = affixText(l);
         scene.add.text(L + 6, y, a.text, textStyle(8, a.color)).setOrigin(0, 0);
-        y += 11;
+        y += G.line;
       }
     }
     const bw = CARD.w - 24;
