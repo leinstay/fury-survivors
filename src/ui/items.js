@@ -2,7 +2,7 @@
 // подсказка (имя, редкость, тир, заточка, аффиксы с разбросом, скилл уникалки), сетка сумки и панель статов.
 // Общие для инвентаря (src/scenes/Inventory.js), вкладки паузы и экрана лута после забега.
 import { t } from '../i18n/index.js';
-import { GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
+import { GAME_WIDTH, GAME_HEIGHT, COMBAT } from '../data/constants.js';
 import { BAG } from '../data/items.js';
 import { STATS } from '../data/stats.js';
 import { textStyle, COLORS } from './style.js';
@@ -231,7 +231,7 @@ export function statValue(k, v) {
   switch (k) {
     case 'maxHp': case 'speed': return String(Math.round(v));
     case 'crit': case 'dodge': case 'resistance': case 'thorns': return `${Math.round(v * 100)}%`;
-    case 'critDmg': return `+${Math.round(v * 100)}%`;
+    case 'critDmg': return `${Math.round((COMBAT.critMul + v) * 100)}%`; // итоговый урон крита, база ×critMul
     case 'regen': return `${(Math.round(v * 100) / 100).toFixed(2)}/s`;
     default: return `${Math.round(v * 100)}%`;
   }
