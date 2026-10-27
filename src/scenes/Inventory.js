@@ -314,15 +314,18 @@ export class InventoryScene extends Phaser.Scene {
   // стрелки влево / вправо (клавиатура, геймпад) — через onAdjust фокус-навигации.
   heroSwitch(x, y) {
     return this.textLink('hero', x, y, t(`hero.${this.viewHero}.name`), {
-      size: 10, color: '#ffffff', onSelect: () => this.cycleHero(1), onAdjust: (dir) => this.cycleHero(dir),
+      size: 10, color: '#ffffff', plain: true, onSelect: () => this.cycleHero(1),
+      onAdjust: (dir) => this.cycleHero(dir),
     });
   }
 
   // Текстовая кнопка без рамки: фокус — жёлтый текст, активная (текущая сортировка) — зелёный.
-  // Зона нажатия не ниже LINK.h (палец попадает). x, y — левый верх текста.
+  // Зона нажатия не ниже LINK.h (палец попадает). x, y — левый верх текста. plain — внутри панели: без обводки
+  // (как строки статов, левый край совпадает с ними).
   textLink(key, x, y, label, o) {
     const color = o.active ? LINK.active : (o.color || LINK.color);
-    const txt = this.add.text(x, y, label, bgTextStyle(o.size || LINK.size, color)).setOrigin(0, 0);
+    const style = (o.plain ? textStyle : bgTextStyle)(o.size || LINK.size, color);
+    const txt = this.add.text(x, y, label, style).setOrigin(0, 0);
     const w = Math.max(LINK.h, txt.width + 4);
     const h = Math.max(LINK.h, txt.height);
     const item = {
