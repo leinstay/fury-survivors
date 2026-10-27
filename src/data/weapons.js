@@ -444,9 +444,10 @@ export const WEAPONS = {
   },
   // guardian_shields + resistance
   aegis_bastion: {
+    // скорость 3.0: стрелки вокруг пробивают ~17% пуль (4.4 — сплошная стена, 100%), щиты L5 — ~29%
     icon: 'icon_aegis_bastion', sprite: 'proj_shield', behavior: 'orbit', dmgType: 'attack', targets: 'aoe', maxLevel: 1, evolved: true, tint: 0xa0c8ff,
     levels: [
-      { damage: 5, cooldown: 0, amount: 6, area: onRing(2, SHIELD_R * 1.4), speed: 4.4,
+      { damage: 5, cooldown: 0, amount: 6, area: onRing(2, SHIELD_R * 1.4), speed: 3.0,
         duration: 1e9, knockback: 0, size: 1.4, hitRadius: 54},
     ],
   },
