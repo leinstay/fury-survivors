@@ -8,7 +8,7 @@ import { WEAPON_BEHAVIOR } from '../../data/weapons.js';
 import { applyStatus } from '../status.js';
 
 const TAU = Math.PI * 2;
-const { hitRadius: SHIELD_RADIUS, rehit: REHIT } = WEAPON_BEHAVIOR.orbit;
+const { hitRadius: SHIELD_RADIUS, rehit: REHIT, blockR: BLOCK_R } = WEAPON_BEHAVIOR.orbit;
 const buf = new Int32Array(4096);
 
 // Холод на всех врагов, которых касается шар p (статус chill со slow и slowTime уровня).
@@ -40,6 +40,7 @@ function addShield(w, sim) {
   p.rehit = REHIT;
   p.rehitOwn = true; // каждый щит бьёт цель по своему таймеру, как книги в VS
   p.blocks = w.params.blocks !== false; // ловит вражеские снаряды (sim._updateProjectiles)
+  p.blockR = BLOCK_R * p.scale;         // ловит по видимому щиту, почти пиксель в пиксель
   p.ySort = true;    // над своим героем щит проходит за ним, в остальном поверх всего (render/world.js)
   p.wid = w.id;
   p.slot = w.slot;

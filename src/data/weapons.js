@@ -133,7 +133,8 @@ export const WEAPON_BEHAVIOR = {
   },
   // hitRadius по умолчанию (перекрывается params.hitRadius; спрайт щита 22 px мира), rehit — повторный удар
   // того же щита по той же цели (у каждого щита свой таймер).
-  orbit: { hitRadius: 12, rehit: 0.5 },
+  // blockR — радиус ловли вражеских снарядов при size 1: видимый радиус щита (ORBIT_R), не hitRadius удара
+  orbit: { hitRadius: 12, rehit: 0.5, blockR: ORBIT_R.proj_shield },
   // swingGap — пауза между взмахами серии, swingLife — время жизни взмаха, aimRange — дальность выбора цели (× area).
   // Удар конусом из героя: длина arcRadius × area, половина угла arcSpan° вокруг направления удара.
   // Картинка — край конуса, кусок кольца вокруг героя: внешняя дуга на arcRadius × area от середины тела

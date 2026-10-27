@@ -1001,7 +1001,7 @@ class Sim {
         vx: 0, vy: 0, life: 0, radius: 0, dmg: 0, kb: 0, pierce: 0, rehit: 0, rehitOwn: false,
         once: false, hitTime: new Float64Array(HIT_MEM),
         a: 0, b: 0, c: 0, wid: '', ws: null, bk: null, slot: 0, hitN: 0, hitUid: new Int32Array(HIT_MEM), tint: 0, fx: '', life0: 0,
-        drawOff: 0, drawLift: 0, cone: 0, src: '', blocks: false, ySort: false, tgt: null,
+        drawOff: 0, drawLift: 0, cone: 0, src: '', blocks: false, blockR: 0, ySort: false, tgt: null,
       };
     }
     p.uid = ++this.uid;
@@ -1010,7 +1010,7 @@ class Sim {
     p.x = 0; p.y = 0; p.angle = 0; p.scale = 1; p.alpha = 1;
     p.vx = 0; p.vy = 0; p.life = 1; p.radius = 0; p.dmg = 0; p.kb = 0;
     p.pierce = 0; p.rehit = 0; p.rehitOwn = false; p.once = false;
-    p.a = 0; p.b = 0; p.c = 0; p.wid = ''; p.ws = null; p.bk = null; p.slot = 0; p.hitN = 0; p.tgt = null;
+    p.a = 0; p.b = 0; p.c = 0; p.wid = ''; p.ws = null; p.bk = null; p.slot = 0; p.hitN = 0; p.tgt = null; p.blockR = 0;
     p.tint = owner === 'player' ? this.projTint || 0 : 0;
     p.fx = ''; p.life0 = 0; // fx: зона рисуется слоями (render/zones.js), а не спрайтом
     // drawOff, drawLift: спрайт рисуется сдвинутым на drawOff px вдоль angle и на drawLift px вверх (взмах клинка);
@@ -1124,7 +1124,7 @@ class Sim {
       if (!b.blocks || b.life <= 0 || !b.ws || b.ws.owner.dead) continue;
       const dx = p.x - b.x;
       const dy = p.y - b.y;
-      const r = p.radius + b.radius;
+      const r = p.radius + (b.blockR || b.radius); // щит ловит по видимому размеру, не по радиусу удара
       if (dx * dx + dy * dy <= r * r) {
         this._telemetry('block', p, b);
         return true;
