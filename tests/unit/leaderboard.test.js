@@ -26,6 +26,8 @@ test('computeScore: data formula', () => {
       600 * f.perSecond + f.victoryBonus);
   assert.equal(computeScore({ time: 0, kills: 0, coins: 7 }), 7 * f.perCoin);
   assert.equal(computeScore({}), 0);
+  // дробные очки за убийство: итог целый (правила Firestore принимают только int)
+  assert.ok(Number.isInteger(computeScore({ kills: 3 })));
 });
 
 test('topTen: one best row per player, sorted, trimmed, upper-cased', () => {

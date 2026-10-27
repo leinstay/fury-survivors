@@ -20,7 +20,7 @@ export function computeScore(
   const s = Math.floor(Math.max(0, time)) * f.perSecond +
       Math.max(0, Math.floor(kills)) * f.perKill +
       Math.max(0, Math.floor(coins)) * (f.perCoin || 0) + (victory ? f.victoryBonus : 0);
-  return Math.min(s, LIMITS.scoreMax);
+  return Math.min(Math.floor(s), LIMITS.scoreMax); // целое: правила Firestore принимают только int
 }
 
 const int = (v) => Math.floor(Number(v));
