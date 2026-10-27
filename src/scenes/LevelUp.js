@@ -3,7 +3,8 @@ import { GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
 import { FocusNav, addButton } from '../ui/focus.js';
 import { addIcon } from '../ui/icons.js';
 import { displayName } from '../ui/icons.js';
-import { textStyle } from '../ui/style.js';
+import { textStyle, COLORS } from '../ui/style.js';
+import { WEAPONS } from '../data/weapons.js';
 import { addPanel } from '../ui/panel.js';
 import { createActions } from '../core/actions.js';
 import { fadeOutAndStop, resetFade } from '../ui/fade.js';
@@ -15,13 +16,15 @@ const CARD_H = 210;
 const CARD_GAP = 10;
 const CARD_Y = 160;
 // Описание: верх от центра карточки и предел строк (влезает до зоны предпросмотра, PREVIEW_H).
-// Зоны карточки сверху вниз (от центра карточки), одинаковые у всех карточек: иконка, название, NEW / Lv,
+// Зоны карточки сверху вниз (от центра карточки), одинаковые у всех карточек: иконка, название, теги оружия
+// мелким шрифтом вплотную к названию (тип урона · цели, как в кодексе; у пассивок строка пустая), NEW / Lv,
 // описание (не больше DESC_LINES строк: тексты в en.js держим короче), внизу — линия иконок оружий и строки
 // статов (ui/card-preview.js, PREVIEW_H).
 const ICON_Y = -80;
 const NAME_Y = -48;
-const TAG_Y = -30;
-const DESC_Y = -12;
+const TAGS_Y = -34;
+const TAG_Y = -24;
+const DESC_Y = -8;
 const DESC_LINES = 5;
 
 function cardDesc(c) {
@@ -116,6 +119,12 @@ export class LevelUpScene extends Phaser.Scene {
       addIcon(this, x, cy + ICON_Y, c.icon, 32, c.kind, c.id);
       this.add.text(x, cy + NAME_Y, c.kind === 'heal' ? t('card.heal.name') : displayName(c.kind, c.id),
         textStyle(12, '#ffffff', { align: 'center', wordWrap: { width: CARD_W - 12 } })).setOrigin(0.5, 0);
+      const w = c.kind === 'weapon' ? WEAPONS[c.id] : null;
+      if (w) {
+        const tags = [w.dmgType && t(`codex.dmg.${w.dmgType}`), w.targets && t(`codex.targets.${w.targets}`)];
+        this.add.text(x, cy + TAGS_Y, tags.filter(Boolean).join(' · '), textStyle(8, COLORS.dim))
+            .setOrigin(0.5, 0);
+      }
       const tag = c.kind === 'heal' ? '' : c.isNew ? t('levelup.new') : t('levelup.lv', { n: c.level });
       this.add.text(x, cy + TAG_Y, tag, textStyle(12, c.isNew ? '#ffd84a' : '#9ad0ff')).setOrigin(0.5, 0);
       // описание в своей зоне: с одного y, не больше DESC_LINES строк (до линии иконок)
