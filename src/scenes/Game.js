@@ -111,6 +111,7 @@ export class GameScene extends Phaser.Scene {
     this.events.once('shutdown', () => {
       this._finishRun('quit');
       this.events.off('resume', onResume);
+      if (this.gameInput) this.gameInput.destroy();
       if (this.net) this.net.close();
     });
     this.gameInput = new GameInput(this, {

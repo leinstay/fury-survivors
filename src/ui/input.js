@@ -1,6 +1,10 @@
 // Ввод игры: WASD/стрелки (8 направлений), геймпад, экранный джойстик на тач-устройствах.
+// Джойстик — только касание пальцем (pointerType 'touch'): на ПК с тачскрином мышь им не управляет, иначе после
+// потерянного отпускания (ПКМ, контекстное меню) герой бежал за курсором. Клавиши сбрасываются, когда окно теряет
+// фокус или открывается контекстное меню: keyup туда не приходит, и клавиша залипала нажатой.
 import { GAME_WIDTH, RENDER_ZOOM } from '../data/constants.js';
 import { readPad } from './focus.js';
+import { isMobile } from './settings.js';
 
 const STICK_RADIUS = 36;
 const DEADZONE = 0.2;
@@ -13,18 +17,40 @@ export class GameInput {
   // opts.isBlocked(x, y): true, если точка занята UI (джойстик там не стартует)
   constructor(scene, opts = {}) {
     this.scene = scene;
-    this.touch = !!scene.sys.game.device.input.touch;
+    // тач-раскладка (джойстик, кнопка паузы) — только где палец основной ввод (pointer: coarse), не на ПК
+    // с тачскрином: там device.input.touch тоже true
+    this.touch = isMobile();
     this.keys = scene.input.keyboard.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT');
     this.isBlocked = opts.isBlocked || (() => false);
     this.stick = { x: 0, y: 0 };
     this.pointerId = null;
     this.origin = null;
 
+    // ПКМ в забеге не открывает меню браузера; потеря фокуса — все клавиши отпущены
+    scene.input.mouse?.disableContextMenu();
+    this.release = () => {
+      scene.input.keyboard.resetKeys();
+      this.pointerId = null;
+      this.stick.x = this.stick.y = 0;
+      if (this.gfx) this.gfx.clear();
+    };
+    window.addEventListener('blur', this.release);
+    window.addEventListener('contextmenu', this.release);
+    document.addEventListener('visibilitychange', this.release);
+
     if (this.touch) {
       if (scene.input.manager.pointersTotal < 3) scene.input.addPointer(2);   // менеджер общий для забегов
       this.gfx = scene.add.graphics().setScrollFactor(0).setDepth(1e6 + 1);
+      const up = (p) => {
+        if (p.id !== this.pointerId) return;
+        this.pointerId = null;
+        this.stick.x = this.stick.y = 0;
+        this.gfx.clear();
+      };
+      const finger = (p) => p.wasTouch || (p.event && p.event.pointerType === 'touch');
       scene.input.on('pointerdown', (p) => {
-        if (this.pointerId !== null || sx(p) > GAME_WIDTH / 2 || this.isBlocked(sx(p), sy(p))) {
+        if (!finger(p) || this.pointerId !== null || sx(p) > GAME_WIDTH / 2 ||
+            this.isBlocked(sx(p), sy(p))) {
           return;
         }
         this.pointerId = p.id;
@@ -33,6 +59,7 @@ export class GameInput {
       });
       scene.input.on('pointermove', (p) => {
         if (p.id !== this.pointerId) return;
+        if (!p.isDown) { up(p); return; } // отпускание потерялось — джойстик отпущен
         let dx = sx(p) - this.origin.x;
         let dy = sy(p) - this.origin.y;
         const len = Math.hypot(dx, dy);
@@ -41,12 +68,6 @@ export class GameInput {
         this.stick.y = dy / STICK_RADIUS;
         this._draw(sx(p), sy(p));
       });
-      const up = (p) => {
-        if (p.id !== this.pointerId) return;
-        this.pointerId = null;
-        this.stick.x = this.stick.y = 0;
-        this.gfx.clear();
-      };
       scene.input.on('pointerup', up);
       scene.input.on('pointerupoutside', up);
     }
@@ -87,6 +108,9 @@ export class GameInput {
   }
 
   destroy() {
+    window.removeEventListener('blur', this.release);
+    window.removeEventListener('contextmenu', this.release);
+    document.removeEventListener('visibilitychange', this.release);
     if (this.gfx) this.gfx.destroy();
   }
 }

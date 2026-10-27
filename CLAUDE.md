@@ -108,7 +108,7 @@ tools/                     локальные скрипты Node, в игру �
 tests/
   unit/                    node --test: grid, stats, upgrades, data-валидация
   balance/                 node --test: headless-бот играет забег на core/sim (players: 2 — кооп)
-  smoke/                   Playwright: запуск, старт, 30 с игры, нет ошибок, fps; coop.spec.js два окна по WebRTC
+  smoke/                   Playwright: запуск, старт, 30 с игры, нет ошибок, fps; coop.spec.js два окна по WebRTC; input.spec.js залипание движения (фокус, ПКМ, мышь)
 docs/                      CONTENT.md, ARCHITECTURE.md, ASSETS.md, LEADERBOARD.md, COOP.md (сводка коопа: сделано, руками, ограничения), FIRESTORE.md (коллекции, лимиты Spark, что и когда чистить)
 references/                референсы, НЕ в git (скриншоты чужих игр)
 .secrets/                  ключи, НЕ в git, никогда не читать в коде игры
