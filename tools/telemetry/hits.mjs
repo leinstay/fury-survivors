@@ -9,6 +9,9 @@
 //   alive / kills/min — живых врагов в мире на срезе (snaps.en) и убийств за минуту (snaps.k);
 //   боссы      — время от появления босса до убийства (bosses), медиана по документам
 //   little     — alive / (убийств в секунду): средняя жизнь моба с появления по закону Литтла, с
+//   frame      — врагов в рамке героя (snaps.ef[0], среднее за минуту; CLEAR в src/data/constants.js) и
+//   frameLife  — frame / (убийств в секунду): жизнь в рамке по Литтлу, оценка снизу (убитые до рамки тоже
+//                в знаменателе). Поле ef появилось 27.10.2026, у старых документов его нет
 // Документы с обрезанными events (capture.dropped.events) считаются только до последнего события.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { gunzipSync } from 'node:zlib';
@@ -50,7 +53,8 @@ const v1 = {};
 for (const r of runs) {
   const g = groups[mode(r)] ||= { docs: 0, docsV2: 0,
     minutes: Array.from({ length: MINUTES }, () => ({ hits: [], dmg: [], near: [], speed: [],
-      still: [], alive: [], kills: [], little: [], src: {} })) };
+      still: [], alive: [], kills: [], little: [], frame: [],
+      frameLife: [], src: {} })) };
   g.docs++;
   for (const [id, at, killed] of r.bosses || []) {
     if (killed > 0) ((g.bosses ||= {})[id] ||= []).push(killed - at);
@@ -64,6 +68,10 @@ for (const r of runs) {
       g.minutes[m].alive.push(s.en);
       g.minutes[m].kills.push(perSec * 60);
       if (perSec > 0) g.minutes[m].little.push(s.en / perSec);
+      if (Array.isArray(s.ef)) {
+        g.minutes[m].frame.push(s.ef[0]);
+        if (perSec > 0) g.minutes[m].frameLife.push(s.ef[0] / perSec);
+      }
     }
     prev = s;
   }
@@ -123,13 +131,14 @@ for (const [k, g] of Object.entries(groups).sort()) {
     const row = { minute: m, n: x.hits.length, hitsMedian: med(x.hits), hitsMean: mean(x.hits),
       dmgMean: mean(x.dmg), near: med(x.near), speed: med(x.speed), still: mean(x.still),
       alive: med(x.alive), kills: med(x.kills), little: med(x.little), nClear: x.alive.length,
-      src: x.src };
+      frame: med(x.frame), frameLife: med(x.frameLife), nFrame: x.frame.length, src: x.src };
     report[k].minutes.push(row);
     if (!row.n && !row.nClear) return;
     console.log(`  ${String(m).padStart(2)} ${String(row.n).padStart(2)}   ${row.hitsMedian}/${row.hitsMean}`.padEnd(30) +
       `${row.dmgMean}`.padEnd(10) + `${row.near}`.padEnd(13) + `${row.speed}`.padEnd(7) +
       `${row.still === null ? '' : Math.round(row.still * 100)}`.padEnd(8) + `${row.alive}`.padEnd(7) +
-      `${row.kills === null ? '' : Math.round(row.kills)}`.padEnd(13) + `${row.little}`.padEnd(9) + row.nClear);
+      `${row.kills === null ? '' : Math.round(row.kills)}`.padEnd(13) + `${row.little}`.padEnd(9) + `${row.nClear}`.padEnd(5) +
+      (row.nFrame ? `рамка ${row.frame} / ${row.frameLife} с (${row.nFrame})` : ''));
   });
 }
 for (const [k, r] of Object.entries(v1)) {

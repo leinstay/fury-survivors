@@ -7,10 +7,13 @@ import { textStyle } from '../ui/style.js';
 import { addPanel } from '../ui/panel.js';
 import { createActions } from '../core/actions.js';
 import { fadeOutAndStop, resetFade } from '../ui/fade.js';
+import { addCardPreview } from '../ui/card-preview.js';
+import { BUTTON, rowXs } from '../ui/menu-layout.js';
 
 const CARD_W = 140;
-const CARD_H = 180;
+const CARD_H = 210;
 const CARD_GAP = 10;
+const CARD_Y = 160;
 
 function cardDesc(c) {
   if (c.kind === 'heal') return t('card.heal.desc');
@@ -95,17 +98,20 @@ export class LevelUpScene extends Phaser.Scene {
     const mine = this.mine;
     const total = cards.length * CARD_W + (cards.length - 1) * CARD_GAP;
     const x0 = (GAME_WIDTH - total) / 2 + CARD_W / 2;
-    const cy = 150;
+    const cy = CARD_Y;
+    const pl = this.sim.players[this.sim.picker];
 
     cards.forEach((c, i) => {
       const x = x0 + i * (CARD_W + CARD_GAP);
       const rect = addPanel(this, x, cy, CARD_W, CARD_H);
-      addIcon(this, x, cy - 62, c.icon, 32, c.kind, c.id);
-      this.add.text(x, cy - 30, c.kind === 'heal' ? t('card.heal.name') : displayName(c.kind, c.id),
+      addIcon(this, x, cy - 72, c.icon, 32, c.kind, c.id);
+      this.add.text(x, cy - 40, c.kind === 'heal' ? t('card.heal.name') : displayName(c.kind, c.id),
         textStyle(12, '#ffffff', { align: 'center', wordWrap: { width: CARD_W - 12 } })).setOrigin(0.5, 0);
       const tag = c.kind === 'heal' ? '' : c.isNew ? t('levelup.new') : t('levelup.lv', { n: c.level });
-      this.add.text(x, cy - 10, tag, textStyle(12, c.isNew ? '#ffd84a' : '#9ad0ff')).setOrigin(0.5, 0);
-      this.add.text(x, cy + 10, cardDesc(c), textStyle(10, '#cccccc', { align: 'center', wordWrap: { width: CARD_W - 14 } })).setOrigin(0.5, 0);
+      this.add.text(x, cy - 22, tag, textStyle(12, c.isNew ? '#ffd84a' : '#9ad0ff')).setOrigin(0.5, 0);
+      this.add.text(x, cy - 4, cardDesc(c), textStyle(10, '#cccccc', { align: 'center', wordWrap: { width: CARD_W - 14 } })).setOrigin(0.5, 0);
+      // внизу карточки: изменение стата или параметров оружия и оружия, на которые влияет пассивка
+      addCardPreview(this, x, cy + CARD_H / 2 - 6, CARD_W - 10, pl, c);
       if (this.banishMode) this.add.rectangle(x, cy, CARD_W, CARD_H, 0xaa2020, 0.18);
       if (!mine) return;
       this.nav.add({
@@ -116,16 +122,20 @@ export class LevelUpScene extends Phaser.Scene {
     });
 
     const by = 290;
-    const bw = 112;
-    const bh = 28;
-    const mk = (x, label, count, fn) => {
-      const b = addButton(this, this.nav, { x, y: by, w: bw, h: bh, label: `${label} (${count})`, size: 12, onSelect: fn });
+    const bw = BUTTON.action.w;
+    const bh = BUTTON.action.h;
+    const xs = rowXs(3, GAME_WIDTH / 2);
+    // selected: включённый режим (баниш) — зелёная рамка, как у активных вкладок
+    const mk = (x, label, count, fn, selected = false) => {
+      const b = addButton(this, this.nav, { x, y: by, w: bw, h: bh, label: `${label} (${count})`, size: 12,
+        onSelect: fn, selected });
       b.setDisabled(count <= 0);
     };
     if (mine) {
-      mk(GAME_WIDTH / 2 - 124, t('levelup.reroll'), lu.rerolls, () => { this.act.reroll(); this.after(); });
-      mk(GAME_WIDTH / 2, t('levelup.skip'), lu.skips, () => { this.act.skip(); this.after(); });
-      mk(GAME_WIDTH / 2 + 124, t('levelup.banish'), lu.banishes, () => { this.banishMode = !this.banishMode; this.render(); });
+      mk(xs[0], t('levelup.reroll'), lu.rerolls, () => { this.act.reroll(); this.after(); });
+      mk(xs[1], t('levelup.skip'), lu.skips, () => { this.act.skip(); this.after(); });
+      mk(xs[2], t('levelup.banish'), lu.banishes, () => { this.banishMode = !this.banishMode; this.render(); },
+          this.banishMode);
     }
     if (this.banishMode) {
       this.add.text(GAME_WIDTH / 2, by + 28, t('levelup.banish_hint'), textStyle(10, '#ff8080')).setOrigin(0.5);

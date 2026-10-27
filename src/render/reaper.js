@@ -1,10 +1,17 @@
 // Жница на земле (src/core/reaper.js): освящённые круги, песочные часы, метка телепорта. Заглушка графикой:
 // круги со свечением, пока нет спрайтов. Только читает sim.holy, sim.hourglasses и sim.reaper.tp.
+// Над часами таймер: секунды до пропуска числом и дуга вокруг; последние HOUR_ENDING с мигают красным.
+// Пропуск (часы исчезли по таймеру) — красное кольцо расходится на месте часов.
+import { textStyle } from '../ui/style.js';
 
 const HOLY = 0xffe27a;      // золотой свет круга
 const HOLY_EDGE = 0xfff4c0;
-const SAND = 0xd8b070;      // зона часов
+const SAND = 0xd8b070;      // песок часов
 const SAND_EDGE = 0xf0d8a0;
+const MISS = 0xff4040;      // пропуск
+const HOUR_ENDING = 3;      // с до пропуска: таймер мигает
+const MISS_LIFE = 0.5;      // с кольца пропуска
+const TIMERS = 4;           // текстов таймера (кооп: часы перед каждым игроком)
 const GLASS = 0xbfe8ff;
 const BLINK = 0xb050ff;     // метка телепорта
 const ENDING = 2;           // с до конца круга: мигает
@@ -13,6 +20,13 @@ export class ReaperFx {
   constructor(scene, depth) {
     this.ground = scene.add.graphics().setDepth(depth);
     this.glow = scene.add.graphics().setDepth(depth + 1).setBlendMode(Phaser.BlendModes.ADD);
+    this.timers = [];
+    for (let i = 0; i < TIMERS; i++) {
+      this.timers.push(scene.add.text(0, 0, '', textStyle(8, '#f0d8a0', { stroke: '#1a1426', strokeThickness: 2 }))
+          .setOrigin(0.5, 1).setDepth(depth + 2).setVisible(false));
+    }
+    this.seen = new Map(); // uid часов -> { x, y, left } прошлого кадра: пропуск, если исчезли с left ≈ 0
+    this.misses = [];      // { x, y, at }
   }
 
   update(sim, time) {
@@ -21,7 +35,19 @@ export class ReaperFx {
     g.clear();
     l.clear();
     for (const c of sim.holy) this._holy(g, l, c, time);
-    for (const h of sim.hourglasses) this._hourglass(g, h, time);
+    const now = new Set();
+    sim.hourglasses.forEach((h, i) => {
+      this._hourglass(g, h, time, this.timers[i]);
+      now.add(h.uid);
+      this.seen.set(h.uid, { x: h.x, y: h.y, left: h.life - h.t });
+    });
+    for (let i = sim.hourglasses.length; i < TIMERS; i++) this.timers[i].setVisible(false);
+    for (const [uid, h] of this.seen) {
+      if (now.has(uid)) continue;
+      this.seen.delete(uid);
+      if (h.left < 0.25) this.misses.push({ x: h.x, y: h.y, at: time });
+    }
+    this._misses(g, time);
     const tp = sim.reaper && sim.reaper.tp;
     if (tp) this._blink(g, tp);
   }
@@ -47,10 +73,23 @@ export class ReaperFx {
     g.lineStyle(1, HOLY_EDGE, 0.95).strokeCircle(c.x, c.y, r);
   }
 
-  // Зона замедления и часы в центре (наступить на них — разбить).
-  _hourglass(g, h, time) {
-    g.fillStyle(SAND, 0.12).fillCircle(h.x, h.y, h.radius);
-    g.lineStyle(1, SAND_EDGE, 0.6).strokeCircle(h.x, h.y, h.radius);
+  // Часы (наступить — разбить), дуга таймера вокруг и число секунд над ними.
+  _hourglass(g, h, time, label) {
+    const left = Math.max(0, h.life - h.t);
+    const ending = left < HOUR_ENDING;
+    const blink = ending && Math.floor(time * 6) % 2 === 0;
+    const col = ending ? MISS : SAND_EDGE;
+    const k = h.life > 0 ? left / h.life : 0;
+    g.lineStyle(1, SAND, 0.35).strokeCircle(h.x, h.y - 8, 12);
+    if (!blink) {
+      g.lineStyle(2, col, 0.9).beginPath();
+      g.arc(h.x, h.y - 8, 12, -Math.PI / 2, -Math.PI / 2 + k * Math.PI * 2, false);
+      g.strokePath();
+    }
+    if (label) {
+      label.setPosition(h.x, h.y - 22).setText(String(Math.ceil(left)))
+          .setColor(ending ? '#ff6060' : '#f0d8a0').setVisible(!blink);
+    }
     const bob = Math.round(Math.sin(time * 4 + h.uid) * 1);
     const x = h.x;
     const y = h.y - 9 + bob;
@@ -63,6 +102,16 @@ export class ReaperFx {
     g.lineStyle(1, 0x5a3a1a, 1);
     g.lineBetween(x - 5, y - 7, x + 5, y - 7);
     g.lineBetween(x - 5, y + 7, x + 5, y + 7);
+  }
+
+  // Пропуск: кольцо расходится и гаснет за MISS_LIFE с.
+  _misses(g, time) {
+    for (let i = this.misses.length - 1; i >= 0; i--) {
+      const m = this.misses[i];
+      const k = (time - m.at) / MISS_LIFE;
+      if (k >= 1 || k < 0) { this.misses.splice(i, 1); continue; }
+      g.lineStyle(2, MISS, 1 - k).strokeCircle(m.x, m.y - 8, 8 + 24 * k);
+    }
   }
 
   // Место, где появится Жница: заливка растёт за delay.

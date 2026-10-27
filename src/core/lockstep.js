@@ -19,6 +19,8 @@ import { DIFFICULTIES } from '../data/difficulty.js';
 import { forest } from '../data/stages/forest.js';
 import * as ITEMS from '../data/items.js';
 import { ACHIEVEMENTS } from '../data/achievements.js';
+import * as STATUS_DATA from '../data/status.js';
+import { dotKey } from '../behaviors/status.js';
 import { createRng } from './rng.js';
 import { rollItem, makeUnique, createBag, place } from './items.js';
 
@@ -55,7 +57,7 @@ export function hashParts(sim) {
     out.push([k + 'x', r(p.x)], [k + 'y', r(p.y)], [k + 'hp', r(p.hp)], [k + 'level', p.level],
         [k + 'xp', r(p.xp)], [k + 'dead', p.dead ? 1 : 0], [k + 'coffin', r(p.coffinT)],
         [k + 'rerolls', lu.rerolls], [k + 'skips', lu.skips], [k + 'banishes', lu.banishes],
-        [k + 'banished', lu.banished.size], [k + 'picks', lu.picks],
+        [k + 'banished', lu.banished.size], [k + 'picks', lu.picks], [k + 'overtimeSlow', r(p.overtimeSlow || 0)],
         [k + 'weapons', p.weapons.map((w) => `${w.id}${w.level}`).join(' ')],
         [k + 'passives', p.passives.map((q) => `${q.id}${q.level}`).join(' ')],
         [k + 'bag', bagKey(p.bag)], [k + 'loot', lootKey(p.loot)]);
@@ -63,14 +65,18 @@ export function hashParts(sim) {
   let ex = 0;
   let ey = 0;
   let eh = 0;
+  let dots = 0; // ДоТы на врагах (behaviors/status.js): стаки, тики и урон влияют на будущие HP
   for (const e of sim.enemies) {
     if (e.dead) continue;
     ex += e.x; ey += e.y; eh += e.hp;
+    const k = dotKey(e);
+    if (k) dots = fnv(`${dots}|${k}`);
   }
-  out.push(['enemyX', r(ex)], ['enemyY', r(ey)], ['enemyHp', r(eh)]);
+  out.push(['enemyX', r(ex)], ['enemyY', r(ey)], ['enemyHp', r(eh)], ['dots', dots]);
   // Жница с Библией: освящённые круги и песочные часы
   out.push(['holy', sim.holy.map((c) => `${r(c.x)},${r(c.y)}`).join(' ')],
-      ['hourglasses', sim.hourglasses.map((h) => `${h.uid}@${r(h.x)},${r(h.y)}`).join(' ')]);
+      ['hourglasses', sim.hourglasses.map((h) => `${h.uid}@${r(h.x)},${r(h.y)}:${r(h.t)}`).join(' ')],
+      ['reaperSlow', sim.reaper ? r(sim.reaper.slow) : 0]);
   return out;
 }
 
@@ -110,7 +116,8 @@ export function simFingerprint(fresh = false) {
   if (fingerprint !== null && !fresh) return fingerprint;
   const data = JSON.stringify([BUILD, CONSTANTS, HEROES, HERO_BASE, WEAPONS, WEAPON_BEHAVIOR,
     PASSIVES, STATS, STAT_CAPS, STAT_CAPS_REL,
-    COMBOS, ENEMIES, BOSS, BOSSES, PICKUPS, COOP, DIFFICULTIES, forest, ITEMS, ACHIEVEMENTS]);
+    COMBOS, ENEMIES, BOSS, BOSSES, PICKUPS, COOP, DIFFICULTIES, forest, ITEMS, ACHIEVEMENTS,
+    STATUS_DATA]);
   fingerprint = fnv(`${data}|${runFingerprint()}`);
   return fingerprint;
 }

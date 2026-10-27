@@ -10,7 +10,29 @@
 
 ## Оружие с существующим behavior
 
-Behavior: `melee_arc`, `projectile`, `orbit`, `aura`, `boomerang`, `chain`, `area_drop`. Смысл полей уровня по behavior расписан в шапке `src/data/weapons.js`.
+Behavior: `melee_arc`, `projectile`, `orbit`, `aura`, `boomerang`, `chain`, `area_drop`, `beam`, `summon`, `cloud`, `slam`, `impale`, `ice_orb`. Смысл полей уровня по behavior расписан в шапке `src/data/weapons.js`. Кратко о последних переделках:
+
+- `slam` (Hammer, Titan Maul): удар по земле кругом радиусом `area`, а не конус. Серия из `amount` ударов: первый под героем со сдвигом к ближайшей цели (`WEAPON_BEHAVIOR.slam.offset` × `area`), каждый следующий дальше по той же линии (`step`), с паузой `gap`. Удар бьёт один раз всех в круге и отбрасывает от центра (`knockback`). На месте удара трещина (радиус `area` × `crack`) на `duration` с: враги в ней ходят со скоростью × `slow`, ещё `slowTime` с после выхода. Сама трещина не бьёт, гаснет к концу (`fade`). Картинки: зоны `boom` и `crack` в `src/render/zones.js`, цвет `tint` оружия.
+- `impale` (Spear, Dragon Lance): одно копьё (`amount` 1) в ближайшую цель, пробивает `1 + pierce` врагов и каждого пригвождает на `pin` с (замедление до 0 через `applySlow`, боссы вполсилы). Потом втыкается в землю и торчит `WEAPON_BEHAVIOR.impale.stuck` с. С `burst` воткнувшееся копьё взрывается кругом радиусом `burst` (× стат `area`): урон `damage` и пригвождение всех в круге. Луч (`beam`) от копья отличается: он случайный, бьёт всех на линии и слабо.
+- `ice_orb` (Frost Orb, Blizzard): крупный медленный шар (радиус `area`, `speed`, живёт `duration` с) в ближайшую цель, пробивает всех, бьёт каждого внутри раз в `tick` на `damage` и замораживает (скорость × `slow` ещё `slowTime` с). С `turn` (рад/с) курс закручивается спиралью, и `amount` шаров выходят во все стороны поровну. Пока что заморозка идёт через `applySlow`; потом её переведут на статус `chill`.
+
+- `cloud` (Poison Cloud, Miasma): облако ложится под героя (врагов в `WEAPON_BEHAVIOR.cloud.propRange` нет, а объект есть — на объект) и стоит `duration` с, бьёт каждого врага внутри раз в `tick` на `damage`, `area` — радиус. `amount` облаков: у каждого свой таймер `cooldown`, первые разнесены на `cooldown / amount`. Облака одного оружия бьют врага не чаще `tick`.
+- `beam` (Beam, Prism Ray): раз в `cooldown` выпускает `amount` лучей из точки героя в случайные стороны (RNG сима, i-й луч в своём секторе 360° / `amount`), не целится и не следует за героем: луч стоит, где выпущен, `duration` с и каждые `tick` с бьёт всех на отрезке `area` × полуширина `width`. Картинка поднята на `WEAPON_BEHAVIOR.beam.lift` px (из середины тела).
+
+Самонаводящиеся оружия (`projectile`, `boomerang`, `chain`, `summon`) берут цель через `sim.nearestTarget`: ближайший враг или разрушаемый объект из одного списка. Новое самонаводящееся оружие — так же.
+
+### Статус (ДоТ) на оружии
+
+Необязательное поле `status` на записи оружия или в уровне (уровень главнее): `status: { type, chance, share?, duration?, slow? }`. Типы и числа в `src/data/status.js`, логика в `src/behaviors/status.js`:
+
+| type | стакание | эффект |
+|---|---|---|
+| `poison` | каждый удар — свой стак со своим таймером, до `maxStacks` | урон |
+| `burning` | один, остаётся сильнейший, таймер обновляется | урон |
+| `bleeding` | как `burning`; только у `melee_arc` (проверяет тест) | урон |
+| `chill` | сильнее и дольше из действующего и нового | замедление без урона (`slow`, `duration`) |
+
+Урон ДоТа = `share` × урон удара (после `attack`/`magic`, до крита), разложенный на `duration` тиками `DOT.tick`. Тики не критуют и идут в статистику оружия, которое наложило статус. Шанс `chance < 1` тянет RNG сима. В кодексе строка «… chance» по уровням (`codex.p.status_<type>` в i18n).
 
 Радиусы `aura`, `melee_arc` и `orbit` берутся с одной лестницы колец `RINGS` (`src/data/weapons.js`): аура и взмах ставят `area: RINGS[k]`, орбита `area: onRing(k, ORBIT_R[спрайт] * size)`, тогда видимый край снаряда идёт ровно по линии кольца. Новый спрайт на орбите добавь в `ORBIT_R`. Проверка в `tests/unit/data.test.js`. Щиты не растут: базовые на T2, защитные апгрейды на T1, атакующие на T3.
 
@@ -47,7 +69,7 @@ Behavior: `melee_arc`, `projectile`, `orbit`, `aura`, `boomerang`, `chain`, `are
 
 Герои перечислены только в `src/data/heroes.js`. Меню (картинки у кнопок), карточки выбора в соло и в лобби коопа, сим и тесты читают этот список сами, правок в сценах не нужно.
 
-1. `src/data/heroes.js`: запись `id: { sprite, portrait, menu?, startWeapon, stats }`. `stats` с полным набором статов из `src/data/stats.js` (`maxHp, attack, magic, speed, crit, critDmg, area, duration, pickup, haste, luck, armor, regen, xpGain, dodge, thorns`). `menu: { art, side }` необязательно: картинка у кнопок главного меню, `side: 'left'` рисуется отражённой, несколько на одной стороне встают дальше от кнопок по порядку. Порядок записей = порядок карточек выбора.
+1. `src/data/heroes.js`: запись `id: { sprite, portrait, menu?, startWeapon, stats }`. `stats` с полным набором статов из `src/data/stats.js` (`maxHp, attack, magic, speed, crit, critDmg, area, duration, pickup, haste, luck, resistance, regen, xpGain, dodge, thorns`). `menu: { art, side }` необязательно: картинка у кнопок главного меню, `side: 'left'` рисуется отражённой, несколько на одной стороне встают дальше от кнопок по порядку. Порядок записей = порядок карточек выбора.
 2. Спрайты в `assets/sprites/manifest.js`: лента ходьбы `chara('<id>', '#цвет')` (кадр 110×110, число кадров по ширине PNG, кадр 0 стойка, см. `docs/ASSETS.md`), портрет 48×48 и картинка меню. Как сделать ленту того же размера пикселя: `docs/ASSETS.md` (PixelLab, `hd-frames.mjs`, пример магессы).
 3. i18n: `hero.<id>.name`. Статы игроку числами не показываются: на карточке выбора черты относительно среднего героя `HERO_BASE` (`+ATK` зелёным, `-HP` красным, `core/heroes.js heroTraits`); подписи `trait.<stat>` уже есть.
 4. Тест `data: every hero is complete` проверяет спрайты, картинку меню, имя и набор статов; `data: hero start weapons exist` проверяет оружие.

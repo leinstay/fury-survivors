@@ -1,6 +1,7 @@
-// Ачивки (из меню): список в две колонки по порядку src/data/achievements.js — имя, описание, награда,
-// прогресс счётчика (achievementProgress), постоянный бонус к статам (зелёный у полученных), полученные ярче,
-// новые с плашкой. Скрытые до получения: «???».
+// Ачивки (из меню и из паузы: from 'Pause' — поверх паузы, назад в паузу): список в две колонки по порядку
+// src/data/achievements.js, карточки одной высоты в две строки: имя, постоянный бонус к статам (зелёный у полученных)
+// и награда; описание и прогресс счётчика (achievementProgress) или Done. Полученные ярче, новые с плашкой.
+// Скрытые до получения: «???».
 // Открытие отмечает полученные показанными (markAchievementsSeen).
 import { t } from '../i18n/index.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
@@ -13,10 +14,39 @@ import { getAchievements, markAchievementsSeen, checkMetaAchievements } from '..
 import { getInventory } from '../services/inventory.js';
 import { getCodex } from '../services/codex.js';
 import { bonusText } from '../ui/items.js';
+import { backRect } from '../ui/menu-layout.js';
 
+// Раскладка: два столбца по perCol карточек одной высоты от TOP до кнопки «Назад» (12 × 25 = 300 px из 360).
+// Карточка в две строки: [имя, бонус … награда] и [описание … прогресс или Done]. Тексты стоят по центру
+// полосы заглавных (originY 0.5, src/ui/text-align.js), центры строк LINE1 и LINE2 от верха карточки
+// подобраны так, что от рамки до заглавных сверху и снизу ≈ 4 px.
 const M = 8;
-const TOP = 34;
-const ROW = 22;
+const TOP = 29;
+const CARD_H = 23;
+const GAP = 2;
+const PAD = 6;          // отступ текста от левого и правого края карточки
+const SEP = 6;          // зазор между соседними текстами в строке
+const LINE1 = 7;
+const LINE2 = 16;
+const SIZE = { name: 9, bonus: 8, reward: 8, desc: 7, status: 8 };
+const ELLIPSIS = '...';
+
+// Обрезать текст до ширины maxW (по символам, с многоточием). Пустая строка, если не влезает даже многоточие.
+function fitText(text, maxW) {
+  if (text.width <= maxW) return text;
+  const full = text.text;
+  let lo = 0;
+  let hi = full.length;
+  // бинарный поиск самой длинной обрезки, что влезает
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    text.setText(full.slice(0, mid).trimEnd() + ELLIPSIS);
+    if (text.width <= maxW) lo = mid;
+    else hi = mid - 1;
+  }
+  text.setText(lo > 0 ? full.slice(0, lo).trimEnd() + ELLIPSIS : '');
+  return text;
+}
 
 /** Текст награды ачивки. */
 export function rewardText(reward) {
@@ -33,7 +63,15 @@ export class AchievementsScene extends Phaser.Scene {
     super('Achievements');
   }
 
+  init(data) {
+    this.from = (data && data.from) || 'Menu';
+  }
+
   create() {
+    // поверх паузы закрываем забег целиком
+    if (this.from === 'Pause') {
+      this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x0d0a16, 1).setOrigin(0, 0);
+    }
     checkMetaAchievements(); // стеш, сумка и кодекс могли дорасти до ачивки вне экрана
     const state = getAchievements();
     const fresh = new Set(unseenIds(state));
@@ -51,31 +89,62 @@ export class AchievementsScene extends Phaser.Scene {
       const def = ACHIEVEMENTS[id];
       const col = Math.floor(i / perCol);
       const L = M + col * (colW + M);
-      const y = TOP + (i % perCol) * ROW + ROW / 2;
+      const top = TOP + (i % perCol) * (CARD_H + GAP);
+      const y1 = top + LINE1;
+      const y2 = top + LINE2;
       const done = isDone(state, id);
       const masked = def.hidden && !done;
-      addPanel(this, L + colW / 2, y, colW, ROW - 2, done ? { border: 0xb89a3a } : {});
-      const name = masked ? t('ach.hidden.name') : t(`ach.${id}.name`);
-      const desc = masked ? t('ach.hidden.desc') : t(`ach.${id}.desc`, achievementParams(id));
-      const nm = this.add.text(L + 6, y - 9, name, textStyle(9, done ? '#ffd84a' : '#ffffff')).setOrigin(0, 0);
-      if (!masked && def.bonus) {
-        this.add.text(nm.x + nm.width + 6, y - 8, bonusText(def.bonus),
-            textStyle(7, done ? '#8cff6a' : '#6f8f6a')).setOrigin(0, 0);
+      const border = done ? { border: 0xb89a3a } : {};
+      addPanel(this, L + colW / 2, top + CARD_H / 2, colW, CARD_H, border);
+      const left = L + PAD;
+      const right = L + colW - PAD;
+      // строка 1: справа награда и плашка «новое», слева имя и бонус (бонус обрезается до награды)
+      let edge1 = right;
+      const reward = masked ? '' : rewardText(def.reward);
+      if (reward) {
+        const rw = this.add.text(right, y1, reward, textStyle(SIZE.reward, '#9ad0ff')).setOrigin(1, 0.5);
+        edge1 = right - rw.width - SEP;
       }
-      this.add.text(L + 6, y + 1, desc, textStyle(7, done ? '#dddddd' : COLORS.dim)).setOrigin(0, 0);
-      const right = L + colW - 6;
-      this.add.text(right, y - 9, masked ? '' : rewardText(def.reward), textStyle(8, '#9ad0ff')).setOrigin(1, 0);
-      const pr = achievementProgress(state, id, ctx);
-      const status = done ? t('ach.done') : pr ? t('ach.progress', pr) : '';
-      this.add.text(right, y + 1, status, textStyle(8, done ? '#8cff6a' : '#dddddd')).setOrigin(1, 0);
       if (fresh.has(id)) {
-        this.add.text(L + colW - 70, y - 9, t('ach.new'), textStyle(8, '#ff7a3d')).setOrigin(1, 0);
+        const nw = this.add.text(edge1, y1, t('ach.new'), textStyle(SIZE.reward, '#ff7a3d')).setOrigin(1, 0.5);
+        edge1 -= nw.width + SEP;
       }
+      const name = masked ? t('ach.hidden.name') : t(`ach.${id}.name`);
+      const nm = fitText(this.add.text(left, y1, name, textStyle(SIZE.name, done ? '#ffd84a' : '#ffffff'))
+          .setOrigin(0, 0.5), edge1 - left);
+      if (!masked && def.bonus && nm.text) {
+        const bx = left + nm.width + SEP;
+        fitText(this.add.text(bx, y1, bonusText(def.bonus), textStyle(SIZE.bonus, done ? '#8cff6a' : '#6f8f6a'))
+            .setOrigin(0, 0.5), edge1 - bx);
+      }
+      // строка 2: справа прогресс или Done, слева описание до него
+      const pr = masked ? null : achievementProgress(state, id, ctx);
+      const status = done ? t('ach.done') : pr ? t('ach.progress', pr) : '';
+      let edge2 = right;
+      if (status) {
+        const st = this.add.text(right, y2, status, textStyle(SIZE.status, done ? '#8cff6a' : '#dddddd'))
+            .setOrigin(1, 0.5);
+        edge2 = right - st.width - SEP;
+      }
+      const desc = masked ? t('ach.hidden.desc') : t(`ach.${id}.desc`, achievementParams(id));
+      fitText(this.add.text(left, y2, desc, textStyle(SIZE.desc, done ? '#dddddd' : COLORS.dim))
+          .setOrigin(0, 0.5), edge2 - left);
     });
     markAchievementsSeen();
-    this.nav = new FocusNav(this, { onBack: () => this.scene.start('Menu') });
-    addButton(this, this.nav, { x: cx, y: GAME_HEIGHT - 16, w: 120, h: 20, size: 11, label: t('settings.back'),
-      onSelect: () => this.scene.start('Menu') });
+    this.nav = new FocusNav(this, { onBack: () => this.leave() });
+    addButton(this, this.nav, { ...backRect(), size: 12, label: t('settings.back'),
+      onSelect: () => this.leave() });
+  }
+
+  // Назад: в меню или в паузу (как кодекс из паузы, Codex.js leave).
+  leave() {
+    if (this.from === 'Pause') {
+      const pause = this.scene.get('Pause');
+      this.scene.stop();
+      if (pause && pause.codexClosed) pause.codexClosed();
+      return;
+    }
+    this.scene.start('Menu');
   }
 
   update(time) {

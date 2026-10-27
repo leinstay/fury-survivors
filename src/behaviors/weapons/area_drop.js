@@ -4,7 +4,8 @@
 //   delay — время полёта вместо WEAPON_BEHAVIOR.area_drop.flight; fall — снаряд падает сверху с высоты fall px
 //     (метеор), на земле на всё время delay лежит круг-предупреждение, точка удара упреждает врага (lead);
 //   mine — мина: ложится в случайную точку не дальше spread px от героя (первая на объект, если врагов нет),
-//     ждёт до duration секунд и взрывается, когда враг или объект подходит на trigger px (или по истечении).
+//     ждёт до duration секунд и взрывается, когда враг или объект подходит на trigger px (или по истечении);
+//     первые arm секунд на земле (WEAPON_BEHAVIOR.area_drop.mineArm) не срабатывает: мина всегда ложится.
 // Состояние снаряда p.c: 0 летит, 1 мина на земле.
 import { WEAPON_BEHAVIOR } from '../../data/weapons.js';
 
@@ -138,7 +139,8 @@ export const areaDrop = {
   moveProjectile(p, w, sim, dt) {
     if (p.c === ARMED) {
       if (w.removed) { p.life = 0; return; }
-      if (touched(p, sim, w.params.trigger)) p.life = 0;
+      // пока мина не взведена (первые mineArm с на земле), касание её не рвёт
+      if (p.life <= w.params.duration - AD.mineArm && touched(p, sim, w.params.trigger)) p.life = 0;
       return;
     }
     p.x += p.vx * dt;

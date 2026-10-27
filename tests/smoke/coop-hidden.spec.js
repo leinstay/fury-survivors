@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { clickSceneText } from './helpers.js';
+import { clickSceneText, openCoop } from './helpers.js';
 
 // Диагностика зависания дуо без Escape (docs/BALANCE_AUDIT.md): один игрок сворачивает вкладку,
 // пока второй выбирает карточку. Только по FURY_DUO_HIDDEN=1: на текущем коде сценарий
@@ -40,9 +40,7 @@ test('duo: partner tab hidden during a choice', async ({ context }) => {
   const pages = [await context.newPage(), await context.newPage()];
   for (const p of pages) {
     await p.addInitScript(SIGNAL); await p.goto('/');
-    await p.waitForFunction(() => window.__game?.debug().scene === 'Menu');
-    await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter');
-    await p.waitForFunction(() => window.__game.game.scene.getScene('Menu').view === 'coop');
+    await openCoop(p);
   }
   const [host, guest] = pages;
   await host.locator('input').nth(0).fill('ANN');

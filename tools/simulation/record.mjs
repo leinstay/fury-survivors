@@ -46,7 +46,9 @@ export function installImmortality(sim, mask = []) {
   const hurt = sim.hurtPlayer.bind(sim);
   sim.hurtPlayer = (raw, p = sim.player, src = '', dodgeable = true) => {
     const eligible = mask[p.id] && sim.state === 'running' && !p.dead && p.iframes <= 0;
-    const lethal = eligible && Math.max(COMBAT.armorMinDamage, raw - p.stats.armor) >= p.hp;
+    // удар после сопротивления, как sim.hurtPlayer
+    const lethal = eligible &&
+      Math.max(COMBAT.minDamage, raw * (1 - (p.stats.resistance || 0))) >= p.hp;
     const state = sim.state;
     const hp = p.hp;
     const eventStart = sim.events.length;

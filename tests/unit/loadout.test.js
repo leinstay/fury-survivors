@@ -74,13 +74,13 @@ test('loadout: player stats come from the bag (solo and each coop player)', () =
   assert.equal(junk.player.bag.items.length, 0);
 });
 
-test('unique glass_cannon: ×2 damage stats, max HP 1, armor off', () => {
-  const { sim, pl } = solo('glass_cannon', [flatItem('helmarmor', 'helm', 'armor', 3)]);
+test('unique glass_cannon: ×2 damage stats, max HP 1, resistance off', () => {
+  const { sim, pl } = solo('glass_cannon', [flatItem('helmres', 'helm', 'resistance', 0.05)]);
   near(pl.maxHp, 1);
   near(pl.hp, 1);
   near(pl.stats.attack, heroStats(sim).attack * 2);
   near(pl.stats.magic, heroStats(sim).magic * 2);
-  near(pl.stats.armor, 0);
+  near(pl.stats.resistance, 0);
 });
 
 test('unique kaom_heart: ×2 regen only while standing', () => {
@@ -132,10 +132,10 @@ test('unique sprinter: damage scales with speed, −50% standing', () => {
   assert.ok(sim._uniqueDmg(fast.pl, e) > 1);
 });
 
-test('unique turtle: armor ×3, speed −40%', () => {
-  const { pl, sim } = solo('turtle', [flatItem('helmarmor', 'helm', 'armor', 2)]);
-  assert.ok(pl.bonus.flat.armor > 0);
-  near(pl.stats.armor, (heroStats(sim).armor + pl.bonus.flat.armor) * 3);
+test('unique turtle: resistance ×3, speed −40%', () => {
+  const { pl, sim } = solo('turtle', [flatItem('helmres', 'helm', 'resistance', 0.05)]);
+  assert.ok(pl.bonus.flat.resistance > 0);
+  near(pl.stats.resistance, (heroStats(sim).resistance + pl.bonus.flat.resistance) * 3);
   near(pl.stats.speed, heroStats(sim).speed * 0.6);
 });
 
@@ -149,7 +149,7 @@ test('unique berserk: +1% damage per 1% missing HP, no regen', () => {
 });
 
 test('unique spiked_shell: thorns ×3, −30% damage', () => {
-  const { pl, sim } = solo('spiked_shell', [flatItem('shieldthorn', 'shield', 'thorns', 4)]);
+  const { pl, sim } = solo('spiked_shell', [flatItem('shieldthorn', 'shield', 'thorns', 0.03)]);
   assert.ok(pl.bonus.flat.thorns > 0);
   near(pl.stats.thorns, (heroStats(sim).thorns + pl.bonus.flat.thorns) * 3);
   near(pl.stats.attack, heroStats(sim).attack * 0.7);

@@ -52,7 +52,7 @@ export function crossValidate(runs) {
       uniform: evaluate(test, () => 0), first: evaluate(test, (_, i) => i === 0 ? 3 : 0),
       legacy: evaluate(test, (f, i, s) => {
         const c = s.cards[i];
-        const passive = { attack: 4, haste: 3.5, max_hp: 3, armor: 3, regen: 2.5,
+        const passive = { attack: 4, haste: 3.5, max_hp: 3, armor: 3, resistance: 3, regen: 2.5,
           speed: 2.5, crit: 2.5, pickup: 2, luck: 1 };
         const pref = { blade_arc: 1, storm_chain: 0.9, throwing_daggers: 0.8,
           guardian_shields: 0.7, war_axe: 0.5, firebomb: 0.5, holy_ground: 0.1 };

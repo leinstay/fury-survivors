@@ -21,10 +21,11 @@ export function recipeProfiles() {
 // Вес прибавляется к оценке карточки пассивки; glass — весь фокус в урон, tank — в защиту, mid — без перекоса.
 export const BUILD_BIAS = {
   glass: { attack: 3, magic: 3, crit: 3, crit_dmg: 3, haste: 2.5, area: 2, duration: 1.5,
-    max_hp: -4, armor: -4, regen: -4, dodge: -4, thorns: -4, speed: -1, pickup: -1, luck: 1 },
+    max_hp: -4, resistance: -4, regen: -4, dodge: -4, thorns: -4, speed: -1, pickup: -1,
+    luck: 1 },
   mid: {},
   // tank: 4 защитные пассивки (как «полный» билд в defense.mjs), остальные слоты как у mid
-  tank: { max_hp: 3, armor: 3, regen: 3, dodge: 3 },
+  tank: { max_hp: 3, resistance: 3, regen: 3, dodge: 3 },
 };
 export const BUILD_PROFILES = Object.keys(BUILD_BIAS).map((build) => ({ id: build, build,
   intent: 'evolution', collection: 'opportunistic', reaction: 0.28, courage: 0.8, temperature: 0.7 }));

@@ -47,7 +47,7 @@ test('combo: evolution takes the slot of the first part, second part is removed'
 });
 
 test('combo: chest without evolution gives upgrade, passive upgrade or heal', () => {
-  const p = { weapons: [maxed('blade_arc')], passives: [{ id: 'armor', level: 1 }] };
+  const p = { weapons: [maxed('blade_arc')], passives: [{ id: 'resistance', level: 1 }] };
   const it = chestItems(p, createRng(2))[0];
   assert.equal(it.kind, 'passive');
   assert.equal(it.level, 2);
@@ -271,28 +271,35 @@ test('dodge avoids contact and shots (event dodge), not telegraphed slams', () =
   assert.equal(a.rng.state, state);
 });
 
-test('thorns hit every enemy on screen for thorns × attack, with an internal cooldown', () => {
+test('thorns hit every non-boss enemy on screen for a share of its max HP, with an internal cooldown', () => {
   const sim = createSim({ seed: 85 });
   sim.director = { update() {} };
   const pl = sim.player;
   god(sim);
-  pl.stats.thorns = 10;
-  pl.stats.attack = 1.5;
-  pl.stats.crit = 0;
+  pl.stats.thorns = 0.1;
+  pl.stats.attack = 1.5; // атака на шипы не влияет
+  pl.stats.crit = 1;     // и крита у шипов нет
   const near = sim.spawnEnemy('slime', pl.x + 100, pl.y);
+  const big = sim.spawnEnemy('lamia', pl.x - 100, pl.y);
   const far = sim.spawnEnemy('slime', pl.x + 2000, pl.y);
+  const boss = sim.spawnBoss('kitsune_empress');
+  boss.x = pl.x + 50; boss.y = pl.y;
   for (const e of [near, far]) e.hp = e.maxHp = 1e6;
+  big.hp = big.maxHp = 5e6;
+  const bossHp = boss.hp;
   sim.hurtPlayer(5, pl, 'slime');
-  assert.equal(near.hp, 1e6 - 15);
+  assert.equal(near.hp, 1e6 - 1e5);
+  assert.equal(big.hp, 5e6 - 5e5, 'scales with max HP');
   assert.equal(far.hp, 1e6, 'off screen');
+  assert.equal(boss.hp, bossHp, 'bosses are immune');
   assert.ok(sim.damageByWeapon.thorns > 0);
   pl.iframes = 0;
   sim.hurtPlayer(5, pl, 'slime');
-  assert.equal(near.hp, 1e6 - 15, 'cooldown');
+  assert.equal(near.hp, 1e6 - 1e5, 'cooldown');
   sim.time += COMBAT.thornsCooldown;
   pl.iframes = 0;
   sim.hurtPlayer(5, pl, 'slime');
-  assert.equal(near.hp, 1e6 - 30);
+  assert.equal(near.hp, 1e6 - 2e5);
 });
 
 const levelUp = (sim) => {

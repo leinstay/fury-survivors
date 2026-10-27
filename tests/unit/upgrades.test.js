@@ -61,10 +61,10 @@ test('upgrades: applyCard levels up and adds', () => {
   const p = fresh();
   applyCard(p, { kind: 'weapon', id: 'blade_arc', level: 2 });
   applyCard(p, { kind: 'weapon', id: 'war_axe', level: 1 });
-  applyCard(p, { kind: 'passive', id: 'armor', level: 1 });
-  applyCard(p, { kind: 'passive', id: 'armor', level: 2 });
+  applyCard(p, { kind: 'passive', id: 'resistance', level: 1 });
+  applyCard(p, { kind: 'passive', id: 'resistance', level: 2 });
   assert.deepEqual(p.weapons.map((w) => [w.id, w.level]), [['blade_arc', 2], ['war_axe', 1]]);
-  assert.deepEqual(p.passives, [{ id: 'armor', level: 2 }]);
+  assert.deepEqual(p.passives, [{ id: 'resistance', level: 2 }]);
 });
 
 test('upgrades: evolution needs the weapon maxed and its passive, then replaces the weapon', () => {
@@ -123,12 +123,12 @@ test('upgrades: chest without evolution upgrades an owned weapon', () => {
 });
 
 test('weapons consumed by an evolution are not offered again, its passive still levels', () => {
-  const player = { weapons: [{ id: 'aegis_bastion', level: 1 }], passives: [{ id: 'armor', level: 1 }] };
+  const player = { weapons: [{ id: 'aegis_bastion', level: 1 }], passives: [{ id: 'resistance', level: 1 }] };
   const pool = buildPool(player, null);
   const ids = pool.filter((c) => c.kind === 'weapon').map((c) => c.id);
   assert.ok(!ids.includes('guardian_shields'));
   assert.ok(ids.includes('throwing_daggers'));
-  assert.ok(pool.some((c) => c.kind === 'passive' && c.id === 'armor' && c.level === 2));
+  assert.ok(pool.some((c) => c.kind === 'passive' && c.id === 'resistance' && c.level === 2));
 });
 
 test('upgrades: passives with minLevel wait for the team level', () => {

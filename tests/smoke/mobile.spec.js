@@ -160,7 +160,7 @@ test.describe('mobile landscape', () => {
     expect((await bagOf(page)).length).toBe(1);
     await tapItem(page, 'Inventory', 'load:0');
     expect((await bagOf(page)).length).toBe(2);
-    // герой статов: тап по правой части переключателя — следующий, по левой — предыдущий
+    // герой статов: тап по имени — следующий (по кругу: два тапа при двух героях — снова первый)
     const sw = await page.evaluate(() => {
       const s = window.__game.game.scene.getScene('Inventory');
       const it = s.nav.items.find((i) => i.key === 'hero');
@@ -205,7 +205,11 @@ test.describe('mobile landscape', () => {
     await tapItem(page, 'Codex', 'Back');
     await page.waitForFunction(() => window.__game.debug().scene === 'Menu');
 
-    // ---------- кооп: вид в меню и лобби ----------
+    // ---------- кооп: Play → Co-op, лобби ----------
+    await tapItem(page, 'Menu', 'Play');
+    await page.waitForFunction(() => window.__game.game.scene.getScene('Menu').view === 'play');
+    await page.waitForTimeout(200);
+    await shot(page, 'play');
     await tapItem(page, 'Menu', 'Co-op');
     await page.waitForFunction(() => window.__game.game.scene.getScene('Menu').view === 'coop');
     await page.waitForTimeout(200);
@@ -221,9 +225,15 @@ test.describe('mobile landscape', () => {
     await page.evaluate(() => window.__game.game.scene.getScene('Lobby').scene.start('Menu'));
     await page.waitForFunction(() => window.__game.debug().scene === 'Menu');
 
-    // ---------- забег: выбор героя тапом, джойстик ----------
+    // ---------- забег: Play → Solo → сложность → герой тапом, джойстик ----------
     await page.evaluate(() => { window.__furyTestSeed = 1111; });
     await tapItem(page, 'Menu', 'Play');
+    await page.waitForFunction(() => window.__game.game.scene.getScene('Menu').view === 'play');
+    await tapItem(page, 'Menu', 'Solo');
+    await page.waitForFunction(() => window.__game.game.scene.getScene('Menu').view === 'difficulty');
+    await page.waitForTimeout(200);
+    await shot(page, 'difficulty');
+    await tapItem(page, 'Menu', 'Normal');
     await page.waitForFunction(() => window.__game.game.scene.getScene('Menu').view === 'hero');
     await page.waitForTimeout(200);
     await shot(page, 'hero');
@@ -232,9 +242,6 @@ test.describe('mobile landscape', () => {
       return { x: it.x, y: it.y };
     });
     await tapWorld(page, heroCard.x, heroCard.y);
-    await page.waitForFunction(() => window.__game.game.scene.getScene('Menu').view === 'difficulty');
-    await shot(page, 'difficulty');
-    await tapItem(page, 'Menu', 'Normal');
     await page.waitForFunction(() => window.__game.debug().scene === 'Game');
     const p0 = await page.evaluate(() => {
       const p = window.__game.game.scene.getScene('Game').sim.player;
@@ -278,6 +285,14 @@ test.describe('mobile landscape', () => {
     await shot(page, 'pause-inventory');
     await tapItem(page, 'Pause', 'Back');
     await page.waitForFunction(() => window.__game.game.scene.getScene('Pause').view === 'main');
+    // ачивки поверх паузы и назад в паузу
+    await tapItem(page, 'Pause', 'Achievements');
+    await page.waitForFunction(() => window.__game.debug().scenes.includes('Achievements'));
+    await page.waitForTimeout(200);
+    await shot(page, 'pause-achievements');
+    await tapItem(page, 'Achievements', 'Back');
+    await page.waitForFunction(() => !window.__game.debug().scenes.includes('Achievements'));
+    await page.waitForTimeout(100);
     await tapItem(page, 'Pause', 'Resume');
     await page.waitForFunction(() => !window.__game.debug().scenes.includes('Pause'));
 

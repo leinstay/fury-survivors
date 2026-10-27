@@ -49,6 +49,7 @@ function flagMap(raw, ok) {
 
 /**
  * Состояние из сохранения. Неизвестные id и битые числа отброшены. null — схема новее нашей.
+ * Убранные ачивки (last_breath) в старых сохранениях — тоже неизвестные id: запись отбрасывается.
  * @param {*} raw
  * @return {?Object}
  */
@@ -119,7 +120,6 @@ export function achievementParams(id) {
     n: d.target ?? '',
     s: d.seconds ?? '',
     e: d.enemies ?? '',
-    p: d.hpBelow != null ? Math.round(d.hpBelow * 100) : '',
     all: id === 'evolutionist' ? evolvedIds().length : '',
   };
 }
@@ -174,8 +174,6 @@ const CHECKS = {
   untouchable: (s, run) => !!run && run.untouchableMax >= ACHIEVEMENTS.untouchable.seconds,
   ascetic: (s, run) => !!run && run.time >= ACHIEVEMENTS.ascetic.seconds &&
     run.xpPickedBefore120 === 0,
-  last_breath: (s, run) => !!run &&
-    run.bossesKilled.some((b) => b.hp > 0 && b.hp < ACHIEVEMENTS.last_breath.hpBelow),
   no_safety: (s, run) => !!run && run.won && run.rerolls + run.skips + run.banishes === 0,
   evolutionist: (s) => {
     const ids = evolvedIds();
@@ -336,7 +334,6 @@ export function achievementProgress(state, id, ctx = null) {
   if (!state || !known(id)) return null;
   const max = (v) => ({ cur: Math.min(v, target(id)), max: target(id) });
   switch (id) {
-    case 'medic': return max(state.counters.medic);
     case 'recycler': return max(state.counters.disassembled);
     case 'chaos_alchemist': return max(state.counters.rerolls);
     case 'smith': return max(state.counters.enchantMax);

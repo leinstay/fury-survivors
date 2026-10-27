@@ -9,6 +9,7 @@ import { spriteScale } from './density.js';
 import { Zones } from './zones.js';
 import { ReaperFx } from './reaper.js';
 import { isSlowed } from '../behaviors/status.js';
+import { STATUS } from '../data/status.js';
 import { lowQuality, getSetting } from '../ui/settings.js';
 
 // Позиции и камера округляются в пиксели экрана (1 / RENDER_ZOOM пикселя мира) одним способом: тогда разница
@@ -22,7 +23,8 @@ const PROJ_DEPTH = 200000;
 const GROUND_DEPTH = -150000; // зоны на земле: над цветами и травой, под предметами и персонажами
 const TELEGRAPH_DEPTH = GROUND_DEPTH + 1e4; // предупреждения об ударах босса
 const REAPER_DEPTH = GROUND_DEPTH + 5e3;    // круги и часы Жницы: под предупреждениями
-const SLOW_TINT = 0xa8dcff;                 // замедленный враг (behaviors/status.js): светло-голубой
+const SLOW_TINT = STATUS.chill.tint;         // замедленный враг (статус chill, behaviors/status.js): голубой
+// враг под ДоТом не подкрашивается: статус виден по числам тиков (fx.js)
 
 // Параметры свечения элит; цвет можно задать врагу в data (elite.glow).
 const ELITE_GLOW = {

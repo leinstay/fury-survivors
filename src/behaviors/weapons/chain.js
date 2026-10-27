@@ -1,5 +1,6 @@
-// Storm Chain: молния бьёт ближайшего врага и перескакивает на соседей. Урон мгновенный, снаряды только для вида,
-// поэтому разрушаемые объекты молния ломает сама: те, что на её пути, а без врагов рядом бьёт ближайший объект.
+// Storm Chain: молния бьёт ближайшую цель и перескакивает на соседей. Цель — враг или разрушаемый объект
+// (sim.nearestTarget, объект наравне с врагом): объект на конце звена ломается, и молния прыгает дальше от него.
+// Урон мгновенный, снаряды только для вида, поэтому объекты молния ломает сама: и на пути звена тоже.
 import { WEAPON_BEHAVIOR } from '../../data/weapons.js';
 
 const { visualLife: VISUAL_LIFE, linkStep: LINK_STEP, maxLinks: MAX_LINKS, propWidth: PROP_WIDTH } =
@@ -28,30 +29,25 @@ export const chain = {
     if (w.cooldown > 0) return;
     const P = w.params;
     const pl = w.owner;
-    const first = sim.nearestEnemy(pl.x, pl.y, P.range);
-    if (!first) {
-      const prop = sim.nearestProp(pl.x, pl.y, P.range);
-      if (!prop) { w.cooldown = 0.15; return; }
-      w.cooldown = P.cooldown;
-      segment(sim, pl.x, pl.y, prop.x, prop.y, w.def.sprite);
-      sim.hitPropsOnSegment(pl.x, pl.y, prop.x, prop.y, PROP_WIDTH, sim.nextStamp());
-      sim.events.push({ type: 'weaponFire', weapon: w.id });
-      return;
-    }
-    w.cooldown = P.cooldown;
     const stamp = sim.nextStamp();
+    const first = sim.nearestTarget(pl.x, pl.y, P.range, stamp);
+    if (!first) { w.cooldown = 0.15; return; }
+    w.cooldown = P.cooldown;
     for (let b = 0; b < P.amount; b++) {
-      let cur = b === 0 ? first : sim.nearestEnemy(pl.x, pl.y, P.range, stamp);
+      let cur = b === 0 ? first : sim.nearestTarget(pl.x, pl.y, P.range, stamp);
       if (!cur) break;
       let x = pl.x;
       let y = pl.y;
       for (let j = 0; j <= P.jumps && cur; j++) {
-        cur.mark = stamp;
         segment(sim, x, y, cur.x, cur.y, w.def.sprite);
-        sim.hitPropsOnSegment(x, y, cur.x, cur.y, PROP_WIDTH, stamp);
-        sim.damageEnemy(cur, P.damage, w.id, P.knockback || 0, x, y, w.owner, `chain:${w.slot}`);
+        sim.hitPropsOnSegment(x, y, cur.x, cur.y, PROP_WIDTH, stamp); // объект-цель на конце звена тоже
+        cur.mark = stamp;
+        if (!cur.breakable) {
+          sim.damageEnemy(cur, P.damage, w.id, P.knockback || 0, x, y, w.owner, `chain:${w.slot}`,
+              P.status);
+        }
         x = cur.x; y = cur.y;
-        cur = sim.nearestEnemy(x, y, P.area, stamp);
+        cur = sim.nearestTarget(x, y, P.area, stamp);
       }
     }
     sim.events.push({ type: 'weaponFire', weapon: w.id });

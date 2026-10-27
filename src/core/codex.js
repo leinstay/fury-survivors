@@ -15,7 +15,7 @@
 // В коопе всё своё: свои убийства (kill.by), удары по себе, свои подборы и урон; увиденное — общее.
 import { CODEX } from '../data/codex.js';
 import { WEAPONS } from '../data/weapons.js';
-import { PASSIVES } from '../data/passives.js';
+import { PASSIVES, PASSIVE_RENAMES } from '../data/passives.js';
 import { ENEMIES } from '../data/enemies.js';
 import { BOSSES } from '../data/bosses.js';
 import { DEFAULT_HERO } from '../data/heroes.js';
@@ -77,10 +77,16 @@ function numMap(raw, keyOk = (k) => k.length <= 40) {
   return out;
 }
 
-function levelList(raw) {
+// Старый id пассивки (PASSIVE_RENAMES: armor -> resistance) в новый.
+function renamed(id) {
+  return Object.prototype.hasOwnProperty.call(PASSIVE_RENAMES, id) ? PASSIVE_RENAMES[id] : id;
+}
+
+function levelList(raw, rename = false) {
   if (!Array.isArray(raw)) return [];
   return raw.filter((it) => Array.isArray(it) && typeof it[0] === 'string')
-      .slice(0, 12).map((it) => [it[0].slice(0, 40), Math.max(1, Math.floor(num(it[1])))]);
+      .slice(0, 12).map((it) => [rename ? renamed(it[0].slice(0, 40)) : it[0].slice(0, 40),
+        Math.max(1, Math.floor(num(it[1])))]);
 }
 
 // Итоги по зонам: { stageId: { runs, wins, best, time } }. Старый кодекс без зон: всё уже сыгранное — лес.
@@ -110,7 +116,7 @@ export function normalizeRun(r) {
     kills: Math.floor(num(r.kills)),
     coins: Math.floor(num(r.coins)), score: Math.floor(num(r.score)), dist: num(r.dist),
     damage: numMap(r.damage), held: numMap(r.held),
-    weapons: levelList(r.weapons), passives: levelList(r.passives),
+    weapons: levelList(r.weapons), passives: levelList(r.passives, true),
   };
 }
 
@@ -128,7 +134,10 @@ export function normalizeCodex(raw) {
   for (const kind of CODEX_KINDS) {
     const s = seen[kind];
     if (!s || typeof s !== 'object') continue;
-    for (const id of Object.keys(s)) if (s[id] && known(kind, id)) c.seen[kind][id] = 1;
+    for (const old of Object.keys(s)) {
+      const id = kind === 'passive' ? renamed(old) : old;
+      if (s[old] && known(kind, id)) c.seen[kind][id] = 1;
+    }
   }
   const foes = raw.foes && typeof raw.foes === 'object' ? raw.foes : {};
   for (const id of Object.keys(foes)) {

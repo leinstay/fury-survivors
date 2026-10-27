@@ -13,14 +13,15 @@ vendor/phaser.min.js       Phaser 3.90.0, лежит в репо, не CDN
 src/
   main.js                  конфиг Phaser (холст 1280x720, мир 640x360 через zoom 2), список сцен
   data/                    ВЕСЬ БАЛАНС И КОНТЕНТ. Логику тут не пишем
-    constants.js           глобальные числа: лимиты врагов, i-frames, магнит, кривая опыта, SIM (тик), NET (lockstep)
+    constants.js           глобальные числа: лимиты врагов, i-frames, магнит, кривая опыта, SIM (тик), NET (lockstep), CLEAR (рамка метрики клира)
     difficulty.js          сложности: normal, cursed (spawnMul)
     coop.js                кооп: множители спавна и HP врагов, слоты, оживание
     net.js                 сеть: комнаты Firestore (код, таймауты), STUN
     leaderboard.js         таблица: лимиты ника, пара ников, кулдаун
     codex.js               кодекс: история (maxRuns), px на метр, радиус «увидел», минимум для quit
     telemetry.js           телеметрия для баланса: коллекция fury_runs, шаг срезов, лимиты
-    stats.js               статы героя: процентные (increased/more) и плоские, капы
+    stats.js               статы героя: процентные (increased/more) и плоские, капы (resistance процентом)
+    status.js              статусы врагов: poison (стаки), burning, bleeding (доля удара за время), chill (замедление без урона)
     items.js               предметы: типы и формы, аффиксы, редкости, таблицы сундуков, уникалки, крафт, сумка, стеш
     achievements.js        ачивки: условия, награды (валюта, столбцы и ряд сумки), постоянный бонус к стату, хранение
     heroes.js              герои: статы, стартовое оружие, спрайт (heroine мечница, mage магесса); выбор в меню и лобби
@@ -52,8 +53,10 @@ src/
     codex.js               кодекс: трекер забега (события, кадры), mergeRun, normalizeCodex
     telemetry.js           телеметрия забега: срезы раз в минуту (уровень, урон и замах по оружию), выборы карточек (sim.pickLog), уровни, боссы, причина смерти
   behaviors/
-    weapons/<type>.js      melee_arc, projectile, orbit, aura, boomerang, chain, area_drop, beam, summon
-    status.js              статусы врагов (замедление)
+    weapons/<type>.js      melee_arc, projectile, orbit, aura, boomerang, chain, area_drop (бомба, метеор, мины), beam (случайные лучи),
+                           summon, cloud (облако яда), slam (молот: удар кругом и трещина), impale (копьё: пробивает и пригвождает),
+                           ice_orb (ледяной шар: пробивает всех и морозит)
+    status.js              статусы врагов по src/data/status.js: тики ДоТов, замедление, корень
     enemies/<type>.js      chase, dash, ranged, swarm, phase, boss, drift (стена и пролёт: прямой курс, исчезает за краем)
   render/                  Phaser-слой: синхронизирует спрайты с sim, анимация, эффекты; decor.js декор с логикой расстановки, roads.js песок дорог по чанкам; reaper.js круги и часы Жницы
     anim.js                процедурная ходьба/покачивание/наклон/вспышка/смерть
@@ -95,7 +98,10 @@ tools/                     локальные скрипты Node, в игру �
   firestore-cleanup.mjs    чистка Firestore (Spark без TTL): отчёт по месту, --apply архивирует старые забеги и удаляет их и брошенные лобби (docs/FIRESTORE.md)
   telemetry/               export (выгрузка fury_runs), audit (сессии, остаток сборки по минутам), holdout, weapons, movement, food, audit-chart
   simulation/audit-bots.mjs когорта ботов с телеметрией той же схемы; результаты аудита: docs/BALANCE_AUDIT.md
-  simulation/bags.mjs, targets.mjs  генератор сумки T2 для ботов; доли убийств боссов, окно смертей, урон по оружию (цели META 1.1)
+  simulation/bags.mjs, targets.mjs  генератор сумки T2 для ботов; цели META 1.1: клир и лестница
+  simulation/clear.mjs, defense.mjs, ladder.mjs  метрика клира (жизнь моба от входа в рамку CLEAR, врагов в рамке), запас ударов защиты
+                           на бумаге, лестница оружия по дальности и квиркам (цель vs факт)
+  telemetry/hits.mjs       удары в минуту и движение у людей из выгрузки fury_runs
   gen-ledger.json          учёт трат на генерацию
 tests/
   unit/                    node --test: grid, stats, upgrades, data-валидация

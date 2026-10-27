@@ -3,6 +3,7 @@
 // Все пулы кольцевые и ограниченные (самые старые переиспользуются), поэтому без утечек и без просадок fps.
 import { SPRITES } from '../../assets/sprites/manifest.js';
 import { GAME_WIDTH, GAME_HEIGHT, FX, LOW_QUALITY } from '../data/constants.js';
+import { STATUS, DOT_TEXT } from '../data/status.js';
 import { textStyle } from '../ui/style.js';
 import { spriteScale } from './density.js';
 import { getSetting, lowQuality } from '../ui/settings.js';
@@ -99,6 +100,7 @@ export class Fx {
     for (const ev of events) {
       switch (ev.type) {
         case 'hit': this._hit(ev); break;
+        case 'dot': this._dot(ev); break;
         case 'kill': this._kill(ev); break;
         case 'playerHurt': this.shake(...FX.shake.hurt); break;
         case 'bossSpawn': this.shake(...FX.shake.boss); break;
@@ -135,10 +137,8 @@ export class Fx {
     const t = this.texts.acquire();
     const size = ev.crit ? c.critSize : c.size;
     if (t.fxSize !== size) { t.setFontSize(size); t.fxSize = size; }
-    if (t.fxCrit !== !!ev.crit) {
-      t.setColor(ev.crit ? c.critColor : c.color);
-      t.fxCrit = !!ev.crit;
-    }
+    const color = ev.crit ? c.critColor : c.color;
+    if (t.fxColor !== color) { t.setColor(color); t.fxColor = color; }
     t.setText(String(ev.amount));
     t.life = c.life;
     t.baseX = Math.round(ev.x + (Math.random() - 0.5) * 10);
@@ -147,6 +147,21 @@ export class Fx {
     const s = FX.sparks;
     const n = s.min + Math.floor(Math.random() * (s.max - s.min + 1));
     this._burst(ev.x, ev.y - 4, n, s.speed, s.life, [ev.crit ? s.critColor : s.color], 1, 'fx_px');
+  }
+
+  // Тик ДоТа: число мельче (DOT_TEXT) цветом статуса (STATUS[type].text), без искр.
+  _dot(ev) {
+    const def = STATUS[ev.status];
+    const t = this.texts.acquire();
+    const size = DOT_TEXT.size;
+    if (t.fxSize !== size) { t.setFontSize(size); t.fxSize = size; }
+    const color = def ? def.text : FX.dmgText.color;
+    if (t.fxColor !== color) { t.setColor(color); t.fxColor = color; }
+    t.setText(String(ev.amount));
+    t.life = FX.dmgText.life;
+    t.baseX = Math.round(ev.x + (Math.random() - 0.5) * 12);
+    t.baseY = Math.round(ev.y - 6);
+    t.setPosition(t.baseX, t.baseY).setAlpha(1).setVisible(true);
   }
 
   _kill(ev) {

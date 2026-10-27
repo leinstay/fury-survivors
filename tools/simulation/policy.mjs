@@ -52,7 +52,7 @@ export function createPolicy({ seed = 1, profile, evolution = true, model = MODE
     if (recipe?.from.includes(c.id)) v += 1.7;
     if (c.id === target) v += 4;
     if (profile.intent === 'focus' && c.id === focus) v += 2.4;
-    if (profile.intent === 'defensive' && ['armor', 'regen', 'max_hp'].includes(c.id)) v += 1.5;
+    if (profile.intent === 'defensive' && ['resistance', 'regen', 'max_hp'].includes(c.id)) v += 1.5;
     if (profile.build && c.kind === 'passive') {
       v += BUILD_BIAS[profile.build][c.id] || 0;
       // glass: урон своего типа (большинство оружия attack или magic), чужой тип почти не нужен
@@ -62,10 +62,11 @@ export function createPolicy({ seed = 1, profile, evolution = true, model = MODE
         v += c.id === main ? 1.5 : -4;
       }
     }
-    if (!profile.build && o.self.hp / o.self.maxHp < 0.35 && ['armor', 'regen', 'max_hp'].includes(c.id)) v += 0.9;
+    if (!profile.build && o.self.hp / o.self.maxHp < 0.35 && ['resistance', 'regen', 'max_hp'].includes(c.id)) v += 0.9;
     return v;
   };
   const choose = (o) => {
+    if (profile.allow && o.chest.length) return { k: 'skipChest' }; // лаборатория: без эволюций
     intent(o);
     if (o.chest.length) {
       if (!evolution) return { k: 'skipChest' };
@@ -73,6 +74,17 @@ export function createPolicy({ seed = 1, profile, evolution = true, model = MODE
       return { k: 'chest', i };
     }
     if (!o.cards.length) return null;
+    // Лаборатория одного оружия (ladder.mjs --lab): берёт только пассивки из profile.allow (и лечение),
+    // остальное изгоняет, потом реролл, потом пропуск (слоты оружия режет fixture.weaponSlots).
+    if (profile.allow) {
+      const ok = o.cards.map((c, i) => ({ c, i })).filter(({ c }) => c.kind === 'heal' ||
+        (c.kind === 'passive' && profile.allow.includes(c.id)));
+      if (ok.length) return { k: 'card', i: ok[choiceRng.int(ok.length)].i };
+      if (o.budgets.banish > 0) return { k: 'banish', i: 0 };
+      if (o.budgets.reroll > 0) return { k: 'reroll' };
+      if (o.budgets.skip > 0) return { k: 'skip' };
+      return { k: 'card', i: 0 };
+    }
     const scores = o.cards.map((c) => value(c, o));
     const desired = COMBOS.find((c) => c.result === target)?.from || [focus];
     const useful = o.cards.some((c) => desired.includes(c.id));

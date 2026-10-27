@@ -3,6 +3,9 @@ import { COMBOS } from '../../src/data/combos.js';
 import { WEAPONS } from '../../src/data/weapons.js';
 import { HEROES } from '../../src/data/heroes.js';
 
+// Стартовое оружие героев в старых забегах (до смены стартового оружия магессы на wisp).
+const LEGACY_START = { heroine: 'blade_arc', mage: 'storm_chain' };
+
 export function decodeRun(run) {
   const out = structuredClone(run);
   if (out.detail) {
@@ -83,7 +86,9 @@ export function normalizeRun(run, index = 0) {
   const r = decodeRun(run);
   const errors = validateRun(r);
   if (errors.length) throw new Error(errors.join('; '));
-  const b = { w: [[HEROES[r.hero]?.startWeapon || 'blade_arc', 1]], p: [] };
+  // Стартовое оружие: из initial (v2+), иначе по герою на момент забега (магесса до 27.10.2026 — молния).
+  const start = r.initial?.w?.[0]?.[0] || LEGACY_START[r.hero] || HEROES[r.hero]?.startWeapon || 'blade_arc';
+  const b = { w: [[start, 1]], p: [] };
   const decisions = [];
   const ownership = b.w.map(([id]) => ({ id, start: 0, end: null }));
   const grant = (card, at) => {

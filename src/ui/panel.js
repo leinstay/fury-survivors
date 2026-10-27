@@ -29,6 +29,13 @@ export function addPanel(scene, x, y, w, h, opts = {}) {
       this.draw(f ? PANEL.fillFocus : this.colors.fill, f ? PANEL.borderFocus : this.colors.border);
       return this;
     },
+    // Общие состояния всех экранов: фокус / наведение — жёлтая рамка (главнее), выбранное или
+    // активное (вкладка, вариант, выбранная награда) — зелёная, остальное — обычная рамка.
+    setState(focused, selected) {
+      if (focused || !selected) return this.setFocus(focused);
+      this.draw(PANEL.fillFocus, PANEL.borderSelected);
+      return this;
+    },
     setAlpha(a) { g.setAlpha(a); return this; },
     setDepth(d) { g.setDepth(d); return this; },
     destroy() { g.destroy(); },

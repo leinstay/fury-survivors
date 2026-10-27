@@ -15,18 +15,18 @@ test('stats: no passives returns base stats and does not mutate base', () => {
 });
 
 test('stats: percent stats multiply the base, flat stats add', () => {
-  const s = computeStats(base, [{ id: 'max_hp', level: 2 }, { id: 'crit', level: 3 }, { id: 'armor', level: 5 }]);
+  const s = computeStats(base, [{ id: 'max_hp', level: 2 }, { id: 'crit', level: 3 }, { id: 'resistance', level: 5 }]);
   assert.ok(near(s.maxHp, base.maxHp * (1 + PASSIVES.max_hp.levels[1])));
   assert.ok(near(s.crit, base.crit + PASSIVES.crit.levels[2]));
-  assert.equal(s.armor, base.armor + PASSIVES.armor.levels[4]);
+  assert.ok(near(s.resistance, base.resistance + PASSIVES.resistance.levels[4]));
 });
 
 test('stats: increased sums, more multiplies, extra flat adds (PoE style)', () => {
   // attack: пассивка 5 (+50%) и шмот +30% — одна сумма; more ×1.2 и ×1.5 — произведение
   const s = computeStats(base, [{ id: 'attack', level: 5 }], {},
-      { inc: { attack: 0.3 }, more: { attack: 1.2 * 1.5 }, flat: { armor: 2, crit: 0.1 } });
+      { inc: { attack: 0.3 }, more: { attack: 1.2 * 1.5 }, flat: { resistance: 0.2, crit: 0.1 } });
   assert.ok(near(s.attack, base.attack * (1 + PASSIVES.attack.levels[4] + 0.3) * 1.2 * 1.5));
-  assert.equal(s.armor, base.armor + 2);
+  assert.ok(near(s.resistance, base.resistance + 0.2));
   assert.ok(near(s.crit, base.crit + 0.1));
   // источники без extra не меняют результат
   assert.deepEqual(computeStats(base, [], {}, null), computeStats(base, []));

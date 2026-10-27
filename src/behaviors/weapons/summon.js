@@ -23,7 +23,7 @@ function addWisp(w, sim) {
 
 function shoot(p, w, sim) {
   const P = w.params;
-  const t = sim.nearestEnemy(p.x, p.y, S.targetRange) || sim.nearestProp(p.x, p.y, S.targetRange);
+  const t = sim.nearestTarget(p.x, p.y, S.targetRange); // враг или разрушаемый объект
   if (!t) return false;
   const a = Math.atan2(t.y - p.y, t.x - p.x);
   const s = sim.addProjectile('player', w.def.shot);

@@ -8,6 +8,10 @@ import { chain } from './weapons/chain.js';
 import { areaDrop } from './weapons/area_drop.js';
 import { beam } from './weapons/beam.js';
 import { summon } from './weapons/summon.js';
+import { cloud } from './weapons/cloud.js';
+import { slam } from './weapons/slam.js';
+import { impale } from './weapons/impale.js';
+import { iceOrb } from './weapons/ice_orb.js';
 
 import { chase } from './enemies/chase.js';
 import { dash } from './enemies/dash.js';
@@ -27,6 +31,10 @@ export const WEAPON_BEHAVIORS = {
   area_drop: areaDrop,
   beam,
   summon,
+  cloud,
+  slam,
+  impale,
+  ice_orb: iceOrb,
 };
 
 export const ENEMY_BEHAVIORS = { chase, dash, ranged, swarm, phase, boss, drift };

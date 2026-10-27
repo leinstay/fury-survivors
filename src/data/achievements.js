@@ -11,9 +11,9 @@
 //   hidden: true,     // необязательно: описание скрыто до получения
 //   bonus: { stat: v },  // постоянный бонус к статам героя во всех забегах (src/data/stats.js):
 //                        //   процентные — increased (0.02 = +2%), плоские — прибавка (crit 0.01 = +1% шанса,
-//                        //   armor 0.5, regen 0.05 HP/с). Складывается с пассивками и сумкой, капы общие.
+//                        //   resistance 0.02 = −2% удара, regen 0.05 HP/с). Складывается с пассивками и сумкой, капы общие.
 //                        //   amount нельзя (только в уровнях оружия). Сумма всех ≈ 6–7 уровней пассивок.
-//   ...параметры условия (boss, seconds, enemies, hpBelow)
+//   ...параметры условия (boss, seconds, enemies)
 // }
 // Порядок записей = порядок в списке ачивок.
 
@@ -39,8 +39,6 @@ export const ACHIEVEMENTS = {
     bonus: { dodge: 0.01 } },
   ascetic: { category: 'challenge', reward: { crystals: 10 }, seconds: 120,       // без опыта первые N с
     bonus: { xpGain: 0.02 } },
-  last_breath: { category: 'challenge', reward: { crystals: 10 }, hpBelow: 0.05,  // босс при HP < доли
-    bonus: { armor: 0.5 } },
   no_safety: { category: 'challenge', reward: { hearts: 1 },                     // победа без reroll/skip/banish
     bonus: { luck: 0.02 } },
 
@@ -64,19 +62,19 @@ export const ACHIEVEMENTS = {
   smith: { category: 'craft', reward: { scrolls: 1 }, target: 7,              // заточка до +N
     bonus: { attack: 0.02, magic: 0.02 } },
   broke_it: { category: 'craft', reward: { crystals: 10 }, target: 1,         // сломано заточкой
-    bonus: { thorns: 2 } },
+    bonus: { thorns: 0.01 } },
   chaos_alchemist: { category: 'craft', reward: { hearts: 1 }, target: 50,    // перекатов (крафт)
     bonus: { critDmg: 0.05 } },
 
   // ---------- кооп ----------
   side_by_side: { category: 'coop', reward: { hearts: 1 }, target: 3,         // боссов за кооп-забег
     bonus: { maxHp: 0.03 } },
-  // поднять напарника: засчитывается, если свой герой простоял у гроба не меньше nearSeconds
-  // (рядом таймер гроба идёт в COOP.allyBoost раз быстрее)
-  medic: { category: 'coop', reward: { crystals: 10 }, target: 5, nearSeconds: 1,
+  // поднять напарника: засчитывается, если свой герой хоть раз постоял у гроба (COOP.allyRadius),
+  // пока тот лежал (рядом таймер гроба идёт в COOP.allyBoost раз быстрее)
+  medic: { category: 'coop', reward: { crystals: 10 }, target: 1,
     bonus: { regen: 0.05 } },
   no_one_left: { category: 'coop', reward: { hearts: 1 },                     // кооп-победа, никто не пал
-    bonus: { armor: 0.5 } },
+    bonus: { resistance: 0.02 } },
 
   // ---------- забавные ----------
   // кристаллов на земле при подборе своего магнита. Выше XP.mergeAbove далёкие кристаллы сливаются, поэтому

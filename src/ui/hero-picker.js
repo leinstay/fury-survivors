@@ -114,9 +114,7 @@ export function addHeroPicker(scene, nav, o) {
     const p = panels[id];
     focus[id] = focused;
     const sel = o.mark && id === selected;
-    if (focused) p.draw(PANEL.fillFocus, PANEL.borderFocus);
-    else if (sel) p.draw(PANEL.fillFocus, SELECTED);
-    else p.setFocus(false);
+    p.setState(focused, sel);
     if (checks[id]) checks[id].setVisible(sel);
     if (focused) showInfo(id);
     else if (info && !Object.values(focus).some(Boolean)) showInfo(selected);

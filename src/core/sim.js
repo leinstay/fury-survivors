@@ -13,6 +13,7 @@ import { PICKUPS } from '../data/pickups.js';
 import { forest } from '../data/stages/forest.js';
 import { DIFFICULTIES, DEFAULT_DIFFICULTY } from '../data/difficulty.js';
 import { WEAPON_BEHAVIORS, ENEMY_BEHAVIORS } from '../behaviors/index.js';
+import { applyStatus, updateDots } from '../behaviors/status.js';
 import { createRng, hashSeed } from './rng.js';
 import { Grid } from './grid.js';
 import { computeStats, critChance } from './stats.js';
@@ -24,7 +25,7 @@ import { rollChest, rollHearts, bossDrop } from './items.js';
 import {
   normalizeLoadout, loadoutUnique, loadoutExtra, applyUniqueRules, DICE_STATS, loadoutBonus,
 } from './loadout.js';
-import { initReaper, updateReaper, groundMul } from './reaper.js';
+import { initReaper, updateReaper, playerSpeed } from './reaper.js';
 
 const STAGES = { forest };
 const EMPTY = {};
@@ -184,6 +185,7 @@ class Sim {
       radius: PLAYER.radius,
       slots: { weapons: slots.weapons, passives: slots.passives },
       dead: false, coffinT: 0, revives: 0, dist: 0,
+      overtimeSlow: 0, // минус скорости от пропущенных часов Жницы (src/core/reaper.js), поверх stats.speed
       name: '',
       thornsAt: NEVER, // время последнего срабатывания шипов (стат thorns, COMBAT.thornsCooldown)
       // свои карточки и пул: набор текущего уровня (done — не его ход или уже выбрал), изгнанные, лимиты;
@@ -314,6 +316,7 @@ class Sim {
     if (this.coop) this._updateCoffins(dt); // после сетки: индексы врагов прошлого шага устарели
     this._updateWeapons(dt);
     this._updateProjectiles(dt);
+    updateDots(this);
     this._updateTelegraphs(dt);
     this._contactDamage();
     this._updatePickups(dt);
@@ -341,7 +344,7 @@ class Sim {
     if (len > 1) { ix /= len; iy /= len; }
     pl.moving = len > 0.05;
     if (pl.moving) {
-      const sp = pl.stats.speed * (this.hourglasses.length ? groundMul(this, pl) : 1);
+      const sp = playerSpeed(this, pl);
       pl.x += ix * sp * dt;
       pl.y += iy * sp * dt;
       pl.dist += Math.min(1, len) * sp * dt; // пройдено, px (кодекс)
@@ -447,6 +450,9 @@ class Sim {
         vx: 0, vy: 0, kx: 0, ky: 0, speed: 0, damage: 0, xp: 0, st: 0, a: 0, b: 0, t: 0, mark: 0,
         dead: false, def: null, params: EMPTY, beh: null, resist: 0, transient: false, vuln: false,
         hitAt: new Float64Array(SLOT_COUNT),
+        // замедление и ДоТы (behaviors/status.js), действуют, пока *Uid совпадает с uid
+        slowUid: 0, slowMul: 1, slowEnd: 0, rootUid: 0, rootEnd: 0,
+        dotUid: 0, dotNext: 0, pz: null, pzN: 0, burn: null, bleed: null,
       };
     }
     const mins = this.time / 60;
@@ -539,6 +545,24 @@ class Sim {
     for (let i = 0; i < props.length; i++) {
       const o = props[i];
       if (o.dead) continue;
+      const dx = o.x - x;
+      const dy = o.y - y;
+      const d2 = dx * dx + dy * dy;
+      if (d2 < bd) { bd = d2; best = o; }
+    }
+    return best;
+  }
+
+  // Ближайшая цель для самонаводящегося оружия: живой враг или целый разрушаемый объект (o.breakable) — из
+  // одного списка, объект выбирается наравне с врагом, если он ближе. mark !== 0 исключает отмеченных этим штампом.
+  nearestTarget(x, y, maxDist, mark = 0) {
+    const e = this.nearestEnemy(x, y, maxDist, mark);
+    const props = this.props;
+    let best = e;
+    let bd = e ? (e.x - x) * (e.x - x) + (e.y - y) * (e.y - y) : maxDist * maxDist;
+    for (let i = 0; i < props.length; i++) {
+      const o = props[i];
+      if (o.dead || (mark !== 0 && o.mark === mark)) continue;
       const dx = o.x - x;
       const dy = o.y - y;
       const d2 = dx * dx + dy * dy;
@@ -678,7 +702,9 @@ class Sim {
   }
 
   // Урон врагу. (sx, sy) — источник для направления отбрасывания; by — игрок-владелец оружия (крит по его статам).
-  damageEnemy(e, dmg, wid, kb, sx, sy, by = this.player, component = '') {
+  // status — поле status оружия ({type, chance}, src/data/status.js): после удара по живому врагу ДоТ от урона
+  // до крита.
+  damageEnemy(e, dmg, wid, kb, sx, sy, by = this.player, component = '', status = null) {
     // жница: урон не проходит (чисел урона нет), кроме как в освящённом круге при Библии (e.vuln)
     if (e.dead || (e.def.invulnerable && !e.vuln)) return;
     if (by.uqDmg) dmg *= this._uniqueDmg(by, e);
@@ -689,11 +715,7 @@ class Sim {
     const dealt = amount < e.hp ? amount : e.hp;
     e.hp -= amount;
     e.hitFlash = COMBAT.hitFlash;
-    this.damageByWeapon[wid] = (this.damageByWeapon[wid] || 0) + dealt;
-    this.dpsAcc[wid] = (this.dpsAcc[wid] || 0) + dealt;
-    by.damageByWeapon[wid] = (by.damageByWeapon[wid] || 0) + dealt;
-    by.dpsAcc[wid] = (by.dpsAcc[wid] || 0) + dealt;
-    by.rawByWeapon[wid] = (by.rawByWeapon[wid] || 0) + amount;
+    this._credit(by, wid, amount, dealt);
     by.hitsByWeapon[wid] = (by.hitsByWeapon[wid] || 0) + 1;
     this.events.push({ type: 'hit', x: e.x, y: e.y, amount: Math.max(1, Math.round(amount)), crit, weapon: wid });
     if (kb > 0 && e.resist < 1 && !e.boss) {
@@ -707,6 +729,31 @@ class Sim {
     this._telemetry('hit', e, by, wid, amount, dealt,
         kb > 0 && e.resist < 1 && !e.boss ? kb * (1 - e.resist) : 0, component);
     if (e.hp <= 0) this._killEnemy(e);
+    else if (status) applyStatus(e, this, status, dmg, wid, by);
+  }
+
+  // Урон тика ДоТа (behaviors/status.js): без крита, отбрасывания и вспышки; в статистику оружия wid игрока by
+  // (DPS, итоги, телеметрия), но не в число ударов. type — статус (событие 'dot' для чисел урона).
+  dotDamage(e, amount, wid, by, type) {
+    if (e.dead || (e.def.invulnerable && !e.vuln) || !(amount > 0)) return;
+    e.lastBy = by.id;
+    e.lastWid = wid;
+    const dealt = amount < e.hp ? amount : e.hp;
+    e.hp -= amount;
+    this._credit(by, wid, amount, dealt);
+    this.events.push({ type: 'dot', x: e.x, y: e.y, amount: Math.max(1, Math.round(amount)), status: type,
+      weapon: wid });
+    this._telemetry('dot', e, by, wid, amount, dealt, type);
+    if (e.hp <= 0) this._killEnemy(e);
+  }
+
+  // Урон оружия wid игрока by в счётчики забега и игрока (итоги, окно DPS, телеметрия).
+  _credit(by, wid, amount, dealt) {
+    this.damageByWeapon[wid] = (this.damageByWeapon[wid] || 0) + dealt;
+    this.dpsAcc[wid] = (this.dpsAcc[wid] || 0) + dealt;
+    by.damageByWeapon[wid] = (by.damageByWeapon[wid] || 0) + dealt;
+    by.dpsAcc[wid] = (by.dpsAcc[wid] || 0) + dealt;
+    by.rawByWeapon[wid] = (by.rawByWeapon[wid] || 0) + amount;
   }
 
   // Удача для дропа: лучшая среди живых игроков.
@@ -811,7 +858,7 @@ class Sim {
     }
   }
 
-  // Смерть от касания Жницы: мимо брони, уклонения, i-frames и last_chance.
+  // Смерть от касания Жницы: мимо сопротивления, уклонения, i-frames и last_chance.
   _oneShot(pl, src) {
     if (pl.dead || this.state !== 'running') return;
     const amount = Math.max(1, Math.ceil(pl.hp));
@@ -833,7 +880,8 @@ class Sim {
       this.events.push({ type: 'dodge', player: pl.id, x: pl.x, y: pl.y, src });
       return;
     }
-    const amount = Math.max(COMBAT.armorMinDamage, raw - pl.stats.armor);
+    // сопротивление: доля снижения удара (сумма источников, кап в STAT_CAPS), но не меньше COMBAT.minDamage
+    const amount = Math.max(COMBAT.minDamage, raw * (1 - (pl.stats.resistance || 0)));
     pl.hp -= amount;
     pl.iframes = PLAYER.iframes;
     pl.hurtFlash = PLAYER.hurtFlash;
@@ -859,19 +907,32 @@ class Sim {
     this.events.push({ type: 'gameover' });
   }
 
-  // Шипы: удар по герою бьёт всех врагов на экране вокруг него на thorns × attack (не чаще COMBAT.thornsCooldown).
-  // Урон пишется на 'thorns' (как оружие: DPS, итоги, телеметрия).
+  // Шипы: удар по герою бьёт всех врагов (не боссов) на экране вокруг него на долю thorns от их максимума HP
+  // (не чаще COMBAT.thornsCooldown): плоский урон отставал от роста HP врагов. Без крита, отбрасывания и множителей
+  // урона. Урон пишется на 'thorns' (как оружие: DPS, итоги, телеметрия).
   _thorns(pl) {
     if (this.time - pl.thornsAt < COMBAT.thornsCooldown) return;
     pl.thornsAt = this.time;
-    const dmg = pl.stats.thorns * pl.stats.attack;
+    const share = pl.stats.thorns;
     const hw = GAME_WIDTH / 2;
     const hh = GAME_HEIGHT / 2;
     const en = this.enemies;
     for (let i = 0; i < en.length; i++) {
       const e = en[i];
-      if (e.dead || Math.abs(e.x - pl.x) > hw || Math.abs(e.y - pl.y) > hh) continue;
-      this.damageEnemy(e, dmg, 'thorns', 0, pl.x, pl.y, pl);
+      if (e.dead || e.boss || Math.abs(e.x - pl.x) > hw || Math.abs(e.y - pl.y) > hh) continue;
+      if (e.def.invulnerable && !e.vuln) continue;
+      const amount = share * e.maxHp;
+      const dealt = amount < e.hp ? amount : e.hp;
+      e.hp -= amount;
+      e.hitFlash = COMBAT.hitFlash;
+      e.lastBy = pl.id;
+      e.lastWid = 'thorns';
+      this._credit(pl, 'thorns', amount, dealt);
+      pl.hitsByWeapon.thorns = (pl.hitsByWeapon.thorns || 0) + 1;
+      this.events.push({ type: 'hit', x: e.x, y: e.y, amount: Math.max(1, Math.round(amount)), crit: false,
+        weapon: 'thorns' });
+      this._telemetry('hit', e, pl, 'thorns', amount, dealt, 0, '');
+      if (e.hp <= 0) this._killEnemy(e);
     }
     this.events.push({ type: 'thorns', player: pl.id, x: pl.x, y: pl.y });
   }
@@ -1069,7 +1130,7 @@ class Sim {
         this._remember(p, e.uid);
       }
       this.damageEnemy(e, p.dmg, p.wid, p.kb, p.x, p.y, p.ws ? p.ws.owner : this.player,
-          p.ws ? `${p.ws.def.behavior}:${p.ws.slot}` : '');
+          p.ws ? `${p.ws.def.behavior}:${p.ws.slot}` : '', p.ws ? p.ws.params.status : null);
       if (!p.once && --p.pierce < 0) { p.life = 0; break; }
     }
     // разрушаемые объекты
@@ -1717,6 +1778,8 @@ class Sim {
     if (uq && uq.cooldownMore) p.cooldown *= 1 + uq.cooldownMore;
     if (lv.area !== undefined) p.area = lv.area * st.area;
     if (lv.duration !== undefined) p.duration = lv.duration * st.duration;
+    // статус-ДоТ (src/data/status.js): из уровня, иначе с оружия целиком
+    p.status = lv.status || w.def.status || null;
   }
 }
 

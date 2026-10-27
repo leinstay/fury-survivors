@@ -29,7 +29,7 @@ const metaBy = (ctx, state = emptyAchievements()) => evaluateMeta(state, ctx).un
 
 test('achievements: data is complete and consistent', () => {
   const ids = Object.keys(ACHIEVEMENTS);
-  assert.equal(ids.length, 25);
+  assert.equal(ids.length, 24);
   for (const id of ids) {
     const a = ACHIEVEMENTS[id];
     assert.ok(ACHIEVEMENT_CATEGORIES.includes(a.category), id);
@@ -68,11 +68,20 @@ test('achievements: boss kills', () => {
   assert.ok(!unlockedBy(run({ coop: true, bossesKilled: k(2) })).includes('side_by_side'));
 });
 
-test('achievements: last breath needs a living hero under the threshold', () => {
-  const lim = ACHIEVEMENTS.last_breath.hpBelow;
-  assert.ok(unlockedBy(run({ bossesKilled: [{ id: 'x', hp: lim / 2 }] })).includes('last_breath'));
-  assert.ok(!unlockedBy(run({ bossesKilled: [{ id: 'x', hp: lim }] })).includes('last_breath'));
-  assert.ok(!unlockedBy(run({ bossesKilled: [{ id: 'x', hp: 0 }] })).includes('last_breath'));
+test('achievements: removed last breath is dropped from old saves', () => {
+  assert.equal(ACHIEVEMENTS.last_breath, undefined);
+  assert.ok(!hasKey('ach.last_breath.name'));
+  const old = { v: 1, done: { last_breath: 1700000000000, first_trophy: 5 },
+    seen: { last_breath: 1, first_trophy: 1 } };
+  let s;
+  assert.doesNotThrow(() => { s = normalizeAchievements(old); });
+  assert.deepEqual(s.done, { first_trophy: 5 });
+  assert.deepEqual(s.seen, { first_trophy: 1 });
+  assert.deepEqual(achievedIds(s), ['first_trophy']);
+  assert.deepEqual(rewardsFor(['last_breath']), rewardsFor([]));
+  // низкое HP при убийстве босса больше ничего не даёт сверх first_trophy
+  assert.deepEqual(unlockedBy(run({ bossesKilled: [{ id: 'x', hp: 0.01 }] })), ['first_trophy']);
+  assert.doesNotThrow(() => evaluateRun(old, run()));
 });
 
 test('achievements: both heroines over several runs', () => {
@@ -114,12 +123,18 @@ test('achievements: hunger, no safety, monogamy, ascetic, untouchable', () => {
 });
 
 test('achievements: co-op medic and no one left behind', () => {
+  // medic: один раз поднять напарника
+  assert.equal(ACHIEVEMENTS.medic.target, 1);
+  assert.equal(ACHIEVEMENTS.medic.nearSeconds, undefined);
   let s = emptyAchievements();
-  const need = ACHIEVEMENTS.medic.target;
-  s = evaluateRun(s, run({ coop: true, revives: need - 1 })).state;
-  assert.equal(s.counters.medic, need - 1);
+  s = evaluateRun(s, run({ coop: true, revives: 0 })).state;
+  assert.equal(s.counters.medic, 0);
+  assert.ok(!s.done.medic);
+  assert.equal(achievementProgress(s, 'medic'), null, 'yes/no, no progress counter');
   const res = evaluateRun(s, run({ coop: true, revives: 1 }));
   assert.ok(res.unlocked.includes('medic'));
+  // старое сохранение со счётчиком 3 из 5: уже хватает
+  assert.ok(evaluateMeta({ v: 1, counters: { medic: 3 } }, {}).unlocked.includes('medic'));
 
   assert.ok(unlockedBy(run({ coop: true, won: true })).includes('no_one_left'));
   assert.ok(!unlockedBy(run({ coop: true, won: true, anyoneFell: true })).includes('no_one_left'));
@@ -367,7 +382,6 @@ test('run summary: tracker collects the fields from events and frames', () => {
   assert.deepEqual(s.evolutionsGot, ['crimson_arc']);
   assert.equal(tr.finish(sim, { status: 'victory' }), null);
   const res = evaluateRun(emptyAchievements(), s);
-  assert.ok(res.unlocked.includes('last_breath'));
   assert.ok(res.unlocked.includes('monogamy'));
   assert.ok(!res.unlocked.includes('hunger'));
 });

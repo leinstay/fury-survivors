@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { collectConsoleErrors, clickSceneText, clickSceneItem, driveGame } from './helpers.js';
+import { collectConsoleErrors, clickSceneText, clickSceneItem, driveGame, openCoop } from './helpers.js';
 
 // Local signalling replaces Firestore, but data and commands travel over real WebRTC.
 const SIGNAL = `window.__furySignal = {
@@ -31,9 +31,7 @@ test('real WebRTC duo: both UI players act and matching ticks have matching stat
   const errors = pages.map(collectConsoleErrors);
   for (const p of pages) {
     await p.goto('/');
-    await p.waitForFunction(() => window.__game?.debug().scene === 'Menu');
-    await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter');
-    await p.waitForFunction(() => window.__game.game.scene.getScene('Menu').view === 'coop');
+    await openCoop(p);
   }
   const [host, guest] = pages;
   await host.locator('input').nth(0).fill('ANN');

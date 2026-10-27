@@ -25,6 +25,8 @@
 //   invulnerable: true,  // урон не проходит, полосы HP нет (жница овертайма, stage.overtime.reaper); attacks могут быть пустыми.
 //                        // У Жницы с holy урон проходит, пока она в освящённом круге (Библия, src/core/reaper.js)
 //   oneShot, lootIndex, victory, holy, hourglass, summon, teleport — только Жница, см. её запись
+//   codexAttacks: [id] — список Attacks в кодексе вместо attacks/касания (строки codex.atk.<id> и .desc);
+//                        только для показа, boss.js их не исполняет (Жница: механики src/core/reaper.js)
 // }
 // Урон босса растёт с этапом так же, как у врагов (stage.scaling.damagePerMinute), поэтому damage задан
 // для минуты появления, делённый на этот множитель (касание ~20 при появлении, как у боссов VS).
@@ -78,11 +80,19 @@ export const BOSSES = {
   },
   // Банши-жница: Смерть овертайма (как Death в VS), картинкой ростом с босса (кадр 256). Приходит через
   // stage.overtime.reaperAt секунд овертайма (docs/META.md, 4). Логика: src/core/reaper.js.
-  // Касание убивает всегда (oneShot: мимо брони, уклонения, i-frames и last_chance). Медленнее героини (95), от неё
-  // можно уйти. Без Библии неуязвима (invulnerable). С Библией у любого игрока раз в holy.every с у игроков
+  // Death Touch: касание убивает всегда (oneShot: мимо сопротивления, уклонения, i-frames и last_chance; в коопе —
+  // гроб, как обычная смерть), урона как числа нет (damage 0, в кодексе ∞).
+  // Скорость и часы (гонка со временем, как Zarokh, the Temporal в PoE2): база speed чуть ниже героя (100),
+  // постоянная. Раз в hourglass.every с впереди игрока падают песочные часы с таймером life с. Наступил
+  // (breakRadius) — разбил: Жница теряет pickSpeed скорости до конца овертайма (не ниже minReaperSpeed).
+  // Не успел — пропуск: все живые игроки теряют missSpeed (не ниже minPlayerSpeed; поверх статов, pl.overtimeSlow).
+  // Числа (герой 100, бегуны: bunnygirl 63, catgirl 60, рывок foxgirl 240): 2 пропуска — герой 84 против её 85,
+  // в поле она почти не догоняет, от толпы он ещё уходит; 5 подряд — герой 60 против 85, медленнее бегунов,
+  // смерть. Каждые разбитые часы отыгрывают один пропуск (−8 ей). Кооп: часы перед каждым игроком
+  // (COOP.hourglassPerPlayer), пропуск бьёт по обоим, разбить может любой.
+  // Без Библии неуязвима (invulnerable). С Библией у любого игрока раз в holy.every с у игроков
   // появляется освящённый круг, и только пока Жница в нём, она получает урон; HP тогда holy.hpPerLevel × уровень.
-  // Песочные часы: раз в hourglass.every с падают на пути игроков; в радиусе игроки ходят × slow, она нет;
-  // наступить на центр (breakRadius) — разбить. Фазы (только с Библией): summon на 50% HP один раз,
+  // Фазы (только с Библией): summon на 50% HP один раз,
   // teleport ниже 25% HP — метка за спиной ближайшего игрока, через telegraph с она там; повтор раз в cooldown с.
   // Смерть: сундук лута тира BOSS_DROPS[lootIndex] (T4) и победа (victory: овертайм кончается).
   //
@@ -90,8 +100,9 @@ export const BOSSES = {
   // половину времени при хорошем кайтинге — 60-90 с боя дают ~35-45 с урона. Уровень к 20:00 ~60-70:
   // 750 × 65 ≈ 49k (меньше, чем у Дриады за уровень: бьёшь её не всё время, только в круге; число задал владелец).
   reaper: {
-    sprite: 'reaper', behavior: 'chase', hp: 1, speed: 70, damage: 18, xp: 0, size: 45, knockbackResist: 1,
-    attacks: [], invulnerable: true, oneShot: true, lootIndex: 3, victory: true,
+    sprite: 'reaper', behavior: 'chase', hp: 1, speed: 85, damage: 0, xp: 0, size: 45, knockbackResist: 1,
+    attacks: [], codexAttacks: ['death_touch', 'clock_ticking', 'borrowed_time'],
+    invulnerable: true, oneShot: true, lootIndex: 3, victory: true,
     holy: {
       hpPerLevel: 750,       // HP Жницы при Библии: × уровень игрока при появлении (кооп × COOP.bossHpMul)
       first: 4,              // с после появления до первого круга
@@ -103,11 +114,17 @@ export const BOSSES = {
       tries: 8,              // попыток найти место; иначе круг по другую сторону от игроков
     },
     hourglass: {
-      first: 8, every: 11, life: 25, max: 3, // с; max — сколько часов лежит одновременно
-      radius: 60, slow: 0.5,  // px; скорость игроков в радиусе × slow
+      first: 8, every: 11,    // с: первые часы через first после появления, потом раз в every
+      life: 10,               // с: таймер над часами; не разбили — пропуск
+      max: 2,                 // часов лежит одновременно (кооп × COOP.hourglassMaxMul)
       breakRadius: 9,         // px от центра до игрока: наступил — разбил
       ahead: 110, jitter: 50, // px вперёд по ходу игрока ± разброс
+      spread: 1.2,            // рад: разброс направления вокруг хода игрока
       minFromReaper: 170, tries: 8,
+      missSpeed: 8,           // px/с: пропуск снимает всем живым игрокам (стек на весь овертайм)
+      minPlayerSpeed: 40,     // px/с: ниже не опускает (как слизь)
+      pickSpeed: 8,           // px/с: разбитые часы снимают Жнице (стек)
+      minReaperSpeed: 45,     // px/с
     },
     summon: { hpFraction: 0.5, enemy: 'ghost', count: 14, radius: 110 },
     teleport: { hpFraction: 0.25, telegraph: 1, distance: 60, cooldown: 7, fade: 0.65 },

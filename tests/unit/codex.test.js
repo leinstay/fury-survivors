@@ -30,7 +30,7 @@ function play(sim, tracker, seconds, input = { x: 0.6, y: 0.3 }) {
 function fakeSim(over = {}) {
   const p = (id) => ({
     id, x: 0, y: 0, dead: false, hero: 'heroine', level: 3,
-    weapons: [{ id: 'blade_arc', level: 2 }], passives: [{ id: 'armor', level: 1 }],
+    weapons: [{ id: 'blade_arc', level: 2 }], passives: [{ id: 'resistance', level: 1 }],
     damageByWeapon: { blade_arc: 120.4 }, levelUp: { cards: [] },
   });
   const players = [p(0), p(1)];
@@ -113,7 +113,7 @@ test('codex tracker: level-up and chest cards unlock only for the picker', () =>
   const res = tr.finish(sim, { status: 'dead', at: 1, score: 1 });
   assert.ok(res.seen.weapon.firebomb && res.seen.passive.luck && res.seen.weapon.crimson_arc);
   assert.ok(!res.seen.weapon.war_axe);
-  assert.ok(res.seen.weapon.blade_arc && res.seen.passive.armor, 'own build is seen');
+  assert.ok(res.seen.weapon.blade_arc && res.seen.passive.resistance, 'own build is seen');
   assert.equal(res.run.mode, 'solo');
   assert.equal(res.run.coins, 3, 'solo coins from sim');
 });

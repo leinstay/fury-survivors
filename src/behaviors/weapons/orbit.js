@@ -1,18 +1,22 @@
 // Guardian Shields: щиты вращаются вокруг игрока duration секунд, потом пауза cooldown. Щиты бьют врагов и
 // ловят вражеские снаряды (и у эволюций и коллабов со щитами: они собраны из того же behavior).
 // Для супероружия duration огромный, щиты не гаснут.
-// Необязательно: slow, slowTime — враги, которых касается шар, замедляются (скорость × slow на slowTime с,
-// behaviors/status.js; frost_orb); blocks: false — не ловит вражеские снаряды.
+// Необязательно: slow, slowTime — враги, которых касается шар, получают холод (статус chill: скорость × slow
+// на slowTime с, behaviors/status.js) даже без удара; blocks: false — не ловит вражеские снаряды.
+// Поле status оружия (в том числе chill) действует на ударах, как у всех оружий.
 import { WEAPON_BEHAVIOR } from '../../data/weapons.js';
-import { applySlow } from '../status.js';
+import { applyStatus } from '../status.js';
 
 const TAU = Math.PI * 2;
 const { hitRadius: SHIELD_RADIUS, rehit: REHIT } = WEAPON_BEHAVIOR.orbit;
 const buf = new Int32Array(4096);
 
-// Замедлить всех врагов, которых касается шар p.
+// Холод на всех врагов, которых касается шар p (статус chill со slow и slowTime уровня).
 function chill(p, w, sim) {
   const P = w.params;
+  const st = P.chillStatus || (P.chillStatus = { type: 'chill', chance: 1, slow: 0, duration: 0 });
+  st.slow = P.slow;
+  st.duration = P.slowTime;
   const en = sim.enemies;
   const cnt = sim.grid.query(p.x, p.y, p.radius + sim.maxSize, buf);
   for (let c = 0; c < cnt; c++) {
@@ -21,7 +25,7 @@ function chill(p, w, sim) {
     const dx = e.x - p.x;
     const dy = e.y - p.y;
     const r = p.radius + e.size;
-    if (dx * dx + dy * dy <= r * r) applySlow(e, sim, P.slow, P.slowTime);
+    if (dx * dx + dy * dy <= r * r) applyStatus(e, sim, st, 0, w.id, w.owner);
   }
 }
 

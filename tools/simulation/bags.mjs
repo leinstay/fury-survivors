@@ -20,8 +20,10 @@ function firstFit(bag, item) {
   return null;
 }
 
-function score(item) {
-  return item.affixes.reduce((s, a) => s + (a.max ? a.value / a.max : 0), 0);
+// stats — отбор по этим статам (например ['attack', 'magic'] — атакующая сумка), иначе по всем аффиксам.
+function score(item, stats = null) {
+  return item.affixes.reduce((s, a) => s + (a.max && (!stats || stats.includes(a.stat)) ?
+    a.value / a.max : 0), 0);
 }
 
 function used(bag) {
@@ -30,18 +32,19 @@ function used(bag) {
 
 /**
  * @param {number} seed
- * @param {{tier?: number, cells?: number, cols?: number, rows?: number, tries?: number}=} opts
+ * @param {{tier?: number, cells?: number, cols?: number, rows?: number, tries?: number,
+ *   pick?: number, stats?: Array<string>}=} opts
  * @return {{cols: number, rows: number, items: !Array}}
  */
 export function rollBag(seed, { tier = 2, cells = 45, cols = BAG.w, rows = BAG.h, tries = 400,
-  pick = 1 } = {}) {
+  pick = 1, stats = null } = {}) {
   const rng = createRng(hashSeed(seed, 4243, tier));
   let bag = createBag(cols, rows);
   for (let i = 0; i < tries && used(bag) < Math.min(cells, cols * rows); i++) {
     let best = null;
     for (let k = 0; k < pick; k++) {
       const next = firstFit(bag, rollItem(rng, tier));
-      const v = next ? score(next.items[next.items.length - 1].item) : -Infinity;
+      const v = next ? score(next.items[next.items.length - 1].item, stats) : -Infinity;
       if (next && (!best || v > best.v)) best = { next, v };
     }
     if (best) bag = best.next;
@@ -49,7 +52,7 @@ export function rollBag(seed, { tier = 2, cells = 45, cols = BAG.w, rows = BAG.h
   return bag;
 }
 
-/** Сумки на игроков забега по описанию config.bag ({tier, cells}) или null. */
+/** Сумки на игроков забега по описанию config.bag ({tier, cells, pick, stats}) или null. */
 export function bagsFor(config) {
   if (!config.bag) return null;
   return Array.from({ length: config.players }, (_, i) =>

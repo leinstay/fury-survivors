@@ -5,6 +5,7 @@ import { BOARD } from '../data/leaderboard.js';
 import { FocusNav, addButton } from '../ui/focus.js';
 import { textStyle, COLORS } from '../ui/style.js';
 import { addPanel } from '../ui/panel.js';
+import { BUTTON, backRect } from '../ui/menu-layout.js';
 import { formatTime } from '../ui/hud.js';
 import { fetchTop10 } from '../services/leaderboard.js';
 import { DEFAULT_DIFFICULTY } from '../data/difficulty.js';
@@ -35,7 +36,7 @@ export class LeaderboardScene extends Phaser.Scene {
     this.tabs = {};
     for (const [i, m] of ['solo', 'coop'].entries()) {
       this.tabs[m] = addButton(this, this.nav, {
-        x: cx - 60 + i * 120, y: 46, w: 110, h: 20, size: 11, label: t(`lb.tab.${m}`),
+        x: cx - 60 + i * 120, y: 46, w: 110, h: BUTTON.tab.h, size: 11, label: t(`lb.tab.${m}`),
         onSelect: () => this.setMode(m),
       });
     }
@@ -52,15 +53,19 @@ export class LeaderboardScene extends Phaser.Scene {
     this.rowObjs = [];
     this.status = this.add.text(cx, 186, '', textStyle(14, COLORS.dim)).setOrigin(0.5);
 
-    addButton(this, this.nav, { x: cx - 70, y: 328, w: 120, h: 28, label: t('lb.refresh'), onSelect: () => this.refresh() });
-    addButton(this, this.nav, { x: cx + 70, y: 328, w: 120, h: 28, label: t('lb.back'), onSelect: () => this.back() });
+    // Back внизу слева (как на всех страницах), Refresh — тем же размером справа
+    const back = backRect();
+    addButton(this, this.nav, { ...back, x: GAME_WIDTH - back.x, size: 12, label: t('lb.refresh'),
+      onSelect: () => this.refresh() });
+    addButton(this, this.nav, { ...back, size: 12, label: t('lb.back'), onSelect: () => this.back() });
     this.nav.focus(3);
     this.setMode('solo');
   }
 
   setMode(mode) {
     this.mode = mode;
-    for (const m in this.tabs) this.tabs[m].setDisabled(m === mode);
+    // активная вкладка — зелёная рамка (panel.setState), как вкладки кодекса и инвентаря
+    for (const m in this.tabs) this.tabs[m].setSelected(m === mode);
     this.heroHead.setVisible(mode === 'solo');
     this.refresh();
   }

@@ -6,6 +6,7 @@ import { t } from '../i18n/index.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
 import { BOSSES } from '../data/bosses.js';
 import { FocusNav, addButton } from './focus.js';
+import { BUTTON } from './menu-layout.js';
 import { addPanel } from './panel.js';
 import { textStyle, COLORS } from './style.js';
 import { createRng } from '../core/rng.js';
@@ -171,9 +172,9 @@ export function buildLoot(scene, sim, onDone) {
             textStyle(11, st === 'taken' ? '#8cff6a' : COLORS.dim)).setOrigin(0.5);
         return;
       }
-      addButton(scene, nav, { x: mid - 46, y: by, w: 86, h: 20, size: 11, label: t('loot.take'),
+      addButton(scene, nav, { x: mid - 46, y: by, w: 86, h: BUTTON.tab.h, size: 11, label: t('loot.take'),
         onSelect: () => take(idx, ei) });
-      addButton(scene, nav, { x: mid + 46, y: by, w: 86, h: 20, size: 11, label: t('loot.skip'),
+      addButton(scene, nav, { x: mid + 46, y: by, w: 86, h: BUTTON.tab.h, size: 11, label: t('loot.skip'),
         onSelect: () => skip(idx, ei) });
       if (stashFull(inv.stash)) {
         const ev = evictFor(`${idx}:${ei}`);
@@ -184,7 +185,7 @@ export function buildLoot(scene, sim, onDone) {
     });
     scene.add.text(cx, CARD.y + CARD.h + 8, msg, textStyle(9, msgColor)).setOrigin(0.5, 0);
     const last = idx >= loot.length - 1;
-    addButton(scene, nav, { x: cx, y: GAME_HEIGHT - 22, w: 140, h: 24, size: 12,
+    addButton(scene, nav, { x: cx, y: GAME_HEIGHT - 22, ...BUTTON.action, size: 12,
       label: t(last ? 'loot.done' : 'loot.next'), onSelect: () => next() });
     objs = scene.children.list.filter((o) => !before.has(o) && o.type !== 'Zone');
     nav.focus(Math.max(0, Math.min(keep, nav.items.length - 1)));

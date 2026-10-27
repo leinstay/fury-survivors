@@ -2,7 +2,7 @@
 // src/core/loadout.js bagSnapshot). Старые picks/snaps/end остаются читаемыми.
 // Наблюдатель не расходует RNG и не меняет игровое состояние. Ника и IP нет.
 import { BUILD } from '../data/build.js';
-import { SIM } from '../data/constants.js';
+import { SIM, CLEAR } from '../data/constants.js';
 import { TELEMETRY } from '../data/telemetry.js';
 import { bagSnapshot } from './loadout.js';
 
@@ -13,6 +13,19 @@ const build = (p) => ({
   w: p.weapons.map((w) => [w.id, w.level]),
   p: p.passives.map((it) => [it.id, it.level]),
 });
+
+// Обычных врагов (без боссов и элит) в рамке CLEAR вокруг героя p: метрика клира, как у ботов
+// (tools/simulation/clear.mjs). Добавлено в v3 без смены версии: старые документы без поля ef.
+function inFrame(sim, p) {
+  const hw = CLEAR.frameW / 2;
+  const hh = CLEAR.frameH / 2;
+  let n = 0;
+  for (const e of sim.enemies) {
+    if (e.dead || e.boss || e.elite) continue;
+    if (Math.abs(e.x - p.x) <= hw + e.size && Math.abs(e.y - p.y) <= hh + e.size) n++;
+  }
+  return n;
+}
 
 export function createTelemetry(o = {}) {
   return new Telemetry(o);
@@ -51,6 +64,8 @@ class Telemetry {
     this.dropped = {};
     this.lastInput = '';
     this.nextMovement = 0;
+    // врагов в рамке героя (CLEAR) по замерам movement с прошлого среза: snap.ef = [среднее, максимум]
+    this.frame = { sum: 0, n: 0, max: 0 };
     this.seq = 0;
     this.offerIds = new Map();
     this.levels = [0, 0];
@@ -191,6 +206,9 @@ class Telemetry {
     if (this.finished || sim.time < this.nextMovement) return;
     this.nextMovement = sim.time + TELEMETRY.movementEvery;
     const p = sim.players[this.local];
+    const ef = inFrame(sim, p);
+    this.frame.sum += ef; this.frame.n++;
+    if (ef > this.frame.max) this.frame.max = ef;
     const near = (items, filter) => {
       let best = null;
       let distance = Infinity;
@@ -205,7 +223,7 @@ class Telemetry {
     this.append('movement', {
       tick: sim.frame, t: r1(sim.time), x: r1(p.x), y: r1(p.y),
       hp: r1(p.hp), dead: p.dead, lv: sim.player.level, xp: r1(sim.player.xp),
-      enemy: near(sim.enemies, (e) => !e.dead && e.hp > 0),
+      enemy: near(sim.enemies, (e) => !e.dead && e.hp > 0), ef,
       shot: near(sim.projectiles, (s) => s.owner === 'enemy'),
       xpDrop: near(sim.pickups, (s) => s.kind === 'xp'),
       heal: near(sim.pickups, (s) => s.kind === 'heal'),
@@ -255,6 +273,7 @@ class Telemetry {
     }
     while (sim.time >= this.next) {
       this.append('snaps', this.snap(sim, this.next), TELEMETRY.maxSnapshots);
+      this.frame = { sum: 0, n: 0, max: 0 };
       this.next += TELEMETRY.every;
     }
   }
@@ -275,17 +294,19 @@ class Telemetry {
       economy: { ...this.economy,
         groundXP: sim.pickups.filter((x) => x.kind === 'xp').reduce((n, x) => n + x.value, 0) },
       en: sim.enemies.length - (sim.deadN || 0), k: this.kills,
+      ef: [this.frame.n ? r1(this.frame.sum / this.frame.n) : 0, this.frame.max],
       w: p.weapons.map((w) => [w.id, w.level, Math.round(p.damageByWeapon[w.id] || 0),
         Math.round(p.rawByWeapon[w.id] || 0), p.hitsByWeapon[w.id] || 0,
         this.killsBy[w.id] || 0]),
       p: p.passives.map((it) => [it.id, it.level]), damage: this.damage(p),
       combat: JSON.parse(JSON.stringify(this.combat)),
       blocks: JSON.parse(JSON.stringify(this.blocks)),
-      // статы: первые 8 мест как в старых забегах (место 0 было atk, теперь attack), новые в конце
+      // статы: первые 8 мест как в старых забегах (место 0 было atk, теперь attack; место 6 было armor в единицах,
+      // теперь resistance — доля), новые в конце
       s: [r2(st.attack ?? 1), r2(st.crit ?? 0), r2(st.haste ?? 1), Math.round(st.speed ?? 0),
-        r2(st.luck ?? 1), r2(st.pickup ?? 1), r1(st.armor ?? 0), r1(st.regen ?? 0),
+        r2(st.luck ?? 1), r2(st.pickup ?? 1), r2(st.resistance ?? 0), r1(st.regen ?? 0),
         r2(st.magic ?? 1), r2(st.critDmg ?? 0), r2(st.area ?? 1), r2(st.duration ?? 1),
-        r2(st.xpGain ?? 1), r2(st.dodge ?? 0), r1(st.thorns ?? 0)],
+        r2(st.xpGain ?? 1), r2(st.dodge ?? 0), r2(st.thorns ?? 0)],
     };
   }
 

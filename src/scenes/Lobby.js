@@ -30,9 +30,10 @@ import { copyText } from '../ui/clipboard.js';
 import { normalizeLoadout } from '../core/loadout.js';
 import { getInventory } from '../services/inventory.js';
 import { withAchievements } from '../services/achievements.js';
+import { BUTTON } from '../ui/menu-layout.js';
 
 // Колонки лобби: кнопки сложности, Start/Cancel и карточки героев одной ширины, центры на cx ± BTN_DX.
-const BTN_W = 120;
+const BTN_W = BUTTON.action.w; // кнопки в ряд — размер action (ui/menu-layout.js)
 const BTN_DX = 70;
 const LOBBY_GRID_W = 400; // сетка героев, когда их много: на всю ширину панели
 
@@ -288,7 +289,7 @@ export class LobbyScene extends Phaser.Scene {
       const cursed = id !== DEFAULT_DIFFICULTY;
       const sel = id === this.difficulty;
       const b = addButton(this, this.nav, {
-        x, y, w: BTN_W, h: 26, size: 12, label: t(`difficulty.${id}.name`), selected: sel,
+        x, y, w: BTN_W, h: BUTTON.action.h, size: 12, label: t(`difficulty.${id}.name`), selected: sel,
         color: cursed ? COLORS.cursed : '#ffffff',
         onSelect: () => this.pickDifficulty(id),
       });
@@ -304,10 +305,10 @@ export class LobbyScene extends Phaser.Scene {
       this.partnerBag) &&
       this.partnerHero !== this.hero && !this.mismatch;
     if (this.role === 'host') {
-      const start = addButton(this, this.nav, { x: cx - BTN_DX, y: 308, w: BTN_W, h: 28, label: t('lobby.start'), onSelect: () => this.start() });
+      const start = addButton(this, this.nav, { x: cx - BTN_DX, y: 308, w: BTN_W, h: BUTTON.action.h, label: t('lobby.start'), onSelect: () => this.start() });
       start.setDisabled(!ready);
     }
-    addButton(this, this.nav, { x: this.role === 'host' ? cx + BTN_DX : cx, y: 308, w: BTN_W, h: 28, label: t('lobby.cancel'), onSelect: () => this.leave() });
+    addButton(this, this.nav, { x: this.role === 'host' ? cx + BTN_DX : cx, y: 308, w: BTN_W, h: BUTTON.action.h, label: t('lobby.cancel'), onSelect: () => this.leave() });
     this.objs = this.children.list.filter((o) => !before.has(o) && o.type !== 'Zone');
     this.nav.focus(Math.max(0, Math.min(keep, this.nav.items.length - 1)));
   }

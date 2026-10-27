@@ -5,7 +5,7 @@
 export const COMBOS = [
   { from: ['blade_arc', 'attack'], result: 'crimson_arc' },
   { from: ['throwing_daggers', 'haste'], result: 'thousand_edge' },
-  { from: ['guardian_shields', 'armor'], result: 'aegis_bastion' },
+  { from: ['guardian_shields', 'resistance'], result: 'aegis_bastion' },
   { from: ['holy_ground', 'regen'], result: 'soul_garden' },
   { from: ['war_axe', 'crit'], result: 'death_spiral' },
   { from: ['storm_chain', 'luck'], result: 'thunder_loop' },

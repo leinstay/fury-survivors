@@ -6,6 +6,10 @@ import { createBag, place, makeUnique } from '../../src/core/items.js';
 import { createRunSummaryTracker } from '../../src/core/run-summary.js';
 import { BOSSES } from '../../src/data/bosses.js';
 import { BOSS_DROPS } from '../../src/data/items.js';
+import { ENEMIES } from '../../src/data/enemies.js';
+import { COOP } from '../../src/data/coop.js';
+import { hashParts } from '../../src/core/lockstep.js';
+import { t } from '../../src/i18n/index.js';
 
 const DT = 1 / 60;
 const R = BOSSES.reaper;
@@ -28,7 +32,8 @@ function setup({ bible = false, unique = null, still = true } = {}) {
   sim.player.hp = sim.player.maxHp;
   const e = sim.spawnBoss('reaper');
   e.x = sim.player.x + 400; e.y = sim.player.y;
-  if (still) e.speed = 0;
+  // стоит (def копируется, данные не трогаем)
+  if (still) { e.def = { ...e.def, speed: 0 }; e.speed = 0; }
   return { sim, e, pl: sim.player };
 }
 
@@ -55,10 +60,10 @@ test('reaper: slower than the heroine, keeps chase', () => {
   assert.ok(e.speed < pl.stats.speed, `${e.speed} < ${pl.stats.speed}`);
 });
 
-test('reaper: a touch kills through armor, dodge, i-frames and last_chance', () => {
+test('reaper: a touch kills through resistance, dodge, i-frames and last_chance', () => {
   const { sim, e, pl } = setup({ unique: 'last_chance' });
   clearCrowd(sim);
-  pl.stats.armor = 1e6;
+  pl.stats.resistance = 1;
   pl.stats.dodge = 1;
   pl.iframes = 10;
   e.x = pl.x; e.y = pl.y;
@@ -67,6 +72,113 @@ test('reaper: a touch kills through armor, dodge, i-frames and last_chance', () 
   assert.equal(pl.cheatUsed, false, 'last_chance did not trigger');
   assert.ok(sim.events.some((ev) => ev.type === 'playerHurt' && ev.oneShot && ev.src === 'reaper'));
   assert.equal(sim.state, 'victory', 'death in overtime counts as victory');
+});
+
+test('reaper: constant base a bit below the heroes, no ramp over time', () => {
+  assert.ok(R.speed < 100 && R.speed >= 80, `base ${R.speed}`);
+  assert.equal(R.speedGrowth, undefined);
+  const { sim, e } = setup({ still: false });
+  sim.reaper.hourT = 1e9;
+  run(sim, 30);
+  assert.equal(e.speed, R.speed, 'no ramp');
+});
+
+// Часы прямо под игроком со стоящей Жницей далеко: разбить. Часы далеко от игрока: таймер, пропуск.
+function dropAt(sim, x, y, t = 0) {
+  const h = { uid: ++sim.uid, x, y, t, life: R.hourglass.life, breakRadius: R.hourglass.breakRadius };
+  sim.hourglasses.push(h);
+  return h;
+}
+
+test('reaper: hourglass timer — not broken in life seconds is a miss', () => {
+  const { sim, pl } = setup();
+  clearCrowd(sim);
+  sim.reaper.hourT = 1e9;
+  const h = dropAt(sim, pl.x + 300, pl.y);
+  run(sim, R.hourglass.life - 0.5);
+  assert.ok(sim.hourglasses.includes(h), 'still ticking');
+  assert.equal(pl.overtimeSlow, 0);
+  let missed = false;
+  for (let i = 0; i < 60 && !missed; i++) {
+    run(sim, DT);
+    missed = sim.events.some((ev) => ev.type === 'hourglassMiss');
+  }
+  assert.ok(missed, 'miss event');
+  assert.ok(!sim.hourglasses.includes(h), 'gone');
+  assert.equal(pl.overtimeSlow, R.hourglass.missSpeed);
+});
+
+test('reaper: a miss slows every living player, stacks, not below minPlayerSpeed; stats untouched', () => {
+  const sim = createSim({ seed: 8, players: 2, heroes: [] });
+  sim.director = { update() {} };
+  const e = sim.spawnBoss('reaper');
+  e.def = { ...e.def, speed: 0 }; e.speed = 0;
+  e.x = sim.players[0].x + 600;
+  sim.reaper.hourT = 1e9;
+  const [a, b] = sim.players;
+  const base = a.stats.speed;
+  dropAt(sim, a.x + 300, a.y + 200, R.hourglass.life - DT / 2);
+  sim.step(DT, idle);
+  assert.equal(a.overtimeSlow, R.hourglass.missSpeed);
+  assert.equal(b.overtimeSlow, R.hourglass.missSpeed, 'the partner too');
+  assert.equal(a.stats.speed, base, 'stats.speed untouched');
+  const x0 = a.x;
+  sim.step(DT, { players: [{ x: 1, y: 0 }, idle] });
+  assert.ok(Math.abs(a.x - x0 - (base - R.hourglass.missSpeed) * DT) < 1e-6, 'moves slower');
+  a.overtimeSlow = 1e6;
+  const x1 = a.x;
+  sim.step(DT, { players: [{ x: 1, y: 0 }, idle] });
+  assert.ok(Math.abs(a.x - x1 - R.hourglass.minPlayerSpeed * DT) < 1e-6, 'floored at minPlayerSpeed');
+});
+
+test('reaper: a broken hourglass slows her, stacks, not below minReaperSpeed', () => {
+  const { sim, e, pl } = setup({ still: false });
+  clearCrowd(sim);
+  sim.reaper.hourT = 1e9;
+  e.x = pl.x + 2000;
+  dropAt(sim, pl.x, pl.y);
+  sim.step(DT, idle);
+  assert.ok(sim.events.some((ev) => ev.type === 'hourglassBreak'), 'broken');
+  assert.equal(e.speed, R.speed - R.hourglass.pickSpeed);
+  assert.equal(pl.overtimeSlow, 0, 'no penalty for the player');
+  for (let i = 0; i < 20; i++) { dropAt(sim, pl.x, pl.y); sim.step(DT, idle); }
+  assert.equal(e.speed, R.hourglass.minReaperSpeed, 'floored');
+});
+
+test('reaper: 5 misses — she is faster than the hero and the hero is slower than runners; 2 are not lethal', () => {
+  const H = R.hourglass;
+  const hero = 100;
+  const after = (n) => Math.max(H.minPlayerSpeed, hero - n * H.missSpeed);
+  assert.ok(after(2) >= R.speed - 2, `2 misses: ${after(2)} vs ${R.speed}`);
+  assert.ok(after(5) < R.speed - 15, `5 misses: ${after(5)} vs ${R.speed}`);
+  assert.ok(after(5) <= ENEMIES.catgirl.speed, 'slower than runners');
+  assert.ok(R.speed - 5 * H.pickSpeed <= H.minReaperSpeed + H.pickSpeed, 'picks can win her back');
+  // в симе: 5 пропусков подряд, Жница догоняет идущего по прямой
+  const { sim, e, pl } = setup({ still: false });
+  clearCrowd(sim);
+  sim.reaper.hourT = 1e9;
+  pl.overtimeSlow = 5 * H.missSpeed;
+  e.x = pl.x - 120; e.y = pl.y;
+  sim.director = { update() {} };
+  run(sim, 8, { x: 1, y: 0 });
+  assert.ok(Math.hypot(e.x - pl.x, e.y - pl.y) < 30 || sim.state === 'victory', 'caught');
+});
+
+test('reaper: Death Touch — lethal flag, coop touch puts the hero in a coffin', () => {
+  assert.equal(R.oneShot, true);
+  assert.ok(Number.isFinite(R.damage), 'no Infinity in data (telemetry, codex, hash)');
+  const sim = createSim({ seed: 4, players: 2, heroes: [] });
+  sim.director = { update() {} };
+  const pl = sim.players[1];
+  pl.stats.resistance = 1; pl.stats.dodge = 1; pl.iframes = 5;
+  const e = sim.spawnBoss('reaper');
+  e.speed = 0;
+  e.x = pl.x; e.y = pl.y;
+  sim.players[0].x = pl.x + 500;
+  sim.step(DT, idle);
+  assert.ok(pl.dead && pl.coffinT > 0, 'coffin');
+  assert.equal(sim.state, 'running', 'the partner keeps playing');
+  assert.ok(JSON.stringify(R).length > 0);
 });
 
 test('reaper: invulnerable without the Bible, even inside a holy circle', () => {
@@ -115,38 +227,25 @@ test('reaper: holy circles appear every 20 s near the players, not under her, li
   assert.equal(sim.holy.length, 1, 'next circle');
 });
 
-test('reaper: hourglass slows players by half (not her) and breaks when stepped on', () => {
-  const { sim, e, pl } = setup();
+test('reaper: hourglass drops ahead of the player, far from her, with a timer', () => {
+  const { sim, e } = setup();
   clearCrowd(sim);
   run(sim, R.hourglass.first + 0.05);
   assert.equal(sim.hourglasses.length, 1, 'dropped');
   const h0 = sim.hourglasses[0];
   assert.ok(Math.hypot(h0.x - e.x, h0.y - e.y) >= R.hourglass.minFromReaper - 1e-6, 'far from her');
-  // замедление: часы рядом, но не под ногами
-  sim.hourglasses.length = 0;
-  sim.hourglasses.push({
-    uid: 1, x: pl.x, y: pl.y + 30, radius: 60, t: 0, life: 99,
-    slow: R.hourglass.slow, breakRadius: 5,
-  });
-  const x0 = pl.x;
-  sim.step(DT, { x: 1, y: 0 });
-  const moved = pl.x - x0;
-  assert.ok(Math.abs(moved - pl.stats.speed * DT * R.hourglass.slow) < 1e-6, `moved ${moved}`);
-  // Жница внутри часов идёт с полной скоростью
-  e.speed = R.speed;
-  e.x = pl.x + 20; e.y = pl.y + 30;
-  pl.x -= 500;
-  const ex = e.x;
+  assert.equal(h0.life, R.hourglass.life);
+  assert.ok(h0.t > 0 && h0.t < 0.1, 'timer runs');
+});
+
+test('reaper: coop drops one hourglass ahead of each living player', () => {
+  const sim = createSim({ seed: 9, players: 2, heroes: [] });
+  sim.director = { update() {} };
+  const e = sim.spawnBoss('reaper');
+  e.x = sim.players[0].x + 900;
+  sim.reaper.hourT = DT / 2;
   sim.step(DT, idle);
-  assert.ok(Math.abs(Math.hypot(e.x - ex, e.y - (pl.y + 30)) - R.speed * DT) < 0.5, 'reaper not slowed');
-  e.speed = 0;
-  e.x = pl.x + 600;
-  // наступить на центр
-  const h = sim.hourglasses[0];
-  pl.x = h.x; pl.y = h.y;
-  sim.step(DT, idle);
-  assert.ok(!sim.hourglasses.includes(h), 'broken');
-  assert.ok(sim.events.some((ev) => ev.type === 'hourglassBreak'));
+  assert.equal(sim.hourglasses.length, COOP.hourglassPerPlayer ? 2 : 1);
 });
 
 test('reaper: 50% HP summons ghosts once, 25% teleports behind the nearest player after a 1 s telegraph', () => {
@@ -235,4 +334,22 @@ test('reaper: deterministic (same seed, same circles and hourglasses)', () => {
   const a = trace();
   assert.ok(a.length > 0);
   assert.deepEqual(trace(), a);
+});
+
+test('reaper: lockstep hash includes player and reaper speed penalties', () => {
+  const hash = (f) => {
+    const { sim } = setup();
+    f(sim);
+    return JSON.stringify(hashParts(sim));
+  };
+  const base = hash(() => {});
+  assert.notEqual(hash((sim) => { sim.player.overtimeSlow = 8; }), base, 'player penalty');
+  assert.notEqual(hash((sim) => { sim.reaper.slow = 8; }), base, 'reaper penalty');
+});
+
+test('reaper: codex lists Death Touch, Clock Is Ticking, Borrowed Time with descriptions', () => {
+  assert.deepEqual(R.codexAttacks, ['death_touch', 'clock_ticking', 'borrowed_time']);
+  for (const id of R.codexAttacks) {
+    for (const k of [`codex.atk.${id}`, `codex.atk.${id}.desc`]) assert.notEqual(t(k), k, k);
+  }
 });

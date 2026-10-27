@@ -83,9 +83,9 @@ test('statReport: parts split the total into passives, items and achievements', 
   const rng = createRng(5);
   let bag = createBag();
   bag = place(bag, rollItem(rng, 3, { type: 'gloves', rarity: 'epic' }), 0, 0);
-  const ach = ['first_trophy', 'last_breath'];
+  const ach = ['first_trophy', 'no_one_left'];
   const lo = { ...bag, ach };
-  const passives = [{ id: 'attack', level: 3 }, { id: 'armor', level: 1 }];
+  const passives = [{ id: 'attack', level: 3 }, { id: 'resistance', level: 1 }];
   const rep = loadoutReport(base, passives, lo);
   const items = loadoutBonus(bag); // без ачивок
   const a = achievementBonus(ach);
@@ -104,8 +104,9 @@ test('statReport: parts split the total into passives, items and achievements', 
   const at = rep.attack;
   near(at.value, base.attack * (1 + at.parts.passives + at.parts.items + at.parts.ach));
   // плоский — база + сумма вкладов
-  near(rep.armor.value, Math.max(0, base.armor + rep.armor.parts.passives + rep.armor.parts.items +
-      rep.armor.parts.ach));
+  const rs = rep.resistance;
+  const sum = rs.parts.passives + rs.parts.items + rs.parts.ach;
+  near(rs.value, Math.min(rs.cap, base.resistance + sum));
   // без extra разбивка: только пассивки
   const plain = statReport(base, passives);
   assert.equal(plain.attack.parts.items, 0);
@@ -163,7 +164,7 @@ test('evaluateLive: unlocks mid-run conditions at once, leaves wins and counters
   assert.equal(end.state.counters.medic, ACHIEVEMENTS.medic.target);
 });
 
-test('run summary: medic counts a revive only after standing by the coffin long enough', () => {
+test('run summary: medic counts a revive only if the hero stood by the coffin', () => {
   const pl = (id, x) => ({ id, x, y: 0, hp: 100, maxHp: 100, dead: false, hero: 'heroine',
     weapons: [], passives: [], levelUp: { rerolls: 2, skips: 2, banishes: 2 } });
   const sim = { time: 0, state: 'running', deadN: 0, enemies: [], pickups: [],
@@ -171,16 +172,17 @@ test('run summary: medic counts a revive only after standing by the coffin long 
   const tr = createRunSummaryTracker({ local: 0, coop: true });
   tr.observe(sim);
   sim.players[1].dead = true;
-  // мимо гроба: пол-секунды рядом
-  sim.time = 0.5 * ACHIEVEMENTS.medic.nearSeconds; tr.observe(sim);
+  // далеко от гроба всё время: гроб встал сам, не считается
   sim.players[0].x = COOP.allyRadius * 4;
+  sim.time = 0.5; tr.observe(sim);
   sim.time = 5; tr.observe(sim);
   tr.onEvents([{ type: 'revive', player: 1, x: 10, y: 0 }], sim);
   assert.equal(tr.snapshot(sim).revives, 0);
-  // второй раз стоит у гроба nearSeconds
+  // второй раз подошёл к гробу хоть на кадр: считается
   sim.players[0].x = 0;
-  tr.observe(sim);
-  sim.time = 5 + ACHIEVEMENTS.medic.nearSeconds; tr.observe(sim);
+  sim.time = 5 + 1 / 60; tr.observe(sim);
+  sim.players[0].x = COOP.allyRadius * 4;
+  sim.time = 6; tr.observe(sim);
   tr.onEvents([{ type: 'revive', player: 1, x: 10, y: 0 }], sim);
   const snap = tr.snapshot(sim);
   assert.equal(snap.revives, 1);

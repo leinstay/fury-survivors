@@ -2,6 +2,7 @@
 import { t } from '../i18n/index.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
 import { FocusNav, addButton } from './focus.js';
+import { BUTTON, rowXs } from './menu-layout.js';
 import { textStyle, COLORS, FONT } from './style.js';
 import { formatTime } from './hud.js';
 import { displayName, addIcon, iconKeyFor } from './icons.js';
@@ -146,7 +147,7 @@ export function buildResults(scene, sim,
   };
 
   submitBtn = addButton(scene, nav, {
-    x: cx + 75, y: NICK_Y, w: 100, h: 24, label: t('result.submit'), size: 13, onSelect: submit,
+    x: cx + 75, y: NICK_Y, ...BUTTON.action, label: t('result.submit'), size: 13, onSelect: submit,
   });
   nick.el.addEventListener('nick-enter', submit);
   if (score <= 0) { submitBtn.setDisabled(true); nick.el.disabled = true; }
@@ -154,12 +155,12 @@ export function buildResults(scene, sim,
   // кооп: повтор только через новое лобби, кнопка Retry не показывается
   if (!coop) {
     addButton(scene, nav, {
-      x: cx - 80, y: 316, w: 130, h: 28, label: t('result.retry'),
+      x: rowXs(2, cx)[0], y: 316, ...BUTTON.action, label: t('result.retry'),
       onSelect: () => { scene.scene.stop('Game'); scene.scene.start('Game', { difficulty: sim.difficulty, hero: sim.player.hero }); },
     });
   }
   addButton(scene, nav, {
-    x: coop ? cx : cx + 80, y: 316, w: 130, h: 28, label: t('result.menu'),
+    x: coop ? cx : rowXs(2, cx)[1], y: 316, ...BUTTON.action, label: t('result.menu'),
     onSelect: () => { scene.scene.stop('Game'); scene.scene.start('Menu'); },
   });
   // С сохранённым ником сразу на Submit (геймпад: A), иначе на поле.

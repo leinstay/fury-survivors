@@ -69,25 +69,7 @@ test('new weapons: data, i18n, sprites and one evolution each', () => {
   assert.ok(WEAPON_BEHAVIORS.beam && WEAPON_BEHAVIORS.summon);
 });
 
-test('beam: hits along the movement direction on fixed ticks, not behind', () => {
-  const sim = setup('beam', 1);
-  const P = WEAPONS.beam.levels[0];
-  sim.player.dirX = 1; sim.player.dirY = 0;
-  const front = dummy(sim, 'slime', 80, 0);
-  const back = dummy(sim, 'slime', -80, 0);
-  front.speed = back.speed = 0;
-  const at = runHits(sim, P.duration + 0.5, 'beam');
-  assert.ok(front.hp < front.maxHp, 'enemy in front is burned');
-  assert.equal(back.hp, back.maxHp, 'enemy behind is not hit by a single beam');
-  // ровно один удар на тик, тики через P.tick
-  const want = Math.floor(P.duration / P.tick + 1e-9) + 1;
-  assert.ok(Math.abs(at.length - want) <= 1, `hits ${at.length} vs ticks ${want}`);
-  for (let i = 1; i < at.length; i++) assert.ok(Math.abs(at[i] - at[i - 1] - P.tick) < DT + 1e-9, 'tick spacing');
-  // луч гаснет на cooldown: звеньев нет
-  assert.ok(!sim.projectiles.some((p) => p.wid === 'beam'), 'beam is off after duration');
-});
-
-test('beam: deterministic (same seed, same hits) and follows a turn', () => {
+test('beam: deterministic (same seed, same hits), not tied to the movement direction', () => {
   const a = setup('beam', 3, 9);
   const b = setup('beam', 3, 9);
   for (const s of [a, b]) for (let i = 0; i < 6; i++) dummy(s, 'catgirl', 60 * Math.cos(i), 60 * Math.sin(i));
@@ -95,7 +77,12 @@ test('beam: deterministic (same seed, same hits) and follows a turn', () => {
   const hb = runHits(b, 4, 'beam', { x: 0, y: 1 });
   assert.deepEqual(ha, hb);
   assert.ok(ha.length > 0);
-  assert.ok(Math.abs(a.player.dirY - 1) < 1e-9, 'beam aims down after moving down');
+  // первый каст: угол тот же, куда бы герой ни шёл
+  const c = setup('beam', 1, 9);
+  const d = setup('beam', 1, 9);
+  runHits(c, 0.4, 'beam', { x: 0, y: 1 });
+  runHits(d, 0.4, 'beam', { x: -1, y: 0 });
+  assert.equal(c.player.weapons[0].beams[0].a, d.player.weapons[0].beams[0].a);
 });
 
 test('summon: wisps follow the hero and shoot the nearest enemy', () => {
@@ -115,21 +102,20 @@ test('summon: wisps follow the hero and shoot the nearest enemy', () => {
   assert.ok(e.hp < e.maxHp);
 });
 
-test('slow: frost orb slows touched enemies for slowTime, deterministic, tied to the enemy uid', () => {
+test('slow: frost orb slows touched enemies for the chill duration, deterministic, tied to the enemy uid', () => {
   const sim = setup('frost_orb', 1);
   const P = WEAPONS.frost_orb.levels[0];
-  const w = sim.player.weapons[0];
-  // враг прямо на орбите и стоит: шар его заденет
-  const e = dummy(sim, 'slime', P.area, 0);
+  // враг рядом и стоит: ледяной шар долетит и заденет
+  const e = dummy(sim, 'slime', 60, 0);
   e.speed = 0;
   let slowed = false;
   for (let i = 0; i < 6 / DT && !slowed; i++) { sim.step(DT, idle); slowed = moveMul(e, sim) < 1; }
   assert.ok(slowed, 'enemy got slowed');
-  assert.ok(Math.abs(moveMul(e, sim) - P.slow) < 1e-9);
-  assert.equal(w.def.levels[0].blocks, false);
-  // замедление гаснет
-  e.x += 150;
-  for (let i = 0; i < (P.slowTime + 0.1) / DT; i++) sim.step(DT, idle);
+  assert.ok(Math.abs(moveMul(e, sim) - P.status.slow) < 1e-9);
+  // замедление гаснет: шар убран, через slowTime враг идёт как обычно
+  for (const p of sim.projectiles) if (p.wid === 'frost_orb') p.life = 0;
+  sim.player.weapons[0].cooldown = 1e9;
+  for (let i = 0; i < (P.status.duration + 0.1) / DT; i++) sim.step(DT, idle);
   assert.equal(moveMul(e, sim), 1);
 
   // замедленный враг идёт медленнее
@@ -175,6 +161,28 @@ test('mines: lie until an enemy comes close, then explode', () => {
   assert.ok(!sim.projectiles.some((p) => p.uid === uid), 'the mine is gone');
 });
 
+test('mines: a mine always lands and ignores contact during the arming time', () => {
+  const sim = setup('mines', 1);
+  const P = WEAPONS.mines.levels[0];
+  const far = dummy(sim, 'slime', 290, 0);
+  far.speed = 0;
+  // враг стоит там, куда ляжет мина: пока она летит, его не задевает
+  let mine = null;
+  while (!mine) {
+    runHits(sim, 0.05, 'mines');
+    mine = sim.projectiles.find((p) => p.wid === 'mines' && p.c === 1) || null;
+  }
+  const e = dummy(sim, 'slime', 0, 0);
+  e.x = mine.x; e.y = mine.y; e.speed = 0;
+  const arm = WEAPON_BEHAVIOR.area_drop.mineArm;
+  runHits(sim, arm * 0.6, 'mines');
+  assert.equal(e.hp, e.maxHp, 'no explosion before the mine is armed');
+  assert.ok(sim.projectiles.some((p) => p.uid === mine.uid), 'the mine still lies there');
+  const at = runHits(sim, arm, 'mines');
+  assert.ok(at.length > 0 && e.hp < e.maxHp, 'armed mine explodes on contact');
+  assert.ok(P.area > 60, 'random placement is paid with a bigger blast');
+});
+
 test('mines: an untouched mine blows up when its time runs out', () => {
   const sim = setup('mines', 1);
   const P = WEAPONS.mines.levels[0];
@@ -215,8 +223,9 @@ test('meteor: warning circle first, damage only after the long delay', () => {
   assert.ok(at[0] - fired >= P.delay - 2 * DT, `hit ${at[0] - fired}s after the cast`);
 });
 
-test('spear: one spear pierces a whole line of enemies', () => {
+test('spear: one spear hits only the first 1 + pierce enemies on the line', () => {
   const sim = setup('spear', 1);
+  const P = WEAPONS.spear.levels[0];
   const line = [];
   for (let i = 0; i < 10; i++) {
     const e = dummy(sim, 'slime', 40 + i * 18, 0);
@@ -224,15 +233,24 @@ test('spear: one spear pierces a whole line of enemies', () => {
     e.resist = 1;
     line.push(e);
   }
-  runHits(sim, 1.2, 'spear');
-  assert.ok(line.every((e) => e.hp < e.maxHp), 'every enemy on the line is hit');
+  // ровно один бросок: после первого выстрела оружие больше не стреляет
+  let fired = false;
+  for (let i = 0; i < 2 / DT && !fired; i++) {
+    sim.step(DT, idle);
+    fired = sim.events.some((ev) => ev.type === 'weaponFire' && ev.weapon === 'spear');
+  }
+  assert.ok(fired);
+  sim.player.weapons[0].cooldown = 1e9;
+  runHits(sim, 1.5, 'spear');
+  const hit = line.filter((e) => e.hp < e.maxHp).length;
+  assert.equal(hit, P.pierce + 1, `hit ${hit}`);
 });
 
 test('poison cloud: ticks without knockback', () => {
   const sim = setup('poison_cloud', 1);
   const e = dummy(sim, 'catgirl', 20, 0);
   e.speed = 0;
-  const at = runHits(sim, 2, 'poison_cloud');
+  const at = runHits(sim, 2.5, 'poison_cloud');
   assert.ok(at.length >= 4, `ticks ${at.length}`);
   assert.equal(e.kx, 0);
   assert.equal(e.ky, 0);

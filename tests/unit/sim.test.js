@@ -274,6 +274,11 @@ test('sim: overtime keeps spawning and can be finished early', () => {
   sim.player.hp = 1e9;
   for (let i = 0; i < 600; i++) { if (sim.state === 'levelup') sim.skip(); sim.step(1 / 60); }
   assert.ok(sim.enemies.length > 20, `enemies ${sim.enemies.length}`);
+  // досрочный конец только из идущего забега: доиграть выбор уровня и паузу после него
+  for (let i = 0; i < 600 && sim.state !== 'running'; i++) {
+    if (sim.state === 'levelup') sim.skip();
+    sim.step(1 / 60);
+  }
   sim.finishOvertime();
   assert.equal(sim.state, 'victory');
   assert.ok(sim.events.some((e) => e.type === 'victory'));
@@ -295,7 +300,7 @@ test('sim: elite drops a chest, chest gives a weapon upgrade', () => {
 test('sim: evolution from chest when the weapon is maxed and its passive is taken', () => {
   const sim = createSim({ seed: 16 });
   sim.player.weapons = [{ id: 'guardian_shields', level: WEAPONS.guardian_shields.maxLevel }];
-  sim.player.passives = [{ id: 'armor', level: 1 }];
+  sim.player.passives = [{ id: 'resistance', level: 1 }];
   sim._syncBuild();
   sim.dropPickup('chest', sim.player.x, sim.player.y);
   sim.step(DT, idle);
@@ -303,7 +308,7 @@ test('sim: evolution from chest when the weapon is maxed and its passive is take
   assert.deepEqual(sim.chest.cards.map((c) => c.id), ['aegis_bastion']);
   sim.chooseChest(0);
   assert.deepEqual(sim.player.weapons.map((w) => w.id), ['aegis_bastion']);
-  assert.deepEqual(sim.player.passives.map((p) => p.id), ['armor'], 'the passive stays');
+  assert.deepEqual(sim.player.passives.map((p) => p.id), ['resistance'], 'the passive stays');
   assert.ok(sim.events.some((e) => e.type === 'chest' && e.applied && e.items[0].id === 'aegis_bastion'));
   run(sim, 5);
   assert.ok(sim.projectiles.some((p) => p.wid === 'aegis_bastion'), 'evolved shields orbit');
@@ -318,13 +323,14 @@ test('sim: every weapon fires and deals damage in a crowd', () => {
     sim.player.hp = sim.player.maxHp = 1e9;
     sim.player.stats.maxHp = 1e9;
     for (let i = 0; i < 12; i++) sim.spawnEnemy('slime', 100 * Math.cos(i * 0.5), 100 * Math.sin(i * 0.5));
-    run(sim, 6);
+    run(sim, 10); // мины взводятся и ждут касания, им нужно больше времени
     assert.ok((sim.damageByWeapon[id] || 0) > 0, `${id} dealt no damage`);
   }
 });
 
 test('sim: every weapon breaks props on its own, with no enemies around', () => {
-  for (const id of Object.keys(WEAPONS)) {
+  // луч не целится (случайное направление): объект ломает, только если попал на линию (tests/unit/status.test.js)
+  for (const id of Object.keys(WEAPONS).filter((k) => WEAPONS[k].behavior !== 'beam')) {
     const sim = createSim({ seed: 22 });
     sim.director = { update() {} }; // без врагов: оружие с наведением должно само выбрать объект
     sim.player.weapons.length = 0;

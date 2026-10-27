@@ -2,24 +2,31 @@
 // уникалки, крафт, стеш и сумка. Логика в src/core/items.js, строки в src/i18n/en-items.js.
 
 // Статы, которые бывают на предметах. Процентные идут в increased (доля, 0.1 = +10%),
-// плоские прибавляются как есть (crit и dodge — доли шанса, armor — единицы, regen — HP/с,
-// thorns — урон).
+// плоские прибавляются как есть (crit и dodge — доли шанса, resistance — доля снижения удара, regen — HP/с,
+// thorns — доля максимума HP врагов).
 export const ITEM_PERCENT_STATS = ['maxHp', 'attack', 'magic', 'speed', 'critDmg', 'area',
   'duration', 'pickup', 'haste', 'luck', 'xpGain'];
-export const ITEM_FLAT_STATS = ['crit', 'dodge', 'armor', 'regen', 'thorns'];
+export const ITEM_FLAT_STATS = ['crit', 'dodge', 'resistance', 'regen', 'thorns'];
 export const ITEM_STATS = [...ITEM_PERCENT_STATS, ...ITEM_FLAT_STATS];
 
 // Ориентир силы: сколько стата даёт вкачанная пассивка (уровень 5). Для старых пассивок
 // это их числа (attack L5 = +0.5 → attack/magic 0.5), для новых статов — оценка.
-// Защита (maxHp, armor, regen, dodge) тоже равна пассивке L5: большой предмет (2×3, T2) даёт около одного уровня
+// Защита (maxHp, resistance, regen, dodge) тоже равна пассивке L5: большой предмет (2×3, T2) даёт около одного уровня
 // защитной пассивки, то есть ≈ +1 удар запаса на 10:00 (tools/simulation/defense.mjs, docs/BALANCE_AUDIT.md 12);
 // раньше было 0.3–0.4 от пассивки, и предмет давал неощутимые +8 HP. speed пока 0.25 от пассивки.
 // База аффикса на единицу бюджета = ref × ITEM_POWER.scale.
 export const STAT_REF = {
   maxHp: 1.0, attack: 0.5, magic: 0.5, speed: 0.25, critDmg: 0.75, area: 0.5, duration: 0.5,
   pickup: 1.25, haste: 0.4, luck: 0.5, xpGain: 0.5,
-  crit: 0.25, dodge: 0.4, armor: 9, regen: 0.6, thorns: 20,
+  crit: 0.25, dodge: 0.4, resistance: 0.4, regen: 0.6, thorns: 0.15,
 };
+
+// Переименованные статы аффиксов в старых сохранениях: stat -> { to, mul } (значение, min и max × mul).
+// armor был в единицах (ref 9), resistance — доля (ref 0.4): пересчёт по отношению ref, ролл сохраняет качество.
+export const LEGACY_AFFIX_STATS = { armor: { to: 'resistance', mul: 0.4 / 9 } };
+// Статы, сменившие единицы при том же имени: в сохранениях версии ниже before числа × mul.
+// thorns был уроном (ref 20), стал долей максимума HP врага (ref 0.15).
+export const LEGACY_AFFIX_SCALE = { thorns: { before: 2, mul: 0.15 / 20 } };
 
 export const ITEM_POWER = {
   // бюджет формы = клетки^shapeExp (1×1 = 1.0, 2×2 = 5.66, 2×3 = 9.39, 2×4 = 13.45, 3×3 = 15.59)
@@ -51,10 +58,10 @@ export const ITEM_TYPES = {
   gloves: { weight: 6, shapes: [{ size: [2, 2], weight: 1 }],
     implicit: ['haste', 'attack', 'magic'] },
   boots:  { weight: 6, shapes: [{ size: [2, 2], weight: 1 }], implicit: ['speed', 'dodge'] },
-  helm:   { weight: 6, shapes: [{ size: [2, 2], weight: 1 }], implicit: ['armor', 'maxHp'] },
+  helm:   { weight: 6, shapes: [{ size: [2, 2], weight: 1 }], implicit: ['resistance', 'maxHp'] },
   shield: { weight: 5, shapes: [{ size: [2, 2], weight: 2 }, { size: [2, 3], weight: 1 }],
-    implicit: ['armor', 'thorns'] },
-  armor:  { weight: 4, shapes: [{ size: [2, 3], weight: 1 }], implicit: ['maxHp', 'armor'] },
+    implicit: ['resistance', 'thorns'] },
+  armor:  { weight: 4, shapes: [{ size: [2, 3], weight: 1 }], implicit: ['maxHp', 'resistance'] },
   weapon: { weight: 5, shapes: [
     { size: [1, 3], weight: 3 }, { size: [2, 3], weight: 3 },
     { size: [1, 4], weight: 2 }, { size: [2, 4], weight: 1 },
@@ -65,7 +72,7 @@ export const ITEM_TYPES = {
 // Вес аффикса (ходовые чаще). Им же выбирается обязательный внутри пула типа.
 export const AFFIX_WEIGHTS = {
   maxHp: 10, attack: 8, magic: 8, speed: 7, crit: 6, critDmg: 5, area: 6, duration: 5,
-  pickup: 6, haste: 6, luck: 5, armor: 7, regen: 6, xpGain: 4, dodge: 3, thorns: 3,
+  pickup: 6, haste: 6, luck: 5, resistance: 7, regen: 6, xpGain: 4, dodge: 3, thorns: 3,
 };
 
 // Сундук с босса: веса редкости и свитка по тиру сундука.
@@ -88,7 +95,7 @@ export const BOSS_DROPS = [
 // Уникалки: фиксированный тип и форма, без аффиксов. Поля эффекта — данные, их читает сим:
 //   more: { стат: доля }   — множитель «more» (1 = ×2, −0.4 = ×0.6), в т.ч. для плоских статов
 //   maxHpSet: n           — максимум HP ровно n
-//   armorOff / regenOff   — стат не работает
+//   resistanceOff / regenOff — стат не работает
 //   regenOnlyStill        — реген только пока игрок стоит
 //   reaperVulnerable      — Жница уязвима в освящённом круге (docs/META.md, 4)
 //   evoChoicesAdd         — +N вариантов в сундуке эволюции; foodHeals: false — еда не лечит
@@ -103,12 +110,12 @@ export const BOSS_DROPS = [
 export const UNIQUES = {
   bible:        { type: 'relic', size: [3, 3], minTier: 3, reaperVulnerable: true },
   glass_cannon: { type: 'weapon', size: [1, 3], minTier: 2,
-    more: { attack: 1, magic: 1 }, maxHpSet: 1, armorOff: true },
+    more: { attack: 1, magic: 1 }, maxHpSet: 1, resistanceOff: true },
   kaom_heart:   { type: 'armor', size: [2, 3], minTier: 2,
     more: { regen: 1 }, regenOnlyStill: true },
   greed:        { type: 'ring', size: [1, 1], minTier: 2, evoChoicesAdd: 1, foodHeals: false },
   sprinter:     { type: 'boots', size: [2, 2], minTier: 2, dmgPerSpeed: 1, stillDmgMore: -0.5 },
-  turtle:       { type: 'shield', size: [2, 3], minTier: 2, more: { armor: 2, speed: -0.4 } },
+  turtle:       { type: 'shield', size: [2, 3], minTier: 2, more: { resistance: 2, speed: -0.4 } },
   berserk:      { type: 'gloves', size: [2, 2], minTier: 2, dmgPerMissingHp: 1, regenOff: true },
   spiked_shell: { type: 'shield', size: [2, 2], minTier: 2,
     more: { thorns: 2, attack: -0.3, magic: -0.3 } },
@@ -180,4 +187,4 @@ export const CRAFT = {
 export const NAME_WORDS = 6;
 
 // Версия сохранения инвентаря.
-export const INVENTORY_VERSION = 1;
+export const INVENTORY_VERSION = 2; // 2: thorns в долях HP врага (LEGACY_AFFIX_SCALE)

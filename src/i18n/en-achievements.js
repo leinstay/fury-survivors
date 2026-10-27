@@ -1,6 +1,6 @@
 // Строки ачивок (src/data/achievements.js). Сливаются в en в index.js.
 // Числа в описаниях подставляет achievementParams (src/core/achievements.js):
-// {n} — target, {s} — seconds, {e} — enemies, {p} — hpBelow в процентах, {all} — всего эволюций.
+// {n} — target, {s} — seconds, {e} — enemies, {all} — всего эволюций.
 
 export const enAchievements = {
   'ach.title': 'Achievements',
@@ -44,18 +44,16 @@ export const enAchievements = {
   'ach.monogamy.name': 'Monogamy',
   'ach.monogamy.desc': 'Defeat the Dryad Queen with a single weapon and no passives.',
   'ach.untouchable.name': 'Untouchable',
-  'ach.untouchable.desc': 'Take no damage for {s} seconds with {e}+ enemies around.',
+  'ach.untouchable.desc': 'Take no damage for {s} seconds in a row while {e}+ enemies are alive.',
   'ach.ascetic.name': 'Ascetic',
   'ach.ascetic.desc': 'Pick up no experience for the first {s} seconds.',
-  'ach.last_breath.name': 'Last Breath',
-  'ach.last_breath.desc': 'Defeat a boss with less than {p}% HP.',
   'ach.no_safety.name': 'No Safety Net',
   'ach.no_safety.desc': 'Win without a reroll, skip or banish.',
 
   'ach.evolutionist.name': 'Evolutionist',
   'ach.evolutionist.desc': 'Get all {all} evolutions (over all runs).',
   'ach.naturalist.name': 'Naturalist',
-  'ach.naturalist.desc': 'Fill the bestiary.',
+  'ach.naturalist.desc': 'Meet every monster of the bestiary.',
   'ach.hoarder.name': 'Hoarder',
   'ach.hoarder.desc': 'Fill the stash to the brim.',
   'ach.tetris.name': 'Tetris',
@@ -72,12 +70,12 @@ export const enAchievements = {
   'ach.broke_it.name': 'Broke It',
   'ach.broke_it.desc': 'Break an item while enchanting.',
   'ach.chaos_alchemist.name': 'Chaos Alchemist',
-  'ach.chaos_alchemist.desc': 'Reroll items {n} times.',
+  'ach.chaos_alchemist.desc': 'Reroll item affixes or values {n} times in crafting.',
 
   'ach.side_by_side.name': 'Side by Side',
   'ach.side_by_side.desc': 'Defeat {n} bosses in one co-op run.',
   'ach.medic.name': 'Medic',
-  'ach.medic.desc': 'Help revive your partner {n} times (in total): stay by the coffin.',
+  'ach.medic.desc': 'Revive your partner once in co-op: stand by the coffin.',
   'ach.no_one_left.name': 'No One Left Behind',
   'ach.no_one_left.desc': 'Win a co-op run where nobody fell.',
 

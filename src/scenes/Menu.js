@@ -19,6 +19,7 @@ import { HEROES } from '../data/heroes.js';
 import { validHero } from '../core/heroes.js';
 import { addHeroPicker } from '../ui/hero-picker.js';
 import { versionTag } from '../core/lockstep.js';
+import { MENU_COLUMN, OPTIONS, BUTTON, menuRow } from '../ui/menu-layout.js';
 
 // Картинки героев по бокам меню (HEROES[id].menu): справа как есть, слева отражённые; внутренний край первой
 // на каждой стороне на MENU_ART_GAP от центра, следующие на той же стороне дальше через MENU_ART_STEP,
@@ -33,7 +34,8 @@ export class MenuScene extends Phaser.Scene {
   }
 
   create() {
-    this.nav = new FocusNav(this, { onBack: () => { if (this.view !== 'main') this.show('main'); } });
+    this.nav = new FocusNav(this, { onBack: () => this.back() });
+    this.view = '';
     this.objs = [];
     // Фон шире экрана на несколько пикселей; позиция целая, чтобы клетки фона легли ровно на пиксели холста.
     if (this.textures.exists('menu_bg')) {
@@ -73,6 +75,12 @@ export class MenuScene extends Phaser.Scene {
     return validHero(getSetting('hero'));
   }
 
+  // Выбранная сложность (последний выбор, по умолчанию DEFAULT_DIFFICULTY).
+  difficulty() {
+    const d = getSetting('difficulty');
+    return DIFFICULTIES[d] ? d : DEFAULT_DIFFICULTY;
+  }
+
   // Картинки героев у кнопок меню по HEROES[id].menu.
   menuArt() {
     const cx = GAME_WIDTH / 2;
@@ -92,6 +100,7 @@ export class MenuScene extends Phaser.Scene {
   }
 
   show(view) {
+    this.from = this.view; // откуда пришли: фокус встаёт на кнопку, что вела туда
     this.view = view;
     this.nav.clear();
     this._dropInputs();
@@ -101,62 +110,74 @@ export class MenuScene extends Phaser.Scene {
 
     this.add.text(cx, 62, t('game.title'), textStyle(32, COLORS.accent, { stroke: '#000000', strokeThickness: 6 })).setOrigin(0.5);
 
+    let focus = 0;
+    const row = (i, label, onSelect, color) =>
+      addButton(this, this.nav, { ...menuRow(i), label, onSelect, color });
     if (view === 'main') {
+      // шесть кнопок одного размера столбцом (ui/menu-layout.js, та же раскладка у паузы)
       this.menuArt();
-      const bw = 160;
-      const bh = 24;
-      const y0 = 118;
-      const gap = 29;
-      const half = (bw - 6) / 2;
-      addButton(this, this.nav, { x: cx, y: y0, w: bw, h: bh, label: t('menu.play'), onSelect: () => this.show('hero') });
-      addButton(this, this.nav, { x: cx, y: y0 + gap, w: bw, h: bh, label: t('menu.coop'), onSelect: () => this.show('coop') });
-      addButton(this, this.nav, { x: cx, y: y0 + gap * 2, w: bw, h: bh, label: t('menu.inventory'), onSelect: () => this.scene.start('Inventory') });
-      addButton(this, this.nav, { x: cx, y: y0 + gap * 3, w: bw, h: bh, label: t('menu.achievements'), onSelect: () => this.scene.start('Achievements') });
-      addButton(this, this.nav, { x: cx, y: y0 + gap * 4, w: bw, h: bh, label: t('menu.leaderboard'), onSelect: () => this.scene.start('Leaderboard') });
-      addButton(this, this.nav, { x: cx - (half + 6) / 2, y: y0 + gap * 5, w: half, h: bh, size: 12, label: t('menu.codex'), onSelect: () => this.scene.start('Codex', { from: 'Menu' }) });
-      addButton(this, this.nav, { x: cx + (half + 6) / 2, y: y0 + gap * 5, w: half, h: bh, size: 12, label: t('menu.settings'), onSelect: () => this.show('settings') });
+      const rows = [
+        ['play', t('menu.play'), () => this.show('play')],
+        ['inventory', t('menu.inventory'), () => this.scene.start('Inventory')],
+        ['codex', t('menu.codex'), () => this.scene.start('Codex', { from: 'Menu' })],
+        ['achievements', t('menu.achievements'), () => this.scene.start('Achievements')],
+        ['leaderboard', t('menu.leaderboard'), () => this.scene.start('Leaderboard')],
+        ['settings', t('menu.settings'), () => this.show('settings')],
+      ];
+      rows.forEach(([, label, fn], i) => row(i, label, fn));
+      focus = Math.max(0, rows.findIndex((r) => r[0] === this.from));
       // подсказка про клавиши: на телефоне клавиатуры нет
       if (!isMobile()) this.add.text(cx, GAME_HEIGHT - 14, t('menu.hint'), textStyle(10, '#dddddd', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5);
+    } else if (view === 'play') {
+      // Play: соло (сложность, затем герой) или кооп (ник и лобби)
+      this.menuArt();
+      row(0, t('menu.solo'), () => this.show('difficulty'));
+      row(1, t('menu.coop'), () => this.show('coop'));
+      row(2, t('settings.back'), () => this.show('main'));
+      focus = this.from === 'coop' ? 1 : 0;
+    } else if (view === 'difficulty') {
+      // Сложность соло; последний выбор запоминается и стоит в фокусе. Подпись на месте первой строки.
+      this.menuArt();
+      this.add.text(cx, menuRow(0).y, t('difficulty.title'), textStyle(14, '#ffffff',
+          { stroke: '#000000', strokeThickness: 4 })).setOrigin(0.5);
+      const ids = Object.keys(DIFFICULTIES);
+      ids.forEach((id, i) => {
+        const cursed = id !== DEFAULT_DIFFICULTY;
+        row(i + 1, t(`difficulty.${id}.name`), () => { setSetting('difficulty', id); this.show('hero'); },
+            cursed ? COLORS.cursed : '#ffffff');
+      });
+      row(ids.length + 1, t('settings.back'), () => this.show('play'));
+      focus = Math.max(0, ids.indexOf(this.difficulty()));
     } else if (view === 'hero') {
-      // Выбор героя перед сложностью; последний выбор запоминается и стоит в фокусе.
+      // Выбор героя последним шагом: выбор сразу запускает забег. Последний выбор стоит в фокусе.
       this.add.text(cx, 100, t('hero.title'), textStyle(16)).setOrigin(0.5);
       const ids = Object.keys(HEROES);
       addHeroPicker(this, this.nav, {
         x: cx, y: 196, selected: this.hero(),
-        onPick: (id) => { setSetting('hero', id); this.show('difficulty'); },
+        onPick: (id) => { setSetting('hero', id); this.play(this.difficulty()); },
       });
-      addButton(this, this.nav, { x: cx, y: 298, w: 120, h: 28, label: t('settings.back'), onSelect: () => this.show('main') });
-      this.objs = this.children.list.filter((o) => !before.has(o) && o.type !== 'Zone');
-      this.nav.focus(Math.max(0, ids.indexOf(this.hero())));
-      return;
-    } else if (view === 'difficulty') {
-      // Выбор сложности перед забегом; последний выбор запоминается и стоит в фокусе.
-      this.add.text(cx, 100, t('difficulty.title'), textStyle(16)).setOrigin(0.5);
-      const ids = Object.keys(DIFFICULTIES);
-      const last = getSetting('difficulty');
-      ids.forEach((id, i) => {
-        const cursed = id !== DEFAULT_DIFFICULTY;
-        // кнопки с шагом главного меню, без подписей под ними
-        addButton(this, this.nav, {
-          x: cx, y: 134 + i * 36, w: 200, h: 28, label: t(`difficulty.${id}.name`), color: cursed ? COLORS.cursed : '#ffffff',
-          onSelect: () => this.play(id),
-        });
-      });
-      addButton(this, this.nav, { x: cx, y: 134 + ids.length * 36, w: 120, h: 28, label: t('settings.back'), onSelect: () => this.show('hero') });
-      this.objs = this.children.list.filter((o) => !before.has(o) && o.type !== 'Zone');
-      this.nav.focus(Math.max(0, ids.indexOf(last)));
-      return;
+      addButton(this, this.nav, { x: cx, y: 298, w: MENU_COLUMN.w, h: MENU_COLUMN.h, label: t('settings.back'),
+        onSelect: () => this.show('difficulty') });
+      focus = Math.max(0, ids.indexOf(this.hero()));
     } else if (view === 'coop') {
       this.showCoop(cx, before);
       return;
     } else {
-      this.add.text(cx, 100, t('settings.title'), textStyle(16)).setOrigin(0.5);
-      const gap = 28;
-      const rows = addVolumeSliders(this, this.nav, { x: cx, y: 126, w: 300, gap });
-      addButton(this, this.nav, { x: cx, y: 126 + rows * gap, w: 300, h: 24, size: 12, label: t('settings.back'), onSelect: () => this.show('main') });
+      // столбец настроек как Options паузы (ui/menu-layout.js OPTIONS)
+      this.add.text(cx, OPTIONS.title, t('settings.title'), textStyle(16)).setOrigin(0.5);
+      const O = OPTIONS;
+      const rows = addVolumeSliders(this, this.nav, { x: cx, y: O.y, w: O.w, gap: O.step });
+      addButton(this, this.nav, { x: cx, y: O.y + rows * O.step, w: O.w, h: O.h, size: 12,
+        label: t('settings.back'), onSelect: () => this.show('main') });
     }
     this.objs = this.children.list.filter((o) => !before.has(o) && o.type !== 'Zone');
-    this.nav.focus(0);
+    this.nav.focus(focus);
+  }
+
+  // Шаг назад (Esc / B): герой → сложность → Play → главное; кооп → Play; настройки → главное.
+  back() {
+    const prev = { play: 'main', difficulty: 'play', hero: 'difficulty', coop: 'play', settings: 'main' };
+    if (prev[this.view]) this.show(prev[this.view]);
   }
 
   // Сетевой кооп: ник, «Создать лобби» (хост) или код и «Подключиться» (гость). Оба уходят в сцену Lobby.
@@ -168,8 +189,8 @@ export class MenuScene extends Phaser.Scene {
 
     // поля и кнопки в одном столбце: стрелки фокуса ходят сверху вниз (Name → Create → Code → Back).
     // Все строки одной ширины и высоты, подписи в плейсхолдерах; группы хоста и гостя разделены шире.
-    const W = 240;
-    const H = 26;
+    const W = BUTTON.wide.w;
+    const H = BUTTON.wide.h;
     const GAP = 6;
     const left = cx - W / 2;
     const half = (W - GAP) / 2;
@@ -212,7 +233,7 @@ export class MenuScene extends Phaser.Scene {
     code.el.addEventListener('nick-enter', connect);
     name.el.addEventListener('nick-enter', () => code.el.focus());
 
-    addButton(this, this.nav, { x: cx, y: rows.back, w: W, h: H, size: 12, label: t('settings.back'), onSelect: () => this.show('main') });
+    addButton(this, this.nav, { x: cx, y: rows.back, w: W, h: H, size: 12, label: t('settings.back'), onSelect: () => this.show('play') });
     this.inputs = [name, code];
     this.events.once('shutdown', () => this._dropInputs());
     this.objs = this.children.list.filter((o) => !before.has(o) && o.type !== 'Zone');

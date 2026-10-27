@@ -19,8 +19,8 @@
 //                             //   серию не обрывает, но и не идёт; обрывает только удар)
 //   xpPickedBefore120: number,   // свои подобранные кристаллы опыта до ACHIEVEMENTS.ascetic.seconds
 //   rerolls, skips, banishes: number,  // свои использованные на карточках уровня
-//   revives: number,          // напарник встал из гроба, а свой герой простоял у гроба (COOP.allyRadius)
-//                             //   не меньше ACHIEVEMENTS.medic.nearSeconds
+//   revives: number,          // напарник встал из гроба, а свой герой хоть раз стоял у гроба (COOP.allyRadius)
+//                             //   живым, пока тот лежал (ACHIEVEMENTS.medic)
 //   anyoneFell: boolean,      // кто-то лёг в гроб или забег кончился смертью
 //   maxMagnetGems: number,    // больше всего кристаллов опыта, притянутых одним своим магнитом (на земле
 //                             //   в момент подбора; слитый кристалл считается одним)
@@ -36,7 +36,6 @@ const DRYAD = ACHIEVEMENTS.monogamy.boss;
 const CROWD = ACHIEVEMENTS.untouchable.enemies;
 const ASCETIC_T = ACHIEVEMENTS.ascetic.seconds;
 const KILL_WINDOW = Math.max(1, Math.round(ACHIEVEMENTS.meat_grinder.seconds));
-const MEDIC_NEAR = ACHIEVEMENTS.medic.nearSeconds || 0;
 
 const isEvolved = (id) => typeof id === 'string' &&
   Object.prototype.hasOwnProperty.call(WEAPONS, id) && !!WEAPONS[id].evolved;
@@ -184,7 +183,7 @@ class RunSummaryTracker {
           break;
         case 'revive': {
           if (ev.player === me) break;
-          if ((this.helped[ev.player] || 0) >= MEDIC_NEAR) s.revives++;
+          if ((this.helped[ev.player] || 0) > 0) s.revives++;
           this.helped[ev.player] = 0;
           break;
         }
@@ -232,7 +231,7 @@ class RunSummaryTracker {
         if (o === p || !o.dead) continue;
         const dx = o.x - p.x;
         const dy = o.y - p.y;
-        // кадр, в котором герой подошёл, засчитывается хотя бы как «был рядом» (MEDIC_NEAR 0)
+        // кадр, в котором герой подошёл, засчитывается как «был рядом»
         if (dx * dx + dy * dy > r2) continue;
         this.helped[o.id] = (this.helped[o.id] || 0) + Math.max(dt, 1e-6);
       }

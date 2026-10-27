@@ -28,7 +28,7 @@ export function typeLetter(item) {
   return String(t(`item.kind.${item.type}`) || item.type).charAt(0).toUpperCase();
 }
 
-const PCT_FLAT = new Set(['crit', 'dodge']);
+const PCT_FLAT = new Set(['crit', 'dodge', 'resistance', 'thorns']);
 
 // Число аффикса со знаком: процентные и доли шанса в %, остальные как есть.
 function num(stat, v, flat, unit = true) {
@@ -218,13 +218,12 @@ export class BagView {
   }
 }
 
-// Показ значения стата в панели.
-function statValue(k, v) {
+// Показ значения стата в панели (и в предпросмотре карточек уровня, ui/card-preview.js).
+export function statValue(k, v) {
   switch (k) {
     case 'maxHp': case 'speed': return String(Math.round(v));
-    case 'crit': case 'dodge': return `${Math.round(v * 100)}%`;
+    case 'crit': case 'dodge': case 'resistance': case 'thorns': return `${Math.round(v * 100)}%`;
     case 'critDmg': return `+${Math.round(v * 100)}%`;
-    case 'armor': case 'thorns': return String(Math.round(v * 10) / 10);
     case 'regen': return `${(Math.round(v * 100) / 100).toFixed(2)}/s`;
     default: return `${Math.round(v * 100)}%`;
   }
@@ -232,8 +231,9 @@ function statValue(k, v) {
 
 function statOver(k, v) {
   switch (k) {
-    case 'crit': case 'dodge': case 'critDmg': return `+${Math.round(v * 100)}%`;
-    case 'maxHp': case 'speed': case 'armor': case 'thorns': return `+${Math.round(v * 10) / 10}`;
+    case 'crit': case 'dodge': case 'resistance': case 'thorns': case 'critDmg':
+      return `+${Math.round(v * 100)}%`;
+    case 'maxHp': case 'speed': return `+${Math.round(v * 10) / 10}`;
     case 'regen': return `+${(Math.round(v * 100) / 100).toFixed(2)}`;
     default: return `+${Math.round(v * 100)}%`;
   }
@@ -249,7 +249,7 @@ export function statDelta(k, v) {
   const sign = v < 0 ? '−' : '+';
   const a = Math.abs(v);
   if (k === 'regen') return `${sign}${a.toFixed(2)}/s`;
-  if (STATS[k] === 'flat' && k !== 'crit' && k !== 'dodge' && k !== 'critDmg') {
+  if (STATS[k] === 'flat' && !PCT_FLAT.has(k) && k !== 'critDmg') {
     return `${sign}${Math.round(a * 10) / 10}`;
   }
   return `${sign}${Math.round(a * 1000) / 10}%`;

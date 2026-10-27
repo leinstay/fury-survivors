@@ -71,11 +71,11 @@ export function loadoutExtra(bonus, passives, def, dynMore = null) {
   return { inc, flat: bonus.flat, more };
 }
 
-/** Жёсткие правила уникалки поверх итоговых статов: maxHpSet, armorOff, regenOff. Меняет stats. */
+/** Жёсткие правила уникалки поверх итоговых статов: maxHpSet, resistanceOff, regenOff. Меняет stats. */
 export function applyUniqueRules(stats, def) {
   if (!def) return stats;
   if (def.maxHpSet) stats.maxHp = def.maxHpSet;
-  if (def.armorOff) stats.armor = 0;
+  if (def.resistanceOff) stats.resistance = 0;
   if (def.regenOff) stats.regen = 0;
   return stats;
 }
@@ -109,7 +109,7 @@ export function loadoutReport(base, passives, bag) {
     if (rep[k]) rep[k] = { value: v, raw: v, cap: rep[k].cap, capped: false, parts: rep[k].parts };
   };
   if (def && def.maxHpSet) set('maxHp', def.maxHpSet);
-  if (def && def.armorOff) set('armor', 0);
+  if (def && def.resistanceOff) set('resistance', 0);
   if (def && def.regenOff) set('regen', 0);
   return rep;
 }

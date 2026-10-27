@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createSim } from '../../src/core/sim.js';
 import { COOP } from '../../src/data/coop.js';
-import { DEFAULT_HERO } from '../../src/data/heroes.js';
+import { DEFAULT_HERO, HEROES } from '../../src/data/heroes.js';
 import { validHero, freeHero, distinctHeroes, heroIds } from '../../src/core/heroes.js';
 import { SLOTS, GAME_WIDTH, SIM } from '../../src/data/constants.js';
 
@@ -29,7 +29,7 @@ test('coop: two players share xp and level, each has own weapons and fewer slots
   assert.deepEqual(solo.player.slots, SLOTS);
   // герои по умолчанию: первые два из data/heroes.js, разные
   assert.deepEqual(sim.players.map((p) => p.hero), heroIds().slice(0, 2));
-  assert.deepEqual(sim.players.map((p) => p.weapons[0].id), ['blade_arc', 'storm_chain']);
+  assert.deepEqual(sim.players.map((p) => p.weapons[0].id), ['blade_arc', HEROES.mage.startWeapon]);
   assert.notEqual(sim.players[0].stats, sim.players[1].stats);
 });
 
@@ -169,7 +169,7 @@ test('coop: level-up cards alternate between players and apply to the chooser', 
   assert.equal(sim.state, 'levelup');
   sim.chooseCard(0, 0);
   assert.notEqual(build(a), before);
-  assert.equal(build(b), JSON.stringify([[['storm_chain', 1]], []]));
+  assert.equal(build(b), JSON.stringify([[[HEROES.mage.startWeapon, 1]], []]));
   settle(sim);
   sim.player.xp = sim.player.xpNext;
   sim.step(DT, { players: [idle, idle] });
@@ -237,11 +237,11 @@ test('heroes: solo hero choice, distinct heroes per player in co-op', () => {
   const solo = createSim({ seed: 1, hero: 'mage' });
   assert.equal(solo.player.hero, 'mage');
   assert.equal(solo.player.sprite, 'mage');
-  assert.equal(solo.player.weapons[0].id, 'storm_chain');
+  assert.equal(solo.player.weapons[0].id, HEROES.mage.startWeapon);
   assert.equal(solo.player.maxHp, 80);
   assert.equal(createSim({ seed: 1, hero: 'nope' }).player.hero, DEFAULT_HERO);
   const swap = createSim({ seed: 1, players: 2, heroes: ['mage', 'heroine'] });
-  assert.deepEqual(swap.players.map((p) => p.weapons[0].id), ['storm_chain', 'blade_arc']);
+  assert.deepEqual(swap.players.map((p) => p.weapons[0].id), [HEROES.mage.startWeapon, 'blade_arc']);
   // один герой на двоих не бывает: второму достаётся первый свободный
   const same = createSim({ seed: 1, players: 2, heroes: ['mage', 'mage'] });
   assert.deepEqual(same.players.map((p) => p.hero), ['mage', 'heroine']);

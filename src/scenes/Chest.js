@@ -2,7 +2,8 @@ import { t } from '../i18n/index.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
 import { FocusNav, addButton, readPad } from '../ui/focus.js';
 import { addIcon, displayName, iconKeyFor } from '../ui/icons.js';
-import { addPanel, PANEL } from '../ui/panel.js';
+import { addPanel } from '../ui/panel.js';
+import { BUTTON, rowXs } from '../ui/menu-layout.js';
 import { textStyle } from '../ui/style.js';
 import { spriteScale } from '../render/density.js';
 import { createActions } from '../core/actions.js';
@@ -126,7 +127,7 @@ export class ChestScene extends Phaser.Scene {
     const cy = 150;
     items.forEach((it, i) => this.drawItem(x0 + i * (w + gap), cy, w, 150, it));
 
-    addButton(this, this.nav, { x: GAME_WIDTH / 2, y: 290, w: 140, h: 30, label: t('chest.continue'), onSelect: () => this.advance() });
+    addButton(this, this.nav, { x: GAME_WIDTH / 2, y: 290, ...BUTTON.action, label: t('chest.continue'), onSelect: () => this.advance() });
     this.nav.focus(0);
   }
 
@@ -178,8 +179,11 @@ export class ChestScene extends Phaser.Scene {
     });
     const by = y0 + cards.length * (h + CHOICE_GAP) - h / 2 + 18;
     if (this.mine) {
-      this.confirmBtn = addButton(this, this.nav, { x: x - 78, y: by, w: 140, h: 28, label: t('chest.continue'), onSelect: () => this.confirm() });
-      addButton(this, this.nav, { x: x + 78, y: by, w: 140, h: 28, size: 12, label: t('chest.skip'), onSelect: () => this.skip() });
+      const xs = rowXs(2, x);
+      this.confirmBtn = addButton(this, this.nav, { x: xs[0], y: by, ...BUTTON.action, label: t('chest.continue'),
+        onSelect: () => this.confirm() });
+      addButton(this, this.nav, { x: xs[1], y: by, ...BUTTON.action, label: t('chest.skip'),
+        onSelect: () => this.skip() });
     } else {
       this.nav.clear();
     }
@@ -203,11 +207,9 @@ export class ChestScene extends Phaser.Scene {
     this.drawItems();
   }
 
-  // Выбранная строка жёлтая и при потере фокуса, фокус на остальных обычный.
+  // Фокус — жёлтая рамка, выбранная строка без фокуса — зелёная (panel.setState).
   paintRow(i, focused) {
-    const p = this.panels[i];
-    if (i === this.picked) p.draw(PANEL.fillFocus, PANEL.borderFocus);
-    else p.setFocus(focused);
+    this.panels[i].setState(focused, i === this.picked);
   }
 
   pick(i) {

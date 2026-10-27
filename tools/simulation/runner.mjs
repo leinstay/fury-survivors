@@ -12,6 +12,7 @@ import { bagsFor } from './bags.mjs';
 import { stateHash, sourceHash, createMetrics, installImmortality, FIXED_STEP } from './record.mjs';
 
 export function resolveProfile(id = 'focus') {
+  if (typeof id === 'object' && id) return id; // готовый профиль (ladder.mjs --lab)
   const p = [...PROFILES, ...BUILD_PROFILES, ...recipeProfiles()].find((x) => x.id === id);
   if (!p) throw new Error(`Unknown profile: ${id}`);
   return p;
@@ -37,6 +38,8 @@ function execute(options) {
     if (!config.immortal.some(Boolean)) throw new Error('Fixture requires diagnostic cohort');
     sim.players[0].weapons = config.fixture.weapons.map(([id, level]) => ({ id, level }));
     sim.players[0].passives = (config.fixture.passives || []).map(([id, level]) => ({ id, level }));
+    // weaponSlots — меньше слотов оружия (лаборатория одного оружия, ladder.mjs --lab): карточек нового нет
+    if (config.fixture.weaponSlots) sim.players[0].slots.weapons = config.fixture.weaponSlots;
     sim._syncBuild();
   }
   const interventions = installImmortality(sim, config.immortal);
@@ -144,6 +147,7 @@ function replayExact(trace) {
   if (c.fixture) {
     sim.player.weapons = c.fixture.weapons.map(([id, level]) => ({ id, level }));
     sim.player.passives = (c.fixture.passives || []).map(([id, level]) => ({ id, level }));
+    if (c.fixture.weaponSlots) sim.player.slots.weapons = c.fixture.weaponSlots;
     sim._syncBuild();
   }
   installImmortality(sim, c.immortal);

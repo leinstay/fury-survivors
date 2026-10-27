@@ -4,7 +4,8 @@
 import {
   ITEM_STATS, ITEM_FLAT_STATS, STAT_REF, ITEM_POWER, TIERS, RARITIES, RARITY_AFFIXES,
   ITEM_TYPES, AFFIX_WEIGHTS, CHEST_TABLES, CHEST_SIZE, BOSS_DROPS, UNIQUES, BAG, STASH,
-  CURRENCIES, DISASSEMBLE, CRAFT, NAME_WORDS, INVENTORY_VERSION,
+  CURRENCIES, DISASSEMBLE, CRAFT, NAME_WORDS, INVENTORY_VERSION, LEGACY_AFFIX_STATS,
+  LEGACY_AFFIX_SCALE,
 } from '../data/items.js';
 
 const FLAT = new Set(ITEM_FLAT_STATS);
@@ -683,11 +684,31 @@ function capFor(stat, type) {
   return round(best);
 }
 
+const own = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+
+// Аффикс из сохранения версии v в нынешний: старый стат (LEGACY_AFFIX_STATS: armor -> resistance) в новый,
+// стат со сменой единиц (LEGACY_AFFIX_SCALE: thorns до v2) — с пересчётом чисел.
+function migrateAffix(a, v) {
+  if (!a || typeof a !== 'object') return a;
+  let stat = a.stat;
+  let k = 1;
+  if (own(LEGACY_AFFIX_STATS, stat)) {
+    k = LEGACY_AFFIX_STATS[stat].mul;
+    stat = LEGACY_AFFIX_STATS[stat].to;
+  }
+  const sc = own(LEGACY_AFFIX_SCALE, stat) ? LEGACY_AFFIX_SCALE[stat] : null;
+  if (sc && v < sc.before) k *= sc.mul;
+  if (stat === a.stat && k === 1) return a;
+  return { stat, value: num(a.value) * k, min: num(a.min) * k, max: num(a.max) * k };
+}
+
 /**
  * Проверить предмет из сохранения. Неизвестное отбрасывается, числа зажимаются.
+ * @param {*} raw
+ * @param {number=} v версия сохранения (INVENTORY_VERSION): старые числа пересчитываются (migrateAffix)
  * @return {?Object} предмет или null
  */
-export function normalizeItem(raw) {
+export function normalizeItem(raw, v = INVENTORY_VERSION) {
   if (!raw || typeof raw !== 'object') return null;
   if (typeof raw.uid !== 'string' || !UID_RE.test(raw.uid)) return null;
   const tier = TIERS.includes(raw.tier) ? raw.tier : null;
@@ -703,7 +724,8 @@ export function normalizeItem(raw) {
   if (!count || !Array.isArray(raw.affixes) || !raw.affixes.length) return null;
   const affixes = [];
   const used = new Set();
-  for (const a of raw.affixes.slice(0, count)) {
+  for (const r of raw.affixes.slice(0, count)) {
+    const a = migrateAffix(r, v);
     if (!a || typeof a !== 'object' || !ITEM_STATS.includes(a.stat) || used.has(a.stat)) {
       return null;
     }
@@ -762,8 +784,9 @@ export function normalizeInventory(raw, size = null) {
   };
   const inv = emptyInventory(sz);
   const seen = new Set();
+  const ver = typeof raw.v === 'number' ? raw.v : INVENTORY_VERSION;
   const take = (r) => {
-    const it = normalizeItem(r);
+    const it = normalizeItem(r, ver);
     if (!it || seen.has(it.uid)) return null;
     seen.add(it.uid);
     return it;

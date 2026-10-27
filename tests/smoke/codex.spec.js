@@ -8,7 +8,7 @@ const SAMPLE = {
   v: 1, id: 'abcdefghij0123456789', nick: 'ANN',
   seen: {
     weapon: { blade_arc: 1, storm_chain: 1, firebomb: 1, crimson_arc: 1, thunder_loop: 1 },
-    passive: { attack: 1, armor: 1, luck: 1, thorns: 1 },
+    passive: { attack: 1, resistance: 1, luck: 1, thorns: 1 },
     enemy: { harpy: 1, slime: 1, catgirl: 1, foxgirl: 1 },
     boss: { kitsune_empress: 1 },
   },
@@ -28,7 +28,7 @@ const SAMPLE = {
     coins: 20 + i, score: 1000 + i * 111, dist: 20000 + i * 1000,
     damage: { blade_arc: 40000 + i, storm_chain: 22000, crimson_arc: 61000, firebomb: 9000 },
     held: { blade_arc: 200, storm_chain: 300, crimson_arc: 120, firebomb: 250 },
-    weapons: [['crimson_arc', 1], ['storm_chain', 5], ['firebomb', 4]], passives: [['attack', 5], ['armor', 2], ['luck', 1]],
+    weapons: [['crimson_arc', 1], ['storm_chain', 5], ['firebomb', 4]], passives: [['attack', 5], ['resistance', 2], ['luck', 1]],
   })),
 };
 
