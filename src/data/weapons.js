@@ -67,8 +67,8 @@ const WO = FX.weaponOrigin;
 
 // Лестница радиусов колец: уровни Holy Ground, дальше ауры и удары супероружия (числа уровней, до стата area). Ауры и длина удара
 // конуса (melee_arc) стоят ровно на ступенях, орбиты (щиты) так, что внешний край спрайта идёт по линии кольца
-// (onRing). Щиты не растут: базовые на T2 (растут числом и скоростью, как в VS), защитные апгрейды на T1
-// (ближе к герою, ловят больше снарядов), атакующие на T3. Проверяет tests/unit/data.test.js.
+// (onRing). Щиты не растут: базовые на T5 (растут числом и скоростью, как в VS), Aegis на T6 — далеко от
+// героя и медленно, чтобы ловили лишь часть пуль. Проверяет tests/unit/data.test.js.
 export const RINGS = [55, 62, 70, 78, 86, 95, 105, 115, 130, 150];
 // Видимый радиус спрайта на орбите (px мира при size 1) по направлению от героя: шар щита без искр,
 // у кинжала и полумесяца половина толщины (летят вдоль орбиты).
@@ -216,19 +216,20 @@ export const WEAPONS = {
   },
   guardian_shields: {
     // VS King Bible: L1 10 урона, 1 книга, 3 с вращения, пауза 3 с; L8 30 × 4, 4 с.
-    // Защитное оружие (ловит снаряды): самое слабое по урону, решение владельца.
+    // Защитное оружие (ловит снаряды): самое слабое по урону, решение владельца. Кольцо 4 и медленное
+    // вращение: стрелки вокруг пробивают L1 ~95%, L3 ~85%, L5 ~65% пуль (щит ловит касанием, orbit.blockR).
     icon: 'icon_guardian_shields', sprite: 'proj_shield', behavior: 'orbit', dmgType: 'attack', targets: 'aoe', maxLevel: 5,
     levels: [
-      { damage: 3, cooldown: 2.0, amount: 2, area: onRing(1, SHIELD_R), hitRadius: 22,
-        speed: 3.2, duration: 4.0, knockback: 40 },
-      { damage: 4, cooldown: 2.0, amount: 3, area: onRing(1, SHIELD_R), hitRadius: 26,
-        speed: 3.3, duration: 4.0, knockback: 40 },
-      { damage: 7, cooldown: 1.9, amount: 4, area: onRing(1, SHIELD_R), hitRadius: 29,
-        speed: 3.7, duration: 4.0, knockback: 45 },
-      { damage: 10, cooldown: 1.7, amount: 5, area: onRing(1, SHIELD_R), hitRadius: 36,
-        speed: 4.1, duration: 4.0, knockback: 50 },
-      { damage: 12, cooldown: 1.6, amount: 6, area: onRing(1, SHIELD_R), hitRadius: 40,
-        speed: 4.4, duration: 4.0, knockback: 55 },
+      { damage: 3, cooldown: 2.0, amount: 2, area: onRing(4, SHIELD_R), hitRadius: 22,
+        speed: 1.0, duration: 4.0, knockback: 40 },
+      { damage: 4, cooldown: 2.0, amount: 3, area: onRing(4, SHIELD_R), hitRadius: 26,
+        speed: 1.2, duration: 4.0, knockback: 40 },
+      { damage: 7, cooldown: 1.9, amount: 4, area: onRing(4, SHIELD_R), hitRadius: 29,
+        speed: 1.5, duration: 4.0, knockback: 45 },
+      { damage: 10, cooldown: 1.7, amount: 5, area: onRing(4, SHIELD_R), hitRadius: 36,
+        speed: 1.7, duration: 4.0, knockback: 50 },
+      { damage: 12, cooldown: 1.6, amount: 6, area: onRing(4, SHIELD_R), hitRadius: 40,
+        speed: 2.0, duration: 4.0, knockback: 55 },
     ],
   },
   holy_ground: {
@@ -444,10 +445,10 @@ export const WEAPONS = {
   },
   // guardian_shields + resistance
   aegis_bastion: {
-    // скорость 3.0: стрелки вокруг пробивают ~17% пуль (4.4 — сплошная стена, 100%), щиты L5 — ~29%
+    // кольцо 5, скорость 1.6: стрелки вокруг пробивают ~50% пуль (4.4 на кольце 2 — сплошная стена, 100%)
     icon: 'icon_aegis_bastion', sprite: 'proj_shield', behavior: 'orbit', dmgType: 'attack', targets: 'aoe', maxLevel: 1, evolved: true, tint: 0xa0c8ff,
     levels: [
-      { damage: 5, cooldown: 0, amount: 6, area: onRing(2, SHIELD_R * 1.4), speed: 3.0,
+      { damage: 5, cooldown: 0, amount: 6, area: onRing(5, SHIELD_R * 1.4), speed: 1.6,
         duration: 1e9, knockback: 0, size: 1.4, hitRadius: 54},
     ],
   },
