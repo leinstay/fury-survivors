@@ -67,7 +67,7 @@ test('level-up cards: values for new picks, detailed stats toggle hides them', a
   const col = (i) => on.filter((l) => l.x === xs[i]);
   expect(col(0)[0].text).toMatch(/^Damage: [\d.]+$/);
   expect(col(1)[0].text).toContain('»');
-  expect(col(2)[0].text).toMatch(/^Attack: \+/);
+  expect(col(2)[0].text).toMatch(/^Attack: \d+% » \d+%$/); // новая пассивка — было » станет
   // первая строка на одном y у всех карточек
   expect(new Set([col(0)[0].y, col(1)[0].y, col(2)[0].y]).size).toBe(1);
   expect(await lines(false)).toEqual([]);

@@ -169,61 +169,73 @@ node tools/slice-sheet.mjs <sheet> [--report]
 | `proj_spear` | 48×16 | 1 | 2 | tools/make-weapon-art.mjs |
 | `proj_bolt` | 36×12 | 1 | 2 | tools/make-weapon-art.mjs |
 | `proj_mine` | 28×28 | 6 | 2 | tools/make-weapon-art.mjs |
-| `proj_frost` | 44×44 | 4 | 2 | tools/make-weapon-art.mjs |
+| `proj_frost` | 44×44 | 1 | 2 | tools/make-weapon-art.mjs |
 | `proj_poison_cloud` | 128×128 | 1 | 2 | tools/make-weapon-art.mjs (только кодекс: в игре зона) |
 | `proj_beam` | 28×12 | 4 | 2 | tools/make-weapon-art.mjs |
 | `proj_wisp` | 28×28 | 8 | 2 | tools/make-weapon-art.mjs |
 | `proj_wisp_shot` | 20×20 | 1 | 2 | tools/make-weapon-art.mjs (proj_enemy, оттенок в голубой) |
-| `proj_meteor` | 160×160 | 8 | 1 | tools/make-weapon-art.mjs |
-| `icon_blade_arc` | 96×96 | 1 | 2 | `assets/raw/icons.png` |
-| `icon_throwing_daggers` | 96×96 | 1 | 2 | `assets/raw/icons.png` |
-| `icon_guardian_shields` | 96×96 | 1 | 2 | `assets/raw/icons.png` |
-| `icon_holy_ground` | 96×96 | 1 | 2 | `assets/raw/icons.png` |
-| `icon_war_axe` | 96×96 | 1 | 2 | `assets/raw/icons.png` |
-| `icon_storm_chain` | 96×96 | 1 | 2 | `assets/raw/icons.png` |
-| `icon_firebomb` | 96×96 | 1 | 2 | `assets/raw/icons.png` |
-| `icon_spear` | 96×96 | 1 | 2 |  |
-| `icon_hammer` | 96×96 | 1 | 2 |  |
-| `icon_crossbow` | 96×96 | 1 | 2 |  |
-| `icon_mines` | 96×96 | 1 | 2 |  |
-| `icon_frost_orb` | 96×96 | 1 | 2 |  |
-| `icon_poison_cloud` | 96×96 | 1 | 2 |  |
-| `icon_beam` | 96×96 | 1 | 2 |  |
-| `icon_wisp` | 96×96 | 1 | 2 |  |
-| `icon_meteor` | 96×96 | 1 | 2 |  |
-| `icon_max_hp` | 96×96 | 1 | 2 | `assets/raw/icons.png` |
-| `icon_attack` | 96×96 | 1 | 2 | `assets/raw/icons.png` |
-| `icon_speed` | 96×96 | 1 | 2 | `assets/raw/icons.png` |
-| `icon_crit` | 96×96 | 1 | 2 | `assets/raw/icons.png` |
-| `icon_pickup` | 96×96 | 1 | 2 | `assets/raw/icons.png` |
-| `icon_haste` | 96×96 | 1 | 2 | `assets/raw/icons.png` |
-| `icon_luck` | 96×96 | 1 | 2 | `assets/raw/icons.png` |
-| `icon_armor` | 96×96 | 1 | 2 | `assets/raw/icons.png` |
-| `icon_regen` | 96×96 | 1 | 2 | `assets/raw/icons.png` |
-| `icon_magic` | 96×96 | 1 | 2 |  |
-| `icon_crit_dmg` | 96×96 | 1 | 2 |  |
-| `icon_area` | 96×96 | 1 | 2 |  |
-| `icon_duration` | 96×96 | 1 | 2 |  |
-| `icon_xp_gain` | 96×96 | 1 | 2 |  |
-| `icon_dodge` | 96×96 | 1 | 2 |  |
-| `icon_thorns` | 96×96 | 1 | 2 |  |
+| `proj_meteor` | 56×56 | 1 | 2 | tools/make-weapon-art.mjs |
+| `icon_blade_arc` | 96×96 | 1 | 2 | `assets/raw/icons_redo.png` |
+| `icon_throwing_daggers` | 96×96 | 1 | 2 | `assets/raw/icons_redo.png` |
+| `icon_guardian_shields` | 96×96 | 1 | 2 | `assets/raw/icons_redo.png` |
+| `icon_holy_ground` | 96×96 | 1 | 2 | `assets/raw/icons_redo.png` |
+| `icon_war_axe` | 96×96 | 1 | 2 | `assets/raw/icons_redo.png` |
+| `icon_storm_chain` | 96×96 | 1 | 2 | `assets/raw/icons_redo.png` |
+| `icon_firebomb` | 96×96 | 1 | 2 | `assets/raw/icons_redo.png` |
+| `icon_spear` | 96×96 | 1 | 2 | `assets/raw/icons_new.png` |
+| `icon_hammer` | 96×96 | 1 | 2 | `assets/raw/icons_new.png` |
+| `icon_crossbow` | 96×96 | 1 | 2 | `assets/raw/icons_new.png` |
+| `icon_mines` | 96×96 | 1 | 2 | `assets/raw/icons_new.png` |
+| `icon_frost_orb` | 96×96 | 1 | 2 | `assets/raw/icons_new.png` |
+| `icon_poison_cloud` | 96×96 | 1 | 2 | `assets/raw/icons_new.png` |
+| `icon_beam` | 96×96 | 1 | 2 | `assets/raw/icons_new.png` |
+| `icon_wisp` | 96×96 | 1 | 2 | `assets/raw/icons_new.png` |
+| `icon_meteor` | 96×96 | 1 | 2 | `assets/raw/icons_new.png` |
+| `icon_max_hp` | 96×96 | 1 | 2 | `assets/raw/icons_redo.png` |
+| `icon_attack` | 96×96 | 1 | 2 | `assets/raw/icons_redo.png` |
+| `icon_speed` | 96×96 | 1 | 2 | `assets/raw/icons_redo.png` |
+| `icon_crit` | 96×96 | 1 | 2 | `assets/raw/icons_redo.png` |
+| `icon_pickup` | 96×96 | 1 | 2 | `assets/raw/icons_redo.png` |
+| `icon_haste` | 96×96 | 1 | 2 | `assets/raw/icons_redo.png` |
+| `icon_luck` | 96×96 | 1 | 2 | `assets/raw/icons_redo.png` |
+| `icon_armor` | 96×96 | 1 | 2 | `assets/raw/icons_redo.png` |
+| `icon_regen` | 96×96 | 1 | 2 | `assets/raw/icons_redo.png` |
+| `icon_magic` | 96×96 | 1 | 2 | `assets/raw/icons_new.png` |
+| `icon_crit_dmg` | 96×96 | 1 | 2 | `assets/raw/icons_new.png` |
+| `icon_area` | 96×96 | 1 | 2 | `assets/raw/icons_new.png` |
+| `icon_duration` | 96×96 | 1 | 2 | `assets/raw/icons_new.png` |
+| `icon_xp_gain` | 96×96 | 1 | 2 | `assets/raw/icons_new.png` |
+| `icon_dodge` | 96×96 | 1 | 2 | `assets/raw/icons_new.png` |
+| `icon_thorns` | 96×96 | 1 | 2 | `assets/raw/icons_new.png` |
 | `icon_heal` | 96×96 | 1 | 2 | `assets/raw/icons.png` |
-| `icon_crimson_arc` | 96×96 | 1 | 2 | `assets/raw/icons_evo.png` |
-| `icon_thousand_edge` | 96×96 | 1 | 2 | `assets/raw/icons_evo.png` |
-| `icon_aegis_bastion` | 96×96 | 1 | 2 | `assets/raw/icons_evo.png` |
-| `icon_soul_garden` | 96×96 | 1 | 2 | `assets/raw/icons_evo.png` |
-| `icon_death_spiral` | 96×96 | 1 | 2 | `assets/raw/icons_evo.png` |
-| `icon_thunder_loop` | 96×96 | 1 | 2 | `assets/raw/icons_evo.png` |
-| `icon_napalm_rain` | 96×96 | 1 | 2 | `assets/raw/icons_evo.png` |
-| `icon_dragon_lance` | 96×96 | 1 | 2 |  |
-| `icon_titan_maul` | 96×96 | 1 | 2 |  |
-| `icon_ballista` | 96×96 | 1 | 2 |  |
-| `icon_minefield` | 96×96 | 1 | 2 |  |
-| `icon_blizzard` | 96×96 | 1 | 2 |  |
-| `icon_miasma` | 96×96 | 1 | 2 |  |
-| `icon_prism_ray` | 96×96 | 1 | 2 |  |
-| `icon_spirit_choir` | 96×96 | 1 | 2 |  |
-| `icon_starfall` | 96×96 | 1 | 2 |  |
+| `icon_crimson_arc` | 96×96 | 1 | 2 | `assets/raw/icons_redo.png` |
+| `icon_thousand_edge` | 96×96 | 1 | 2 | `assets/raw/icons_redo.png` |
+| `icon_aegis_bastion` | 96×96 | 1 | 2 | `assets/raw/icons_redo.png` |
+| `icon_soul_garden` | 96×96 | 1 | 2 | `assets/raw/icons_redo.png` |
+| `icon_death_spiral` | 96×96 | 1 | 2 | `assets/raw/icons_redo.png` |
+| `icon_thunder_loop` | 96×96 | 1 | 2 | `assets/raw/icons_redo.png` |
+| `icon_napalm_rain` | 96×96 | 1 | 2 | `assets/raw/icons_redo.png` |
+| `icon_dragon_lance` | 96×96 | 1 | 2 | `assets/raw/icons_new.png` |
+| `icon_titan_maul` | 96×96 | 1 | 2 | `assets/raw/icons_new.png` |
+| `icon_ballista` | 96×96 | 1 | 2 | `assets/raw/icons_new.png` |
+| `icon_minefield` | 96×96 | 1 | 2 | `assets/raw/icons_new.png` |
+| `icon_blizzard` | 96×96 | 1 | 2 | `assets/raw/icons_new.png` |
+| `icon_miasma` | 96×96 | 1 | 2 | `assets/raw/icons_new.png` |
+| `icon_prism_ray` | 96×96 | 1 | 2 | `assets/raw/icons_new.png` |
+| `icon_spirit_choir` | 96×96 | 1 | 2 | `assets/raw/icons_new.png` |
+| `icon_starfall` | 96×96 | 1 | 2 | `assets/raw/icons_new.png` |
+| `icon_unique_bible` | 96×96 | 1 | 2 | `assets/raw/icons_uniques.png` |
+| `icon_unique_glass_cannon` | 96×96 | 1 | 2 | `assets/raw/icons_uniques.png` |
+| `icon_unique_kaom_heart` | 96×96 | 1 | 2 | `assets/raw/icons_uniques.png` |
+| `icon_unique_sprinter` | 96×96 | 1 | 2 | `assets/raw/icons_uniques.png` |
+| `icon_unique_turtle` | 96×96 | 1 | 2 | `assets/raw/icons_uniques.png` |
+| `icon_unique_berserk` | 96×96 | 1 | 2 | `assets/raw/icons_uniques.png` |
+| `icon_unique_spiked_shell` | 96×96 | 1 | 2 | `assets/raw/icons_uniques.png` |
+| `icon_unique_last_chance` | 96×96 | 1 | 2 | `assets/raw/icons_uniques.png` |
+| `icon_unique_myopia` | 96×96 | 1 | 2 | `assets/raw/icons_uniques.png` |
+| `icon_unique_clock` | 96×96 | 1 | 2 | `assets/raw/icons_uniques.png` |
+| `icon_unique_monk` | 96×96 | 1 | 2 | `assets/raw/icons_uniques.png` |
+| `icon_unique_dice` | 96×96 | 1 | 2 | `assets/raw/icons_uniques.png` |
 | `menu_bg` | 265×150 | 1 | 0.4 | `assets/raw/menu_bg.png` (tools/snap-image.mjs) |
 | `grass` | 128×128 | 1 | 1 | tools/make-grass.mjs |
 | `tree` | 128×208 | 2 | 2 | `assets/raw/env_props.png` |

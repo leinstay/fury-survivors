@@ -505,6 +505,8 @@ export class World {
     this.pools.pickups.sync(sim.pickups, (e) => e.sprite, (s, e) => {
       this._setKey(s, e.sprite);
       s.setScale(spriteScale(e.sprite));
+      if (e.tint) s.setTint(e.tint);
+      else s.clearTint();
       this._lerp(e);
       s.setPosition(snap(this.ix), snap(this.iy));
       s.setDepth(PICKUP_DEPTH + this.iy);

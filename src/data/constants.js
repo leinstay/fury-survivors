@@ -112,7 +112,7 @@ export const HUD = {
   minimap: {
     radius: 34, margin: 8, top: 18, range: 900, fps: 12, alpha: 0.6, bg: 0x000000, rim: 0xb0a0d0,
     arrow: { len: 5, half: 3.5, self: 0xffffff, ally: 0x9ad0ff },
-    icons: { chest: 9, food: 7, magnet: 7, coin: 5 },
+    icons: { chest: 9, loot_chest: 9, food: 7, magnet: 7, coin: 5 },
     dots: { coffin: 0x9a8a7a, elite: 0xff3d6e, skull: 0xf2ead8 },
   },
 };
@@ -192,7 +192,6 @@ export const FX = {
     proj_axe: { color: 0xffd9a0, size: 30, alpha: 0.3 },
     proj_firebomb: { color: 0xffa040, size: 28, alpha: 0.4 },
     proj_shield: { color: 0xfff0a0, size: 28, alpha: 0.3 },
-    proj_frost: { color: 0xa0e0ff, size: 30, alpha: 0.35 },
     proj_meteor: { color: 0xff7a30, size: 60, alpha: 0.65 },  // свечение метеора (общая настройка свечения снарядов)
     proj_wisp: { color: 0x9ff0ff, size: 26, alpha: 0.45 },
     proj_wisp_shot: { color: 0x80e8ff, size: 20, alpha: 0.6 },
@@ -229,13 +228,14 @@ export const FX = {
     },
     boom: { color: 0xff8030, core: 0xfff0b0, alpha: 0.5 },
     // кольца внутри шара по ключу спрайта (метеор, ледяной шар): radius — радиус шара в px мира при scale 1
-    // (текстура при density 2: proj_meteor 56 px → 14, proj_frost 44 px → 11), start — с какой доли радиуса
+    // (текстура при density 2: proj_meteor 56 px → 14, proj_frost = ORBIT_R 10), start — с какой доли радиуса
     // кольцо появляется (без точки в центре), count колец, period с на кольцо
     pulse: {
       proj_meteor: { color: 0xffc070, radius: 13, start: 0.4, count: 2, period: 0.45, width: 1.2,
         alpha: 0.8 },
-      proj_frost: { color: 0x7fc8ff, radius: 10, start: 0.4, count: 2, period: 0.6, width: 1.2,
-        alpha: 0.8 },
+      // ледяной шар без картинки: только кольца от центра до радиуса шара
+      proj_frost: { color: 0xd8f0ff, radius: 10, start: 0.05, count: 3, period: 0.7, width: 1.2,
+        alpha: 0.9 },
     },
     fire: { color: 0xff6a20, core: 0xffc040, fill: 0.13, rim: 0.45, flicker: 0.08, fadeOut: 0.5 },
     // трещина молота (slam): тёмное пятно, rays лучей-изломов по joints звеньев, светлая кромка цвета tint

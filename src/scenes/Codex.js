@@ -28,7 +28,7 @@ import { getCodex, fetchCodex, replaceCodex } from '../services/codex.js';
 import { UNIQUES } from '../data/items.js';
 import { getInventory } from '../services/inventory.js';
 import {
-  BUTTON, PAGE_BOTTOM, PAGE_TOP, PAGE_TAB_Y, backRect, screenTitle, menuBackdrop,
+  BUTTON, PAGE_BOTTOM, PAGE_TOP, PAGE_TAB_Y, backRect, screenTitle, menuBackdrop, GAP_TEXT,
 } from '../ui/menu-layout.js';
 import { weaponsForStat } from '../core/card-preview.js';
 
@@ -228,13 +228,11 @@ function armorySeen(codex, it) {
   return !!(inv.seen && inv.seen[it.id]);
 }
 
-// Иконка-силуэт: картинка залита тёмным, у заглушки вместо буквы «?».
+// Не открытая запись: у всех одинаковый тёмный квадрат размера иконки, без силуэта и буквы.
 function darken(icon) {
-  for (const ch of icon.list) {
-    if (ch.setTintFill) ch.setTintFill(DARK);
-    else if (ch.type === 'Rectangle') ch.setFillStyle(DARK);
-    else if (ch.type === 'Text') ch.setText('?');
-  }
+  for (const ch of icon.list) ch.setVisible(false);
+  const s = icon.iconSize;
+  icon.add(icon.scene.add.rectangle(0, 0, s, s, DARK));
   icon.setAlpha(0.85);
 }
 
@@ -417,7 +415,14 @@ export class CodexScene extends Phaser.Scene {
     const perRow = Math.floor((LEFT.w - 2 * inset + ARMORY_GAP) / step);
     const rowsOf = (sec) => Math.ceil(sec.items.length / perRow);
     const pad = Math.floor((LEFT.w - perRow * step + ARMORY_GAP) / 2);
-    const avail = AREA_H - 2 * inset;
+    // «Discovered» внизу справа: если последний ряд доходит под него, строка уходит ниже рядов
+    const all = secs.reduce((a, sec) => a + sec.items.length, 0);
+    const foot = this.add.text(LEFT.x + LEFT.w - pad, FOOT_Y + PAD - inset,
+        t('codex.found', { n: all, m: all }),
+        textStyle(9, COLORS.dim)).setOrigin(1, 1);
+    const last = secs[secs.length - 1].items.length % perRow || perRow;
+    const under = last * step - ARMORY_GAP > LEFT.w - 2 * pad - foot.width - GAP_TEXT;
+    const avail = AREA_H - 2 * inset - (under ? foot.height + GAP_TEXT : 0);
     const used = secs.reduce((a, sec) => a + ARMORY_HEAD + rowsOf(sec) * step - ARMORY_GAP, 0);
     const secGap = Math.min(ARMORY_SEC_MAX,
         Math.floor((avail - used) / Math.max(1, secs.length - 1)));
@@ -445,8 +450,7 @@ export class CodexScene extends Phaser.Scene {
       });
       y += rowsOf(sec) * step - ARMORY_GAP + secGap;
     });
-    this.add.text(LEFT.x + LEFT.w - pad, FOOT_Y, t('codex.found', { n: found, m: total }),
-        textStyle(9, COLORS.dim)).setOrigin(1, 1);
+    foot.setText(t('codex.found', { n: found, m: total }));
     return first;
   }
 

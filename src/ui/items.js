@@ -7,6 +7,7 @@ import { BAG } from '../data/items.js';
 import { STATS } from '../data/stats.js';
 import { textStyle, COLORS } from './style.js';
 import { addPanel } from './panel.js';
+import { addIcon, iconKeyFor } from './icons.js';
 import { itemName, affixLines, itemSize, bagBonus, bagGrid } from '../core/items.js';
 
 export const RARITY_COLOR = { common: 0xc8c8c8, rare: 0x4fc3ff, epic: 0xc06cff, unique: 0xffa030 };
@@ -61,10 +62,16 @@ export function drawItemBox(scene, x, y, w, h, item, opts = {}) {
   g.fillStyle(col, 0.18).fillRect(1, 1, w - 2, Math.max(1, Math.floor(h / 3)));
   g.lineStyle(1, col, 1).strokeRect(0.5, 0.5, w - 1, h - 1);
   c.add(g);
-  const size = Math.max(7, Math.min(14, Math.round(Math.min(w, h) * 0.5)));
-  c.add(scene.add.text(w / 2, h / 2, typeLetter(item),
-      textStyle(size, RARITY_CSS[item.rarity] || '#ffffff', { stroke: '#000000', strokeThickness: 2 }))
-      .setOrigin(0.5));
+  if (item.unique) {
+    // уникалка — сфера своего цвета (icon_unique_<id>), обычные предметы — буква типа
+    const s = Math.round(Math.min(w, h, 48) * 0.75);
+    c.add(addIcon(scene, w / 2, h / 2, iconKeyFor('unique', item.unique), s, 'unique', item.unique));
+  } else {
+    const size = Math.max(7, Math.min(14, Math.round(Math.min(w, h) * 0.5)));
+    c.add(scene.add.text(w / 2, h / 2, typeLetter(item),
+        textStyle(size, RARITY_CSS[item.rarity] || '#ffffff', { stroke: '#000000', strokeThickness: 2 }))
+        .setOrigin(0.5));
+  }
   if (item.enchant && !opts.small) {
     c.add(scene.add.text(w - 2, h - 1, `+${item.enchant}`, textStyle(7, '#ffd84a',
         { stroke: '#000000', strokeThickness: 2 })).setOrigin(1, 1));

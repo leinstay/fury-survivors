@@ -257,6 +257,9 @@ test.describe('mobile landscape', () => {
       const gs = window.__game.game.scene.getScene('Game');
       const e = gs.sim.spawnBoss('kitsune_empress');
       gs.sim.damageEnemy(e, 1e12, 'test', 0, 0, 0);
+      // сундук лута под героя: подберётся на следующем шаге
+      const pk = gs.sim.pickups.find((p) => p.type === 'loot_chest');
+      pk.x = gs.sim.player.x; pk.y = gs.sim.player.y;
       gs.handleEvents(gs.sim.events.slice());
     });
     await page.waitForFunction(() => window.__game.debug().toasts.includes('first_trophy'));
@@ -302,6 +305,9 @@ test.describe('mobile landscape', () => {
       const gs = window.__game.game.scene.getScene('Game');
       const e = gs.sim.spawnBoss('kitsune_empress');
       gs.sim.damageEnemy(e, 1e12, 'test', 0, 0, 0);
+      // сундук лута под героя: подберётся на следующем шаге
+      const pk = gs.sim.pickups.find((p) => p.type === 'loot_chest');
+      pk.x = gs.sim.player.x; pk.y = gs.sim.player.y;
     });
     await page.waitForFunction(() => window.__game.debug().scenes.includes('Loot'));
     await page.waitForFunction(() => window.__game.game.scene.getScene('Loot').nav.items?.length > 0);

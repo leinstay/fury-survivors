@@ -100,8 +100,9 @@ export const WEAPON_BEHAVIOR = {
   // mid / core — доля полуширины середины и ядра (ядро не тоньше coreMin), их alpha; taper — сужение к хвосту
   // (степень); color / midColor / coreColor — шлейф, середина (без tint), ядро сложением цвета.
   // maxAlive — больше змеек одного оружия на экране не бывает (залп добирает до него), решение владельца.
-  beam: { first: 0.3, hitRadius: 5, maxAlive: 6, bounceDamageMul: 0.75, maxTravel: 420, fade: 0.22,
-    shrink: 260,
+  // targetRange / retry — цель луча как у молнии (storm_chain range 230–260): без цели залп ждёт retry с.
+  beam: { first: 0.3, targetRange: 250, retry: 0.15, hitRadius: 5, maxAlive: 6,
+    bounceDamageMul: 0.75, maxTravel: 420, fade: 0.22, shrink: 260,
     lift: WO.lift, halfWidth: 4, mid: 0.45, core: 0.2, coreMin: 0.75,
     trailAlpha: 0.35, midAlpha: 0.75, coreAlpha: 1, taper: 0.8,
     color: 0xdcecff, midColor: 0xf0f7ff, coreColor: 0xffffff },

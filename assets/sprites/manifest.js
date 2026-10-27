@@ -121,7 +121,7 @@ export const SPRITES = Object.fromEntries([
   art('proj_spear', 48, 16, { density: HD, color: '#c8c8d8' }),
   art('proj_bolt', 36, 12, { density: HD, color: '#a08060' }),
   art('proj_mine', 28, 28, { density: HD, frames: null, layer: 'ground', color: '#606870', shape: 'round' }),
-  art('proj_frost', 44, 44, { density: HD, frames: null, color: '#e8f6ff', shape: 'round' }), // кривой шар цвета снега, кольца FX.zones.pulse
+  art('proj_frost', 44, 44, { density: HD, frames: null, color: '#e8f6ff', shape: 'round' }), // пустой кадр: в игре только кольца FX.zones.pulse
   art('proj_poison_cloud', 128, 128, { density: HD, layer: 'ground', color: '#9be04a', shape: 'round' }),
   art('proj_beam', 28, 12, { density: HD, frames: null, color: '#ffe0ff' }),
   art('proj_wisp', 28, 28, { density: HD, frames: null, color: '#9ff0ff', shape: 'round' }),
@@ -182,6 +182,19 @@ export const SPRITES = Object.fromEntries([
   icon('icon_prism_ray', '#c0a0e0'),
   icon('icon_spirit_choir', '#c0a0e0'),
   icon('icon_starfall', '#c0a0e0'),
+  // уникалки: сферы разных цветов (assets/raw/icons_uniques.png), в сумке и кодексе вместо буквы
+  icon('icon_unique_bible', '#c8a850'),
+  icon('icon_unique_glass_cannon', '#9cc4cc'),
+  icon('icon_unique_kaom_heart', '#8c3a44'),
+  icon('icon_unique_sprinter', '#9cb46c'),
+  icon('icon_unique_turtle', '#4c6440'),
+  icon('icon_unique_berserk', '#cc6a3c'),
+  icon('icon_unique_spiked_shell', '#7c5c44'),
+  icon('icon_unique_last_chance', '#b0b0b4'),
+  icon('icon_unique_myopia', '#8c74a4'),
+  icon('icon_unique_clock', '#a87448'),
+  icon('icon_unique_monk', '#4c8c8c'),
+  icon('icon_unique_dice', '#c47478'),
 
   // Фон меню: снят по родной сетке (tools/snap-image.mjs), рисуется в 2.5 раза крупнее: клетка = 5×5 px холста.
   art('menu_bg', 265, 150, { density: 0.4, origin: [0, 0] }),

@@ -30,7 +30,7 @@ test('inventory: equip / unequip / rotate placement through the bag', () => {
 
 test('inventory: one unique in the bag, stash full blocks unequip', () => {
   let inv = emptyInventory();
-  inv.stash.push(makeUnique('dice', 2, 'u1'), makeUnique('greed', 2, 'u2'));
+  inv.stash.push(makeUnique('dice', 2, 'u1'), makeUnique('last_chance', 2, 'u2'));
   inv = equip(inv, 'u1', 0, 0);
   assert.equal(equip(inv, 'u2', 3, 0), null);
   const full = { ...inv, stash: invWith(STASH.size).stash };

@@ -184,7 +184,7 @@ export function evolutionCard(combo) {
  * Даже одна эволюция идёт через выбор: игрок может её пропустить (sim.skipChest) ради обычных апгрейдов.
  * @param {!Object} player данные игрока
  * @param {{int: function(number): number}} rng
- * @param {number=} max сколько вариантов показать (уникалка greed даёт на один больше)
+ * @param {number=} max сколько вариантов показать
  * @return {!Array<!Object>} карточки или пустой массив, если готовых эволюций нет
  */
 export function chestChoices(player, rng, max = CHEST.maxChoices) {

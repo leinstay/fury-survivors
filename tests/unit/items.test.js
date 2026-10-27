@@ -185,11 +185,11 @@ test('bag: placement, overlap, rotation, unlocked bounds', () => {
 test('bag: one unique at most, diversity bonus, unique more', () => {
   let bag = createBag(9, 5);
   const gc = makeUnique('glass_cannon', 2, 'u1');
-  const greed = makeUnique('greed', 2, 'u2');
+  const lc = makeUnique('last_chance', 2, 'u2');
   bag = place(bag, gc, 0, 0);
   assert.ok(bag);
-  assert.ok(!canPlace(bag, greed, 5, 0), 'second unique');
-  assert.ok(canPlace(bag, makeUnique('greed', 2, 'u1'), 5, 0), 'moving the same unique is fine');
+  assert.ok(!canPlace(bag, lc, 5, 0), 'second unique');
+  assert.ok(canPlace(bag, makeUnique('last_chance', 2, 'u1'), 5, 0), 'moving the same unique is fine');
   const ring = { uid: 'r1', type: 'ring', shape: [1, 1], tier: 1, rarity: 'common',
     implicit: 'crit', affixes: [{ stat: 'crit', value: 0.01, min: 0.005, max: 0.01 },
       { stat: 'attack', value: 0.02, min: -0.01, max: 0.02 }], enchant: 2, unique: null,

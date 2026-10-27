@@ -1,0 +1,12 @@
+Subject: one sheet of 23 inventory icons for the same fantasy survivor game, redrawn in the exact pixel art style of the attached icon sheet: chunky hard-edged pixels on a coarse grid (about 32 pixels across each icon), flat cel shading, every icon closed by a dark 1-pixel outline, readable at very small size, same size, palette, outline and detail level as the attached icons. Each icon is a single bold object, no background tile, no frame, no text.
+
+Glow rule (most important): there is NO glow, bloom, haze, blur, light rays or soft shadow outside the dark outline of any icon. Fire, lightning, holy light and magic sparks are drawn as solid opaque pixel shapes with their own dark outline, never as soft transparent light. Every pixel is either fully opaque or fully transparent, no semi-transparent pixels anywhere.
+
+Layout: a grid of exactly 23 separate icons, 5 columns by 5 rows (the last row has only 3 icons, on the left), all the same size, evenly spaced, wide empty gaps between icons, nothing touching. Row by row, left to right:
+Row 1 (weapons): 1. a silver sword with a white-blue crescent slash trail; 2. three steel throwing daggers fanned out; 3. a round blue shield with a gold rim; 4. a golden holy rune circle on the ground; 5. a double-bladed steel war axe.
+Row 2 (weapons and upgrades): 6. a blue lightning bolt with a chain link; 7. a round black bomb with a lit fuse and a small flame; 8. a red heart with a small plus sign (max health); 9. a red flexed arm (attack); 10. a green winged boot (speed).
+Row 3 (upgrades): 11. a golden four-pointed star with a small spark (critical hit); 12. a purple horseshoe magnet with a small gem (pickup radius); 13. a blue hourglass (haste); 14. a green four-leaf clover (luck); 15. a brown leather chestplate (resistance).
+Row 4 (upgrade and evolutions): 16. a pink heart with a small green leaf (regeneration); 17. a huge blood-red crescent slash; 18. a wide fan of many silver knives; 19. a tall ornate blue and silver tower shield; 20. a green glowing flower inside a green rune circle.
+Row 5 (evolutions): 21. a purple spiral of spinning axes; 22. a blue lightning bolt bent into a loop; 23. three fire bombs falling with flame trails.
+
+Background: fully transparent everywhere between icons (if transparency is impossible, one solid flat pure magenta #FF00FF with no gradient, no haze and no vignette).

@@ -1,5 +1,5 @@
-// Предпросмотр на карточке уровня (LevelUp.js): строки «Стат: было » станет» (у нового — «Стат: значение»
-// или «Стат: +прибавка») и ряд иконок оружий игрока, на которые влияет пассивка, в зоне фиксированной высоты
+// Предпросмотр на карточке уровня (LevelUp.js): строки «Стат: было » станет» (пассивки всегда, оружие со
+// второго уровня; у нового оружия и эволюции — «Стат: значение») и ряд иконок оружий игрока, на которые влияет пассивка, в зоне фиксированной высоты
 // внизу карточки. Шрифт строк на ступень мельче описания. Скрывается настройкой detailStats (Options).
 // Числа считает core/card-preview.js.
 import { t } from '../i18n/index.js';
@@ -17,11 +17,6 @@ const MAX_LINES = 3; // строк изменений оружия на карт
 const SEC = new Set(['cooldown', 'duration']);
 
 const round1 = (v) => Math.round(v * 10) / 10;
-
-// Прибавка стата в том же виде, что значение (statValue): «+24» у HP, «+15%» у процентных.
-function gain(stat, d) {
-  return `${d < 0 ? '-' : '+'}${statValue(stat, Math.abs(d)).replace(/^\+/, '')}`;
-}
 
 // Значение параметра оружия: секунды с двумя знаками, остальное целым или с одним знаком.
 function paramValue(k, v) {
@@ -72,9 +67,8 @@ export function addCardPreview(scene, x, bottom, width, pl, card) {
     const p = passivePreview(pl, card);
     if (!p) return 0;
     const name = t(`item.stat.${p.stat}`);
-    // новая пассивка — прибавка («Attack: +15%»), следующий уровень — было » станет
-    lines.push(card.isNew ? t('levelup.value', { name, v: gain(p.stat, p.after - p.before) }) :
-      t('levelup.change', { name, a: statValue(p.stat, p.before), b: statValue(p.stat, p.after) }));
+    // пассивка меняет базу героя: и новая, и следующий уровень — было » станет
+    lines.push(t('levelup.change', { name, a: statValue(p.stat, p.before), b: statValue(p.stat, p.after) }));
     icons = p.weapons;
   } else if (card.kind === 'weapon' && weaponPreview(pl, card).length === 0) {
     // новое оружие или эволюция: значения уровня («Damage: 20»)

@@ -128,8 +128,6 @@ export const enItems = {
   'unique.glass_cannon.desc': 'Double damage. Max HP is 1. Resistance does nothing.',
   'unique.kaom_heart.name': "Kaom's Heart",
   'unique.kaom_heart.desc': 'Double regeneration, but only while standing still.',
-  'unique.greed.name': 'Ring of Greed',
-  'unique.greed.desc': 'One more choice in evolution chests. Food no longer heals.',
   'unique.sprinter.name': "Sprinter's Boots",
   'unique.sprinter.desc': 'Damage grows with move speed. -50% damage while standing still.',
   'unique.turtle.name': 'Turtle Shell',

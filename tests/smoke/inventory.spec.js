@@ -111,7 +111,7 @@ test('achievements view opens from the menu', async ({ page }) => {
   expect(errors.get()).toEqual([]);
 });
 
-test('boss loot opens right away: take, disassemble for crystals, world waits', async ({ page }) => {
+test('boss loot chest picked up: take, disassemble for crystals, world waits', async ({ page }) => {
   const errors = collectConsoleErrors(page);
   await page.goto('/');
   await startGame(page);
@@ -121,11 +121,14 @@ test('boss loot opens right away: take, disassemble for crystals, world waits', 
     const gs = window.__game.game.scene.getScene('Game');
     const e = gs.sim.spawnBoss('kitsune_empress');
     gs.sim.damageEnemy(e, 1e12, 'test', 0, 0, 0);
+    // сундук лута под героя: подберётся на следующем шаге
+    const pk = gs.sim.pickups.find((p) => p.type === 'loot_chest');
+    pk.x = gs.sim.player.x; pk.y = gs.sim.player.y;
     const inv = S.getInventory();
     return { stash: inv.stash.length, crystals: inv.wallet.crystals || 0,
       dis: A.getAchievements().counters.disassembled || 0 };
   });
-  // сундук шмоток открывается сам: анимация, затем карточки
+  // подобранный сундук шмоток открывается: анимация, затем карточки
   await page.waitForFunction(() => window.__game.debug().scenes.includes('Loot'));
   expect(await page.evaluate(() => window.__game.game.scene.getScene('Game').sim.state)).toBe('loot');
   await page.waitForFunction(() => window.__game.game.scene.getScene('Loot').nav.items?.length > 0);

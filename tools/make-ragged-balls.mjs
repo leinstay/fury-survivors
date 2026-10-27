@@ -1,7 +1,7 @@
 // Неровные шары снарядов одним цветом, без обводки (форма как у пули виспа): кривой край по сетке 2 px
 // текстуры (1 px мира при density 2). Пульсация колец внутри рисуется в игре (FX.zones.pulse).
 //   meteor  proj_meteor     56 px, тёмно-оранжевый
-//   frost   proj_frost      44 px, цвет снега (один кадр вместо прежней процедурной ленты)
+//   frost   proj_frost      44 px, пустой кадр: ледяной шар — только кольца FX.zones.pulse (решение владельца)
 //   shot    proj_wisp_shot  20 px: тёмная обводка убрана, шар закрашен до её внешнего края голубым
 // node tools/make-ragged-balls.mjs [meteor frost shot]
 import sharp from 'sharp';
@@ -9,11 +9,11 @@ import sharp from 'sharp';
 const OUT = 'assets/sprites';
 const BALLS = {
   meteor: { key: 'proj_meteor', size: 56, color: [0xc8, 0x4e, 0x14], seed: 1 },
-  frost: { key: 'proj_frost', size: 44, color: [0xe8, 0xf6, 0xff], seed: 2 },
+  frost: { key: 'proj_frost', size: 44, color: [0xe8, 0xf6, 0xff], seed: 2, empty: true },
 };
 const CELL = 2;
 
-async function ball({ key, size, color, seed }) {
+async function ball({ key, size, color, seed, empty }) {
   const n = size / CELL;
   const c = (n - 1) / 2;
   const R = n / 2 - 0.6;
@@ -25,7 +25,7 @@ async function ball({ key, size, color, seed }) {
       const a = Math.atan2(dy, dx);
       const r = R * (1 + 0.05 * Math.sin(3 * a + seed) + 0.04 * Math.sin(5 * a + 2 * seed) +
           0.03 * Math.sin(8 * a + 3 * seed));
-      if (Math.hypot(dx, dy) > r) continue;
+      if (empty || Math.hypot(dx, dy) > r) continue;
       for (let py = 0; py < CELL; py++) {
         for (let px = 0; px < CELL; px++) {
           const i = ((gy * CELL + py) * size + gx * CELL + px) * 4;

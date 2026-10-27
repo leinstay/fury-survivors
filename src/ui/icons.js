@@ -46,6 +46,7 @@ export function sizedTexture(scene, key, px) {
 // Возвращает Container размером size×size с центром в (x, y). iconKey может быть пустым.
 export function addIcon(scene, x, y, iconKey, size, kind, id) {
   const c = scene.add.container(x, y);
+  c.iconSize = size;
   if (iconKey && scene.textures.exists(iconKey)) {
     const img = scene.add.image(0, 0, sizedTexture(scene, iconKey, size * RENDER_ZOOM));
     img.setScale(1 / RENDER_ZOOM);
@@ -59,8 +60,9 @@ export function addIcon(scene, x, y, iconKey, size, kind, id) {
   return c;
 }
 
-// Ключ иконки из data; если записи нет, соглашение icon_<id>.
+// Ключ иконки из data; если записи нет, соглашение icon_<id>; уникалка — сфера icon_unique_<id>.
 export function iconKeyFor(kind, id) {
+  if (kind === 'unique') return `icon_unique_${id}`;
   const def = kind === 'weapon' ? WEAPONS[id] : kind === 'passive' ? PASSIVES[id] : null;
   return (def && def.icon) || `icon_${id}`;
 }

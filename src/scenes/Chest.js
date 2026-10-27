@@ -14,7 +14,7 @@ const CARD_W = 220;
 const CARD_H = 150;
 const CARD_GAP = 16;
 const CHOICE_W = 420;       // строка выбора эволюции: ряд «A + B > C» слева, название и описание справа
-const CHOICE_H = 70;        // до CHEST.maxChoices (+ greed) строк столбиком
+const CHOICE_H = 70;        // до CHEST.maxChoices строк столбиком
 const CHOICE_GAP = 6;
 
 // Сундук скиллов поверх Game (docs/META.md 1.4), три режима:

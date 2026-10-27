@@ -50,24 +50,72 @@
   "icons": {
     "raw": "assets/raw/icons.png",
     "items": [
-      "icon_blade_arc",
-      "icon_throwing_daggers",
-      "icon_guardian_shields",
-      "icon_holy_ground",
-      "icon_war_axe",
-      "icon_storm_chain",
-      "icon_firebomb",
+      {
+        "key": "icon_blade_arc",
+        "hd": false
+      },
+      {
+        "key": "icon_throwing_daggers",
+        "hd": false
+      },
+      {
+        "key": "icon_guardian_shields",
+        "hd": false
+      },
+      {
+        "key": "icon_holy_ground",
+        "hd": false
+      },
+      {
+        "key": "icon_war_axe",
+        "hd": false
+      },
+      {
+        "key": "icon_storm_chain",
+        "hd": false
+      },
+      {
+        "key": "icon_firebomb",
+        "hd": false
+      },
       "icon_aegis_storm",
       "icon_thunder_knives",
-      "icon_max_hp",
-      "icon_attack",
-      "icon_speed",
-      "icon_crit",
-      "icon_pickup",
-      "icon_haste",
-      "icon_luck",
-      "icon_armor",
-      "icon_regen",
+      {
+        "key": "icon_max_hp",
+        "hd": false
+      },
+      {
+        "key": "icon_attack",
+        "hd": false
+      },
+      {
+        "key": "icon_speed",
+        "hd": false
+      },
+      {
+        "key": "icon_crit",
+        "hd": false
+      },
+      {
+        "key": "icon_pickup",
+        "hd": false
+      },
+      {
+        "key": "icon_haste",
+        "hd": false
+      },
+      {
+        "key": "icon_luck",
+        "hd": false
+      },
+      {
+        "key": "icon_armor",
+        "hd": false
+      },
+      {
+        "key": "icon_regen",
+        "hd": false
+      },
       "icon_heal",
       null
     ],
@@ -365,13 +413,34 @@
       "icon_thunder_axe",
       "icon_blast_axe",
       "icon_plasma_storm",
-      "icon_crimson_arc",
-      "icon_thousand_edge",
-      "icon_aegis_bastion",
-      "icon_soul_garden",
-      "icon_death_spiral",
-      "icon_thunder_loop",
-      "icon_napalm_rain"
+      {
+        "key": "icon_crimson_arc",
+        "hd": false
+      },
+      {
+        "key": "icon_thousand_edge",
+        "hd": false
+      },
+      {
+        "key": "icon_aegis_bastion",
+        "hd": false
+      },
+      {
+        "key": "icon_soul_garden",
+        "hd": false
+      },
+      {
+        "key": "icon_death_spiral",
+        "hd": false
+      },
+      {
+        "key": "icon_thunder_loop",
+        "hd": false
+      },
+      {
+        "key": "icon_napalm_rain",
+        "hd": false
+      }
     ],
     "hd": {
       "default": 0.51
@@ -394,5 +463,92 @@
     "hd": {
       "default": 0.28
     }
+  },
+  "icons_new": {
+    "raw": "assets/raw/icons_new.png",
+    "hd": {
+      "default": 0.47
+    },
+    "alphaOnly": true,
+    "items": [
+      "icon_spear",
+      "icon_hammer",
+      "icon_crossbow",
+      "icon_mines",
+      "icon_frost_orb",
+      "icon_poison_cloud",
+      "icon_beam",
+      "icon_wisp",
+      "icon_meteor",
+      "icon_dragon_lance",
+      "icon_titan_maul",
+      "icon_ballista",
+      "icon_minefield",
+      "icon_blizzard",
+      "icon_miasma",
+      "icon_prism_ray",
+      "icon_spirit_choir",
+      "icon_starfall",
+      "icon_magic",
+      "icon_crit_dmg",
+      "icon_area",
+      "icon_duration",
+      "icon_xp_gain",
+      "icon_dodge",
+      "icon_thorns"
+    ]
+  },
+  "icons_uniques": {
+    "raw": "assets/raw/icons_uniques.png",
+    "hd": {
+      "default": 0.35
+    },
+    "alphaOnly": true,
+    "items": [
+      "icon_unique_bible",
+      "icon_unique_glass_cannon",
+      "icon_unique_kaom_heart",
+      "icon_unique_sprinter",
+      "icon_unique_turtle",
+      "icon_unique_berserk",
+      "icon_unique_spiked_shell",
+      "icon_unique_last_chance",
+      "icon_unique_myopia",
+      "icon_unique_clock",
+      "icon_unique_monk",
+      "icon_unique_dice"
+    ]
+  },
+  "icons_redo": {
+    "raw": "assets/raw/icons_redo.png",
+    "hd": {
+      "default": 0.47
+    },
+    "alphaOnly": true,
+    "items": [
+      "icon_blade_arc",
+      "icon_throwing_daggers",
+      "icon_guardian_shields",
+      "icon_holy_ground",
+      "icon_war_axe",
+      "icon_storm_chain",
+      "icon_firebomb",
+      "icon_max_hp",
+      "icon_attack",
+      "icon_speed",
+      "icon_crit",
+      "icon_pickup",
+      "icon_haste",
+      "icon_luck",
+      "icon_armor",
+      "icon_regen",
+      "icon_crimson_arc",
+      "icon_thousand_edge",
+      "icon_aegis_bastion",
+      "icon_soul_garden",
+      "icon_death_spiral",
+      "icon_thunder_loop",
+      "icon_napalm_rain"
+    ]
   }
 }

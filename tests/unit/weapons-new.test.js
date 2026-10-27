@@ -80,13 +80,13 @@ test('beam: deterministic (same seed, same hits), not tied to the movement direc
   const hb = runHits(b, 4, 'beam', { x: 0, y: 1 });
   assert.deepEqual(ha, hb);
   assert.ok(ha.length > 0);
-  // первый каст: угол тот же, куда бы герой ни шёл
+  // луч летит в цель, а не по ходу героя
   const c = setup('beam', 1, 9);
-  const d = setup('beam', 1, 9);
-  runHits(c, 0.4, 'beam', { x: 0, y: 1 });
-  runHits(d, 0.4, 'beam', { x: -1, y: 0 });
-  const ray = (s) => s.projectiles.find((p) => p.wid === 'beam' && p.fx === 'snake');
-  assert.equal(ray(c).angle, ray(d).angle);
+  const e = dummy(c, 'catgirl', -70, 0);
+  e.speed = 0;
+  runHits(c, 0.4, 'beam');
+  const ray = c.projectiles.find((p) => p.wid === 'beam' && p.fx === 'snake');
+  assert.ok(Math.cos(ray.angle - Math.atan2(e.y - c.player.y, e.x - c.player.x)) > 0.95);
 });
 
 test('summon: wisps follow the hero and shoot the nearest enemy', () => {

@@ -185,6 +185,8 @@ export class Hud {
       // спрайт предмета, один раз уменьшенный под размер (как иконки оружия)
       img.setTexture(sizedTexture(this.scene, pk.sprite, size * 2));
       img.setPosition(q.x, q.y).setVisible(true);
+      if (pk.tint) img.setTint(pk.tint);
+      else img.clearTint();
       used++;
     }
     for (let i = used; i < this.mapIcons.length; i++) this.mapIcons[i].setVisible(false);

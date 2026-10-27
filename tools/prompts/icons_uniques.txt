@@ -1,0 +1,10 @@
+Subject: one sheet of 12 inventory icons for the same fantasy survivor game, in the exact pixel art style of the attached icon sheet: chunky hard-edged pixels on a coarse grid (about 32 pixels across each icon), flat cel shading, every icon closed by a dark 1-pixel outline, same size and detail level as the attached icons. Every icon is the same simple object: a smooth round gem sphere (orb) with one small light highlight in the upper left and one shadow tone in the lower right, nothing else inside it, no runes, no symbols, no faces, no text, no stand. All 12 spheres are identical in size and shape, only the colour differs. Colours are muted and soft (not neon, not saturated), so they sit calmly on a dark purple inventory grid.
+
+Glow rule (most important): there is NO glow, bloom, haze, blur, light rays or soft shadow outside the dark outline of any sphere. Every pixel is either fully opaque or fully transparent, no semi-transparent pixels anywhere.
+
+Layout: a grid of exactly 12 separate spheres, 4 columns by 3 rows, all the same size, evenly spaced, wide empty gaps between them, nothing touching. Row by row, left to right, sphere colours:
+Row 1: 1. muted gold; 2. pale glassy cyan; 3. deep wine red; 4. muted lime green.
+Row 2: 5. dark moss green; 6. burnt orange; 7. earthy brown; 8. soft silver grey.
+Row 3: 9. dusty violet; 10. muted bronze; 11. muted teal; 12. dusty rose pink.
+
+Background: fully transparent everywhere between spheres (if transparency is impossible, one solid flat pure magenta #FF00FF with no gradient, no haze and no vignette).

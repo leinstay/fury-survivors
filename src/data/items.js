@@ -98,7 +98,6 @@ export const BOSS_DROPS = [
 //   resistanceOff / regenOff — стат не работает
 //   regenOnlyStill        — реген только пока игрок стоит
 //   reaperVulnerable      — Жница уязвима в освящённом круге (docs/META.md, 4)
-//   evoChoicesAdd         — +N вариантов в сундуке эволюции; foodHeals: false — еда не лечит
 //   dmgPerSpeed           — урон × (1 + dmgPerSpeed × (скорость/база − 1)); stillDmgMore — на месте
 //   dmgPerMissingHp       — +доля урона за каждую долю недостающего HP (1 = +1% за 1%)
 //   cheatDeath            — раз за забег: invuln с неуязвимости, heal доля HP, затем maxHpMore
@@ -113,7 +112,6 @@ export const UNIQUES = {
     more: { attack: 1, magic: 1 }, maxHpSet: 1, resistanceOff: true },
   kaom_heart:   { type: 'armor', size: [2, 3], minTier: 2,
     more: { regen: 1 }, regenOnlyStill: true },
-  greed:        { type: 'ring', size: [1, 1], minTier: 2, evoChoicesAdd: 1, foodHeals: false },
   sprinter:     { type: 'boots', size: [2, 2], minTier: 2, dmgPerSpeed: 1, stillDmgMore: -0.5 },
   turtle:       { type: 'shield', size: [2, 3], minTier: 2, more: { resistance: 2, speed: -0.4 } },
   berserk:      { type: 'gloves', size: [2, 2], minTier: 2, dmgPerMissingHp: 1, regenOff: true },

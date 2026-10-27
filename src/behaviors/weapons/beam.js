@@ -1,7 +1,8 @@
-// Beam (Beam, Prism Ray): луч-«змейка». Раз в cooldown amount лучей в случайные стороны (RNG сима: i-й луч в
-// своём секторе 360° / amount, лучи одного каста не слипаются) с окружности выхода оружия вокруг героя
-// (FX.weaponOrigin.radius от точки героя, картинка поднята на lift: из тела луч не выходит). Луч не целится и не
-// следует за героем. Голова летит со speed; тело растёт от 0 до length px (стат area на длину не влияет), потом
+// Beam (Beam, Prism Ray): луч-«змейка». Раз в cooldown amount лучей, каждый в свою ближайшую цель (как молния:
+// sim.nearestTarget в targetRange, враг или объект, у каждого луча своя цель по штампу залпа; целей меньше, чем
+// лучей, — остальные в случайные стороны своих секторов 360° / amount, RNG сима). Целей нет — залп ждёт retry с.
+// Лучи выходят с окружности выхода оружия вокруг героя (FX.weaponOrigin.radius от точки героя, картинка поднята
+// на lift: из тела луч не выходит), за целью и героем не следуют: после отскока летят, куда повернули. Голова летит со speed; тело растёт от 0 до length px (стат area на длину не влияет), потом
 // длина постоянна и луч ползёт: хвост идёт по пути головы (ломаная p.pts: хвост, углы отскоков, голова; лишнее
 // срезается с хвоста). Бьёт только голова (радиус hitRadius, проверка по отрезку шага, без проскока сквозь цель):
 // первый задетый на пути враг или разрушаемый объект получает удар, луч поворачивает на 90° влево или вправо
@@ -27,13 +28,16 @@ function cast(w, sim) {
   const P = w.params;
   const pl = w.owner;
   const n = Math.max(1, P.amount || 1);
+  const stamp = sim.nextStamp();
   // на экране не больше B.maxAlive змеек этого оружия: залп добирает только свободные места
   let live = 0;
   for (const q of sim.projectiles) if (q.fx === 'snake' && q.ws === w && q.life > 0) live++;
   const free = Math.min(n, B.maxAlive - live);
   if (free <= 0) return;
   for (let i = 0; i < free; i++) {
-    const a = ((i + sim.rng.next()) * TAU) / n;
+    const t = sim.nearestTarget(pl.x, pl.y, B.targetRange, stamp);
+    if (t) t.mark = stamp;
+    const a = t ? Math.atan2(t.y - pl.y, t.x - pl.x) : ((i + sim.rng.next()) * TAU) / n;
     const p = sim.addProjectile('player', w.def.sprite);
     p.vx = Math.cos(a);
     p.vy = Math.sin(a);
@@ -212,9 +216,13 @@ export const beam = {
   update(w, sim, dt) {
     w.timer -= dt;
     if (w.timer <= 0) {
+      // как молния: без цели в targetRange не стреляет, повтор через retry
+      const pl = w.owner;
+      if (!sim.nearestTarget(pl.x, pl.y, B.targetRange)) { w.timer = B.retry; return; }
       w.timer = w.params.cooldown;
       cast(w, sim);
     }
   },
   moveProjectile,
+  cast, // залп без проверки цели (тесты: лучи без целей летят в случайные стороны секторов)
 };

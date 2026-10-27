@@ -1,4 +1,4 @@
-// Экран лута сразу после босса: state 'loot' в симе (соло и кооп через lockstep), разбор в кристаллы.
+// Экран лута после подбора сундука босса (loot_chest): state 'loot' в симе (соло и кооп через lockstep), разбор в кристаллы.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createSim } from '../../src/core/sim.js';
@@ -14,18 +14,38 @@ import { getInventory, resetInventoryCache } from '../../src/services/inventory.
 
 const DT = 1 / 60;
 
+// Босс пал; сундук лута (если упал) кладётся под первого игрока — подберётся на следующем шаге.
 function killBoss(sim, id = 'kitsune_empress') {
   const e = sim.spawnBoss(id);
   sim.damageEnemy(e, 1e12, 'test', 0, 0, 0);
+  const pk = sim.pickups.find((p) => p.type === 'loot_chest');
+  if (pk) { pk.x = sim.players[0].x; pk.y = sim.players[0].y; }
   return e;
 }
+
+test('boss loot chest lies on the ground until picked up, then the loot screen opens', () => {
+  const sim = createSim({ seed: 5, lootScreen: true });
+  const e = sim.spawnBoss('kitsune_empress');
+  e.x = sim.player.x + 300;
+  e.y = sim.player.y;
+  sim.damageEnemy(e, 1e12, 'test', 0, 0, 0);
+  const pk = sim.pickups.find((p) => p.type === 'loot_chest');
+  assert.ok(pk, 'chest dropped');
+  assert.equal(sim.player.loot.length, 0, 'loot is rolled on pickup');
+  for (let i = 0; i < 30; i++) sim.step(DT, {});
+  assert.equal(sim.state, 'running', 'no screen while the chest lies');
+  pk.x = sim.player.x;
+  pk.y = sim.player.y;
+  sim.step(DT, {});
+  assert.equal(sim.state, 'loot');
+  assert.equal(sim.player.loot.length, 1);
+});
 
 test('loot screen solo: sim stands in state loot until the player is done', () => {
   const sim = createSim({ seed: 3, lootScreen: true, loadouts: [createBag()] });
   for (let i = 0; i < 10; i++) sim.step(DT, { x: 0, y: 0 });
   killBoss(sim);
-  assert.equal(sim.lootPending, 1);
-  sim.step(DT, { x: 1, y: 0 });
+  sim.step(DT, { x: 0, y: 0 });
   assert.equal(sim.state, 'loot');
   assert.equal(sim.player.loot[0].entries.length, CHEST_SIZE);
   const t0 = sim.time;
@@ -43,7 +63,7 @@ test('loot screen solo: sim stands in state loot until the player is done', () =
 
 test('loot screen waits for an open chest or level-up, then opens', () => {
   const sim = createSim({ seed: 4, lootScreen: true });
-  killBoss(sim);
+  sim._rollLoot(0, 'kitsune_empress'); // сундук подобран
   sim.state = 'chest'; // сундук с выбором открыт в тот же кадр
   sim.step(DT, {});
   assert.equal(sim.state, 'chest');

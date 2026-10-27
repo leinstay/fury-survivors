@@ -197,11 +197,11 @@ test('achievements: stash, bag and codex', () => {
   assert.ok(metaBy({ bag: { ...wide, items: wide.items.slice(0, need - 1) } }).every((id) => id !== 'diversity'));
 
   // collector: разные уникалки в стеше и сумке
-  const u = ['glass_cannon', 'greed', 'turtle', 'berserk'].map((id, i) => makeUnique(id, 2, `u${i}`));
+  const u = ['glass_cannon', 'last_chance', 'turtle', 'berserk'].map((id, i) => makeUnique(id, 2, `u${i}`));
   assert.ok(!metaBy({ stash: u }).includes('collector'));
   const ubag = place(createBag(), makeUnique('dice', 2, 'u9'), 0, 0);
   assert.ok(metaBy({ stash: u, bag: ubag }).includes('collector'));
-  assert.ok(!metaBy({ stash: [...u, makeUnique('greed', 2, 'u8')] }).includes('collector'));
+  assert.ok(!metaBy({ stash: [...u, makeUnique('last_chance', 2, 'u8')] }).includes('collector'));
 
   // naturalist: все враги увидены в кодексе
   const seen = {};

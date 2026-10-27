@@ -132,7 +132,7 @@ class Sim {
     this.loadouts = Array.isArray(o.loadouts) ? o.loadouts : [];
     this.lootRng = createRng(hashSeed(this.seed, 11, 13));
     this.bossKills = 0;     // убито боссов (номер следующего сундука с лутом, BOSS_DROPS)
-    // Экран лута сразу после босса (o.lootScreen, игра ставит у обоих клиентов): state 'loot', мир стоит,
+    // Экран лута по подбору сундука босса (o.lootScreen, игра ставит у обоих клиентов): state 'loot', мир стоит,
     // пока каждый игрок не решит по своим предметам (lootDone). Решения (стеш, кристаллы) вне сима, в сим
     // приходит только «закончил». Без опции (боты, инструменты) лут лишь копится в pl.loot.
     this.lootScreen = !!o.lootScreen;
@@ -790,7 +790,7 @@ class Sim {
     });
     if (e.xp > 0) this.dropPickup(xpTierFor(e.xp), e.x, e.y, e.xp);
     if (e.boss) {
-      this._bossLoot(e);
+      this._bossLoot(e, !!(e.def.victory || (e.def.final && !this.stageDef.overtime)));
       if (e.def.drop) this.dropPickup(e.def.drop, e.x, e.y);
       if (e.def.final) {
         this.won = true;
@@ -1317,6 +1317,7 @@ class Sim {
     const pk = {
       uid: ++this.uid, type: id, sprite: def.sprite, x, y, kind: def.kind,
       value: value === undefined ? (def.value || 0) : value, pulled: false, gone: false, to: -1,
+      tint: def.tint || 0, boss: '',
     };
     this.pickups.push(pk);
     return pk;
@@ -1382,7 +1383,7 @@ class Sim {
         this.player.xp += pk.value * (pl.stats.xpGain ?? 1); // опыт общий (у первого игрока), множитель подобравшего
         break;
       case 'heal':
-        if (!(pl.uq && pl.uq.foodHeals === false)) pl.hp = Math.min(pl.maxHp, pl.hp + pk.value);
+        pl.hp = Math.min(pl.maxHp, pl.hp + pk.value);
         break;
       case 'magnet':
         for (const o of this.pickups) if (o.kind === 'xp' || o.kind === 'coin') o.pulled = true;
@@ -1392,6 +1393,9 @@ class Sim {
         break;
       case 'chest':
         this._openChest(pl);
+        break;
+      case 'loot':
+        this._rollLoot(pk.value, pk.boss);
         break;
       default:
         break;
@@ -1404,8 +1408,7 @@ class Sim {
   // бросок; карточки применяются сразу, показ (state 'chest', chest.rolls) стоит, пока каждый не нажмёт Ok
   // (chestOk). Если у всех выпало только лечение — без экрана.
   _openChest(pl = this.player) {
-    const choices = this.noEvolution[pl.id] ? [] : UP.chestChoices(pl, this.rng,
-        CHEST.maxChoices + ((pl.uq && pl.uq.evoChoicesAdd) || 0));
+    const choices = this.noEvolution[pl.id] ? [] : UP.chestChoices(pl, this.rng, CHEST.maxChoices);
     if (choices.length && this.state === 'running') {
       this.state = 'chest';
       this.chest.cards = choices;
@@ -1811,20 +1814,31 @@ class Sim {
     this._syncPlayer(pl);
   }
 
-  // Сундук с босса номер bossKills (BOSS_DROPS): каждому игроку свой (rollChest + сердца хаоса).
-  // У Жницы номер задан (lootIndex): её сундук всегда T4, сколько бы боссов ни пало до неё.
-  _bossLoot(e) {
+  // Сундук с босса номер bossKills (BOSS_DROPS). У Жницы номер задан (lootIndex): её сундук всегда T4,
+  // сколько бы боссов ни пало до неё. С экраном лута босс роняет сундук (loot_chest), лут катится и экран
+  // открывается при подборе; если убийство кончает забег (now: финал без овертайма, Жница) — сразу.
+  _bossLoot(e, now = false) {
     const fixed = e.def && e.def.lootIndex;
     const index = fixed !== undefined ? fixed : this.bossKills;
     this.bossKills++;
+    if (this.lootScreen && !now) {
+      const pk = this.dropPickup('loot_chest', e.x, e.y, index);
+      pk.boss = e.type;
+      return;
+    }
+    this._rollLoot(index, e.type);
+  }
+
+  // Лут сундука босса номер index: каждому игроку свой (rollChest + сердца хаоса); с экраном лута — экран.
+  _rollLoot(index, boss) {
     const tier = bossDrop(index).tier;
     for (const pl of this.players) {
       const entries = rollChest(this.lootRng, tier);
       const hearts = rollHearts(this.lootRng, index);
-      pl.loot.push({ tier, boss: e.type, entries, hearts });
+      pl.loot.push({ tier, boss, entries, hearts });
     }
     if (this.lootScreen) this.lootPending++;
-    this.events.push({ type: 'loot', boss: e.type, tier, index });
+    this.events.push({ type: 'loot', boss, tier, index });
   }
 
   // Экран лута (state 'loot'): мир стоит у всех, пока каждый не закончит (lootDone). Убитый в коопе тоже решает.

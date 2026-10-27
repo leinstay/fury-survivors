@@ -35,11 +35,10 @@ function dummy(sim, x, y) {
   return e;
 }
 
-// Один каст сейчас, дальше оружие молчит. Возвращает лучи этого каста.
+// Один каст сейчас (без проверки цели), дальше оружие молчит. Возвращает лучи этого каста.
 function castNow(sim) {
   const w = sim.player.weapons[0];
-  w.timer = 0;
-  w.beh.update(w, sim, DT);
+  w.beh.cast(w, sim);
   w.timer = 1e9;
   return sim.projectiles.filter((p) => p.wid === w.id && p.fx === 'snake');
 }
@@ -178,4 +177,23 @@ test('beam: never more than maxAlive snakes of one weapon on screen', () => {
   castNow(sim);
   castNow(sim);
   assert.equal(snakes(sim).length, B.maxAlive);
+});
+
+test('beam: rays aim at distinct nearest targets like lightning; no target in range — no cast', () => {
+  const sim = setup('beam', 4); // 3 луча
+  const pl = sim.player;
+  const w = sim.player.weapons[0];
+  w.timer = 0;
+  w.beh.update(w, sim, DT);
+  assert.equal(snakes(sim).length, 0, 'no target, no cast');
+  assert.equal(w.timer, B.retry);
+  const es = [dummy(sim, pl.x + 60, pl.y), dummy(sim, pl.x, pl.y + 80),
+    dummy(sim, pl.x - 100, pl.y)];
+  w.timer = 0;
+  w.beh.update(w, sim, DT);
+  const rays = snakes(sim);
+  assert.equal(rays.length, 3);
+  const want = es.map((e) => Math.atan2(e.y - pl.y, e.x - pl.x));
+  for (const r of rays) assert.ok(want.some((a) => Math.abs(a - r.angle) < 1e-9), 'ray aims at a target');
+  assert.equal(new Set(rays.map((r) => r.angle)).size, 3, 'each ray has its own target');
 });
