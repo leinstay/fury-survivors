@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createSim, xpForLevel } from '../../src/core/sim.js';
-import { SIM, XP, LEVEL_UP, SLOTS } from '../../src/data/constants.js';
+import { SIM, XP, LEVEL_UP, SLOTS, COMBAT } from '../../src/data/constants.js';
+import { STAT_CAPS } from '../../src/data/stats.js';
 import { PICKUPS } from '../../src/data/pickups.js';
 import { WEAPONS } from '../../src/data/weapons.js';
 import { PASSIVES } from '../../src/data/passives.js';
@@ -141,13 +142,15 @@ test('sim: several pending levels give several card sets', () => {
 });
 
 test('sim: xp curve', () => {
-  assert.equal(xpForLevel(1), XP.base);
-  assert.equal(xpForLevel(2), 15);   // как в VS: 5, затем +10 за уровень
+  const k = XP.costMul;
+  assert.equal(k, 2, 'levels cost twice as much (docs/META.md 1.2)');
+  assert.equal(xpForLevel(1), XP.base * k);
+  assert.equal(xpForLevel(2), 15 * k);   // как в VS: 5, затем +10 за уровень, всё × costMul
   // Доплаты на пороговых уровнях берутся из XP.thresholds (сейчас пусто).
   const extra = (lv) => XP.thresholds.filter((t) => t.level === lv)
     .reduce((n, t) => n + t.extra, 0);
-  assert.equal(xpForLevel(20), 5 + 10 * 19 + extra(20));
-  assert.equal(xpForLevel(21), 5 + 10 * 19 + 13 + extra(21));
+  assert.equal(xpForLevel(20), (5 + 10 * 19 + extra(20)) * k);
+  assert.equal(xpForLevel(21), (5 + 10 * 19 + 13 + extra(21)) * k);
 });
 
 test('sim: contact damage, i-frames, gameover', () => {
@@ -289,24 +292,25 @@ test('sim: elite drops a chest, chest gives a weapon upgrade', () => {
   assert.equal(sim.player.weapons[0].level, 2);
 });
 
-test('sim: evolution from chest when both parts are maxed', () => {
+test('sim: evolution from chest when the weapon is maxed and its passive is taken', () => {
   const sim = createSim({ seed: 16 });
-  sim.player.weapons[0].level = 7;
-  sim.player.weapons.push({ id: 'guardian_shields', level: 7 });
+  sim.player.weapons = [{ id: 'guardian_shields', level: WEAPONS.guardian_shields.maxLevel }];
+  sim.player.passives = [{ id: 'armor', level: 1 }];
   sim._syncBuild();
   sim.dropPickup('chest', sim.player.x, sim.player.y);
   sim.step(DT, idle);
   assert.equal(sim.state, 'chest');
-  assert.deepEqual(sim.chest.cards.map((c) => c.id), ['aegis_storm']);
+  assert.deepEqual(sim.chest.cards.map((c) => c.id), ['aegis_bastion']);
   sim.chooseChest(0);
-  assert.deepEqual(sim.player.weapons.map((w) => w.id), ['aegis_storm']);
-  assert.ok(sim.events.some((e) => e.type === 'chest' && e.applied && e.items[0].id === 'aegis_storm'));
+  assert.deepEqual(sim.player.weapons.map((w) => w.id), ['aegis_bastion']);
+  assert.deepEqual(sim.player.passives.map((p) => p.id), ['armor'], 'the passive stays');
+  assert.ok(sim.events.some((e) => e.type === 'chest' && e.applied && e.items[0].id === 'aegis_bastion'));
   run(sim, 5);
-  assert.ok(sim.projectiles.some((p) => p.sprite === 'proj_crescent'), 'evolved shields orbit');
+  assert.ok(sim.projectiles.some((p) => p.wid === 'aegis_bastion'), 'evolved shields orbit');
 });
 
 test('sim: every weapon fires and deals damage in a crowd', () => {
-  for (const id of ['blade_arc', 'throwing_daggers', 'guardian_shields', 'holy_ground', 'war_axe', 'storm_chain', 'firebomb', 'aegis_storm', 'thunder_knives']) {
+  for (const id of ['blade_arc', 'throwing_daggers', 'guardian_shields', 'holy_ground', 'war_axe', 'storm_chain', 'firebomb', 'crimson_arc', 'aegis_bastion']) {
     const sim = createSim({ seed: 20 });
     sim.player.weapons.length = 0;
     sim.player.weapons.push({ id, level: 1 });
@@ -358,8 +362,8 @@ test('sim: lightning breaks props on its path to an enemy', () => {
 test('sim: chest with several ready evolutions waits for the choice', () => {
   const sim = createSim({ seed: 21 });
   const pl = sim.player;
-  pl.weapons = [{ id: 'blade_arc', level: 7 }, { id: 'war_axe', level: 7 }];
-  pl.passives = [{ id: 'attack', level: 1 }];
+  pl.weapons = [{ id: 'blade_arc', level: 5 }, { id: 'war_axe', level: 5 }];
+  pl.passives = [{ id: 'steel', level: 1 }, { id: 'crit', level: 1 }];
   sim._syncBuild();
   sim.dropPickup('chest', pl.x, pl.y);
   sim.step(1 / 60, { x: 0, y: 0 });
@@ -376,8 +380,8 @@ test('sim: chest with several ready evolutions waits for the choice', () => {
 test('sim: skipping the evolution gives an ordinary chest item instead', () => {
   const sim = createSim({ seed: 22 });
   const pl = sim.player;
-  pl.weapons = [{ id: 'blade_arc', level: 7 }, { id: 'war_axe', level: 3 }];
-  pl.passives = [{ id: 'attack', level: 1 }];
+  pl.weapons = [{ id: 'blade_arc', level: 5 }, { id: 'war_axe', level: 3 }];
+  pl.passives = [{ id: 'steel', level: 1 }];
   sim._syncBuild();
   sim.dropPickup('chest', pl.x, pl.y);
   sim.step(DT, idle);
@@ -499,12 +503,19 @@ test('luck multiplies the crit chance', () => {
   sim.player.passives.push({ id: 'crit', level: 5 });
   sim._syncBuild();
   assert.ok(Math.abs(sim.critChance() - (base + 0.25) * 1.5) < 1e-9);
-  // статистика: при шансе 100% каждый удар крит
+  // кап: шанс не выше STAT_CAPS.crit, сколько ни набери
   sim.player.stats.crit = 1;
+  assert.equal(sim.critChance(), STAT_CAPS.crit);
+  // статистика: при шансе 75% критов примерно три четверти, урон крита = critMul + critDmg
+  sim.player.stats.critDmg = 0.5;
   const e = sim.spawnEnemy('slime', 0, 0); e.hp = e.maxHp = 1e9;
   let crits = 0;
-  for (let i = 0; i < 50; i++) { sim.damageEnemy(e, 1, 'blade_arc', 0, 0, 0); if (sim.events.at(-1).crit) crits++; }
-  assert.equal(crits, 50);
+  for (let i = 0; i < 400; i++) {
+    sim.damageEnemy(e, 10, 'blade_arc', 0, 0, 0);
+    const ev = sim.events.at(-1);
+    if (ev.crit) { crits++; assert.equal(ev.amount, Math.round(10 * (COMBAT.critMul + 0.5))); }
+  }
+  assert.ok(crits > 250 && crits < 350, `crits ${crits}/400`);
 });
 
 test('level up with everything maxed heals automatically without the card screen', () => {

@@ -1,0 +1,7 @@
+The attached image is a pixel art sprite sheet of one character: a 3x3 grid of 9 animation frames, separated by thin cyan lines, on a flat pure magenta #FF00FF background. Reading order is left to right, top to bottom: frame 0 is the top-left cell, frames 1 to 8 follow.
+
+Frame 0 (top-left) is the idle standing pose. It was made differently from the others and looks soft and blurry: smooth gradients, anti-aliased edges, too many colors. Frames 1 to 8 are the walk cycle and are the correct reference style: crisp hard-edged pixels, dark 1-pixel outline, flat cel shading with few tones per color, limited palette, clean pixel clusters, same pixel size everywhere.
+
+Task: redraw ONLY frame 0 so it matches the style of frames 1 to 8 exactly: same pixel size, same outline thickness, same palette, same shading, same amount of detail (do not add new details, do not make lines thicker or bolder). Keep frame 0's pose, silhouette, proportions, size and position inside its cell exactly the same: both feet on the ground, sword held down on the left, cape behind, ponytail.
+
+Do not change frames 1 to 8 at all. Keep the 3x3 grid, the cyan separator lines and the magenta background exactly as in the input. No text, no labels, no extra elements.

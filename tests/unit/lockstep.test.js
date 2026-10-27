@@ -206,12 +206,12 @@ test('lockstep: game version fingerprint is stable and changes with game data', 
   const { HEROES } = await import('../../src/data/heroes.js');
   const f = simFingerprint(true);
   assert.equal(simFingerprint(), f);
-  const atk = HEROES.mage.stats.atk;
-  HEROES.mage.stats.atk = atk + 0.5;
+  const magic = HEROES.mage.stats.magic;
+  HEROES.mage.stats.magic = magic + 0.5;
   try {
     assert.notEqual(simFingerprint(true), f);
   } finally {
-    HEROES.mage.stats.atk = atk;
+    HEROES.mage.stats.magic = magic;
     simFingerprint(true);
   }
 });

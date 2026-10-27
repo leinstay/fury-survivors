@@ -7,6 +7,7 @@ import { GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
 import { CODEX } from '../data/codex.js';
 import { WEAPONS } from '../data/weapons.js';
 import { PASSIVES } from '../data/passives.js';
+import { STATS } from '../data/stats.js';
 import { COMBOS } from '../data/combos.js';
 import { ENEMIES } from '../data/enemies.js';
 import { BOSSES } from '../data/bosses.js';
@@ -89,7 +90,7 @@ const PASSIVE_ROWS = { crit: ['crit_chance'], luck: ['crit_chance', 'drop_chance
 function fmtPassive(def, v) {
   // удача множит шансы: x1.1 понятнее, чем +10% рядом с +5% крита
   if (def.stat === 'luck') return `x${round2(1 + v)}`;
-  if (def.mode === 'mul' || def.stat === 'crit') return `+${Math.round(v * 100)}%`;
+  if (STATS[def.stat] === 'percent' || ['crit', 'critDmg', 'dodge'].includes(def.stat)) return `+${Math.round(v * 100)}%`;
   if (def.stat === 'regen') return t('codex.per_s', { v: round2(v) });
   return `+${round2(v)}`;
 }
@@ -148,17 +149,15 @@ function placeFigure(scene, sp, key, scale, x, bottom) {
   return sp.y;
 }
 
-// Записи оружейной по разделам: оружие, эволюции (оружие + пассивка), коллабы (два оружия), улучшения.
+// Записи оружейной по разделам: оружие, эволюции (оружие + пассивка), улучшения.
 function armoryEntries() {
   const recipe = {};
   for (const c of COMBOS) recipe[c.result] = c.from;
   const base = Object.keys(WEAPONS).filter((id) => !WEAPONS[id].evolved);
   const evolved = Object.keys(WEAPONS).filter((id) => WEAPONS[id].evolved);
-  const isEvo = (id) => recipe[id] && PASSIVES[recipe[id][1]];
   return [
     { sec: 'weapon', items: base.map((id) => ({ kind: 'weapon', type: 'weapon', id })) },
-    { sec: 'evolution', items: evolved.filter(isEvo).map((id) => ({ kind: 'weapon', type: 'evolution', id, from: recipe[id] })) },
-    { sec: 'collab', items: evolved.filter((id) => !isEvo(id)).map((id) => ({ kind: 'weapon', type: 'collab', id, from: recipe[id] || null })) },
+    { sec: 'evolution', items: evolved.map((id) => ({ kind: 'weapon', type: 'evolution', id, from: recipe[id] || null })) },
     { sec: 'passive', items: Object.keys(PASSIVES).map((id) => ({ kind: 'passive', type: 'passive', id })) },
   ];
 }
@@ -397,6 +396,12 @@ export class CodexScene extends Phaser.Scene {
     if (it.from) {
       y = this.recipe(L, y, it) + 8;
     }
+    // пассивка с гейтингом: «Появляется с N уровня» (видно и у закрытой записи)
+    const minLevel = it.kind === 'passive' && PASSIVES[it.id].minLevel;
+    if (minLevel) {
+      this.add.text(L, y, t('codex.min_level', { n: minLevel }), textStyle(9, '#ffd84a')).setOrigin(0, 0);
+      y += 16;
+    }
     if (!it.seen) return;
     if (it.kind === 'passive') this.passiveTable(L, y, PASSIVES[it.id]);
     else this.weaponTable(L, y, WEAPONS[it.id]);
@@ -429,7 +434,7 @@ export class CodexScene extends Phaser.Scene {
     return y + 14;
   }
 
-  // Таблица: строки — параметры, столбцы — уровни (или части коллаба). Изменившееся к прошлому уровню ярче.
+  // Таблица: строки — параметры, столбцы — уровни. Изменившееся к прошлому уровню ярче.
   table(L, y, heads, rows) {
     const labelW = 64;
     const colW = Math.min(36, Math.floor((RIGHT.w - 2 * PAD - labelW) / Math.max(1, heads.length)));
@@ -451,11 +456,9 @@ export class CodexScene extends Phaser.Scene {
 
   weaponTable(L, y, def) {
     if (!def) return;
-    const cols = def.parts ? def.parts : def.levels;
-    const heads = def.parts ? def.parts.map((p) => t(`codex.beh.${p.behavior}`)) :
-      cols.length === 1 ? [t('codex.col.value')] : cols.map((_, i) => t('codex.col.lv', { n: i + 1 }));
+    const cols = def.levels;
+    const heads = cols.length === 1 ? [t('codex.col.value')] : cols.map((_, i) => t('codex.col.lv', { n: i + 1 }));
     const label = (k) => {
-      if (def.parts) return k; // части могут иметь разные единицы: здесь общий параметр
       if (k === 'area') {
         return ({ melee_arc: 'reach', orbit: 'orbit_radius', chain: 'jump_radius',
           area_drop: 'blast_radius', aura: 'radius', boomerang: 'reach' })[def.behavior] || k;
@@ -467,8 +470,7 @@ export class CodexScene extends Phaser.Scene {
     };
     const rows = PARAMS.filter((k) => cols.some((c) => c[k] !== undefined))
         .map((k) => ({ label: t(`codex.p.${label(k)}`),
-          cells: cols.map((c) => fmtParam(k, k === 'damage' && c[k] !== undefined ?
-            c[k] * (def.power || 1) : c[k])) }));
+          cells: cols.map((c) => fmtParam(k, c[k])) }));
     this.table(L, y, heads, rows);
   }
 
@@ -659,9 +661,9 @@ export class CodexScene extends Phaser.Scene {
 
     const pct = (v) => `${Math.round(v * 100)}%`;
     const stats = [
-      [t('stat.hp'), String(st.maxHp)], [t('stat.atk'), pct(st.atk)], [t('stat.spd'), String(st.speed)],
-      [t('stat.crt'), pct(st.crit)], [t('stat.haste'), pct(st.haste)], [t('stat.pickup'), pct(st.pickup)],
-      [t('stat.luck'), `x${round2(st.luck)}`], [t('stat.armor'), String(st.armor)],
+      [t('stat.hp'), String(st.maxHp)], [t('stat.steel'), pct(st.steel)], [t('stat.magic'), pct(st.magic)],
+      [t('stat.spd'), String(st.speed)], [t('stat.crt'), pct(st.crit)], [t('stat.haste'), pct(st.haste)],
+      [t('stat.pickup'), pct(st.pickup)], [t('stat.armor'), String(st.armor)],
     ];
     // свой счёт героем: забеги из итогов, победы, лучший счёт и время — по истории забегов
     const runs = this.codex.runs.filter((r) => r.hero === e.id);

@@ -130,6 +130,8 @@ export function normalizeCodex(raw) {
     if (!s || typeof s !== 'object') continue;
     for (const id of Object.keys(s)) if (s[id] && known(kind, id)) c.seen[kind][id] = 1;
   }
+  // пассивка Attack стала Steel (docs/META.md 1.5): открытая запись остаётся открытой
+  if (seen.passive && seen.passive.attack && known('passive', 'steel')) c.seen.passive.steel = 1;
   const foes = raw.foes && typeof raw.foes === 'object' ? raw.foes : {};
   for (const id of Object.keys(foes)) {
     if (!foeKind(id) || !foes[id] || typeof foes[id] !== 'object') continue;

@@ -66,28 +66,28 @@ if (process.argv[1]?.endsWith('/combat.mjs')) {
   const n = Number(opt('n', 3));
   const duration = Number(opt('seconds', 30));
   const rows = [];
-  const pairs = args.includes('--all') ? COMBOS.filter((c) => WEAPONS[c.from[1]]) :
-    [COMBOS.find((c) => c.result === 'storm_edge'), COMBOS.find((c) => c.result === 'aegis_storm')];
+  // Эволюции: оружие на maxLevel + своя пассивка (combos.js). Без --all две показательные.
+  const pairs = args.includes('--all') ? COMBOS :
+    [COMBOS.find((c) => c.result === 'crimson_arc'), COMBOS.find((c) => c.result === 'aegis_bastion')];
   for (const recipe of pairs) {
-    const [a, b] = recipe.from;
+    const [a, passive] = recipe.from;
+    const max = WEAPONS[a].maxLevel;
     for (const scenario of ['crowd', 'fragile', 'ranged', 'boss']) {for (let seed = 1; seed <= n; seed++) {
       const variants = [
-        { id: 'A', weapons: [[a, 7]] }, { id: 'B', weapons: [[b, 7]] },
-        { id: 'A+B', weapons: [[a, 7], [b, 7]] },
-        { id: 'A+passives', weapons: [[a, 7]], passives: [['attack', 5], ['haste', 2]] },
-        { id: 'B+passives', weapons: [[b, 7]], passives: [['attack', 5], ['haste', 2]] },
-        { id: 'collab', weapons: [[recipe.result, 1]] },
+        { id: 'A', weapons: [[a, max]] },
+        { id: 'A+passive', weapons: [[a, max]], passives: [[passive, 1]] },
+        { id: 'evolution', weapons: [[recipe.result, 1]], passives: [[passive, 1]] },
       ];
       for (const variant of variants) {rows.push({ pair: recipe.result, variant: variant.id,
-        // Collab already embodies component investments, recorded separately from its displayed level.
-        recipeInvestment: variant.id === 'collab' ? 13 : undefined,
+        // эволюция уже несёт вложения в оружие, записываем их отдельно от её уровня 1
+        recipeInvestment: variant.id === 'evolution' ? max : undefined,
         ...combatFixture({ ...variant, seed, duration, scenario }) });}
     }}
   }
-  // All 28 recipes receive a functional late-build probe; natural draft coverage is separate.
+  // Все эволюции получают функциональную пробу; естественный драфт — отдельно.
   for (const recipe of COMBOS) {rows.push({ pair: recipe.result, variant: 'recipe-probe',
     ...combatFixture({ weapons: [[recipe.result, 1]], scenario: 'crowd', seed: 1, duration }) });}
-  const shields = ['guardian_shields', 'aegis_bastion', 'sanctuary'];
+  const shields = ['guardian_shields', 'aegis_bastion'];
   for (const id of shields) {
     for (const blocks of [true, false]) {
       for (let seed = 1; seed <= n; seed++) {
@@ -98,6 +98,6 @@ if (process.argv[1]?.endsWith('/combat.mjs')) {
   await mkdir(dirname(out), { recursive: true });
   await writeFile(out, JSON.stringify({ source: sourceHash(), rows,
     limitations: ['fixture DPS is not a win rate', 'intercepted raw is not prevented HP loss',
-      'post-intervention survival is diagnostic', 'collab level is not investment cost'] }));
+      'post-intervention survival is diagnostic', 'evolution level is not investment cost'] }));
   console.log(`Saved ${rows.length} controlled probes to ${out}`);
 }

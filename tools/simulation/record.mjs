@@ -44,14 +44,14 @@ export function stateHash(sim) {
 export function installImmortality(sim, mask = []) {
   const interventions = [];
   const hurt = sim.hurtPlayer.bind(sim);
-  sim.hurtPlayer = (raw, p = sim.player, src = '') => {
+  sim.hurtPlayer = (raw, p = sim.player, src = '', dodgeable = true) => {
     const eligible = mask[p.id] && sim.state === 'running' && !p.dead && p.iframes <= 0;
     const lethal = eligible && Math.max(COMBAT.armorMinDamage, raw - p.stats.armor) >= p.hp;
     const state = sim.state;
     const hp = p.hp;
     const eventStart = sim.events.length;
-    hurt(raw, p, src);
-    if (!lethal) return;
+    hurt(raw, p, src, dodgeable);
+    if (!lethal || p.hp === hp) return; // увернулся (стат dodge): удара не было
     const restored = Math.max(1, p.maxHp * 0.3);
     interventions.push({ tick: sim.frame, t: sim.time, player: p.id, hpBefore: hp,
       raw, src, restored });

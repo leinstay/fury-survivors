@@ -1,4 +1,4 @@
-// Карточки улучшений: пул, добор, применение, супероружие, содержимое сундука.
+// Карточки улучшений: пул, добор (оружие и пассивки по очереди), применение, эволюции, содержимое сундука.
 // Работает с «данными игрока»: { weapons: [{id, level}], passives: [{id, level}] }.
 import { WEAPONS } from '../data/weapons.js';
 import { PASSIVES } from '../data/passives.js';
@@ -28,17 +28,20 @@ function find(list, id) {
 /**
  * Все карточки, доступные сейчас (без лечения).
  * @param {!Object} player данные игрока
- * @param {!Set<string>} banished ключи kind:id
+ * @param {?Set<string>} banished ключи kind:id
+ * @param {number=} level уровень команды: пассивки с minLevel выше него не предлагаются (по умолчанию все)
  * @return {!Array<!Object>}
  */
-export function buildPool(player, banished) {
+export function buildPool(player, banished, level = Infinity) {
   const pool = [];
   const weapons = player.weapons;
   const passives = player.passives;
   const slots = player.slots || SLOTS; // в коопе слотов на игрока меньше (data/coop.js)
-  // Оружие, поглощённое супероружием игрока, больше не предлагается (как в VS).
+  // Оружие, поглощённое эволюцией игрока, больше не предлагается (как в VS); пассивка эволюции остаётся.
   const consumed = new Set();
-  for (const c of COMBOS) if (find(weapons, c.result)) for (const id of c.from) consumed.add(id);
+  for (const c of COMBOS) {
+    if (find(weapons, c.result)) for (const id of c.from) if (WEAPONS[id]) consumed.add(id);
+  }
   for (const id in WEAPONS) {
     const def = WEAPONS[id];
     if (def.evolved || consumed.has(id)) continue;
@@ -52,6 +55,7 @@ export function buildPool(player, banished) {
     const def = PASSIVES[id];
     const max = def.levels.length;
     const own = find(passives, id);
+    if (!own && def.minLevel && level < def.minLevel) continue;
     const card = own
       ? (own.level < max ? { kind: 'passive', id, level: own.level + 1, isNew: false, icon: def.icon } : null)
       : (passives.length < slots.passives ? { kind: 'passive', id, level: 1, isNew: true, icon: def.icon } : null);
@@ -61,20 +65,36 @@ export function buildPool(player, banished) {
 }
 
 /**
+ * Тип набора карточек на выбор номер picks игрока (docs/META.md 1.3): чётный — оружие, нечётный — пассивки.
+ * @param {number} picks сколько своих уровней игрок уже разобрал
+ * @return {string} 'weapon' | 'passive'
+ */
+export function pickKind(picks) {
+  return picks % 2 === 0 ? 'weapon' : 'passive';
+}
+
+/**
  * До count случайных различных карточек. Если выбрать нечего (всё на максимуме) — одна карточка лечения.
+ * С opts.kind карточки только этого типа ('weapon' | 'passive'); если таких нет, сразу другого типа.
  * @param {!Object} player данные игрока
  * @param {{int: function(number): number}} rng
- * @param {!Set<string>} banished ключи kind:id
+ * @param {?Set<string>} banished ключи kind:id
  * @param {number=} count
  * @param {?Array<!Object>=} exclude карточки, которые нельзя повторять (замена при banish)
+ * @param {{kind: (string|undefined), level: (number|undefined)}=} opts тип набора и уровень команды (minLevel)
  * @return {!Array<!Object>}
  */
-export function drawCards(player, rng, banished, count = LEVEL_UP.cards, exclude = null) {
-  let pool = buildPool(player, banished);
+export function drawCards(player, rng, banished, count = LEVEL_UP.cards, exclude = null,
+    opts = {}) {
+  let pool = buildPool(player, banished, opts.level);
   if (exclude && exclude.length) {
     const ex = new Set();
     for (const c of exclude) ex.add(cardKey(c));
     pool = pool.filter((c) => !ex.has(cardKey(c)));
+  }
+  if (opts.kind) {
+    const same = pool.filter((c) => c.kind === opts.kind);
+    if (same.length) pool = same;
   }
   const out = [];
   while (out.length < count && pool.length > 0) {

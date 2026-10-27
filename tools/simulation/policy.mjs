@@ -1,6 +1,5 @@
 import { createRng, hashSeed } from '../../src/core/rng.js';
 import { COMBOS } from '../../src/data/combos.js';
-import { PASSIVES } from '../../src/data/passives.js';
 import { cardFeatures, linearScore, probabilities } from './features.mjs';
 import { MODEL } from './model.mjs';
 
@@ -29,13 +28,11 @@ export function createPolicy({ seed = 1, profile, evolution = true, model = MODE
       target = '';
       focus = o.self.w.find(([id]) => !COMBOS.some((c) => c.result === id))?.[0] || focus;
     }
-    if (!target && evolution && ['collab', 'evolution', 'recipe'].includes(profile.intent)) {
+    if (!target && evolution && ['evolution', 'recipe'].includes(profile.intent)) {
       const consumed = new Set(COMBOS.filter((c) =>
         known.includes(c.result)).flatMap((c) => c.from));
       const candidates = COMBOS.filter((c) => c.from.includes(focus) &&
-        !known.includes(c.result) && !c.from.some((id) => consumed.has(id)) &&
-        (profile.intent === 'collab' ? !PASSIVES[c.from[1]] :
-          profile.intent === 'evolution' ? !!PASSIVES[c.from[1]] : true));
+        !known.includes(c.result) && !c.from.some((id) => consumed.has(id)));
       if (candidates.length) target = candidates[choiceRng.int(candidates.length)].result;
     }
     // Change plan after prolonged draft rejection, never manufacture a missing component.

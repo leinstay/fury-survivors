@@ -31,14 +31,14 @@ Behavior: `melee_arc`, `projectile`, `orbit`, `aura`, `boomerang`, `chain`, `are
 
 ## Оружие с новым behavior
 
-1. Файл `src/behaviors/weapons/<имя>.js`, `export const <имяCamelCase> = { init(w, sim), update(w, sim, dt) }` (только именованный экспорт, `export default` запрещён линтером). `w` это состояние оружия: `w.id`, `w.level`, `w.def`, `w.params` (числа текущего уровня; `params.damage` уже умножен на `atk`, `params.cooldown` поделён на `haste`), `w.slot`. Снаряды: `sim.addProjectile('player', w.def.sprite)`, затем заполнить `life`, `radius`, `dmg`, `vx/vy` и т. д. Образцы: `projectile.js` (простой), `orbit.js` (снаряд с `p.bk = orbit` и методом `moveProjectile`). Событие выстрела: `sim.events.push({ type: 'weaponFire', weapon: w.id })`.
+1. Файл `src/behaviors/weapons/<имя>.js`, `export const <имяCamelCase> = { init(w, sim), update(w, sim, dt) }` (только именованный экспорт, `export default` запрещён линтером). `w` это состояние оружия: `w.id`, `w.level`, `w.def`, `w.params` (числа текущего уровня; `params.damage` уже умножен на `steel` или `magic` по `dmgType`, `params.cooldown` поделён на `haste`, `area` и `duration` умножены на статы `area` и `duration`), `w.slot`. Снаряды: `sim.addProjectile('player', w.def.sprite)`, затем заполнить `life`, `radius`, `dmg`, `vx/vy` и т. д. Образцы: `projectile.js` (простой), `orbit.js` (снаряд с `p.bk = orbit` и методом `moveProjectile`). Событие выстрела: `sim.events.push({ type: 'weaponFire', weapon: w.id })`.
 2. Регистрация: именованный импорт и строка в `WEAPON_BEHAVIORS` в `src/behaviors/index.js` (имя ключа = значение `behavior` в data).
 3. Дальше как в рецепте выше. `src/core/` не импортирует Phaser и DOM; числа берутся из `w.params`, не хардкодятся.
 4. Новые поля уровня опиши в шапке `src/data/weapons.js`.
 
 ## Пассивка
 
-1. `src/data/passives.js`: `{ icon: 'icon_<id>', stat, mode: 'add' | 'mul', levels: [...] }`. `stat` обязан быть ключом `stats` героя (`maxHp, atk, speed, crit, pickup, haste, luck, armor, regen`). Значения строго растут. `maxLevel` равен `levels.length`.
+1. `src/data/passives.js`: `{ icon: 'icon_<id>', stat, levels: [...], minLevel? }`. `stat` обязан быть ключом `src/data/stats.js` (вид сложения percent/flat и капы там же); все пассивки increased. `minLevel` — карточка не предлагается до этого уровня команды. Значения строго растут. `maxLevel` равен `levels.length`.
 2. Новый стат (а не новая пассивка на существующий): добавить в `stats` героя (`src/data/heroes.js`), учесть в `src/core/stats.js` и в месте применения в `sim.js`. Это правка кода, не только данных.
 3. manifest: `item('icon_<id>', 24, 24, ...)`. i18n: `passive.<id>.name`, `passive.<id>.desc`.
 4. Тест: `data: passives are well formed`. Он же считает пассивки (сейчас 9).
@@ -47,7 +47,7 @@ Behavior: `melee_arc`, `projectile`, `orbit`, `aura`, `boomerang`, `chain`, `are
 
 Герои перечислены только в `src/data/heroes.js`. Меню (картинки у кнопок), карточки выбора в соло и в лобби коопа, сим и тесты читают этот список сами, правок в сценах не нужно.
 
-1. `src/data/heroes.js`: запись `id: { sprite, portrait, menu?, startWeapon, stats }`. `stats` с полным набором `maxHp, atk, speed, crit, pickup, haste, luck, armor, regen`. `menu: { art, side }` необязательно: картинка у кнопок главного меню, `side: 'left'` рисуется отражённой, несколько на одной стороне встают дальше от кнопок по порядку. Порядок записей = порядок карточек выбора.
+1. `src/data/heroes.js`: запись `id: { sprite, portrait, menu?, startWeapon, stats }`. `stats` с полным набором статов из `src/data/stats.js` (`maxHp, steel, magic, speed, crit, critDmg, area, duration, pickup, haste, luck, armor, regen, xpGain, dodge, thorns`). `menu: { art, side }` необязательно: картинка у кнопок главного меню, `side: 'left'` рисуется отражённой, несколько на одной стороне встают дальше от кнопок по порядку. Порядок записей = порядок карточек выбора.
 2. Спрайты в `assets/sprites/manifest.js`: лента ходьбы `chara('<id>', '#цвет')` (кадр 110×110, число кадров по ширине PNG, кадр 0 стойка, см. `docs/ASSETS.md`), портрет 48×48 и картинка меню. Как сделать ленту того же размера пикселя: `docs/ASSETS.md` (PixelLab, `hd-frames.mjs`, пример магессы).
 3. i18n: `hero.<id>.name`. Статы игроку числами не показываются: на карточке выбора черты относительно среднего героя `HERO_BASE` (`+ATK` зелёным, `-HP` красным, `core/heroes.js heroTraits`); подписи `trait.<stat>` уже есть.
 4. Тест `data: every hero is complete` проверяет спрайты, картинку меню, имя и набор статов; `data: hero start weapons exist` проверяет оружие.
@@ -163,33 +163,25 @@ Behavior: `chase`, `dash`, `ranged`, `swarm`, `phase` (`boss` только дл�
 
 Держи список отсортированным по `at`. Лимит живых врагов `SIM.maxEnemies` (400) общий; при нехватке места элита и босс вытесняют самого дальнего обычного врага. Проверка: `npm test` (структура и отсортированность) и баланс-тесты (пик врагов не выше лимита).
 
-## Супероружие: коллабы и эволюции
+## Супероружие: эволюции
 
-Два вида записей в `src/data/combos.js` (28: все 21 пара из 7 оружий и по эволюции с пассивкой на каждое оружие):
-- коллаб (как в HoloCure): `{ from: ['war_axe', 'firebomb'], result: 'blast_axe' }` — оба оружия на `maxLevel`; второе оружие убирается;
-- эволюция (как в Vampire Survivors): `{ from: ['blade_arc', 'attack'], result: 'crimson_arc' }` — оружие на `maxLevel` и пассивка любого уровня; пассивка остаётся.
+Коллабов (оружие + оружие) больше нет (docs/META.md 1.4). Каждая запись в `src/data/combos.js` — эволюция
+(как в Vampire Survivors), 1 к 1: `{ from: ['blade_arc', 'steel'], result: 'crimson_arc' }` — оружие на `maxLevel`
+и своя пассивка любого уровня; пассивка остаётся.
 
-Результат встаёт в слот первого оружия. Выпадает из сундука элиты или босса (сундук шлёт item с `evolved: true` и `from`). Порядок в `COMBOS` = приоритет, если готовы сразу несколько.
+Результат встаёт в слот оружия. Выпадает из сундука элиты или босса (сундук шлёт item с `evolved: true` и `from`). Порядок в `COMBOS` = приоритет, если готовы сразу несколько.
 
-1. `src/data/weapons.js`, запись с `evolved: true`, `maxLevel: 1`, одним уровнем. Либо одно поведение с усиленными числами и необязательным цветом снарядов:
+1. `src/data/weapons.js`, запись с `evolved: true`, `maxLevel: 1`, одним уровнем, тем же `dmgType`, что у оружия. Одно поведение с усиленными числами и необязательным цветом снарядов:
    ```js
    crimson_arc: {
-     icon: 'icon_crimson_arc', sprite: 'proj_blade_arc', behavior: 'melee_arc', maxLevel: 1, evolved: true, tint: 0xff5050,
+     icon: 'icon_crimson_arc', sprite: 'proj_blade_arc', behavior: 'melee_arc', dmgType: 'steel', maxLevel: 1, evolved: true, tint: 0xff5050,
      levels: [ { damage: 60, cooldown: 0.8, amount: 4, area: 96, knockback: 150 } ],
-   },
-   ```
-   либо коллаб `behavior: 'combo'`: обе части работают в одном слоте, у каждой свои числа, спрайт и цвет (`src/behaviors/weapons/combo.js`). Части собираются из пресетов `B D S H A C F` в начале файла:
-   ```js
-   blast_axe: {
-     icon: 'icon_blast_axe', behavior: 'combo', maxLevel: 1, evolved: true,
-     levels: [{ damage: 0, cooldown: 1 }],
-     parts: [part(A, {}, 0xff9040), part(F, {})],
    },
    ```
 2. Запись в `src/data/combos.js`.
 3. Иконка `icon_<result>` в manifest (`icon(...)`, кадр 96×96) и на листе `assets/raw/icons_evo.png` (`sheets.json` `icons_evo`, `node tools/slice-sheet.mjs icons_evo`). i18n: `weapon.<result>.name`, `weapon.<result>.desc`.
-4. Тесты: `data: combos use maxed regular weapons and evolved results` (число записей и все 21 пара), `data: combos reference existing weapons`, `combo: <id> works in sim` в `mechanics.test.js` (каждое супероружие наносит урон в sim).
-5. Посмотреть вживую: `node tools/playtest.mjs 15 --god --weapons blast_axe:1 --shot out.png --shot-at 12 --size 1280x720`.
+4. Тесты: `data: combos use maxed regular weapons and evolved results` (одна эволюция на оружие и на пассивку), `data: evolutions are weapon + passive`, `combo: <id> works in sim` в `mechanics.test.js` (каждое супероружие наносит урон в sim).
+5. Посмотреть вживую: `node tools/playtest.mjs 15 --god --weapons crimson_arc:1 --shot out.png --shot-at 12 --size 1280x720`.
 
 ## Чек-лист перед коммитом
 

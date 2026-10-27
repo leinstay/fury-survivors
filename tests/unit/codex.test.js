@@ -68,7 +68,7 @@ test('codex tracker: counts only own kills, hurts and pickups in co-op', () => {
     { type: 'pickup', kind: 'coin', player: 0 },
     { type: 'pickup', kind: 'heal', player: 1 },
     { type: 'bossSpawn', boss: 'kitsune_empress' },
-    { type: 'chest', player: 1, items: [{ kind: 'weapon', id: 'phantom_blades' }, { kind: 'heal', id: 'heal' }] },
+    { type: 'chest', player: 1, items: [{ kind: 'weapon', id: 'thunder_loop' }, { kind: 'heal', id: 'heal' }] },
     { type: 'chest', player: 0, items: [{ kind: 'passive', id: 'luck' }] },
   ]);
   const sim = fakeSim();
@@ -93,7 +93,7 @@ test('codex tracker: counts only own kills, hurts and pickups in co-op', () => {
   assert.ok(res.seen.enemy.harpy && res.seen.enemy.slime && res.seen.enemy.lamia);
   assert.ok(!res.seen.enemy.catgirl);
   assert.ok(res.seen.boss.kitsune_empress);
-  assert.ok(res.seen.weapon.phantom_blades && res.seen.weapon.storm_chain);
+  assert.ok(res.seen.weapon.thunder_loop && res.seen.weapon.storm_chain);
   assert.ok(!res.seen.passive.luck, 'chest of the partner does not unlock');
   assert.equal(tr.finish(sim, { status: 'victory' }), null, 'finish only once');
 });
@@ -261,4 +261,12 @@ test('codex tracker on a real co-op sim: own kills of both players sum to team k
   const ra = a.finish(sim, { status: 'quit' });
   const rb = b.finish(sim, { status: 'quit' });
   assert.equal(ra.run.kills + rb.run.kills, sim.kills);
+});
+
+test('codex: old Attack passive stays unlocked as Steel, removed collabs are dropped', () => {
+  const c = normalizeCodex({ v: 1,
+    seen: { passive: { attack: 1 }, weapon: { phantom_blades: 1, blade_arc: 1 } } });
+  assert.ok(c.seen.passive.steel);
+  assert.ok(!c.seen.passive.attack);
+  assert.ok(!c.seen.weapon.phantom_blades && c.seen.weapon.blade_arc);
 });

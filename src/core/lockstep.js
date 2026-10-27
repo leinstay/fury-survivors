@@ -9,6 +9,7 @@ import { createSim } from './sim.js';
 import { HEROES, HERO_BASE } from '../data/heroes.js';
 import { WEAPONS, WEAPON_BEHAVIOR } from '../data/weapons.js';
 import { PASSIVES } from '../data/passives.js';
+import { STATS, STAT_CAPS, STAT_CAPS_REL } from '../data/stats.js';
 import { COMBOS } from '../data/combos.js';
 import { ENEMIES } from '../data/enemies.js';
 import { BOSS, BOSSES } from '../data/bosses.js';
@@ -50,7 +51,7 @@ export function hashParts(sim) {
     out.push([k + 'x', r(p.x)], [k + 'y', r(p.y)], [k + 'hp', r(p.hp)], [k + 'level', p.level],
         [k + 'xp', r(p.xp)], [k + 'dead', p.dead ? 1 : 0], [k + 'coffin', r(p.coffinT)],
         [k + 'rerolls', lu.rerolls], [k + 'skips', lu.skips], [k + 'banishes', lu.banishes],
-        [k + 'banished', lu.banished.size],
+        [k + 'banished', lu.banished.size], [k + 'picks', lu.picks],
         [k + 'weapons', p.weapons.map((w) => `${w.id}${w.level}`).join(' ')],
         [k + 'passives', p.passives.map((q) => `${q.id}${q.level}`).join(' ')]);
   }
@@ -85,7 +86,7 @@ let fingerprint = null; // считается один раз (~50 мс): мен
 export function simFingerprint(fresh = false) {
   if (fingerprint !== null && !fresh) return fingerprint;
   const data = JSON.stringify([BUILD, CONSTANTS, HEROES, HERO_BASE, WEAPONS, WEAPON_BEHAVIOR,
-    PASSIVES,
+    PASSIVES, STATS, STAT_CAPS, STAT_CAPS_REL,
     COMBOS, ENEMIES, BOSS, BOSSES, PICKUPS, COOP, DIFFICULTIES, forest]);
   fingerprint = fnv(`${data}|${runFingerprint()}`);
   return fingerprint;

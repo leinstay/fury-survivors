@@ -279,8 +279,11 @@ class Telemetry {
       p: p.passives.map((it) => [it.id, it.level]), damage: this.damage(p),
       combat: JSON.parse(JSON.stringify(this.combat)),
       blocks: JSON.parse(JSON.stringify(this.blocks)),
-      s: [r2(st.atk ?? 1), r2(st.crit ?? 0), r2(st.haste ?? 1), Math.round(st.speed ?? 0),
-        r2(st.luck ?? 1), r2(st.pickup ?? 1), r1(st.armor ?? 0), r1(st.regen ?? 0)],
+      // статы: первые 8 мест как в старых забегах (место 0 было atk, теперь steel), новые в конце
+      s: [r2(st.steel ?? 1), r2(st.crit ?? 0), r2(st.haste ?? 1), Math.round(st.speed ?? 0),
+        r2(st.luck ?? 1), r2(st.pickup ?? 1), r1(st.armor ?? 0), r1(st.regen ?? 0),
+        r2(st.magic ?? 1), r2(st.critDmg ?? 0), r2(st.area ?? 1), r2(st.duration ?? 1),
+        r2(st.xpGain ?? 1), r2(st.dodge ?? 0), r1(st.thorns ?? 0)],
     };
   }
 

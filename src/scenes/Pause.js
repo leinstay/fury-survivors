@@ -7,6 +7,7 @@ import { textStyle } from '../ui/style.js';
 import { addPanel } from '../ui/panel.js';
 import { playSfx } from '../audio/sfx.js';
 import { createActions } from '../core/actions.js';
+import { critChance } from '../core/stats.js';
 import { fadeOutAndStop, resetFade } from '../ui/fade.js';
 
 // Билд в две колонки (оружие слева, пассивки справа): 6+6 строк не налезают на кнопки.
@@ -50,12 +51,12 @@ const STAT_LINE = 18;
 const fmtPct = (v) => `${Math.round(v * 100)}%`;
 const STAT_ROWS = [
   ['stat.hp', (s, p) => `${Math.ceil(p.hp)}/${Math.ceil(s.maxHp ?? p.maxHp)}`],
-  ['stat.atk', (s) => fmtPct(s.atk ?? 1)],
+  ['stat.steel', (s) => fmtPct(s.steel ?? 1)],
+  ['stat.magic', (s) => fmtPct(s.magic ?? 1)],
   ['stat.spd', (s) => String(Math.round(s.speed ?? 0))],
-  ['stat.crt', (s) => fmtPct(Math.min(1, (s.crit ?? 0) * (s.luck ?? 1)))], // с учётом удачи, как в sim.critChance
+  ['stat.crt', (s) => fmtPct(critChance(s))], // с учётом удачи и капа, как в sim.critChance
   ['stat.pickup', (s) => fmtPct(s.pickup ?? 1)],
   ['stat.haste', (s) => fmtPct(s.haste ?? 1)],
-  ['stat.luck', (s) => `x${Math.round((s.luck ?? 1) * 100) / 100}`], // множитель шансов крита и дропа
   ['stat.armor', (s) => String(Math.round((s.armor ?? 0) * 10) / 10)],
 ];
 

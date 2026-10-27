@@ -9,9 +9,12 @@
 //                                // side 'right' | 'left' (слева рисуется отражённой); несколько на одной
 //                                // стороне встают дальше от кнопок по порядку записей
 //   startWeapon: 'blade_arc',    // id из weapons.js
-//   stats: { maxHp, atk, speed, crit, pickup, haste, luck, armor, regen },
-//     maxHp — единицы HP; atk/haste/luck/pickup — множители (1 = 100%); crit — доля (0.05 = 5%);
-//     speed — px/с; pickup — множитель к PLAYER.pickupRadius; armor — плоское снижение урона; regen — HP/с
+//   stats: { maxHp, steel, magic, speed, crit, critDmg, area, duration, pickup, haste, luck, armor, regen,
+//            xpGain, dodge, thorns },
+//     все статы из src/data/stats.js. maxHp — единицы HP; steel/magic — множители урона оружия своего типа;
+//     area/duration/haste/luck/pickup/xpGain — множители (1 = 100%); crit, dodge — доли (0.05 = 5%);
+//     critDmg — прибавка к COMBAT.critMul; speed — px/с; armor — плоское снижение урона; regen — HP/с;
+//     thorns — урон шипов (× steel)
 // }
 export const HEROES = {
   heroine: {
@@ -20,27 +23,28 @@ export const HEROES = {
     menu: { art: 'heroine_menu', side: 'right' },
     startWeapon: 'blade_arc',
     stats: {
-      maxHp: 120, atk: 1, speed: 95, crit: 0.05, pickup: 1,
-      haste: 1, luck: 1, armor: 0, regen: 0,
+      maxHp: 120, steel: 1, magic: 0.85, speed: 95, crit: 0.05, critDmg: 0, area: 1, duration: 1,
+      pickup: 1, haste: 1, luck: 1, armor: 0, regen: 0.25, xpGain: 1, dodge: 0, thorns: 0,
     },
   },
-  // Магесса: стартует с молнией (Storm Chain). Хрупче, зато сильнее бьёт и чаще критует.
+  // Магесса: стартует с молнией (Storm Chain). Хрупче, зато сильнее магия и чаще критует.
   mage: {
     sprite: 'mage',
     portrait: 'mage_portrait',
     menu: { art: 'mage_menu', side: 'left' },
     startWeapon: 'storm_chain',
     stats: {
-      maxHp: 80, atk: 1.25, speed: 95, crit: 0.15, pickup: 1,
-      haste: 1, luck: 1, armor: 0, regen: 0,
+      maxHp: 80, steel: 0.85, magic: 1.25, speed: 95, crit: 0.15, critDmg: 0, area: 1, duration: 1,
+      pickup: 1, haste: 1, luck: 1, armor: 0, regen: 0.25, xpGain: 1, dodge: 0, thorns: 0,
     },
   },
 };
 
-// Средний герой: черты на экране выбора («+ATK», «-HP») — разница статов героя с этими числами
+// Средний герой: черты на экране выбора («+MAGIC», «-HP») — разница статов героя с этими числами
 // (core/heroes.js heroTraits). Сами статы игроку не показываются.
 export const HERO_BASE = {
-  maxHp: 90, atk: 1, speed: 95, crit: 0.05, pickup: 1, haste: 1, luck: 1, armor: 0, regen: 0,
+  maxHp: 90, steel: 1, magic: 1, speed: 95, crit: 0.05, critDmg: 0, area: 1, duration: 1, pickup: 1,
+  haste: 1, luck: 1, armor: 0, regen: 0.25, xpGain: 1, dodge: 0, thorns: 0,
 };
 
 // Герой по умолчанию: первый запуск, неизвестный id (старые сохранения, сообщение из сети).

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildPool, drawCards, applyCard, findEvolution, evolutionCard, chestItems, chestChoices, cardKey } from '../../src/core/upgrades.js';
+import { buildPool, drawCards, applyCard, findEvolution, evolutionCard, chestItems, chestChoices, cardKey, pickKind } from '../../src/core/upgrades.js';
 import { createRng } from '../../src/core/rng.js';
 import { CHEST } from '../../src/data/constants.js';
 import { WEAPONS } from '../../src/data/weapons.js';
@@ -67,60 +67,49 @@ test('upgrades: applyCard levels up and adds', () => {
   assert.deepEqual(p.passives, [{ id: 'armor', level: 2 }]);
 });
 
-test('upgrades: evolution needs both parts maxed, then replaces them', () => {
+test('upgrades: evolution needs the weapon maxed and its passive, then replaces the weapon', () => {
   for (const combo of COMBOS) {
     const [a, b] = combo.from;
-    if (!WEAPONS[b]) {
-      // оружие + пассивка: оружие на максимуме и пассивка взята
-      const q = {
-        weapons: [{ id: a, level: WEAPONS[a].maxLevel - 1 }],
-        passives: [{ id: b, level: 1 }],
-      };
-      assert.equal(findEvolution(q), null);
-      q.weapons[0].level = WEAPONS[a].maxLevel;
-      assert.equal(findEvolution(q), combo);
-      applyCard(q, evolutionCard(combo));
-      assert.deepEqual(q.weapons.map((w) => w.id), [combo.result]);
-      assert.deepEqual(q.passives.map((x) => x.id), [b]);
-      continue;
-    }
-    const p = {
-      weapons: [{ id: a, level: WEAPONS[a].maxLevel }, { id: b, level: WEAPONS[b].maxLevel - 1 }],
-      passives: [],
+    assert.ok(PASSIVES[b], `${combo.result}: second part is a passive`);
+    const q = {
+      weapons: [{ id: a, level: WEAPONS[a].maxLevel - 1 }],
+      passives: [{ id: b, level: 1 }],
     };
-    assert.equal(findEvolution(p), null);
-    p.weapons[1].level = WEAPONS[b].maxLevel;
-    assert.equal(findEvolution(p), combo);
-    const items = chestItems(p, createRng(1));
+    assert.equal(findEvolution(q), null);
+    q.weapons[0].level = WEAPONS[a].maxLevel;
+    assert.equal(findEvolution(q), combo);
+    const items = chestItems(q, createRng(1));
     assert.equal(items.length, 1);
     assert.equal(items[0].id, combo.result);
-    applyCard(p, evolutionCard(combo));
-    assert.deepEqual(p.weapons.map((w) => w.id), [combo.result]);
-    assert.equal(findEvolution(p), null);
+    applyCard(q, evolutionCard(combo));
+    assert.deepEqual(q.weapons.map((w) => w.id), [combo.result]);
+    assert.deepEqual(q.passives.map((x) => x.id), [b]);
+    assert.equal(findEvolution(q), null);
   }
 });
 
 test('upgrades: chestChoices lists ready evolutions, chestItems can skip them', () => {
   const p = {
     weapons: [{ id: 'blade_arc', level: WEAPONS.blade_arc.maxLevel }, { id: 'war_axe', level: WEAPONS.war_axe.maxLevel }],
-    passives: [{ id: 'attack', level: 1 }],
+    passives: [{ id: 'steel', level: 1 }, { id: 'crit', level: 1 }],
   };
-  // blade_arc + war_axe, blade_arc + attack, war_axe + crit (нет crit) → две
+  // blade_arc + steel, war_axe + crit → две
   const choices = chestChoices(p, createRng(1));
-  assert.deepEqual(choices.map((c) => c.id).sort(), ['crimson_arc', 'reaper_crescent']);
+  assert.deepEqual(choices.map((c) => c.id).sort(), ['crimson_arc', 'death_spiral']);
   assert.ok(choices.every((c) => c.evolved && c.from.length === 2));
-  p.passives = [];
+  p.passives = [{ id: 'steel', level: 1 }];
   // одно готовое супероружие тоже идёт через выбор (его можно пропустить); без готовых — пусто
   assert.equal(chestChoices(p, createRng(1)).length, 1);
-  p.weapons[1].level = 1;
+  p.weapons[0].level = 1;
   assert.deepEqual(chestChoices(p, createRng(1)), []);
   // пропуск: обычное содержимое без супероружия
-  p.weapons[1].level = WEAPONS.war_axe.maxLevel;
+  p.weapons[0].level = WEAPONS.blade_arc.maxLevel;
   const skipped = chestItems(p, createRng(1), true);
   assert.ok(!skipped[0].evolved);
   // четыре готовых: показываются не больше CHEST.maxChoices, все разные
-  p.weapons.push({ id: 'holy_ground', level: WEAPONS.holy_ground.maxLevel });
-  p.passives = [{ id: 'attack', level: 1 }];
+  p.weapons.push({ id: 'holy_ground', level: WEAPONS.holy_ground.maxLevel },
+      { id: 'storm_chain', level: WEAPONS.storm_chain.maxLevel });
+  p.passives = [{ id: 'steel', level: 1 }, { id: 'crit', level: 1 }, { id: 'regen', level: 1 }, { id: 'luck', level: 1 }];
   const four = chestChoices(p, createRng(2));
   assert.equal(four.length, CHEST.maxChoices);
   assert.equal(new Set(four.map((c) => c.id)).size, four.length);
@@ -133,10 +122,50 @@ test('upgrades: chest without evolution upgrades an owned weapon', () => {
   assert.equal(items[0].level, 2);
 });
 
-test('weapons consumed by an evolution are not offered again', () => {
-  const player = { weapons: [{ id: 'aegis_storm', level: 1 }], passives: [] };
-  const ids = buildPool(player, null).filter((c) => c.kind === 'weapon').map((c) => c.id);
-  assert.ok(!ids.includes('blade_arc'));
+test('weapons consumed by an evolution are not offered again, its passive still levels', () => {
+  const player = { weapons: [{ id: 'aegis_bastion', level: 1 }], passives: [{ id: 'armor', level: 1 }] };
+  const pool = buildPool(player, null);
+  const ids = pool.filter((c) => c.kind === 'weapon').map((c) => c.id);
   assert.ok(!ids.includes('guardian_shields'));
   assert.ok(ids.includes('throwing_daggers'));
+  assert.ok(pool.some((c) => c.kind === 'passive' && c.id === 'armor' && c.level === 2));
+});
+
+test('upgrades: passives with minLevel wait for the team level', () => {
+  const gated = Object.keys(PASSIVES).filter((id) => PASSIVES[id].minLevel);
+  assert.ok(gated.includes('xp_gain') && gated.includes('crit_dmg') && gated.includes('thorns'));
+  const ids = (level) => buildPool(fresh(), null, level).map((c) => c.id);
+  for (const id of gated) {
+    const min = PASSIVES[id].minLevel;
+    assert.ok(!ids(min - 1).includes(id), `${id} before level ${min}`);
+    assert.ok(ids(min).includes(id), `${id} at level ${min}`);
+  }
+  // уже взятая (сундук, старое сохранение) качается и до minLevel
+  const p = { weapons: [{ id: 'blade_arc', level: 1 }], passives: [{ id: 'thorns', level: 1 }] };
+  assert.ok(buildPool(p, null, 1).some((c) => c.id === 'thorns' && c.level === 2));
+  // без уровня (инструменты) гейтинга нет
+  assert.ok(ids(undefined).includes('thorns'));
+});
+
+test('upgrades: cards alternate weapon / passive by the pick counter, other kind when one is empty', () => {
+  assert.equal(pickKind(0), 'weapon');
+  assert.equal(pickKind(1), 'passive');
+  assert.equal(pickKind(2), 'weapon');
+  for (let seed = 0; seed < 10; seed++) {
+    const w = drawCards(fresh(), createRng(seed), null, 4, null, { kind: 'weapon', level: 1 });
+    assert.ok(w.length === 4 && w.every((c) => c.kind === 'weapon'));
+    const p = drawCards(fresh(), createRng(seed), null, 4, null, { kind: 'passive', level: 1 });
+    assert.ok(p.length === 4 && p.every((c) => c.kind === 'passive'));
+  }
+  // оружие всё на максимуме и слоты полны: вместо оружия сразу пассивки
+  const full = { passives: [],
+    weapons: regular.slice(0, SLOTS.weapons).map((id) => ({ id, level: WEAPONS[id].maxLevel })) };
+  const cards = drawCards(full, createRng(1), null, 4, null, { kind: 'weapon', level: 1 });
+  assert.ok(cards.length > 0 && cards.every((c) => c.kind === 'passive'));
+  // замена при банише того же типа, пока он есть
+  const set = drawCards(fresh(), createRng(3), null, 4, null, { kind: 'passive', level: 1 });
+  const repl = drawCards(fresh(), createRng(4), new Set([cardKey(set[0])]), 1, set, { kind: 'passive', level: 1 });
+  assert.equal(repl.length, 1);
+  assert.equal(repl[0].kind, 'passive');
+  assert.ok(!set.some((c) => cardKey(c) === cardKey(repl[0])));
 });

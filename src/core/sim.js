@@ -15,7 +15,7 @@ import { DIFFICULTIES, DEFAULT_DIFFICULTY } from '../data/difficulty.js';
 import { WEAPON_BEHAVIORS, ENEMY_BEHAVIORS } from '../behaviors/index.js';
 import { createRng, hashSeed } from './rng.js';
 import { Grid } from './grid.js';
-import { computeStats } from './stats.js';
+import { computeStats, critChance } from './stats.js';
 import { createDirector } from './director.js';
 import { createRoads } from './roads.js';
 import * as UP from './upgrades.js';
@@ -23,7 +23,7 @@ import * as UP from './upgrades.js';
 const STAGES = { forest };
 const EMPTY = {};
 const HIT_MEM = 24;      // память о поражённых целях у пробивающих снарядов
-const SLOT_COUNT = 32;   // слоты таймеров повторного попадания (по оружию; на двоих до 12 оружий, части коллабов slot + 8)
+const SLOT_COUNT = 32;   // слоты таймеров повторного попадания (по оружию; на двоих до 12 оружий)
 const NEVER = -1e9;
 
 // Кристаллы опыта от крупных к мелким.
@@ -52,7 +52,7 @@ export function xpForLevel(level, scale = 1) {
     from = Math.max(from, to);
   }
   for (const t of XP.thresholds) if (t.level === level) need += t.extra;
-  return need;
+  return need * (XP.costMul || 1);
 }
 
 function maxEnemySize() {
@@ -165,9 +165,12 @@ class Sim {
       slots: { weapons: slots.weapons, passives: slots.passives },
       dead: false, coffinT: 0, revives: 0, dist: 0,
       name: '',
-      // свои карточки и пул: набор текущего уровня (done — не его ход или уже выбрал), изгнанные, лимиты
+      thornsAt: NEVER, // время последнего срабатывания шипов (стат thorns, COMBAT.thornsCooldown)
+      // свои карточки и пул: набор текущего уровня (done — не его ход или уже выбрал), изгнанные, лимиты;
+      // picks — сколько своих уровней уже разобрал (чётный — карточки оружия, нечётный — пассивки),
+      // kind — тип текущего набора (реролл и замена при банише его сохраняют)
       levelUp: {
-        cards: [], done: true, banished: new Set(),
+        cards: [], done: true, banished: new Set(), picks: 0, kind: 'weapon',
         rerolls: LEVEL_UP.rerolls, skips: LEVEL_UP.skips, banishes: LEVEL_UP.banishes,
       },
       // урон своим оружием: за забег и окно DPS (HUD и итоги показывают своего игрока)
@@ -601,8 +604,7 @@ class Sim {
 
   // Итоговый шанс крита: стат crit × удача (пассивка Luck обещает «больше критов», как и лучший дроп).
   critChance(pl = this.player) {
-    const st = pl.stats;
-    return Math.min(1, st.crit * st.luck);
+    return critChance(pl.stats);
   }
 
   // Позиции до шага: рендер рисует между ними и текущими (сглаживание между тиками). Только для показа:
@@ -639,7 +641,7 @@ class Sim {
     const crit = this.rng.next() < this.critChance(by);
     e.lastBy = by.id;
     e.lastWid = wid;
-    const amount = crit ? dmg * COMBAT.critMul : dmg;
+    const amount = crit ? dmg * (COMBAT.critMul + (by.stats.critDmg || 0)) : dmg;
     const dealt = amount < e.hp ? amount : e.hp;
     e.hp -= amount;
     e.hitFlash = COMBAT.hitFlash;
@@ -756,14 +758,22 @@ class Sim {
 
   // Урон игроку (по умолчанию первому). В коопе смерть превращает игрока в гроб (оживёт по таймеру),
   // забег кончается, когда мертвы все.
-  // src — кто ударил (id врага или босса; для кодекса).
-  hurtPlayer(raw, pl = this.player, src = '') {
+  // src — кто ударил (id врага или босса; для кодекса). dodgeable — удар можно избежать статом dodge
+  // (контакт и снаряды; удары по площади с предупреждением, slam, — нет).
+  hurtPlayer(raw, pl = this.player, src = '', dodgeable = true) {
     if (pl.dead || pl.iframes > 0 || this.state !== 'running') return;
+    // шанс увернуться: rng тянется только при dodge > 0 (без стата ход сима тот же)
+    if (dodgeable && pl.stats.dodge > 0 && this.rng.next() < pl.stats.dodge) {
+      pl.iframes = PLAYER.iframes; // одна увёртка гасит и остальных врагов в касании этого кадра
+      this.events.push({ type: 'dodge', player: pl.id, x: pl.x, y: pl.y, src });
+      return;
+    }
     const amount = Math.max(COMBAT.armorMinDamage, raw - pl.stats.armor);
     pl.hp -= amount;
     pl.iframes = PLAYER.iframes;
     pl.hurtFlash = PLAYER.hurtFlash;
     this.events.push({ type: 'playerHurt', amount, player: pl.id, src });
+    if (pl.stats.thorns > 0) this._thorns(pl);
     if (pl.hp > 0) return;
     pl.hp = 0;
     if (this.coop) {
@@ -776,6 +786,23 @@ class Sim {
     if (this.won) { this._win(); return; }
     this.state = 'gameover';
     this.events.push({ type: 'gameover' });
+  }
+
+  // Шипы: удар по герою бьёт всех врагов на экране вокруг него на thorns × steel (не чаще COMBAT.thornsCooldown).
+  // Урон пишется на 'thorns' (как оружие: DPS, итоги, телеметрия).
+  _thorns(pl) {
+    if (this.time - pl.thornsAt < COMBAT.thornsCooldown) return;
+    pl.thornsAt = this.time;
+    const dmg = pl.stats.thorns * pl.stats.steel;
+    const hw = GAME_WIDTH / 2;
+    const hh = GAME_HEIGHT / 2;
+    const en = this.enemies;
+    for (let i = 0; i < en.length; i++) {
+      const e = en[i];
+      if (e.dead || Math.abs(e.x - pl.x) > hw || Math.abs(e.y - pl.y) > hh) continue;
+      this.damageEnemy(e, dmg, 'thorns', 0, pl.x, pl.y, pl);
+    }
+    this.events.push({ type: 'thorns', player: pl.id, x: pl.x, y: pl.y });
   }
 
   _win() {
@@ -797,7 +824,7 @@ class Sim {
       const ws = pl.weapons;
       for (let i = 0; i < ws.length; i++) {
         const w = ws[i];
-        // цвет снарядов супероружия (weapons.js tint; у частей коллаба свой, см. behaviors/weapons/combo.js)
+        // цвет снарядов супероружия (weapons.js tint)
         this.projTint = w.def.tint || 0;
         w.beh.update(w, this, dt);
       }
@@ -873,7 +900,7 @@ class Sim {
         if (pl.dead) continue;
         const dx = pl.x - tg.x;
         const dy = pl.y - tg.y;
-        if (dx * dx + dy * dy <= tg.radius * tg.radius) this.hurtPlayer(tg.dmg, pl, tg.src);
+        if (dx * dx + dy * dy <= tg.radius * tg.radius) this.hurtPlayer(tg.dmg, pl, tg.src, false);
       }
       this.events.push({ type: 'slam', x: tg.x, y: tg.y, radius: tg.radius });
       arr[i] = arr[arr.length - 1];
@@ -1198,7 +1225,7 @@ class Sim {
     const pl = by;
     switch (pk.kind) {
       case 'xp':
-        this.player.xp += pk.value; // опыт общий, лежит у первого игрока
+        this.player.xp += pk.value * (pl.stats.xpGain ?? 1); // опыт общий (у первого игрока), множитель подобравшего
         break;
       case 'heal':
         pl.hp = Math.min(pl.maxHp, pl.hp + pk.value);
@@ -1364,15 +1391,25 @@ class Sim {
   // на двоих столько же улучшений, сколько у одного), но у каждого свой пул: свои изгнанные и свои
   // reroll/skip/banish (pl.levelUp). Мёртвые тоже выбирают (гроб оживёт с новым оружием). Если выбирать
   // нечего (всё на максимуме), drawCards даёт одну карточку лечения: она применяется сама, без экрана.
+  // Тип набора чередуется по своим выборам игрока (lu.picks): оружие, пассивки, оружие... (UP.pickKind);
+  // в коопе с общей очередью выходит А-оружие, Б-оружие, А-пассивки, Б-пассивки.
   _chooser() {
     return this.players[this.levelTurn % this.players.length];
+  }
+
+  // Добор карточек игроку pl: тип текущего набора (lu.kind) и гейтинг пассивок по уровню команды.
+  _draw(pl, count, exclude) {
+    const lu = pl.levelUp;
+    return UP.drawCards(pl, this.rng, lu.banished, count, exclude,
+        { kind: lu.kind, level: this.player.level });
   }
 
   _offerCards() {
     while (this.pendingLevels > 0) {
       const pl = this._chooser();
       const lu = pl.levelUp;
-      const cards = UP.drawCards(pl, this.rng, lu.banished);
+      lu.kind = UP.pickKind(lu.picks);
+      const cards = this._draw(pl);
       if (!(cards.length === 1 && cards[0].kind === 'heal')) {
         this.state = 'levelup';
         this.picker = pl.id;
@@ -1385,6 +1422,7 @@ class Sim {
       this._applyCard(cards[0], pl);
       this.pendingLevels--;
       this.levelTurn++;
+      lu.picks++;
       this.events.push({ type: 'autoHeal', player: pl.id });
     }
     this.state = 'running';
@@ -1393,6 +1431,7 @@ class Sim {
   _afterChoice(pl) {
     pl.levelUp.cards = [];
     pl.levelUp.done = true;
+    pl.levelUp.picks++;
     this.pendingLevels--;
     this.levelTurn++;
     this._offerCards();
@@ -1433,7 +1472,7 @@ class Sim {
     if (lu.rerolls <= 0) return false;
     this._logPick({ act: 'reroll', player: who, card: null, offered: lu.cards });
     lu.rerolls--;
-    lu.cards = UP.drawCards(pl, this.rng, lu.banished);
+    lu.cards = this._draw(pl);
     this._telemetry('offer', who, 'levelup', lu.cards);
     return true;
   }
@@ -1461,7 +1500,7 @@ class Sim {
     // Новый массив, а не правка старого: экран LevelUp перерисовывается по смене lu.cards (в коопе команда
     // применяется позже нажатия, и правка на месте оставляла бы на экране изгнанную карточку).
     const cards = lu.cards.slice();
-    const repl = UP.drawCards(pl, this.rng, lu.banished, 1, cards);
+    const repl = this._draw(pl, 1, cards);
     if (repl.length) cards[i] = repl[0];
     else cards.splice(i, 1);
     if (cards.length === 0) cards.push(UP.healCard());
@@ -1524,8 +1563,10 @@ class Sim {
     const p = w.params;
     for (const k in lv) p[k] = lv[k];
     const st = w.owner.stats;
-    p.damage = lv.damage * st.atk;
+    p.damage = lv.damage * (st[w.def.dmgType] ?? 1);
     p.cooldown = lv.cooldown / st.haste;
+    if (lv.area !== undefined) p.area = lv.area * st.area;
+    if (lv.duration !== undefined) p.duration = lv.duration * st.duration;
   }
 }
 

@@ -49,11 +49,28 @@ export function parseCard(text) {
   return { kind, id, level: Number(level) || 0 };
 }
 
+// Коллабы (оружие + оружие) убраны из игры (docs/META.md 1.4), но старые забеги их брали: рецепты нужны,
+// чтобы восстановить сборку (коллаб забирал оба оружия).
+const LEGACY_COLLABS = [
+  ['blade_arc', 'guardian_shields', 'aegis_storm'], ['throwing_daggers', 'storm_chain', 'thunder_knives'],
+  ['blade_arc', 'throwing_daggers', 'phantom_blades'], ['blade_arc', 'holy_ground', 'sacred_edge'],
+  ['blade_arc', 'war_axe', 'reaper_crescent'], ['blade_arc', 'storm_chain', 'storm_edge'],
+  ['blade_arc', 'firebomb', 'inferno_slash'], ['throwing_daggers', 'guardian_shields', 'knife_carousel'],
+  ['throwing_daggers', 'holy_ground', 'holy_rain'], ['throwing_daggers', 'war_axe', 'gale_cutters'],
+  ['throwing_daggers', 'firebomb', 'ember_knives'], ['guardian_shields', 'holy_ground', 'sanctuary'],
+  ['guardian_shields', 'war_axe', 'bulwark_spin'], ['guardian_shields', 'storm_chain', 'tesla_ward'],
+  ['guardian_shields', 'firebomb', 'comet_ring'], ['holy_ground', 'war_axe', 'judgement_wheel'],
+  ['holy_ground', 'storm_chain', 'divine_storm'], ['holy_ground', 'firebomb', 'hellfire'],
+  ['war_axe', 'storm_chain', 'thunder_axe'], ['war_axe', 'firebomb', 'blast_axe'],
+  ['storm_chain', 'firebomb', 'plasma_storm'],
+].map(([a, b, result]) => ({ from: [a, b], result }));
+const RECIPES = [...COMBOS, ...LEGACY_COLLABS];
+
 function apply(b, text) {
   const c = parseCard(text);
   if (!['weapon', 'passive'].includes(c.kind)) return;
   const list = c.kind === 'weapon' ? b.w : b.p;
-  const recipe = COMBOS.find((x) => x.result === c.id);
+  const recipe = RECIPES.find((x) => x.result === c.id);
   if (recipe) b.w = b.w.filter(([id]) => !recipe.from.includes(id));
   const target = c.kind === 'weapon' ? b.w : b.p;
   const own = target.find(([id]) => id === c.id);

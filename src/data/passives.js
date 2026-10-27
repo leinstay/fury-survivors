@@ -2,20 +2,28 @@
 // Формат записи:
 // id: {
 //   icon: 'icon_<id>',          // ключ иконки 24×24 в manifest.js
-//   stat: 'maxHp',               // какой стат меняет (см. stats в heroes.js)
-//   mode: 'add' | 'mul',         // add: стат += значение; mul: стат *= (1 + значение)
+//   stat: 'maxHp',               // какой стат меняет (список и вид сложения: src/data/stats.js)
 //   levels: [0.1, 0.2, ...],     // суммарный бонус на уровне 1..N (maxLevel = levels.length)
+//   minLevel: 8,                 // необязательно: карточка не предлагается до этого уровня команды
 // }
-// Сначала применяются все add, затем все mul.
+// Все пассивки — increased: у процентного стата значение идёт в общую сумму (база × (1 + Σ)),
+// у плоского прибавляется к базе (core/stats.js). Каждая пассивка — пара своему оружию для эволюции (combos.js).
 // Ориентир VS: Spinach +10% урона за уровень, Armor +1, Hollow Heart +20% HP, Pummarola +0.2 HP/с, Empty Tome −8% кулдауна.
 export const PASSIVES = {
-  max_hp:  { icon: 'icon_max_hp', stat: 'maxHp',  mode: 'mul', levels: [0.20, 0.40, 0.60, 0.80, 1.00] },
-  attack:  { icon: 'icon_attack', stat: 'atk',    mode: 'mul', levels: [0.10, 0.20, 0.30, 0.40, 0.50] },
-  speed:   { icon: 'icon_speed', stat: 'speed',  mode: 'mul', levels: [0.08, 0.16, 0.24, 0.32, 0.40] },
-  crit:    { icon: 'icon_crit', stat: 'crit',   mode: 'add', levels: [0.05, 0.10, 0.15, 0.20, 0.25] },
-  pickup:  { icon: 'icon_pickup', stat: 'pickup', mode: 'mul', levels: [0.25, 0.50, 0.75, 1.00, 1.25] },
-  haste:   { icon: 'icon_haste', stat: 'haste',  mode: 'mul', levels: [0.08, 0.16, 0.24, 0.32, 0.40] },
-  luck:    { icon: 'icon_luck', stat: 'luck',   mode: 'mul', levels: [0.10, 0.20, 0.30, 0.40, 0.50] }, // × шансы дропа и × шанс крита
-  armor:   { icon: 'icon_armor', stat: 'armor',  mode: 'add', levels: [1, 2, 3, 4, 5] },
-  regen:   { icon: 'icon_regen', stat: 'regen',  mode: 'add', levels: [0.2, 0.4, 0.6, 0.8, 1.0] },
+  max_hp:   { icon: 'icon_max_hp', stat: 'maxHp', levels: [0.20, 0.40, 0.60, 0.80, 1.00] },
+  steel:    { icon: 'icon_attack', stat: 'steel', levels: [0.10, 0.20, 0.30, 0.40, 0.50] },
+  magic:    { icon: 'icon_magic', stat: 'magic', levels: [0.10, 0.20, 0.30, 0.40, 0.50] },
+  speed:    { icon: 'icon_speed', stat: 'speed', levels: [0.08, 0.16, 0.24, 0.32, 0.40] },
+  crit:     { icon: 'icon_crit', stat: 'crit', levels: [0.05, 0.10, 0.15, 0.20, 0.25] },
+  crit_dmg: { icon: 'icon_crit_dmg', stat: 'critDmg', levels: [0.20, 0.40, 0.60, 0.80, 1.00], minLevel: 8 },
+  area:     { icon: 'icon_area', stat: 'area', levels: [0.08, 0.16, 0.24, 0.32, 0.40] },
+  duration: { icon: 'icon_duration', stat: 'duration', levels: [0.10, 0.20, 0.30, 0.40, 0.50] },
+  pickup:   { icon: 'icon_pickup', stat: 'pickup', levels: [0.25, 0.50, 0.75, 1.00, 1.25] },
+  haste:    { icon: 'icon_haste', stat: 'haste', levels: [0.08, 0.16, 0.24, 0.32, 0.40] },
+  luck:     { icon: 'icon_luck', stat: 'luck', levels: [0.10, 0.20, 0.30, 0.40, 0.50] }, // × шансы дропа и × шанс крита
+  armor:    { icon: 'icon_armor', stat: 'armor', levels: [1, 2, 3, 4, 5] },
+  regen:    { icon: 'icon_regen', stat: 'regen', levels: [0.2, 0.4, 0.6, 0.8, 1.0] },
+  xp_gain:  { icon: 'icon_xp_gain', stat: 'xpGain', levels: [0.08, 0.16, 0.24, 0.32, 0.40], minLevel: 5 },
+  dodge:    { icon: 'icon_dodge', stat: 'dodge', levels: [0.03, 0.06, 0.09, 0.12, 0.15] },
+  thorns:   { icon: 'icon_thorns', stat: 'thorns', levels: [6, 12, 18, 24, 30], minLevel: 8 },
 };

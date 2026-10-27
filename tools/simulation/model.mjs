@@ -17,7 +17,7 @@ export const MODEL = {
     'item:speed': -0.8217385394083114,
     'item:storm_chain': -0.8559329358848025,
     'item:luck': 0.1755512898304295,
-    'item:attack': 0.38733718720499877,
+    'item:steel': 0.38733718720499877,
     'item:armor': 0.16729836640567755,
     'item:blade_arc': -0.08742774400065993,
     'item:throwing_daggers': 0.3298176672771649,

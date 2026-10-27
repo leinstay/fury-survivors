@@ -96,7 +96,7 @@ test('observation omits hidden data, and policy never consumes the world RNG', (
   assert.equal(o.sim, undefined);
   p.move(o); p.choose(o);
   assert.equal(sim.rng.state, state);
-  assert.equal(recipeProfiles().length, 28);
+  assert.equal(recipeProfiles().length, 7);
 });
 
 test('no-evolution uses legal refusals; horizon is not defeat', () => {

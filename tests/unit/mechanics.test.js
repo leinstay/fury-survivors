@@ -4,6 +4,8 @@ import { createSim } from '../../src/core/sim.js';
 import { applyCard, chestItems, evolutionCard, findEvolution } from '../../src/core/upgrades.js';
 import { createRng } from '../../src/core/rng.js';
 import { WEAPONS } from '../../src/data/weapons.js';
+import { PASSIVES } from '../../src/data/passives.js';
+import { COMBAT } from '../../src/data/constants.js';
 import { COMBOS } from '../../src/data/combos.js';
 import { BOSSES } from '../../src/data/bosses.js';
 import { forest } from '../../src/data/stages/forest.js';
@@ -202,7 +204,7 @@ test('orbit: each shield rehits a target on its own timer', () => {
   const sim = createSim({ seed: 51 });
   god(sim);
   sim.player.weapons.length = 0;
-  sim.player.weapons.push({ id: 'guardian_shields', level: 7 }); // 6 щитов, 4.4 рад/с: проход каждые 0.24 с
+  sim.player.weapons.push(maxed('guardian_shields')); // 6 щитов, 4.4 рад/с: проход каждые 0.24 с
   sim._syncBuild();
   const w = sim.player.weapons[0];
   const P = w.params;
@@ -220,4 +222,128 @@ test('orbit: each shield rehits a target on its own timer', () => {
   }
   // за 4.3 с вращения щиты проходят цель ~18 раз; общий на оружие таймер 0.5 с пропускал бы два прохода из трёх
   assert.ok(hits >= 15 && hits <= 21, `hits ${hits}`);
+});
+
+// ---- ребаланс забега (docs/META.md 1): статы steel/magic, area, duration, xpGain, dodge, thorns, очередь карточек ----
+
+test('stats: weapon damage uses the owner stat of its dmgType, area and duration scale level fields', () => {
+  const sim = createSim({ seed: 81 });
+  const pl = sim.player;
+  pl.weapons = [{ id: 'blade_arc', level: 1 }, { id: 'firebomb', level: 1 }];
+  pl.passives = [{ id: 'steel', level: 5 }, { id: 'area', level: 5 }, { id: 'duration', level: 5 }];
+  sim._syncBuild();
+  const [blade, bomb] = pl.weapons;
+  const st = pl.stats;
+  const b1 = WEAPONS.blade_arc.levels[0];
+  const f1 = WEAPONS.firebomb.levels[0];
+  assert.ok(Math.abs(blade.params.damage - b1.damage * st.steel) < 1e-9, 'steel weapon × steel');
+  assert.ok(Math.abs(bomb.params.damage - f1.damage * st.magic) < 1e-9, 'magic weapon × magic');
+  assert.ok(Math.abs(blade.params.area - b1.area * st.area) < 1e-9);
+  assert.ok(Math.abs(bomb.params.duration - f1.duration * st.duration) < 1e-9);
+  assert.equal(blade.params.duration, undefined, 'no duration field: nothing is added');
+});
+
+test('xpGain multiplies collected experience of the picker', () => {
+  const sim = createSim({ seed: 82 });
+  const pl = sim.player;
+  pl.stats.xpGain = 1.5;
+  const before = pl.xp;
+  const pk = sim.dropPickup('xp_small', pl.x + 500, pl.y, 10);
+  sim._collect(pk, pl);
+  assert.ok(Math.abs(pl.xp - before - 15) < 1e-9);
+});
+
+test('dodge avoids contact and shots (event dodge), not telegraphed slams', () => {
+  const sim = createSim({ seed: 83 });
+  const pl = sim.player;
+  const hp = pl.hp;
+  pl.stats.dodge = 1;
+  sim.hurtPlayer(10, pl, 'slime');
+  assert.equal(pl.hp, hp);
+  assert.ok(sim.events.some((e) => e.type === 'dodge' && e.player === 0));
+  pl.iframes = 0;
+  sim.hurtPlayer(10, pl, 'dryad_queen', false);
+  assert.ok(pl.hp < hp, 'slam is not dodgeable');
+  // без стата rng не тянется: ход сима как раньше
+  const a = createSim({ seed: 84 });
+  const state = a.rng.state;
+  a.hurtPlayer(5);
+  assert.equal(a.rng.state, state);
+});
+
+test('thorns hit every enemy on screen for thorns × steel, with an internal cooldown', () => {
+  const sim = createSim({ seed: 85 });
+  sim.director = { update() {} };
+  const pl = sim.player;
+  god(sim);
+  pl.stats.thorns = 10;
+  pl.stats.steel = 1.5;
+  pl.stats.crit = 0;
+  const near = sim.spawnEnemy('slime', pl.x + 100, pl.y);
+  const far = sim.spawnEnemy('slime', pl.x + 2000, pl.y);
+  for (const e of [near, far]) e.hp = e.maxHp = 1e6;
+  sim.hurtPlayer(5, pl, 'slime');
+  assert.equal(near.hp, 1e6 - 15);
+  assert.equal(far.hp, 1e6, 'off screen');
+  assert.ok(sim.damageByWeapon.thorns > 0);
+  pl.iframes = 0;
+  sim.hurtPlayer(5, pl, 'slime');
+  assert.equal(near.hp, 1e6 - 15, 'cooldown');
+  sim.time += COMBAT.thornsCooldown;
+  pl.iframes = 0;
+  sim.hurtPlayer(5, pl, 'slime');
+  assert.equal(near.hp, 1e6 - 30);
+});
+
+const levelUp = (sim) => {
+  if (sim.state === 'resume') sim.state = 'running'; // пауза после выбора не нужна тесту
+  sim.player.xp = sim.player.xpNext;
+  sim._checkLevel();
+};
+
+test('level-up cards alternate: weapons, passives, weapons; reroll and banish keep the kind', () => {
+  const sim = createSim({ seed: 86 });
+  const kinds = [];
+  for (let i = 0; i < 4; i++) {
+    levelUp(sim);
+    assert.equal(sim.state, 'levelup');
+    const cards = sim.levelUp.cards;
+    assert.ok(cards.every((c) => c.kind === cards[0].kind), 'one kind per set');
+    kinds.push(cards[0].kind);
+    if (i === 1) {
+      sim.reroll();
+      assert.ok(sim.levelUp.cards.every((c) => c.kind === 'passive'), 'reroll keeps passives');
+      sim.banish(0);
+      assert.ok(sim.levelUp.cards.every((c) => c.kind === 'passive'), 'banish replacement keeps passives');
+    }
+    sim.chooseCard(0);
+  }
+  assert.deepEqual(kinds, ['weapon', 'passive', 'weapon', 'passive']);
+});
+
+test('co-op: shared turn order gives A-weapon, B-weapon, A-passive, B-passive', () => {
+  const sim = createSim({ seed: 87, players: 2 });
+  const seen = [];
+  for (let i = 0; i < 4; i++) {
+    levelUp(sim);
+    const who = sim.picker;
+    seen.push(`${who}:${sim.players[who].levelUp.cards[0].kind}`);
+    sim.chooseCard(0, who);
+  }
+  assert.deepEqual(seen, ['0:weapon', '1:weapon', '0:passive', '1:passive']);
+});
+
+test('gated passives are not offered before the team level', () => {
+  const sim = createSim({ seed: 88 });
+  sim.player.levelUp.picks = 1; // очередь пассивок
+  for (let i = 0; i < 20; i++) {
+    levelUp(sim);
+    for (const c of sim.levelUp.cards) {
+      const min = PASSIVES[c.id] && PASSIVES[c.id].minLevel;
+      if (min) assert.ok(sim.player.level >= min, `${c.id} offered at level ${sim.player.level}`);
+    }
+    sim.skip();
+    sim.levelUp.skips = 1e9;
+    sim.levelUp.picks = 1;
+  }
 });

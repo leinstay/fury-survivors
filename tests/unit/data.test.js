@@ -7,6 +7,7 @@ import { SPRITES } from '../../assets/sprites/manifest.js';
 import { HEROES, DEFAULT_HERO } from '../../src/data/heroes.js';
 import { WEAPONS, RINGS, ORBIT_R, WEAPON_BEHAVIOR } from '../../src/data/weapons.js';
 import { PASSIVES } from '../../src/data/passives.js';
+import { STATS } from '../../src/data/stats.js';
 import { COMBOS } from '../../src/data/combos.js';
 import { ENEMIES } from '../../src/data/enemies.js';
 import { BOSSES } from '../../src/data/bosses.js';
@@ -28,8 +29,7 @@ test('manifest: every sprite has a file and sane frame', () => {
 test('data: sprites referenced by content exist in manifest', () => {
   const refs = [
     ...Object.values(HEROES).flatMap((h) => [h.sprite, h.portrait]),
-    ...Object.values(WEAPONS).flatMap((w) =>
-        [w.icon, w.sprite, ...(w.parts || []).map((p) => p.sprite)]),
+    ...Object.values(WEAPONS).flatMap((w) => [w.icon, w.sprite]),
     ...Object.values(PASSIVES).map((p) => p.icon),
     ...Object.values(ENEMIES).map((e) => e.sprite),
     ...Object.values(BOSSES).map((b) => b.sprite),
@@ -38,10 +38,10 @@ test('data: sprites referenced by content exist in manifest', () => {
   for (const r of refs) assert.ok(SPRITES[r], `sprite "${r}" not in manifest`);
 });
 
-test('data: combos reference existing weapons (second part may be a passive)', () => {
+test('data: evolutions are weapon + passive', () => {
   for (const c of COMBOS) {
     for (const id of [c.from[0], c.result]) assert.ok(WEAPONS[id], `combo references unknown weapon "${id}"`);
-    assert.ok(WEAPONS[c.from[1]] || PASSIVES[c.from[1]], `combo references unknown part "${c.from[1]}"`);
+    assert.ok(PASSIVES[c.from[1]], `combo second part "${c.from[1]}" must be a passive`);
   }
 });
 
@@ -81,18 +81,14 @@ test('i18n: all values are strings', () => {
 // ---- валидация контента (этап 1) ----
 import { WEAPON_BEHAVIORS, ENEMY_BEHAVIORS } from '../../src/behaviors/index.js';
 
-test('data: weapons have behavior, icon, sprite and full level tables', () => {
+test('data: weapons have behavior, damage type, icon, sprite and full level tables', () => {
   assert.equal(Object.keys(WEAPONS).filter((id) => !WEAPONS[id].evolved).length, 7);
+  assert.ok(!WEAPON_BEHAVIORS.combo, 'no collab behavior');
   for (const [id, w] of Object.entries(WEAPONS)) {
     assert.ok(WEAPON_BEHAVIORS[w.behavior], `${id}: unknown behavior ${w.behavior}`);
+    assert.ok(['steel', 'magic'].includes(w.dmgType), `${id}: dmgType`);
     assert.equal(w.levels.length, w.maxLevel, `${id}: levels vs maxLevel`);
-    if (!w.evolved) assert.equal(w.maxLevel, 7, `${id}: 7 levels`);
-    if (w.behavior === 'combo') {
-      // коллаб: числа у частей
-      assert.ok(w.icon && w.parts.length === 2, `${id}: icon/parts`);
-      for (const p of w.parts) assert.ok(WEAPON_BEHAVIORS[p.behavior] && p.sprite && p.damage > 0 && p.cooldown >= 0, `${id}: part ${p.behavior}`);
-      continue;
-    }
+    if (!w.evolved) assert.equal(w.maxLevel, 5, `${id}: 5 levels`);
     assert.ok(w.icon && w.sprite, `${id}: icon/sprite`);
     for (const [i, lv] of w.levels.entries()) {
       assert.ok(lv.damage > 0, `${id} L${i + 1}: damage`);
@@ -104,22 +100,28 @@ test('data: weapons have behavior, icon, sprite and full level tables', () => {
   }
 });
 
-test('data: passives are well formed', () => {
-  assert.equal(Object.keys(PASSIVES).length, 9);
+test('data: passives are well formed (16, one per stat, 5 levels, i18n)', () => {
+  assert.equal(Object.keys(PASSIVES).length, 16);
   const stats = Object.keys(HEROES.heroine.stats);
+  assert.deepEqual([...stats].sort(), Object.keys(STATS).sort(), 'heroes carry every stat');
+  assert.deepEqual(Object.values(PASSIVES).map((p) => p.stat).sort(), Object.keys(STATS).sort(), 'one passive per stat');
   for (const [id, p] of Object.entries(PASSIVES)) {
     assert.ok(stats.includes(p.stat), `${id}: stat`);
-    assert.ok(['add', 'mul'].includes(p.mode), `${id}: mode`);
-    assert.ok(p.levels.length >= 1 && p.levels.every((v, i, a) => i === 0 || v > a[i - 1]), `${id}: levels grow`);
+    assert.equal(p.levels.length, 5, `${id}: 5 levels`);
+    assert.ok(p.levels.every((v, i, a) => i === 0 || v > a[i - 1]), `${id}: levels grow`);
+    if (p.minLevel !== undefined) assert.ok(Number.isInteger(p.minLevel) && p.minLevel > 1, `${id}: minLevel`);
+    assert.ok(en[`passive.${id}.name`] && en[`passive.${id}.desc`], `${id}: i18n`);
+    assert.ok(en[`trait.${p.stat}`], `${id}: trait.${p.stat}`);
   }
 });
 
 test('data: combos use maxed regular weapons and evolved results', () => {
-  // каждая пара из 7 оружий (21) и по эволюции с пассивкой на каждое оружие (7)
-  assert.equal(COMBOS.length, 28);
-  const pairs = new Set(COMBOS.filter((c) => WEAPONS[c.from[1]]).map((c) => [...c.from].sort().join('+')));
-  assert.equal(pairs.size, 21);
+  // по эволюции с пассивкой на каждое оружие, 1 к 1; коллабов (оружие + оружие) нет
+  assert.equal(COMBOS.length, 7);
+  assert.equal(new Set(COMBOS.map((c) => c.from[0])).size, 7, 'one evolution per weapon');
+  assert.equal(new Set(COMBOS.map((c) => c.from[1])).size, 7, 'one evolution per passive');
   for (const c of COMBOS) {
+    assert.equal(WEAPONS[c.result].dmgType, WEAPONS[c.from[0]].dmgType, `${c.result}: dmgType of its weapon`);
     for (const id of c.from) assert.ok(PASSIVES[id] || !WEAPONS[id].evolved, `${id} is evolved`);
     assert.ok(WEAPONS[c.result].evolved, `${c.result} must have evolved: true`);
   }
@@ -205,6 +207,5 @@ test('auras, blade arcs and orbits sit on the ring ladder (orbit sprite edge on 
   };
   for (const [name, w] of Object.entries(WEAPONS)) {
     for (const lv of w.levels) check(name, w.sprite, lv);
-    for (const part of w.parts || []) check(name, part.sprite, part);
   }
 });

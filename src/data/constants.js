@@ -66,7 +66,7 @@ export const PLAYER = {
 };
 
 export const COMBAT = {
-  critMul: 2,              // множитель крита
+  critMul: 2,              // множитель крита (к нему прибавляется стат critDmg)
   hitFlash: 0.1,           // белая вспышка врага после попадания, с
   knockbackDecay: 10,      // быстрота затухания отбрасывания (1/с)
   separation: 0.35,        // доля перекрытия, которую враги раздвигают за шаг
@@ -74,6 +74,7 @@ export const COMBAT = {
   enemyProjectileRadius: 4, // радиус попадания вражеского снаряда
   maxEnemyShots: 12,       // одновременно летящих снарядов обычных врагов (не боссов); выше лимита враг не стреляет
   weaponStartCooldown: 0.3, // задержка первого выстрела нового оружия до init behavior, с
+  thornsCooldown: 0.5,     // шипы (стат thorns): не чаще раза в столько секунд у каждого игрока
 };
 
 // Песчаные дороги (src/render/roads.js): цвета RGB, кромка и колея в px мира. Сеть дорог задаёт этап (stage.roads).
@@ -125,6 +126,7 @@ export const XP = {
   steps: [{ below: 20, per: 10 }, { below: 40, per: 13 }, { below: Infinity, per: 16 }],
   // Без доплат на 20/40 (в VS они идут с компенсацией Growth +100%, у нас её нет; docs/BALANCE_AUDIT.md).
   thresholds: [],
+  costMul: 2,              // множитель цены каждого уровня (docs/META.md 1.2: уровень идёт вдвое медленнее)
   mergeRadius: 24,         // кристаллы рядом сливаются, когда их больше mergeAbove
   mergeAbove: 300,
   mergeInterval: 0.5,      // с между проходами слияния

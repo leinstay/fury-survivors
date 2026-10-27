@@ -19,8 +19,8 @@ test('chest rewards and an evolution choice apply, pause and result screens work
   await page.waitForFunction(() => window.__game.game.scene.getScene('Game').sim.state === 'running');
   await page.evaluate(() => {
     const gs = window.__game.game.scene.getScene('Game');
-    gs.sim.player.weapons = [{ id: 'blade_arc', level: 7 }];
-    gs.sim.player.passives = [{ id: 'attack', level: 1 }];
+    gs.sim.player.weapons = [{ id: 'blade_arc', level: 5 }];
+    gs.sim.player.passives = [{ id: 'steel', level: 1 }];
     gs.sim._syncBuild(); gs.sim._openChest(gs.sim.player);
   });
   await waitChestReady(page);

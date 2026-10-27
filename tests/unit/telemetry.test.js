@@ -6,6 +6,7 @@ import { createTelemetry } from '../../src/core/telemetry.js';
 import { createTelemetrySender, serializeRun, encodeRun } from '../../src/services/telemetry.js';
 import { hashSim } from '../../src/core/lockstep.js';
 import { TELEMETRY } from '../../src/data/telemetry.js';
+import { WEAPONS } from '../../src/data/weapons.js';
 
 const idle = { x: 0, y: 0 };
 function setup(options = {}) {
@@ -83,8 +84,8 @@ test('input changes include both players, do not change simulation and stop afte
 test('evolution retains consumed weapon damage and distinguishes reward from choice', () => {
   const { sim, tr } = setup();
   const p = sim.player;
-  p.weapons = [{ id: 'blade_arc', level: 7 }];
-  p.passives = [{ id: 'attack', level: 1 }];
+  p.weapons = [{ id: 'blade_arc', level: WEAPONS.blade_arc.maxLevel }];
+  p.passives = [{ id: 'steel', level: 1 }];
   p.damageByWeapon.blade_arc = 1234;
   p.rawByWeapon.blade_arc = 1500;
   p.hitsByWeapon.blade_arc = 99;
@@ -92,7 +93,7 @@ test('evolution retains consumed weapon damage and distinguishes reward from cho
   sim.chooseChest(0);
   assert.deepEqual(tr.picks.map((x) => x[1]), ['evo', 'chest']);
   assert.equal(tr.applications.length, 1);
-  assert.deepEqual(tr.applications[0].from, ['blade_arc', 'attack']);
+  assert.deepEqual(tr.applications[0].from, ['blade_arc', 'steel']);
   const result = finish(sim, tr);
   assert.equal(result.end.w.some((x) => x[0] === 'blade_arc'), false);
   assert.deepEqual(result.end.damage.find((x) => x[0] === 'blade_arc'),

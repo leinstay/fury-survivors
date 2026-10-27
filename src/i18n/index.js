@@ -1,4 +1,9 @@
-import { en } from './en.js';
+import { en as enBase } from './en.js';
+import { enItems } from './en-items.js';
+import { enAchievements } from './en-achievements.js';
+
+// Строки предметов и ачивок в отдельных файлах, сливаются в общий словарь.
+const en = { ...enItems, ...enAchievements, ...enBase };
 
 const langs = { en };
 let current = langs.en;
