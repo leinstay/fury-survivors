@@ -93,7 +93,13 @@ export class LevelUpScene extends Phaser.Scene {
   }
 
   render() {
-    const keepIndex = this.nav.index;
+    // новый набор карточек (взял карточку, пропустил уровень, следующий уровень в очереди) — фокус на первую
+    // карточку: иначе пробел, оставшийся на Skip/Reroll, жал их снова и снова на каждом следующем уровне.
+    // После Reroll и в режиме баниша фокус остаётся, где был.
+    const changed = this.shown !== this.lu.cards;
+    const fresh = changed && this.lastAction !== 'reroll';
+    if (changed) this.lastAction = ''; // кооп: команда реролла применится позже, флаг ждёт нового набора
+    const keepIndex = fresh ? 0 : this.nav.index;
     this.nav.clear();
     for (const o of this.objs) o.destroy();
     const before = new Set(this.children.list);
@@ -153,7 +159,11 @@ export class LevelUpScene extends Phaser.Scene {
       b.setDisabled(count <= 0);
     };
     if (mine) {
-      mk(xs[0], t('levelup.reroll'), lu.rerolls, () => { this.act.reroll(); this.after(); });
+      mk(xs[0], t('levelup.reroll'), lu.rerolls, () => {
+        this.lastAction = 'reroll';
+        this.act.reroll();
+        this.after();
+      });
       mk(xs[1], t('levelup.skip'), lu.skips, () => { this.act.skip(); this.after(); });
       mk(xs[2], t('levelup.banish'), lu.banishes, () => { this.banishMode = !this.banishMode; this.render(); },
           this.banishMode);
