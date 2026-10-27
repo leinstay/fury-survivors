@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildPool, drawCards, applyCard, findEvolution, evolutionCard, skillChest, cardKey, pickKind } from '../../src/core/upgrades.js';
+import { buildPool, drawCards, applyCard, findEvolution, evolutionCard, skillChest, chestChoices, cardKey, pickKind } from '../../src/core/upgrades.js';
+import { CHEST } from '../../src/data/constants.js';
 import { createRng } from '../../src/core/rng.js';
 import { WEAPONS } from '../../src/data/weapons.js';
 import { PASSIVES } from '../../src/data/passives.js';
@@ -77,9 +78,10 @@ test('upgrades: evolution needs the weapon maxed and its passive, then replaces 
     assert.equal(findEvolution(q), null);
     q.weapons[0].level = WEAPONS[a].maxLevel;
     assert.equal(findEvolution(q), combo);
-    const items = skillChest(q, createRng(1));
-    assert.equal(items.length, 2); // пассивка +1 и эволюция
-    assert.equal(items[1].id, combo.result);
+    const choices = chestChoices(q, createRng(1));
+    assert.equal(choices.length, 1);
+    assert.equal(choices[0].id, combo.result);
+    assert.ok(!skillChest(q, createRng(1)).some((c) => c.evolved), 'no evolution without the choice');
     applyCard(q, evolutionCard(combo));
     assert.deepEqual(q.weapons.map((w) => w.id), [combo.result]);
     assert.deepEqual(q.passives.map((x) => x.id), [b]);
@@ -87,26 +89,33 @@ test('upgrades: evolution needs the weapon maxed and its passive, then replaces 
   }
 });
 
-test('upgrades: skill chest picks one ready evolution, evolution can be turned off', () => {
+test('upgrades: chestChoices lists ready evolutions, skillChest gives upgrades without them', () => {
   const p = {
     weapons: [{ id: 'blade_arc', level: WEAPONS.blade_arc.maxLevel }, { id: 'war_axe', level: WEAPONS.war_axe.maxLevel }],
     passives: [{ id: 'attack', level: 1 }, { id: 'crit', level: 1 }],
   };
-  // blade_arc + attack, war_axe + crit → одна из двух
-  const seen = new Set();
-  for (let s = 1; s < 20; s++) {
-    const w = skillChest(p, createRng(s)).find((c) => c.kind === 'weapon');
-    assert.ok(w.evolved && w.from.length === 2);
-    seen.add(w.id);
-  }
-  assert.deepEqual([...seen].sort(), ['crimson_arc', 'death_spiral']);
-  assert.ok(skillChest(p, createRng(1), false).every((c) => c.kind === 'passive'));
-  // одно оружие не на максимуме: поднимается оно или эволюция другого
-  p.weapons[1].level = 3;
-  const opts = new Set();
-  for (let s = 1; s < 20; s++) opts.add(skillChest(p, createRng(s)).find((c) => c.kind === 'weapon').id);
-  assert.deepEqual([...opts].sort(), ['crimson_arc', 'war_axe']);
+  // blade_arc + attack, war_axe + crit → две
+  const choices = chestChoices(p, createRng(1));
+  assert.deepEqual(choices.map((c) => c.id).sort(), ['crimson_arc', 'death_spiral']);
+  assert.ok(choices.every((c) => c.evolved && c.from.length === 2));
+  p.passives = [{ id: 'attack', level: 1 }];
+  // одно готовое супероружие тоже идёт через выбор (его можно пропустить); без готовых — пусто
+  assert.equal(chestChoices(p, createRng(1)).length, 1);
+  p.weapons[0].level = 1;
+  assert.deepEqual(chestChoices(p, createRng(1)), []);
+  // пропуск: обычное содержимое без супероружия
+  p.weapons[0].level = WEAPONS.blade_arc.maxLevel;
+  const skipped = skillChest(p, createRng(1));
+  assert.ok(skipped.length && !skipped.some((c) => c.evolved));
+  // четыре готовых: показываются не больше CHEST.maxChoices, все разные
+  p.weapons.push({ id: 'holy_ground', level: WEAPONS.holy_ground.maxLevel },
+      { id: 'storm_chain', level: WEAPONS.storm_chain.maxLevel });
+  p.passives = [{ id: 'attack', level: 1 }, { id: 'crit', level: 1 }, { id: 'regen', level: 1 }, { id: 'luck', level: 1 }];
+  const four = chestChoices(p, createRng(2));
+  assert.equal(four.length, CHEST.maxChoices);
+  assert.equal(new Set(four.map((c) => c.id)).size, four.length);
 });
+
 
 test('upgrades: skill chest without evolution upgrades an owned weapon', () => {
   const items = skillChest(fresh(), createRng(3));

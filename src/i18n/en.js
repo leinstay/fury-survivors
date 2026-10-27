@@ -68,7 +68,6 @@ export const en = {
   'coop.code_hint': 'Lobby code',
   'coop.need_name': 'Name: 3-6 letters or digits',
   'coop.need_code': 'Code: 5 letters or digits',
-  'coop.note': 'One screen for two. Share the code with a friend.',
   'lobby.title': 'Lobby',
   'lobby.code_copy': 'Code (tap to copy)',
   'lobby.copied': 'Copied!',
@@ -109,6 +108,8 @@ export const en = {
   'chest.evolve': '{from} Lv {lv} → {to}',
   'chest.heal': 'Healed',
   'chest.ok': 'Ok',
+  'chest.continue': 'Continue',
+  'chest.skip': 'Skip evolution',
   'chest.waiting': 'Waiting...',
 
   // Статы игрока
@@ -348,6 +349,7 @@ export const en = {
   'codex.locked': '???',
   'codex.unknown': '???',
   'codex.locked_desc': 'Not discovered yet. Look for it on level-up cards and in chests.',
+  'codex.evolution_locked_desc': 'Not discovered yet. Evolutions come only from chests: max the weapon and own its paired passive.',
   'codex.unique_locked_desc': 'Not found yet. Uniques drop only from boss chests, starting with the second boss.',
   'codex.foe_locked_desc': 'Not met yet. Survive longer to find out.',
   'codex.recipe': 'Chest recipe:',

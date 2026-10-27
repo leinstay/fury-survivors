@@ -6,6 +6,9 @@
 //   one    — 1 манекен на расстоянии d (орбита — на кольце, иначе ONE_DIST)
 //   group  — 10 манекенов кучкой радиусом GROUP_R вокруг той же точки
 //   screen — рамка героя (CLEAR) плотно заставлена манекенами с шагом SCREEN_STEP (до лимита SIM.maxEnemies)
+//   boss   — 1 манекен-босс размера BOSS_SIZE (иммунен к статусам и отталкиванию, как боссы) на BOSS_DIST
+// Цели: по боссу — LADDER.tags.boss (single лучший), по толпе — LADDER.tags.clear; «босс/цель» — DPS по боссу
+// относительно меча L5 / цель (ladder.mjs ladderRow.boss относительно меча), 1 — в цели.
 // Колонки: дальность R (с какой дистанции начинает бить, ladder.mjs reach), радиус удара (px) и квирки (ladder.mjs).
 // node tools/simulation/dps.mjs [--experiment x.json] [--seed 1] [--warm 5] [--window 60] [--json out.json] [--md]
 import { readFile, writeFile } from 'node:fs/promises';
@@ -14,12 +17,14 @@ import { WEAPONS, WEAPON_BEHAVIOR as B } from '../../src/data/weapons.js';
 import { HERO_BASE } from '../../src/data/heroes.js';
 import { SIM, CLEAR } from '../../src/data/constants.js';
 import { installExperiment } from './experiment.mjs';
-import { BASE, EVOS, reach, quirks, LADDER } from './ladder.mjs';
+import { BASE, EVOS, reach, quirks, LADDER, ladderRow } from './ladder.mjs';
 
 const ONE_DIST = 40;      // px от героя до манекена (внутри дальности любого оружия, кроме орбит)
 const GROUP_R = 20;       // радиус кучки из 10
 const SCREEN_STEP = 18;   // шаг сетки манекенов в рамке
 const DUMMY = 'catgirl';  // вид манекена (размер хитбокса)
+const BOSS_SIZE = 36;     // хитбокс боссов (bosses.js size)
+const BOSS_DIST = 50;     // px: босс вплотную к герою (центр на 50 px)
 const STILL = { update() {} };
 
 /** Радиус (или полуширина) одного удара, px: что накрывает удар. */
@@ -36,9 +41,10 @@ export function hitSize(def, lv) {
   }
 }
 
-function placeDummies(sim, scene, dist) {
+function placeDummies(sim, scene, dist, def0) {
   const pts = [];
   if (scene === 'one') pts.push([dist, 0]);
+  else if (scene === 'boss') pts.push([def0.behavior === 'orbit' ? dist : BOSS_DIST, 0]);
   else if (scene === 'group') {
     pts.push([dist, 0]);
     for (let i = 0; i < 9; i++) {
@@ -61,6 +67,7 @@ function placeDummies(sim, scene, dist) {
     const e = sim.spawnEnemy(DUMMY, x, y);
     if (!e) break;
     e.maxHp = e.hp = 1e12; e.speed = 0; e.damage = 0; e.xp = 0; e.resist = 1; e.beh = STILL;
+    if (scene === 'boss') { e.boss = true; e.size = BOSS_SIZE; }
   }
   return pts.length;
 }
@@ -79,7 +86,7 @@ export function measure(id, level, scene, { seed = 1, warm = 5, window = 60 } = 
   const def = WEAPONS[id];
   const lv = def.levels[level - 1];
   const dist = def.behavior === 'orbit' ? lv.area : ONE_DIST;
-  const n = placeDummies(sim, scene, dist);
+  const n = placeDummies(sim, scene, dist, def);
   const step = 1 / SIM.tickRate;
   const input = { players: [{ x: 0, y: 0 }] };
   let start = 0;
@@ -97,13 +104,25 @@ export function table(opts = {}) {
   const add = (id, level) => {
     const def = WEAPONS[id];
     const lv = def.levels[level - 1];
-    const r = { id, level: def.evolved ? 'evo' : `L${level}`, R: Math.round(reach(def, lv)),
+    const r = { id, level: def.evolved ? 'evo' : `L${level}`, tag: def.targets || '', bloom: def.bloom || '',
+      R: Math.round(reach(def, lv)),
       size: Math.round(hitSize(def, lv)), quirks: quirks(def, lv).map((q) => q.id).join(' ') };
-    for (const scene of ['one', 'group', 'screen']) r[scene] = Math.round(measure(id, level, scene, opts).dps);
+    for (const scene of ['one', 'group', 'screen', 'boss']) {
+      r[scene] = Math.round(measure(id, level, scene, opts).dps);
+    }
     rows.push(r);
   };
   for (const id of BASE) { add(id, 1); add(id, WEAPONS[id].maxLevel); }
   for (const id of EVOS) add(id, 1);
+  // босс относительно цели: меч L5 (эволюции — Crimson Arc) × boss(w) / boss(якоря)
+  const lr = Object.fromEntries([...BASE, ...EVOS].map((id) => [id, ladderRow(id)]));
+  for (const r of rows) {
+    if (r.level === 'L1') continue;
+    const anchor = r.level === 'evo' ? LADDER.anchorEvo : LADDER.anchor;
+    const a = rows.find((x) => x.id === anchor && x.level !== 'L1');
+    r.bossRel = +(r.boss / a.boss).toFixed(2);
+    r.bossGoal = +(lr[r.id].boss / lr[anchor].boss).toFixed(2);
+  }
   return rows;
 }
 
@@ -117,17 +136,20 @@ async function main() {
     const rows = table({ seed: Number(opt('seed', 1)), warm: Number(opt('warm', 5)),
       window: Number(opt('window', 60)) });
     if (args.includes('--md')) {
-      console.log('| оружие | уровень | DPS 1 цель | DPS 10 | DPS экран | дальность, px | радиус удара, px | квирки |');
-      console.log('|---|---|---|---|---|---|---|---|');
+      console.log('| оружие | уровень | тег | bloom | DPS 1 цель | DPS 10 | DPS экран | DPS босс | босс/якорь (цель) | ' +
+        'дальность, px | радиус удара, px | квирки |');
+      console.log('|---|---|---|---|---|---|---|---|---|---|---|---|');
       for (const r of rows) {
-        console.log(`| ${r.id} | ${r.level} | ${r.one} | ${r.group} | ${r.screen} | ${r.R} | ${r.size} | ` +
+        console.log(`| ${r.id} | ${r.level} | ${r.tag} | ${r.bloom || '—'} | ${r.one} | ${r.group} | ${r.screen} | ` +
+          `${r.boss} | ${r.bossRel ?? '—'}${r.bossGoal !== undefined ? ` (${r.bossGoal})` : ''} | ${r.R} | ${r.size} | ` +
           `${r.quirks || '—'} |`);
       }
     } else {
       for (const r of rows) {
         console.log(`${r.id.padEnd(17)} ${String(r.level).padEnd(4)} ${String(r.one).padStart(6)} ` +
           `${String(r.group).padStart(6)} ${String(r.screen).padStart(7)}  R ${String(r.R).padStart(3)}  ` +
-          `r ${String(r.size).padStart(3)}  ${r.quirks}`);
+          `r ${String(r.size).padStart(3)}  босс ${String(r.boss).padStart(5)} ${r.bossRel ?? ''}/${r.bossGoal ?? ''}  ` +
+          `${r.tag} ${r.quirks}`);
       }
     }
     if (opt('json', '')) await writeFile(opt('json'), JSON.stringify({ LADDER, rows }, null, 1));

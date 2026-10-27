@@ -191,6 +191,19 @@ export class FocusNav {
 // Кнопка-прямоугольник с текстом. Возвращает item (можно менять item.disabled и вызывать item.setLabel).
 // selected: выбранный вариант из нескольких (сложность в лобби, активная вкладка) — зелёная рамка, когда
 // не в фокусе (panel.setState); менять потом — item.setSelected(bool).
+// Фокус текстового пункта выбора (строки аффиксов, сортировка, переключатель героя, id кодекса): только
+// цвет текста, без рамки. Рамка (жёлтая — фокус, зелёная — выбрано) — только у кнопок-прямоугольников.
+export const TEXT_FOCUS_COLOR = '#ffd84a';
+
+/**
+ * @param {!Phaser.GameObjects.Text} text
+ * @param {boolean} focused
+ * @param {string} color цвет без фокуса
+ */
+export function setTextFocusStyle(text, focused, color) {
+  text.setColor(focused ? TEXT_FOCUS_COLOR : color);
+}
+
 export function addButton(scene, nav,
     { x, y, w, h, label, onSelect, size = 14, color = '#ffffff', selected = false }) {
   const rect = addPanel(scene, x, y, w, h);

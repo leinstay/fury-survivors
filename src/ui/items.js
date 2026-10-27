@@ -17,10 +17,11 @@ const CELL_OPEN = 0x241d32;
 const CELL_LOCKED = 0x09080c;
 const CELL_LINE = 0x3e3354;
 
-/** Имя предмета: [префикс] база [суффикс] (уникалка — своё имя). */
+/** Имя предмета: [префикс] база [суффикс] [+N] (уникалка — своё имя); заточка — часть имени в конце. */
 export function itemTitle(item) {
   const n = itemName(item);
-  return [n.prefix && t(n.prefix), t(n.base), n.suffix && t(n.suffix)].filter(Boolean).join(' ');
+  const plus = item.enchant ? `+${item.enchant}` : '';
+  return [n.prefix && t(n.prefix), t(n.base), n.suffix && t(n.suffix), plus].filter(Boolean).join(' ');
 }
 
 /** Буква типа для заглушки. */
@@ -103,7 +104,6 @@ export class ItemTooltip {
     };
     line(itemTitle(item), RARITY_CSS[item.rarity], 12);
     const meta = [t(`item.rarity.${item.rarity}`), t('item.tier', { n: item.tier })];
-    if (item.enchant) meta.push(t('item.enchant', { n: item.enchant }));
     if (item.locked) meta.push(t('item.locked'));
     line(`${meta.join(' · ')}  ·  ${t(`item.kind.${item.type}`)} ${item.shape[0]}×${item.shape[1]}`,
         COLORS.dim, 9);
@@ -178,6 +178,7 @@ export class BagView {
     const s = this.scene;
     const C = this.cell;
     const g = s.add.graphics();
+    g.__box = { x: this.x, y: this.y, w: BAG.w * C, h: BAG.h * C }; // для проверки отступов (spacing.spec)
     this.objs.push(g);
     g.fillStyle(0x000000, 0.45).fillRect(this.x + 2, this.y + 2, BAG.w * C, BAG.h * C);
     for (let yy = 0; yy < BAG.h; yy++) {
@@ -266,29 +267,45 @@ export function bonusText(bonus) {
 export const PART_CSS = { passives: '#7fb8ff', items: '#d29bff', ach: '#ffd84a' };
 const PARTS = ['passives', 'items', 'ach'];
 
+/** Легенда вкладов (passives items achiev.) правым краем в точке (right, y): над панелью статов. */
+export function addStatsLegend(scene, right, y, style = textStyle) {
+  let lx = right;
+  for (const part of [...PARTS].reverse()) {
+    const o = scene.add.text(lx, y, t(`inv.part.${part}`), style(7, PART_CSS[part])).setOrigin(1, 0);
+    lx -= o.width + 4;
+  }
+}
+
 /**
  * Панель статов героя (loadoutReport): итог, отличие от базы цветом, упор в кап «(max)» и перебор,
  * перед итогом — вклады источников (parts): пассивки, предметы (и × more уникалок), ачивки.
  * Легенда цветов вкладов — в строке заголовка справа.
  * @param {!Object} report loadoutReport(...)
  * @param {!Object} base итог без сумки (statReport без extra) для сравнения
+ * @param {string=} title
+ * @param {{legend: (boolean|undefined)}=} o legend: false — без строки заголовка и легенды (строки статов
+ *     сразу сверху панели; заголовок, если нужен, рисует сцена над панелью)
  * @return {!Array} созданные объекты
  */
-export function addStatsPanel(scene, x, y, w, h, report, base, title = t('inv.stats')) {
+export function addStatsPanel(scene, x, y, w, h, report, base, title = t('inv.stats'), o = {}) {
   const before = new Set(scene.children.list);
+  const legend = o.legend !== false;
   addPanel(scene, x + w / 2, y + h / 2, w, h);
-  scene.add.text(x + 6, y + 4, title, textStyle(10, '#ffd84a')).setOrigin(0, 0);
-  let lx = x + w - 6;
-  for (const part of [...PARTS].reverse()) {
-    const o = scene.add.text(lx, y + 6, t(`inv.part.${part}`), textStyle(7, PART_CSS[part])).setOrigin(1, 0);
-    lx -= o.width + 4;
+  if (legend) {
+    scene.add.text(x + 6, y + 4, title, textStyle(10, '#ffd84a')).setOrigin(0, 0);
+    let lx = x + w - 6;
+    for (const part of [...PARTS].reverse()) {
+      const o = scene.add.text(lx, y + 6, t(`inv.part.${part}`), textStyle(7, PART_CSS[part])).setOrigin(1, 0);
+      lx -= o.width + 4;
+    }
   }
+  const top = legend ? 20 : 6;
   const keys = Object.keys(STATS);
-  const line = Math.min(12, Math.floor((h - 22) / keys.length));
+  const line = Math.min(12, Math.floor((h - top - 2) / keys.length));
   keys.forEach((k, i) => {
     const r = report[k];
     if (!r) return;
-    const yy = y + 20 + i * line;
+    const yy = y + top + i * line;
     const label = scene.add.text(x + 6, yy, t(`item.stat.${k}`), textStyle(9, COLORS.dim)).setOrigin(0, 0);
     const b = base && base[k] ? base[k].value : r.value;
     const diff = r.value - b;

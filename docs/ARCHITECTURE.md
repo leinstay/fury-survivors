@@ -121,7 +121,9 @@ sim.hurtPlayer(raw, pl)  // в коопе смерть: pl.dead = true, pl.coffi
   from?: [weapon, passive] } // только супероружие: части из data/combos.js; оружие убрано, результат встал на его слот
 ```
 
-Содержимое: +1 уровень случайной своей пассивке и +1 уровень случайному своему оружию (оружие на maxLevel с готовой парой из `combos.js` — супероружие); поднять нечего — лечение. Сцена Chest показывает свои карточки, Ok — `sim.chestOk(who)` (кооп: команда `chestOk`); мир стоит, пока не нажали все, затем `'resume'`. `sim.chooseChest()` закрывает показ за всех (боты).
+Если у подобравшего готово хотя бы одно супероружие (запись из `combos.js`: оружие на maxLevel + своя пассивка), сундук ничего не применяет: `sim.state = 'chest'`, до `CHEST.maxChoices` (+ greed) карточек в `sim.chest.cards`, событие `{ type: 'chest', items: [], choice: true }`. `sim.chooseChest(i)` применяет карточку, `sim.skipChest()` вместо неё выдаёт обычные апгрейды (`skillChest`). Оба шлют `{ type: 'chest', items, applied: true }`; в коопе затем показ обоим (`'reveal'`, закрывает хозяин `revealDone` или таймер).
+
+Иначе `UP.skillChest`: +1 уровень случайной своей пассивке и +1 случайному своему оружию (соло — подобравшему, кооп — каждому свой бросок), `sim.chest.rolls = [{ player, cards }]`, событие `{ type: 'chest', player, rolls }`, `sim.state = 'chest'` с пустым `chest.cards`; Ok — `sim.chestOk(who)` (кооп: команда `chestOk`), мир стоит, пока не нажали все. Выпало только лечение — без экрана (событие `autoHeal`).
 
 ### Лут босса
 

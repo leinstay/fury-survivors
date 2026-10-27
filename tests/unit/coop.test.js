@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createSim } from '../../src/core/sim.js';
+import { applyCommand } from '../../src/core/lockstep.js';
 import { COOP } from '../../src/data/coop.js';
 import { DEFAULT_HERO, HEROES } from '../../src/data/heroes.js';
 import { validHero, freeHero, distinctHeroes, heroIds } from '../../src/core/heroes.js';
@@ -261,4 +262,25 @@ test('heroes: core helpers', () => {
   assert.equal(freeHero([], 'mage'), 'mage');
   assert.deepEqual(distinctHeroes(2, ['mage', 'mage']), ['mage', 'heroine']);
   assert.deepEqual(distinctHeroes(2), heroIds().slice(0, 2));
+});
+
+test('coop: a chest with a ready evolution waits for its owner, then both see the pick', () => {
+  const sim = coop(15);
+  const b = sim.players[1];
+  b.weapons = [{ id: 'blade_arc', level: 5 }];
+  b.passives = [{ id: 'attack', level: 1 }];
+  sim._syncBuild();
+  sim._openChest(b);
+  assert.equal(sim.state, 'chest');
+  assert.deepEqual(sim.chest.cards.map((c) => c.id), ['crimson_arc']);
+  assert.equal(applyCommand(sim, 0, { k: 'chest', i: 0 }), false, 'only the owner picks');
+  assert.equal(applyCommand(sim, 1, { k: 'chest', i: 0 }), true);
+  assert.equal(sim.state, 'reveal');
+  assert.deepEqual(sim.chest.shown.map((c) => c.id), ['crimson_arc']);
+  const t0 = sim.time;
+  for (let i = 0; i < 30; i++) sim.step(DT, { players: [idle, idle] });
+  assert.equal(sim.time, t0);
+  assert.equal(applyCommand(sim, 1, { k: 'revealDone' }), true);
+  assert.equal(sim.state, 'resume');
+  settle(sim);
 });

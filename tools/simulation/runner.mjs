@@ -73,8 +73,9 @@ function execute(options) {
       }
       if (step > config.until * 240 + 10000) throw new Error('tick watchdog');
       if (['chest', 'levelup'].includes(sim.state)) {
-        // сундук скиллов без выбора: каждый игрок закрывает показ (chestOk), первым — кто ещё не закрыл
-        const who = sim.state === 'chest' ? sim.chest.done.findIndex((d) => !d) : sim.picker;
+        // сундук: выбор эволюции — тот, кому он достался; показ апгрейдов — каждый, первым кто не закрыл
+        const who = sim.state !== 'chest' ? sim.picker :
+          sim.chest.cards.length ? sim.chest.player : sim.chest.done.findIndex((d) => !d);
         const command = policies[who].choose(observe(sim, who));
         if (!command || !applyCommand(sim, who, command)) throw new Error('illegal policy command');
         if (trace) trace.actions.push({ step, who, command });

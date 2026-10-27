@@ -1,6 +1,7 @@
 import { t } from '../i18n/index.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
 import { buildLoot, claimPendingLoot } from '../ui/loot.js';
+import { overlayTitle } from '../ui/menu-layout.js';
 import { playChestOpen } from '../ui/chest-open.js';
 import { showAchievementToasts } from '../ui/toast.js';
 import { textStyle } from '../ui/style.js';
@@ -27,8 +28,7 @@ export class LootScene extends Phaser.Scene {
   create() {
     resetFade(this);
     this.nav = { update() {} };
-    const title = this.add.text(GAME_WIDTH / 2, 34, t('loot.title'),
-        textStyle(24, '#ffd84a', { stroke: '#000000', strokeThickness: 4 })).setOrigin(0.5);
+    const title = overlayTitle(this, t('loot.title'));
     // сундук шмоток (свой цвет, CHEST_LOOK.loot) открывается, затем свои предметы
     playChestOpen(this, 'loot', () => {
       title.destroy();

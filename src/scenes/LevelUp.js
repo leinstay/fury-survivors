@@ -8,14 +8,20 @@ import { addPanel } from '../ui/panel.js';
 import { createActions } from '../core/actions.js';
 import { fadeOutAndStop, resetFade } from '../ui/fade.js';
 import { addCardPreview } from '../ui/card-preview.js';
-import { BUTTON, rowXs } from '../ui/menu-layout.js';
+import { BUTTON, rowXs, overlayTitle } from '../ui/menu-layout.js';
 
 const CARD_W = 140;
 const CARD_H = 210;
 const CARD_GAP = 10;
 const CARD_Y = 160;
 // Описание: верх от центра карточки и предел строк (влезает до зоны предпросмотра, PREVIEW_H).
-const DESC_Y = -4;
+// Зоны карточки сверху вниз (от центра карточки), одинаковые у всех карточек: иконка, название, NEW / Lv,
+// описание (не больше DESC_LINES строк: тексты в en.js держим короче), внизу — линия иконок оружий и строки
+// статов (ui/card-preview.js, PREVIEW_H).
+const ICON_Y = -80;
+const NAME_Y = -48;
+const TAG_Y = -30;
+const DESC_Y = -12;
 const DESC_LINES = 5;
 
 function cardDesc(c) {
@@ -43,7 +49,7 @@ export class LevelUpScene extends Phaser.Scene {
   create() {
     resetFade(this);
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.7).setOrigin(0, 0);
-    this.add.text(GAME_WIDTH / 2, 30, t('levelup.title'), textStyle(24, '#ffd84a', { stroke: '#000000', strokeThickness: 4 })).setOrigin(0.5);
+    overlayTitle(this, t('levelup.title'));
     this.nav = new FocusNav(this, {
       onBack: () => {
         if (this.banishMode) {
@@ -107,12 +113,12 @@ export class LevelUpScene extends Phaser.Scene {
     cards.forEach((c, i) => {
       const x = x0 + i * (CARD_W + CARD_GAP);
       const rect = addPanel(this, x, cy, CARD_W, CARD_H);
-      addIcon(this, x, cy - 72, c.icon, 32, c.kind, c.id);
-      this.add.text(x, cy - 40, c.kind === 'heal' ? t('card.heal.name') : displayName(c.kind, c.id),
+      addIcon(this, x, cy + ICON_Y, c.icon, 32, c.kind, c.id);
+      this.add.text(x, cy + NAME_Y, c.kind === 'heal' ? t('card.heal.name') : displayName(c.kind, c.id),
         textStyle(12, '#ffffff', { align: 'center', wordWrap: { width: CARD_W - 12 } })).setOrigin(0.5, 0);
       const tag = c.kind === 'heal' ? '' : c.isNew ? t('levelup.new') : t('levelup.lv', { n: c.level });
-      this.add.text(x, cy - 22, tag, textStyle(12, c.isNew ? '#ffd84a' : '#9ad0ff')).setOrigin(0.5, 0);
-      // описание в своей зоне: с одного y, не больше DESC_LINES строк (до зоны предпросмотра)
+      this.add.text(x, cy + TAG_Y, tag, textStyle(12, c.isNew ? '#ffd84a' : '#9ad0ff')).setOrigin(0.5, 0);
+      // описание в своей зоне: с одного y, не больше DESC_LINES строк (до линии иконок)
       this.add.text(x, cy + DESC_Y, cardDesc(c), textStyle(10, '#cccccc',
           { align: 'center', wordWrap: { width: CARD_W - 14 }, maxLines: DESC_LINES })).setOrigin(0.5, 0);
       // внизу карточки зона фиксированной высоты: изменение стата или параметров оружия и оружия, на которые

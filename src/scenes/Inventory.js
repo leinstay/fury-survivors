@@ -11,9 +11,9 @@ import { t } from '../i18n/index.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
 import { BAG, STASH, CURRENCIES } from '../data/items.js';
 import { HEROES } from '../data/heroes.js';
-import { FocusNav, addButton } from '../ui/focus.js';
+import { FocusNav, addButton, setTextFocusStyle } from '../ui/focus.js';
 import { addPanel, PANEL } from '../ui/panel.js';
-import { textStyle, COLORS } from '../ui/style.js';
+import { textStyle, bgTextStyle, COLORS } from '../ui/style.js';
 import { playSfx } from '../audio/sfx.js';
 import { getSetting, isMobile } from '../ui/settings.js';
 import { validHero } from '../core/heroes.js';
@@ -34,7 +34,7 @@ import {
   BagView, ItemTooltip, drawItemBox, addStatsPanel, itemTitle, affixText, RARITY_CSS,
 } from '../ui/items.js';
 import { showAchievementToasts } from '../ui/toast.js';
-import { BUTTON, TITLE_Y, backRect, screenTitle } from '../ui/menu-layout.js';
+import { BUTTON, TITLE_Y, LABEL_ROW, backRect, screenTitle, menuBackdrop } from '../ui/menu-layout.js';
 
 const BAGV = { x: 10, y: 52, cell: 22 };
 const ST = { x: 218, y: 52, cell: 20, cols: 10 };
@@ -52,20 +52,17 @@ const BTN_GAP = Math.floor((STASH_BOTTOM - BTN_TOP - 3 * BAG_BTN_H) / 2);
 const BTN_ROW_Y = (r) => STASH_BOTTOM - BAG_BTN_H / 2 - (2 - r) * (BAG_BTN_H + BTN_GAP); // центр ряда r (0..2)
 // Строка заголовков (Bag, Stash, валюты справа; на крафте — Select и валюты) на HEAD_Y, сетки и правая
 // панель начинаются с одного y (BAGV.y = ST.y); три блока через одинаковый зазор BLOCK_GAP.
-const HEAD_Y = 40;
+const HEAD_Y = BAGV.y - LABEL_ROW; // заголовок строки на GAP_LABEL выше сеток
 const BLOCK_GAP = 10;
 const RIGHT_EDGE = GAME_WIDTH - 8;
 const STATS_X = ST.x + ST.cols * ST.cell + BLOCK_GAP;
 // панель статов до низа экрана (низ — по низу кнопки Back)
 const STATS_BOX = { x: STATS_X, y: BAGV.y, w: RIGHT_EDGE - STATS_X, h: GAME_HEIGHT - 8 - BAGV.y };
-// Та же раскладка у вкладки инвентаря паузы (Pause.js): строка заголовков, сумка, панель статов.
-export const INV_LAYOUT = { headY: HEAD_Y, bag: BAGV, stats: STATS_BOX };
 const CR = { x: 10, y: 52, cell: 16, cols: 12 };
 // панель крафта до низа экрана, как панель статов; внизу подсказка операции и строка сообщений
 const DET = { x: 214, y: BAGV.y, w: RIGHT_EDGE - 214, h: GAME_HEIGHT - 8 - BAGV.y };
 const OP_STEP = BTN_H + 2;
-const LINK = { size: 9, h: 16, color: '#dddddd', active: '#8cff6a', focus: '#ffd84a' };
-const HINT_Y = 292;
+const LINK = { size: 9, h: 16, color: '#dddddd', active: '#8cff6a' }; // фокус — setTextFocusStyle
 const CONFIRM_MS = 2500;
 
 const uiRng = () => createRng((Date.now() ^ Math.floor(Math.random() * 0x7fffffff)) >>> 0);
@@ -92,6 +89,7 @@ export class InventoryScene extends Phaser.Scene {
   }
 
   create() {
+    menuBackdrop(this); // фон — арт меню без героинь, как у всех подменю
     getAchievements(); // сумка подгоняется под полученные ачивки
     this.inv = getInventory();
     this.rng = uiRng();
@@ -128,7 +126,7 @@ export class InventoryScene extends Phaser.Scene {
     const before = new Set(this.children.list);
     screenTitle(this, t('inv.title'));
     // валюты в строке заголовков, по правому краю правой панели (статы или крафт)
-    this.add.text(RIGHT_EDGE, HEAD_Y, this.walletText(), textStyle(9, '#ffd84a')).setOrigin(1, 0);
+    this.add.text(RIGHT_EDGE, HEAD_Y, this.walletText(), bgTextStyle(9, '#ffd84a')).setOrigin(1, 0);
     ['bag', 'craft'].forEach((tab, i) => {
       // вкладки слева в строке заголовка экрана (по центру — заголовок)
       this.button({ key: `tab:${tab}`, x: BAGV.x + 46 + i * 100, y: TITLE_Y, w: 92, h: BUTTON.tab.h,
@@ -140,7 +138,7 @@ export class InventoryScene extends Phaser.Scene {
     this.button({ key: 'back', ...backRect(), size: 12, label: t('settings.back'),
       onSelect: () => this.back() });
     this.statusText = this.add.text(this.tab === 'craft' ? DET.x + DET.w / 2 : ST.x + 100,
-        this.tab === 'craft' ? DET.y + DET.h - 16 : STASH_BOTTOM + 4, this.msg, textStyle(10, this.msgColor)).setOrigin(0.5, 0);
+        this.tab === 'craft' ? DET.y + DET.h - 16 : STASH_BOTTOM + 4, this.msg, bgTextStyle(10, this.msgColor)).setOrigin(0.5, 0);
     this.objs = this.children.list.filter((o) => !before.has(o) && o.type !== 'Zone');
     const i = keep ? this.nav.items.findIndex((it) => it.key === keep) : -1;
     this.nav.focus(i >= 0 ? i : 0);
@@ -216,7 +214,7 @@ export class InventoryScene extends Phaser.Scene {
 
   renderBag() {
     const inv = this.inv;
-    this.add.text(BAGV.x, HEAD_Y, t('inv.bag', { c: inv.bag.cols, r: inv.bag.rows }), textStyle(10, '#ffd84a'))
+    this.add.text(BAGV.x, HEAD_Y, t('inv.bag', { c: inv.bag.cols, r: inv.bag.rows }), bgTextStyle(10, '#ffd84a'))
         .setOrigin(0, 0);
     this.bagView = new BagView(this, BAGV);
     this.bagView.draw(inv.bag, { hideUid: this.held ? this.held.uid : null });
@@ -230,7 +228,7 @@ export class InventoryScene extends Phaser.Scene {
     }
     // стеш
     const stashHead = this.add.text(ST.x, HEAD_Y, t('inv.stash', { n: inv.stash.length, m: STASH.size }),
-        textStyle(10, '#ffd84a')).setOrigin(0, 0);
+        bgTextStyle(10, '#ffd84a')).setOrigin(0, 0);
     // сортировка текстом в строке заголовка стеша (как переключатель героя): текущая — зелёная
     let lx = stashHead.x + stashHead.width + 8;
     for (const by of ['rarity', 'type']) {
@@ -240,6 +238,7 @@ export class InventoryScene extends Phaser.Scene {
     }
     const g = this.add.graphics();
     const rows = Math.ceil(STASH.size / ST.cols);
+    g.__box = { x: ST.x, y: ST.y, w: ST.cols * ST.cell, h: rows * ST.cell }; // для spacing.spec
     for (let i = 0; i < ST.cols * rows; i++) {
       const x = ST.x + (i % ST.cols) * ST.cell;
       const y = ST.y + Math.floor(i / ST.cols) * ST.cell;
@@ -278,13 +277,14 @@ export class InventoryScene extends Phaser.Scene {
       this.button({ key: `act:${k}`, x: bx(i), y: BTN_ROW_Y(2), w: bw, h: BAG_BTN_H, label,
         disabled: dis, onSelect: fn });
     });
+    // подсказка сразу под кнопками и стешем, имя выбранного предмета под ней
+    const hint = this.add.text(BAGV.x, STASH_BOTTOM + 4, t(isMobile() ? 'inv.hint_touch' : 'inv.hint'),
+        bgTextStyle(8, COLORS.dim, { wordWrap: { width: 405 } })).setOrigin(0, 0);
     if (sel) {
       const css = RARITY_CSS[sel.item.rarity];
-      this.add.text(BAGV.x, STASH_BOTTOM + 4, itemTitle(sel.item),
-          textStyle(9, css, { wordWrap: { width: BAG_W } })).setOrigin(0, 0);
+      this.add.text(BAGV.x, hint.y + hint.height + 4, itemTitle(sel.item),
+          bgTextStyle(9, css, { wordWrap: { width: BAG_W } })).setOrigin(0, 0);
     }
-    this.add.text(BAGV.x, HINT_Y, t(isMobile() ? 'inv.hint_touch' : 'inv.hint'), textStyle(8, COLORS.dim, { wordWrap: { width: 405 } }))
-        .setOrigin(0, 0);
     this.renderStats();
   }
 
@@ -297,11 +297,11 @@ export class InventoryScene extends Phaser.Scene {
     // без заголовка «Stats»: первой строкой панели — герой текстом (переключатель) и легенда вкладов
     addStatsPanel(this, B.x, B.y, B.w, B.h, rep, base, '');
     this.heroSwitch(B.x + 6, B.y + 4);
-    let y = B.y + 220;
+    const y = B.y + 220;
     const div = bagBonus(bag);
-    this.add.text(B.x + 6, y, t('item.diversity', { n: Math.round((div.diversity - 1) * 100) }),
-        textStyle(9, '#8cff6a')).setOrigin(0, 0);
-    y += 14;
+    // разнообразие — в нижнем левом углу панели
+    this.add.text(B.x + 6, B.y + B.h - 6, t('item.diversity', { n: Math.round((div.diversity - 1) * 100) }),
+        textStyle(9, '#8cff6a')).setOrigin(0, 1);
     const u = loadoutUnique(bag);
     if (u) {
       this.add.text(B.x + 6, y, t(`unique.${u}.name`), textStyle(10, RARITY_CSS.unique)).setOrigin(0, 0);
@@ -322,7 +322,7 @@ export class InventoryScene extends Phaser.Scene {
   // Зона нажатия не ниже LINK.h (палец попадает). x, y — левый верх текста.
   textLink(key, x, y, label, o) {
     const color = o.active ? LINK.active : (o.color || LINK.color);
-    const txt = this.add.text(x, y, label, textStyle(o.size || LINK.size, color)).setOrigin(0, 0);
+    const txt = this.add.text(x, y, label, bgTextStyle(o.size || LINK.size, color)).setOrigin(0, 0);
     const w = Math.max(LINK.h, txt.width + 4);
     const h = Math.max(LINK.h, txt.height);
     const item = {
@@ -330,7 +330,7 @@ export class InventoryScene extends Phaser.Scene {
       onSelect: o.onSelect,
       onAdjust: o.onAdjust,
       setFocus: (f) => {
-        txt.setColor(f ? LINK.focus : color);
+        setTextFocusStyle(txt, f, color);
         if (f) this.focusKey = key;
       },
     };
@@ -339,18 +339,18 @@ export class InventoryScene extends Phaser.Scene {
     return item;
   }
 
-  // Пункт фокуса на всю строку (аффикс в крафте): рамка в фокусе, тап или Enter — onSelect.
-  lineItem(key, x, y, w, h, onSelect) {
-    const g = this.add.graphics();
-    this.nav.add({
+  // Пункт фокуса на всю строку (аффикс в крафте): зона нажатия на всю строку, фокус — только цвет текста
+  // (setTextFocusStyle, без рамки), тап или Enter — onSelect.
+  lineItem(key, x, y, w, h, onSelect, text, color) {
+    const item = {
       key, x: x + w / 2, y: y + h / 2, w, h, onSelect,
       setFocus: (f) => {
-        g.clear();
-        if (!f) return;
-        this.focusKey = key;
-        g.lineStyle(1, PANEL.borderFocus, 1).strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+        setTextFocusStyle(text, f, color);
+        if (f) this.focusKey = key;
       },
-    });
+    };
+    item.setFocus(false);
+    this.nav.add(item);
   }
 
   // Невидимый пункт фокуса поверх клетки: подсветка рамкой, клик мыши обрабатывает onDown сцены.
@@ -561,10 +561,12 @@ export class InventoryScene extends Phaser.Scene {
 
   renderCraft() {
     const list = this.craftList();
-    this.add.text(CR.x, HEAD_Y, t('craft.select'), textStyle(10, '#ffd84a')).setOrigin(0, 0);
+    this.add.text(CR.x, HEAD_Y, t('craft.select'), bgTextStyle(10, '#ffd84a')).setOrigin(0, 0);
     const g = this.add.graphics();
     const bagN = this.inv.bag.items.length;
     const total = BAG.w * BAG.h + STASH.size;
+    const cells = Math.min(Math.max(list.length, CR.cols * 8), total);
+    g.__box = { x: CR.x, y: CR.y, w: CR.cols * CR.cell, h: Math.ceil(cells / CR.cols) * CR.cell }; // spacing.spec
     for (let i = 0; i < Math.max(list.length, CR.cols * 8) && i < total; i++) {
       const x = CR.x + (i % CR.cols) * CR.cell;
       const y = CR.y + Math.floor(i / CR.cols) * CR.cell;
@@ -609,7 +611,6 @@ export class InventoryScene extends Phaser.Scene {
     this.add.text(L, y, itemTitle(it), textStyle(12, RARITY_CSS[it.rarity])).setOrigin(0, 0);
     y += 16;
     const meta = [t(`item.rarity.${it.rarity}`), t('item.tier', { n: it.tier })];
-    if (it.enchant) meta.push(t('item.enchant', { n: it.enchant }));
     if (it.locked) meta.push(t('item.locked'));
     this.add.text(L, y, meta.join(' · '), textStyle(9, COLORS.dim)).setOrigin(0, 0);
     y += 14;
@@ -622,8 +623,9 @@ export class InventoryScene extends Phaser.Scene {
         const yy = y + i * 15;
         // вся строка — пункт выбора (палец попадает), «>» отмечает выбранный аффикс
         this.add.text(L + 2, yy, i === this.affix ? '>' : '', textStyle(9, '#ffd84a')).setOrigin(0, 0);
-        this.add.text(L + 16, yy, a.text, textStyle(9, a.color)).setOrigin(0, 0);
-        this.lineItem(`affix:${i}`, L - 4, yy - 1, DET.w - 8, 15, () => { this.affix = i; this.render(); });
+        const txt = this.add.text(L + 16, yy, a.text, textStyle(9, a.color)).setOrigin(0, 0);
+        this.lineItem(`affix:${i}`, L - 4, yy - 1, DET.w - 8, 15, () => { this.affix = i; this.render(); },
+            txt, a.color);
       });
     }
     // операции

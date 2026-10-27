@@ -14,6 +14,8 @@ export function addPanel(scene, x, y, w, h, opts = {}) {
   const g = scene.add.graphics();
   const left = Math.round(x - w / 2);
   const top = Math.round(y - h / 2);
+  // рамка для проверки отступов (tests/smoke/spacing.spec.js)
+  g.__box = { x: left, y: top, w, h };
   const panel = {
     g,
     colors: { fill: PANEL.fill, border: PANEL.border, ...opts },

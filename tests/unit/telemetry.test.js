@@ -90,10 +90,10 @@ test('evolution retains consumed weapon damage and distinguishes reward from cho
   p.rawByWeapon.blade_arc = 1500;
   p.hitsByWeapon.blade_arc = 99;
   sim._openChest(p);
-  sim.chooseChest();
-  assert.deepEqual(tr.picks.map((x) => x[1]), ['chest']);
-  assert.equal(tr.applications.length, 2); // attack +1 и эволюция
-  assert.deepEqual(tr.applications.find((a) => a.from && a.from.length).from, ['blade_arc', 'attack']);
+  sim.chooseChest(0);
+  assert.deepEqual(tr.picks.map((x) => x[1]), ['evo', 'chest']);
+  assert.equal(tr.applications.length, 1);
+  assert.deepEqual(tr.applications[0].from, ['blade_arc', 'attack']);
   const result = finish(sim, tr);
   assert.equal(result.end.w.some((x) => x[0] === 'blade_arc'), false);
   assert.deepEqual(result.end.damage.find((x) => x[0] === 'blade_arc'),

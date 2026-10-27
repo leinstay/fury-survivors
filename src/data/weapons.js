@@ -15,6 +15,11 @@ const WO = FX.weaponOrigin;
 //   tint: 0xff9040,              // цвет снарядов (необязательно)
 //   status: { type: 'burning', chance: 0.35 },  // необязательно: ДоТ после удара (src/data/status.js);
 //                                // может стоять и в уровне (уровень главнее записи оружия)
+//   targets: 'aoe',              // целей за удар: 'aoe' — область/толпа, 'cleave' — несколько в линию, дугу или цепь,
+//                                // 'single' — одна; чем больше целей, тем меньше урон на цель (две лестницы:
+//                                // клир и одна цель/босс, tools/simulation/ladder.mjs LADDER.tags, docs/BALANCE_AUDIT.md 13)
+//   bloom: 'early',              // необязательно: 'early' — сильно в начале и теряет актуальность к 15:00, 'late' —
+//                                // наоборот; лестница сравнивает такое оружие в его окне минут (LADDER.bloom)
 //   levels: [                    // levels[0] = уровень 1; каждая следующая запись — полный набор чисел
 //     { damage, cooldown, amount, area, speed, duration, pierce, knockback, ... },
 //   ],
@@ -81,8 +86,11 @@ export const WEAPON_BEHAVIOR = {
   // вбок в начале падения; markTint — цвет круга-предупреждения; lead — упреждение (× путь врага за время падения),
   // не дальше leadMax расстояния до героя.
   // mineArm — мина на земле первые столько секунд не срабатывает от касания (всегда ложится и ждёт).
+  // Метеор: точки удара одного залпа не ближе meteorGap × area (круги не сливаются), meteorTries попыток найти
+  // другую цель, иначе точка по кругу вокруг первой. Спрайт метеора прежний (процедурная лента отложена).
   area_drop: { targetRange: 300, flight: 0.5, fireTick: 0.5, fallSlant: 0.4,
-    markTint: 0xff7040, lead: 0.8, leadMax: 0.6, mineArm: 0.5 },
+    markTint: 0xff7040, lead: 0.8, leadMax: 0.6, mineArm: 0.5,
+    meteorGap: 2, meteorTries: 6 },
   // segment — длина звена картинки луча, px мира; alpha — прозрачность звеньев; first — первый каст. Картинка луча
   // начинается на окружности выхода оружия (FX.weaponOrigin: radius от центра тела, lift над ногами); удар считается
   // по земле от ног, как у врагов.
@@ -92,12 +100,14 @@ export const WEAPON_BEHAVIOR = {
   // ближе есть: облако ложится на объект, а не под героя.
   cloud: { first: 0.3, spriteWorld: 64, alpha: 1, fadeIn: 0.3, fadeOut: 0.6, propRange: 120 },
   // Огоньки: targetRange — дальность цели от огонька, hitRadius — радиус выстрела, orbitR — радиус круга вокруг героя,
-  // flatten — круг сжат по вертикали, lift — высота центра круга над ногами, orbitSpeed — рад/с, follow — сила
+  // flatten — круг сжат по вертикали, lift — высота центра круга над ногами, follow — сила
   // догоняния (1/с), retry — повтор поиска цели, если её нет. Огоньки кружат снаружи окружности выхода оружия:
   // центр круга — центр тела (WO.lift), orbitR = WO.radius + видимый радиус огонька (proj_wisp 28 px текстуры при
   // density 2 → 7 px) + 1, круг не сжат (иначе сверху и снизу огонёк заходит в тело).
+  // Огоньки не кружат: у каждого своё место на окружности (угол по номеру, первый сверху-справа) и он медленно
+  // блуждает вокруг него (wander px, wanderSpeed — рад/с, три синуса с разными частотами на огонёк).
   summon: { targetRange: 260, hitRadius: 4, orbitR: WO.radius + 8, flatten: 1, lift: WO.lift,
-    orbitSpeed: 2.2, follow: 6, retry: 0.15 },
+    slotAngle: -0.7, wander: 7, wanderSpeed: 1.3, follow: 6, retry: 0.15 },
   // Замедление (orbit slow) задаётся статусом chill; боссы к нему иммунны.
   slow: {},  // боссы иммунны к замедлению (behaviors/status.js)
   // Молния: каждый прыжок — снаряд-картинка (fx 'bolt', render/zones.js), живёт visualLife с и гаснет. Рваная
@@ -166,19 +176,19 @@ export const WEAPONS = {
     // Росчерк через самую плотную группу рядом (как Victory Sword в VS), не конус. Урон за удар как у прежнего
     // конуса (ближний бой бьёт сильнее дальнобойного, docs/BALANCE_AUDIT.md 6.4); растут длина и ширина полосы,
     // скорость (sweep и cooldown) и число слэшей на L3 и L5.
-    icon: 'icon_blade_arc', sprite: 'proj_blade_arc', behavior: 'slash', dmgType: 'attack', maxLevel: 5,
+    icon: 'icon_blade_arc', sprite: 'proj_blade_arc', behavior: 'slash', dmgType: 'attack', targets: 'cleave', maxLevel: 5,
     status: { type: 'bleeding', chance: 0.25 },
     levels: [
-      { damage: 20, cooldown: 1.0, amount: 1, area: 120, width: 20, sweep: 0.16, knockback: 90 },
-      { damage: 26, cooldown: 0.95, amount: 1, area: 130, width: 22, sweep: 0.15, knockback: 95 },
-      { damage: 30, cooldown: 0.9, amount: 2, area: 140, width: 24, sweep: 0.14, knockback: 100 },
-      { damage: 40, cooldown: 0.85, amount: 2, area: 155, width: 26, sweep: 0.13, knockback: 110 },
-      { damage: 48, cooldown: 0.8, amount: 3, area: 170, width: 28, sweep: 0.12, knockback: 120 },
+      { damage: 6, cooldown: 1.0, amount: 1, area: 120, width: 20, sweep: 0.16, knockback: 90 },
+      { damage: 8, cooldown: 0.95, amount: 1, area: 130, width: 22, sweep: 0.15, knockback: 95 },
+      { damage: 10, cooldown: 0.9, amount: 2, area: 140, width: 24, sweep: 0.14, knockback: 100 },
+      { damage: 12, cooldown: 0.85, amount: 2, area: 155, width: 26, sweep: 0.13, knockback: 110 },
+      { damage: 14, cooldown: 0.8, amount: 3, area: 170, width: 28, sweep: 0.12, knockback: 120 },
     ],
   },
   throwing_daggers: {
     // VS Knife: L1 6.5 / 1.0 с, 1 нож; L8 16.5 × 6, pierce 3.
-    icon: 'icon_throwing_daggers', sprite: 'proj_dagger', behavior: 'projectile', dmgType: 'attack', maxLevel: 5,
+    icon: 'icon_throwing_daggers', sprite: 'proj_dagger', behavior: 'projectile', dmgType: 'attack', bloom: 'early', targets: 'cleave', maxLevel: 5,
     levels: [
       { damage: 5, cooldown: 0.9, amount: 2, speed: 280,
         duration: 1.2, pierce: 1, knockback: 40 },
@@ -194,7 +204,7 @@ export const WEAPONS = {
   },
   guardian_shields: {
     // VS King Bible: L1 10 урона, 1 книга, 3 с вращения, пауза 3 с; L8 30 × 4, 4 с.
-    icon: 'icon_guardian_shields', sprite: 'proj_shield', behavior: 'orbit', dmgType: 'attack', maxLevel: 5,
+    icon: 'icon_guardian_shields', sprite: 'proj_shield', behavior: 'orbit', dmgType: 'attack', targets: 'aoe', maxLevel: 5,
     levels: [
       { damage: 20, cooldown: 2.0, amount: 2, area: onRing(1, SHIELD_R), hitRadius: 17,
         speed: 3.2, duration: 4.0, knockback: 40 },
@@ -210,7 +220,7 @@ export const WEAPONS = {
   },
   holy_ground: {
     // VS Garlic: L1 5 урона раз в 1.3 с; L8 15 раз в 1.0 с, area 100% -> 200%. cooldown — период удара по врагу.
-    icon: 'icon_holy_ground', sprite: 'proj_holy_ground', behavior: 'aura', dmgType: 'magic', maxLevel: 5,
+    icon: 'icon_holy_ground', sprite: 'proj_holy_ground', behavior: 'aura', dmgType: 'magic', bloom: 'early', targets: 'aoe', maxLevel: 5,
     levels: [
       { damage: 7, cooldown: 1.04, area: RINGS[0], knockback: 15 },
       { damage: 9, cooldown: 1.0, area: RINGS[1], knockback: 15 },
@@ -221,7 +231,7 @@ export const WEAPONS = {
   },
   war_axe: {
     // VS Axe: L1 20 / 4.0 с; L8 80 × 3, pierce 7. Наш топор возвращается и бьёт дважды, поэтому урон ниже.
-    icon: 'icon_war_axe', sprite: 'proj_axe', behavior: 'boomerang', dmgType: 'attack', maxLevel: 5,
+    icon: 'icon_war_axe', sprite: 'proj_axe', behavior: 'boomerang', dmgType: 'attack', targets: 'cleave', maxLevel: 5,
     levels: [
       { damage: 6, cooldown: 1.5, amount: 1, area: 110, speed: 200, duration: 4, knockback: 60 },
       { damage: 6, cooldown: 1.45, amount: 2, area: 120, speed: 210, duration: 4, knockback: 60 },
@@ -233,7 +243,7 @@ export const WEAPONS = {
   storm_chain: {
     // Молния бьёт (1 + jumps) врагов, всего amount × (1 + jumps) ударов за cooldown. Самая дальнобойная и бьёт
     // много целей, поэтому урон за удар у неё ниже всех (docs/BALANCE_AUDIT.md 6.4).
-    icon: 'icon_storm_chain', sprite: 'proj_chain', behavior: 'chain', dmgType: 'magic', maxLevel: 5,
+    icon: 'icon_storm_chain', sprite: 'proj_chain', behavior: 'chain', dmgType: 'magic', bloom: 'early', targets: 'cleave', maxLevel: 5,
     levels: [
       { damage: 10, cooldown: 1.25, amount: 1, jumps: 2, area: 90, range: 230, knockback: 50 },
       { damage: 10, cooldown: 1.25, amount: 1, jumps: 3, area: 95, range: 240, knockback: 50 },
@@ -246,7 +256,7 @@ export const WEAPONS = {
     // VS Santa Water: L1 10 урона, 4.5 с, лужа 2 с с тиком 0.5 с; L8 40 × 4, 3 с, area 180%.
     // Взрыв бьёт на damage, огонь — damage × fireDamage раз в WEAPON_BEHAVIOR.area_drop.fireTick.
     // Поджог с шансом 0.3: огонь на земле бьёт часто, и каждый его удар тоже может поджечь.
-    icon: 'icon_firebomb', sprite: 'proj_firebomb', behavior: 'area_drop', dmgType: 'magic', maxLevel: 5,
+    icon: 'icon_firebomb', sprite: 'proj_firebomb', behavior: 'area_drop', dmgType: 'magic', targets: 'aoe', maxLevel: 5,
     status: { type: 'burning', chance: 0.3 },
     levels: [
       { damage: 2, cooldown: 3.0, amount: 1, area: 36,
@@ -267,17 +277,17 @@ export const WEAPONS = {
     // Одно копьё в ближайшего врага (amount 1 на всех уровнях): пробивает 1 + pierce врагов и пригвождает их
     // на pin с. Сильное за удар (между ножами и арбалетом), в отличие от луча: тот случайный, бьёт всех и слабо.
     // Отбрасывание малое: пригвождённый стоит на месте.
-    icon: 'icon_spear', sprite: 'proj_spear', behavior: 'impale', dmgType: 'attack', maxLevel: 5,
+    icon: 'icon_spear', sprite: 'proj_spear', behavior: 'impale', dmgType: 'attack', bloom: 'early', targets: 'single', maxLevel: 5,
     levels: [
-      { damage: 18, cooldown: 0.59, amount: 1, speed: 300, duration: 0.9, pierce: 1, pin: 0.6,
+      { damage: 17, cooldown: 0.87, amount: 1, speed: 300, duration: 0.9, pierce: 3, pin: 0.6,
         hitRadius: 6, knockback: 10 },
-      { damage: 23, cooldown: 0.57, amount: 1, speed: 310, duration: 0.95, pierce: 2, pin: 0.7,
+      { damage: 22, cooldown: 0.84, amount: 1, speed: 310, duration: 0.95, pierce: 4, pin: 0.7,
         hitRadius: 6, knockback: 10 },
-      { damage: 34, cooldown: 0.53, amount: 1, speed: 320, duration: 1.0, pierce: 2, pin: 0.8,
+      { damage: 32, cooldown: 0.78, amount: 1, speed: 320, duration: 1.0, pierce: 5, pin: 0.8,
         hitRadius: 7, knockback: 10 },
-      { damage: 48, cooldown: 0.48, amount: 1, speed: 340, duration: 1.05, pierce: 3, pin: 0.9,
+      { damage: 46, cooldown: 0.71, amount: 1, speed: 340, duration: 1.05, pierce: 6, pin: 0.9,
         hitRadius: 7, knockback: 15 },
-      { damage: 62, cooldown: 0.43, amount: 1, speed: 360, duration: 1.1, pierce: 4, pin: 1.0,
+      { damage: 59, cooldown: 0.63, amount: 1, speed: 360, duration: 1.1, pierce: 8, pin: 1.0,
         hitRadius: 8, knockback: 15 },
     ],
   },
@@ -285,7 +295,7 @@ export const WEAPONS = {
     // Удар по земле кругом (slam): самый большой урон за удар и knockback (ближний бой, docs/BALANCE_AUDIT.md 6.4),
     // трещины на duration с замедляют врагов. Кровотечения нет: удар тупой (и bleeding только у клинков: melee_arc, slash).
     // Картинки — зоны render/zones.js (boom и crack) цвета tint; sprite нужен только как ключ снаряда.
-    icon: 'icon_hammer', sprite: 'proj_blade_arc', behavior: 'slam', dmgType: 'attack', maxLevel: 5, tint: 0xd8b070,
+    icon: 'icon_hammer', sprite: 'proj_blade_arc', behavior: 'slam', dmgType: 'attack', targets: 'aoe', maxLevel: 5, tint: 0xd8b070,
     levels: [
       { damage: 39, cooldown: 1.7, amount: 1, area: 56, duration: 2.5, slow: 0.6, slowTime: 0.3,
         knockback: 200 },
@@ -301,23 +311,23 @@ export const WEAPONS = {
   },
   crossbow: {
     // Один быстрый болт с большим уроном в ближайшего врага; с L4 два.
-    icon: 'icon_crossbow', sprite: 'proj_bolt', behavior: 'projectile', dmgType: 'attack', maxLevel: 5,
+    icon: 'icon_crossbow', sprite: 'proj_bolt', behavior: 'projectile', dmgType: 'attack', targets: 'single', maxLevel: 5,
     levels: [
-      { damage: 49, cooldown: 0.73, amount: 1, speed: 440, duration: 0.9, pierce: 0,
+      { damage: 24, cooldown: 2.11, amount: 1, speed: 440, duration: 0.9, pierce: 4,
         knockback: 70 },
-      { damage: 59, cooldown: 0.7, amount: 1, speed: 440, duration: 0.9, pierce: 1,
+      { damage: 28, cooldown: 2.02, amount: 1, speed: 440, duration: 0.9, pierce: 6,
         knockback: 70 },
-      { damage: 90, cooldown: 0.65, amount: 1, speed: 460, duration: 1.0, pierce: 1,
+      { damage: 43, cooldown: 1.88, amount: 1, speed: 460, duration: 1.0, pierce: 8,
         knockback: 80 },
-      { damage: 131, cooldown: 0.59, amount: 2, speed: 480, duration: 1.0, pierce: 1,
+      { damage: 63, cooldown: 1.7, amount: 2, speed: 480, duration: 1.0, pierce: 10,
         knockback: 90 },
-      { damage: 161, cooldown: 0.54, amount: 2, speed: 500, duration: 1.0, pierce: 2,
+      { damage: 78, cooldown: 1.56, amount: 2, speed: 500, duration: 1.0, pierce: 12,
         knockback: 100 },
     ],
   },
   mines: {
     // Мины вокруг героя ждут врага до duration с; взрыв без огня.
-    icon: 'icon_mines', sprite: 'proj_mine', behavior: 'area_drop', dmgType: 'attack', maxLevel: 5,
+    icon: 'icon_mines', sprite: 'proj_mine', behavior: 'area_drop', dmgType: 'attack', bloom: 'late', targets: 'aoe', maxLevel: 5,
     levels: [
       { damage: 40, cooldown: 8.36, amount: 1, area: 70, duration: 30, mine: true, trigger: 14,
         spread: 90, knockback: 80 },
@@ -335,7 +345,7 @@ export const WEAPONS = {
     // Ледяной шар как Ice Shard / Frost Orb из PoE: один очень крупный медленный шар в ближайшего врага, пробивает
     // всех, бьёт слабо, но часто (раз в tick) и замораживает всех, кто прошёл сквозь него. Без отбрасывания.
     // Заморозка — статус chill в уровне (slow — множитель скорости, duration — сколько держится после выхода).
-    icon: 'icon_frost_orb', sprite: 'proj_frost', behavior: 'ice_orb', dmgType: 'magic', maxLevel: 5,
+    icon: 'icon_frost_orb', sprite: 'proj_frost', behavior: 'ice_orb', dmgType: 'magic', targets: 'aoe', maxLevel: 5,
     levels: [
       { damage: 8, cooldown: 2.6, amount: 1, area: 20, speed: 50, duration: 4.0, tick: 0.5,
         status: { type: 'chill', chance: 1, slow: 0.5, duration: 1.5 }, knockback: 0 },
@@ -352,7 +362,7 @@ export const WEAPONS = {
   poison_cloud: {
     // Облако ложится под героя и стоит duration с, как святая земля, но на месте и слабее: урон за тик ниже
     // Holy Ground, зато каждый тик вешает яд (шанс 1, стаки, src/data/status.js). Одно облако до L5, на L5 два.
-    icon: 'icon_poison_cloud', sprite: 'proj_poison_cloud', behavior: 'cloud', dmgType: 'magic', maxLevel: 5, tint: 0x9be04a,
+    icon: 'icon_poison_cloud', sprite: 'proj_poison_cloud', behavior: 'cloud', dmgType: 'magic', targets: 'aoe', maxLevel: 5, tint: 0x9be04a,
     status: { type: 'poison', chance: 1 },
     levels: [
       { damage: 2, cooldown: 4.0, tick: 0.5, duration: 3.5, area: 40, amount: 1, knockback: 0 },
@@ -365,36 +375,36 @@ export const WEAPONS = {
   beam: {
     // Неуправляемый луч: раз в cooldown amount лучей в случайные стороны из точки героя, стоят на месте duration с.
     // Урон за тик высокий — плата за то, что направление не выбрать.
-    icon: 'icon_beam', sprite: 'proj_beam', behavior: 'beam', dmgType: 'magic', maxLevel: 5,
+    icon: 'icon_beam', sprite: 'proj_beam', behavior: 'beam', dmgType: 'magic', bloom: 'late', targets: 'cleave', maxLevel: 5,
     levels: [
-      { damage: 8, cooldown: 4.61, duration: 1.0, tick: 0.25, area: 150, width: 9, amount: 1,
+      { damage: 16, cooldown: 5.99, duration: 1.0, tick: 0.25, area: 150, width: 9, amount: 1,
         knockback: 0 },
-      { damage: 8, cooldown: 4.45, duration: 1.0, tick: 0.25, area: 160, width: 9, amount: 2,
+      { damage: 16, cooldown: 5.79, duration: 1.0, tick: 0.25, area: 160, width: 9, amount: 2,
         knockback: 0 },
-      { damage: 11, cooldown: 4.28, duration: 1.1, tick: 0.25, area: 170, width: 10, amount: 2,
+      { damage: 22, cooldown: 5.56, duration: 1.1, tick: 0.25, area: 170, width: 10, amount: 2,
         knockback: 0 },
-      { damage: 14, cooldown: 3.95, duration: 1.2, tick: 0.25, area: 185, width: 10, amount: 3,
+      { damage: 28, cooldown: 5.14, duration: 1.2, tick: 0.25, area: 185, width: 10, amount: 3,
         knockback: 0 },
-      { damage: 18, cooldown: 3.62, duration: 1.2, tick: 0.25, area: 200, width: 11, amount: 4,
+      { damage: 36, cooldown: 4.71, duration: 1.2, tick: 0.25, area: 200, width: 11, amount: 4,
         knockback: 0 },
     ],
   },
   wisp: {
     // Огоньки летают за героем и сами стреляют в ближайшего к себе врага.
-    icon: 'icon_wisp', sprite: 'proj_wisp', shot: 'proj_wisp_shot', behavior: 'summon', dmgType: 'magic', maxLevel: 5,
+    icon: 'icon_wisp', sprite: 'proj_wisp', shot: 'proj_wisp_shot', behavior: 'summon', dmgType: 'magic', bloom: 'early', targets: 'single', maxLevel: 5,
     levels: [
-      { damage: 22, cooldown: 0.8, amount: 2, speed: 240, duration: 1.2, pierce: 1, knockback: 20 },
-      { damage: 24, cooldown: 0.8, amount: 2, speed: 250, duration: 1.2, pierce: 1, knockback: 20 },
-      { damage: 27, cooldown: 0.8, amount: 3, speed: 260, duration: 1.2, pierce: 1, knockback: 25 },
-      { damage: 30, cooldown: 0.8, amount: 3, speed: 270, duration: 1.3, pierce: 2,
+      { damage: 22, cooldown: 0.8, amount: 1, speed: 240, duration: 1.2, pierce: 1, knockback: 20 },
+      { damage: 26, cooldown: 0.8, amount: 1, speed: 250, duration: 1.2, pierce: 2, knockback: 20 },
+      { damage: 26, cooldown: 0.8, amount: 2, speed: 260, duration: 1.2, pierce: 3, knockback: 25 },
+      { damage: 31, cooldown: 0.8, amount: 2, speed: 270, duration: 1.3, pierce: 4,
         knockback: 25 },
-      { damage: 31, cooldown: 0.8, amount: 4, speed: 280, duration: 1.3, pierce: 2, knockback: 30 },
+      { damage: 39, cooldown: 0.8, amount: 2, speed: 280, duration: 1.3, pierce: 5, knockback: 30 },
     ],
   },
   meteor: {
     // Долгое падение (delay) с кругом-предупреждением и большой урон по площади; огня нет.
     // Один большой удар, поэтому шанс поджога выше, чем у бомб.
-    icon: 'icon_meteor', sprite: 'proj_meteor', behavior: 'area_drop', dmgType: 'magic', maxLevel: 5,
+    icon: 'icon_meteor', sprite: 'proj_meteor', behavior: 'area_drop', dmgType: 'magic', targets: 'aoe', maxLevel: 5,
     status: { type: 'burning', chance: 0.5 },
     levels: [
       { damage: 18, cooldown: 3.5, amount: 1, area: 44, delay: 1.2, fall: 160, knockback: 120 },
@@ -409,15 +419,15 @@ export const WEAPONS = {
   // blade_arc + attack
   crimson_arc: {
     // Крупнее, быстрее и больше слэшей, чем Blade Arc L5; кровотечение чаще и сильнее (share 0.4 вместо 0.3).
-    icon: 'icon_crimson_arc', sprite: 'proj_blade_arc', behavior: 'slash', dmgType: 'attack', maxLevel: 1, evolved: true, tint: 0xff5050,
+    icon: 'icon_crimson_arc', sprite: 'proj_blade_arc', behavior: 'slash', dmgType: 'attack', targets: 'cleave', maxLevel: 1, evolved: true, tint: 0xff5050,
     status: { type: 'bleeding', chance: 0.4, share: 0.4 },
     levels: [
-      { damage: 58, cooldown: 0.7, amount: 4, area: 200, width: 34, sweep: 0.1, knockback: 150 },
+      { damage: 11, cooldown: 0.7, amount: 4, area: 200, width: 34, sweep: 0.1, knockback: 150 },
     ],
   },
   // throwing_daggers + haste
   thousand_edge: {
-    icon: 'icon_thousand_edge', sprite: 'proj_dagger', behavior: 'projectile', dmgType: 'attack', maxLevel: 1, evolved: true,
+    icon: 'icon_thousand_edge', sprite: 'proj_dagger', behavior: 'projectile', dmgType: 'attack', targets: 'cleave', maxLevel: 1, evolved: true,
     levels: [
       { damage: 13, cooldown: 0.3, amount: 3, speed: 420,
         duration: 1.4, pierce: 3, knockback: 50 },
@@ -425,7 +435,7 @@ export const WEAPONS = {
   },
   // guardian_shields + resistance
   aegis_bastion: {
-    icon: 'icon_aegis_bastion', sprite: 'proj_shield', behavior: 'orbit', dmgType: 'attack', maxLevel: 1, evolved: true, tint: 0xa0c8ff,
+    icon: 'icon_aegis_bastion', sprite: 'proj_shield', behavior: 'orbit', dmgType: 'attack', targets: 'aoe', maxLevel: 1, evolved: true, tint: 0xa0c8ff,
     levels: [
       { damage: 67, cooldown: 0, amount: 6, area: onRing(2, SHIELD_R * 1.4), speed: 4.4,
         duration: 1e9, knockback: 0, size: 1.4, hitRadius: 24 },
@@ -433,28 +443,28 @@ export const WEAPONS = {
   },
   // holy_ground + regen
   soul_garden: {
-    icon: 'icon_soul_garden', sprite: 'proj_holy_ground', behavior: 'aura', dmgType: 'magic', maxLevel: 1, evolved: true, tint: 0x80ffa0,
+    icon: 'icon_soul_garden', sprite: 'proj_holy_ground', behavior: 'aura', dmgType: 'magic', targets: 'aoe', maxLevel: 1, evolved: true, tint: 0x80ffa0,
     levels: [
       { damage: 13, cooldown: 0.7, area: RINGS[9], knockback: 40 },
     ],
   },
   // war_axe + crit
   death_spiral: {
-    icon: 'icon_death_spiral', sprite: 'proj_axe', behavior: 'boomerang', dmgType: 'attack', maxLevel: 1, evolved: true, tint: 0xd0a0ff,
+    icon: 'icon_death_spiral', sprite: 'proj_axe', behavior: 'boomerang', dmgType: 'attack', targets: 'cleave', maxLevel: 1, evolved: true, tint: 0xd0a0ff,
     levels: [
       { damage: 18, cooldown: 1.6, amount: 5, area: 210, speed: 300, duration: 4, knockback: 110 },
     ],
   },
   // storm_chain + luck
   thunder_loop: {
-    icon: 'icon_thunder_loop', sprite: 'proj_chain', behavior: 'chain', dmgType: 'magic', maxLevel: 1, evolved: true,
+    icon: 'icon_thunder_loop', sprite: 'proj_chain', behavior: 'chain', dmgType: 'magic', targets: 'cleave', maxLevel: 1, evolved: true,
     levels: [
       { damage: 16, cooldown: 1.0, amount: 4, jumps: 5, area: 140, range: 320, knockback: 65 },
     ],
   },
   // firebomb + pickup
   napalm_rain: {
-    icon: 'icon_napalm_rain', sprite: 'proj_firebomb', behavior: 'area_drop', dmgType: 'magic', maxLevel: 1, evolved: true,
+    icon: 'icon_napalm_rain', sprite: 'proj_firebomb', behavior: 'area_drop', dmgType: 'magic', targets: 'aoe', maxLevel: 1, evolved: true,
     status: { type: 'burning', chance: 0.4 },
     levels: [
       { damage: 4, cooldown: 2.0, amount: 5, area: 72,
@@ -465,16 +475,16 @@ export const WEAPONS = {
   dragon_lance: {
     // Одно копьё, как у spear: пробивает больше, пригвождает дольше, воткнувшись взрывается (burst) и
     // пригвождает всех вокруг.
-    icon: 'icon_dragon_lance', sprite: 'proj_spear', behavior: 'impale', dmgType: 'attack', maxLevel: 1, evolved: true, tint: 0xffb040,
+    icon: 'icon_dragon_lance', sprite: 'proj_spear', behavior: 'impale', dmgType: 'attack', targets: 'single', maxLevel: 1, evolved: true, tint: 0xffb040,
     levels: [
-      { damage: 84, cooldown: 1.04, amount: 1, speed: 400, duration: 1.2, pierce: 6, pin: 1.4,
+      { damage: 85, cooldown: 1.02, amount: 1, speed: 400, duration: 1.2, pierce: 9, pin: 1.4,
         burst: 34, hitRadius: 10, knockback: 15 },
     ],
   },
   // hammer + max_hp
   titan_maul: {
     // Три удара подряд волной вперёд, крупнее и с долгими трещинами.
-    icon: 'icon_titan_maul', sprite: 'proj_blade_arc', behavior: 'slam', dmgType: 'attack', maxLevel: 1, evolved: true, tint: 0xffd060,
+    icon: 'icon_titan_maul', sprite: 'proj_blade_arc', behavior: 'slam', dmgType: 'attack', targets: 'aoe', maxLevel: 1, evolved: true, tint: 0xffd060,
     levels: [
       { damage: 36, cooldown: 1.2, amount: 3, area: 90, duration: 5.0, slow: 0.35, slowTime: 0.5,
         knockback: 320 },
@@ -482,15 +492,15 @@ export const WEAPONS = {
   },
   // crossbow + dodge
   ballista: {
-    icon: 'icon_ballista', sprite: 'proj_bolt', behavior: 'projectile', dmgType: 'attack', maxLevel: 1, evolved: true, tint: 0xa0e0ff,
+    icon: 'icon_ballista', sprite: 'proj_bolt', behavior: 'projectile', dmgType: 'attack', targets: 'single', maxLevel: 1, evolved: true, tint: 0xa0e0ff,
     levels: [
-      { damage: 99, cooldown: 0.81, amount: 3, speed: 560, duration: 1.1, pierce: 4,
+      { damage: 56, cooldown: 1.68, amount: 3, speed: 560, duration: 1.1, pierce: 10,
         knockback: 110 },
     ],
   },
   // mines + duration
   minefield: {
-    icon: 'icon_minefield', sprite: 'proj_mine', behavior: 'area_drop', dmgType: 'attack', maxLevel: 1, evolved: true, tint: 0xff6060,
+    icon: 'icon_minefield', sprite: 'proj_mine', behavior: 'area_drop', dmgType: 'attack', targets: 'aoe', maxLevel: 1, evolved: true, tint: 0xff6060,
     levels: [
       { damage: 200, cooldown: 9.17, amount: 5, area: 110, duration: 15, mine: true, trigger: 18,
         spread: 130, knockback: 120 },
@@ -499,7 +509,7 @@ export const WEAPONS = {
   // frost_orb + area
   blizzard: {
     // Четыре шара во все стороны, закручиваются спиралью-смерчем (turn), замораживают сильнее.
-    icon: 'icon_blizzard', sprite: 'proj_frost', behavior: 'ice_orb', dmgType: 'magic', maxLevel: 1, evolved: true, tint: 0xc0f0ff,
+    icon: 'icon_blizzard', sprite: 'proj_frost', behavior: 'ice_orb', dmgType: 'magic', targets: 'aoe', maxLevel: 1, evolved: true, tint: 0xc0f0ff,
     levels: [
       { damage: 6, cooldown: 2.2, amount: 4, area: 34, speed: 70, duration: 6.0, tick: 0.4,
         turn: 1.2, status: { type: 'chill', chance: 1, slow: 0.3,
@@ -508,7 +518,7 @@ export const WEAPONS = {
   },
   // poison_cloud + magic
   miasma: {
-    icon: 'icon_miasma', sprite: 'proj_poison_cloud', behavior: 'cloud', dmgType: 'magic', maxLevel: 1, evolved: true, tint: 0xb060ff,
+    icon: 'icon_miasma', sprite: 'proj_poison_cloud', behavior: 'cloud', dmgType: 'magic', targets: 'aoe', maxLevel: 1, evolved: true, tint: 0xb060ff,
     status: { type: 'poison', chance: 1 },
     levels: [
       { damage: 4, cooldown: 3.0, tick: 0.4, duration: 6.0, area: 72, amount: 3, knockback: 0 },
@@ -516,7 +526,7 @@ export const WEAPONS = {
   },
   // beam + speed
   prism_ray: {
-    icon: 'icon_prism_ray', sprite: 'proj_beam', behavior: 'beam', dmgType: 'magic', maxLevel: 1, evolved: true, tint: 0xff80ff,
+    icon: 'icon_prism_ray', sprite: 'proj_beam', behavior: 'beam', dmgType: 'magic', targets: 'cleave', maxLevel: 1, evolved: true, tint: 0xff80ff,
     levels: [
       { damage: 17, cooldown: 6.39, duration: 1.4, tick: 0.2, area: 230, width: 11, amount: 8,
         knockback: 0 },
@@ -524,15 +534,15 @@ export const WEAPONS = {
   },
   // wisp + xp_gain
   spirit_choir: {
-    icon: 'icon_spirit_choir', sprite: 'proj_wisp', shot: 'proj_wisp_shot', behavior: 'summon', dmgType: 'magic', maxLevel: 1,
+    icon: 'icon_spirit_choir', sprite: 'proj_wisp', shot: 'proj_wisp_shot', behavior: 'summon', dmgType: 'magic', targets: 'single', maxLevel: 1,
     evolved: true, tint: 0x80ffd0,
     levels: [
-      { damage: 18, cooldown: 0.6, amount: 5, speed: 300, duration: 1.3, pierce: 2, knockback: 30 },
+      { damage: 17, cooldown: 0.8, amount: 5, speed: 300, duration: 1.3, pierce: 4, knockback: 30 },
     ],
   },
   // meteor + thorns
   starfall: {
-    icon: 'icon_starfall', sprite: 'proj_meteor', behavior: 'area_drop', dmgType: 'magic', maxLevel: 1, evolved: true, tint: 0xfff080,
+    icon: 'icon_starfall', sprite: 'proj_meteor', behavior: 'area_drop', dmgType: 'magic', targets: 'aoe', maxLevel: 1, evolved: true, tint: 0xfff080,
     status: { type: 'burning', chance: 0.5 },
     levels: [
       { damage: 17, cooldown: 2.4, amount: 5, area: 76, delay: 1.0, fall: 200, knockback: 160 },

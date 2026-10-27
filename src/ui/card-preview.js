@@ -47,13 +47,16 @@ export function addWeaponIcons(scene, x, y, ids, size = ICON) {
   return w;
 }
 
-/** Высота зоны предпросмотра внизу карточки: MAX_LINES строк (у пассивки вторая и третья — ряд иконок). */
-export const PREVIEW_H = Math.max(MAX_LINES * LINE, LINE + 3 + ICON);
+// Зазор между линией иконок и первой строкой статов.
+const ICON_SPACE = 4;
+/** Высота зоны предпросмотра внизу карточки: линия иконок оружий, под ней MAX_LINES строк статов. */
+export const PREVIEW_H = ICON + ICON_SPACE + MAX_LINES * LINE;
 
 /**
- * Зона предпросмотра внизу карточки фиксированной раскладки (на всех карточках одинаково): строки изменений
- * сверху вниз от bottom - PREVIEW_H (первая строка всегда на одном y), ряд иконок пассивки — под первой
- * строкой (тоже на одном y). Строка не переносится: длинная сжимается по ширине.
+ * Зона предпросмотра внизу карточки фиксированной раскладки (на всех карточках одинаково): сверху линия
+ * иконок оружий, на которые влияет пассивка (bottom - PREVIEW_H), под ней строки статов сверху вниз (первая
+ * строка всегда на одном y). Линии стоят на месте, даже если иконок или статов нет. Строка не переносится:
+ * длинная сжимается по ширине.
  * @param {!Phaser.Scene} scene
  * @param {number} x центр карточки
  * @param {number} bottom нижняя граница содержимого
@@ -87,11 +90,11 @@ export function addCardPreview(scene, x, bottom, width, pl, card) {
   if (!getSetting('detailStats')) return 0;
   if (!lines.length && !icons.length) return 0;
   const top = bottom - PREVIEW_H;
-  // иконки (только у пассивки, у неё одна строка) — сразу под первой строкой, на одном y у всех карточек
-  if (icons.length) addWeaponIcons(scene, x, top + LINE + 3 + ICON / 2, icons);
+  if (icons.length) addWeaponIcons(scene, x, top + ICON / 2, icons);
+  const statsTop = top + ICON + ICON_SPACE;
   const style = textStyle(SIZE, '#8cff6a', { align: 'center' });
   lines.forEach((s, i) => {
-    const o = scene.add.text(x, top + i * LINE, s, style).setOrigin(0.5, 0);
+    const o = scene.add.text(x, statsTop + i * LINE, s, style).setOrigin(0.5, 0);
     if (o.width > width) o.setScale(width / o.width, 1);
   });
   return PREVIEW_H;

@@ -1,8 +1,8 @@
 import { t } from '../i18n/index.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
 import { FocusNav, addButton, readPad } from '../ui/focus.js';
-import { addVolumeSliders, optionRows } from '../ui/volume.js';
-import { textStyle } from '../ui/style.js';
+import { addVolumeSliders } from '../ui/volume.js';
+import { bgTextStyle, textStyle } from '../ui/style.js';
 import { playSfx } from '../audio/sfx.js';
 import { createActions } from '../core/actions.js';
 import { fadeOutAndStop, resetFade } from '../ui/fade.js';
@@ -11,10 +11,15 @@ import { loadoutReport, loadoutUnique } from '../core/loadout.js';
 import { BagView, ItemTooltip, addStatsPanel, RARITY_CSS } from '../ui/items.js';
 import { PANEL } from '../ui/panel.js';
 import { BAG } from '../data/items.js';
-import { menuRow, backRect, screenTitle, columnTop, OPTIONS as OPT } from '../ui/menu-layout.js';
-import { INV_LAYOUT } from './Inventory.js';
+import {
+  EDGE, LABEL_ROW, menuRow, backRect, screenTitle, overlayTitle, menuBackdrop, SUBMENU_Y,
+  OPTIONS as OPT,
+} from '../ui/menu-layout.js';
 
-const TITLE_Y = 27; // заголовок по линии полосы HP в HUD (ui/hud.js: y 21, высота 12)
+// Вкладка инвентаря (раскладка e7cfb76): m — отступ от края, top — строка «Bag» и «Stats», headH — от неё до
+// верха сетки и панели, cell — клетка сумки, gap — между сеткой и панелью, bottom — низ панели статов
+// (как у столбца настроек: 46 + 9 × 28 + 24).
+const INV = { m: 8, top: 46, headH: LABEL_ROW, cell: 24, gap: 6, bottom: 322 };
 
 export class PauseScene extends Phaser.Scene {
   constructor() {
@@ -60,19 +65,20 @@ export class PauseScene extends Phaser.Scene {
     this.nav.focus(view === 'main' ? (this.focusMain || 0) : view === 'inventory' ? this.nav.items.length - 1 : 0);
   }
 
-  // Инвентарь только для просмотра в раскладке инвентаря меню (Inventory.js INV_LAYOUT): строка заголовков,
-  // сумка и панель статов с одного y, панель статов того же места и размера (первая строка — герой, легенда
-  // вкладов), под сумкой уникалка и подсказка, Back в общей точке.
+  // Инвентарь только для просмотра: сумка своего героя, статы с сумкой и пассивками, подсказки
+  // (раскладка как в коммите e7cfb76; заголовок паузы «Paused» над ней, как было).
+  // Инвентарь только для просмотра (раскладка e7cfb76): «Bag 7x4» и «Stats» на одной линии над сеткой и панелью,
+  // верх панели статов на уровне верха сумки, низ как был; под сумкой уникалка, подсказка внизу слева в панели.
   showInventory() {
-    const me = this.sim.players[this.sim.local];
-    const L = INV_LAYOUT;
+    menuBackdrop(this);
     screenTitle(this, t('inv.title'));
-    const C = L.bag.cell;
-    const bx = L.bag.x;
-    const by = L.bag.y;
-    this.add.text(bx, L.headY, t('inv.bag', { c: me.bag.cols, r: me.bag.rows }), textStyle(10, '#ffd84a'))
+    const me = this.sim.players[this.sim.local];
+    const C = INV.cell;
+    const bx = INV.m;
+    const by = INV.top + INV.headH;
+    this.add.text(bx, INV.top, t('inv.bag', { c: me.bag.cols, r: me.bag.rows }), bgTextStyle(10, '#ffd84a'))
         .setOrigin(0, 0);
-    this.bagView = new BagView(this, L.bag);
+    this.bagView = new BagView(this, { x: bx, y: by, cell: C });
     this.bagView.draw(me.bag);
     for (let y = 0; y < BAG.h; y++) {
       for (let x = 0; x < BAG.w; x++) {
@@ -92,20 +98,21 @@ export class PauseScene extends Phaser.Scene {
       }
     }
     const u = loadoutUnique(me.bag);
-    let y = by + BAG.h * C + 8;
+    const y = by + BAG.h * C + 8;
     if (u) {
-      this.add.text(bx, y, t(`unique.${u}.name`), textStyle(11, RARITY_CSS.unique)).setOrigin(0, 0);
-      const d = this.add.text(bx, y + 14, t(`unique.${u}.desc`), textStyle(9, '#ffd8a0',
+      this.add.text(bx, y, t(`unique.${u}.name`), bgTextStyle(11, RARITY_CSS.unique)).setOrigin(0, 0);
+      this.add.text(bx, y + 14, t(`unique.${u}.desc`), bgTextStyle(9, '#ffd8a0',
           { wordWrap: { width: BAG.w * C } })).setOrigin(0, 0);
-      y += 18 + d.height;
     }
-    this.add.text(bx, y, t('inv.readonly'), textStyle(9, '#aaaaaa', { wordWrap: { width: BAG.w * C } }))
-        .setOrigin(0, 0);
-    const S = L.stats;
+    const rx = bx + BAG.w * C + INV.gap + 4;
+    const rw = GAME_WIDTH - INV.m - rx;
+    this.add.text(rx, INV.top, t('inv.stats'), bgTextStyle(10, '#ffd84a')).setOrigin(0, 0);
     const base = me.heroDef.stats;
-    addStatsPanel(this, S.x, S.y, S.w, S.h, loadoutReport(base, me.passives, me.bag),
-        statReport(base, me.passives), '');
-    this.add.text(S.x + 6, S.y + 4, t(`hero.${me.hero}.name`), textStyle(10)).setOrigin(0, 0);
+    addStatsPanel(this, rx, by, rw, INV.bottom - by, loadoutReport(base, me.passives, me.bag),
+        statReport(base, me.passives), '', { legend: false });
+    // подсказка в нижнем левом углу панели статов
+    this.add.text(rx + 6, INV.bottom - 6, t('inv.readonly'),
+        textStyle(9, '#aaaaaa', { wordWrap: { width: rw - 12 } })).setOrigin(0, 1);
     addButton(this, this.nav, {
       ...backRect(), size: 12, label: t('settings.back'),
       onSelect: () => { this.focusMain = 2; this.show('main'); },
@@ -124,10 +131,10 @@ export class PauseScene extends Phaser.Scene {
 
   showOptions() {
     const cx = GAME_WIDTH / 2;
+    menuBackdrop(this); // подэкраны паузы — на арте меню без героинь, как подменю вне забега
     screenTitle(this, t('pause.options'));
     // тот же столбец, что настройки главного меню (ui/menu-layout.js OPTIONS), Back — общий Back страниц
-    const y = columnTop(optionRows(), OPT.step);
-    addVolumeSliders(this, this.nav, { x: cx, y, w: OPT.w, gap: OPT.step });
+    addVolumeSliders(this, this.nav, { x: cx, y: SUBMENU_Y, w: OPT.w, gap: OPT.step });
     addButton(this, this.nav, {
       ...backRect(), size: 12, label: t('settings.back'),
       onSelect: () => { this.focusMain = 1; this.show('main'); },
@@ -138,7 +145,7 @@ export class PauseScene extends Phaser.Scene {
   // Achievements, Quit (в овертайме ещё Finish). Статы — во вкладке инвентаря, билд в забеге под полосой HP.
   showMain() {
     // «Paused» только на корне паузы; подэкраны — заголовком экрана (screenTitle), как в меню
-    this.add.text(GAME_WIDTH / 2, TITLE_Y, t('pause.title'), textStyle(24, '#ffd84a', { stroke: '#000000', strokeThickness: 4 })).setOrigin(0.5);
+    overlayTitle(this, t('pause.title'));
     const rows = [
       [t('pause.resume'), () => this.resume()],
       [t('pause.options'), () => this.show('options')],

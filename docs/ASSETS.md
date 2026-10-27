@@ -109,6 +109,7 @@ node tools/slice-sheet.mjs <sheet> [--report]
 - `node tools/snap-image.mjs <raw.png> <out.png> [--step N]`: целая картинка (фон) по родной сетке модели без потерь; показ целым множителем через `density` в manifest.
 - `node tools/make-grass.mjs [--seed 7]`: процедурный бесшовный тайл `assets/sprites/grass.png` (128×128).
 - `node tools/make-slash.mjs`: взмах клинка `assets/sprites/proj_blade_arc.png`, край удара конусом: кусок кольца вокруг героя из SVG почти белого цвета (tint супероружия красит его целиком). Геометрия кадра в `WEAPON_BEHAVIOR.melee_arc` (`src/data/weapons.js`), её же читает оружие; после правки чисел перезапусти скрипт.
+- `node tools/make-weapon-art.mjs [wisp|shot|meteor|spear|bolt|mine|frost|beam|cloud]...`: процедурные спрайты новых оружий (без аргументов все) в стиле ножей с листа projectiles: пиксель-арт без сглаживания, палитра `tools/palette.json`, обводка у твёрдых предметов (копьё, болт, мина, шар), свечения без обводки ступенчатой прозрачностью. Ленты кадров: огонёк виспа `proj_wisp` (8: ядро, ореол, переливание голубой ↔ бирюзовый ↔ белый, пульс, язычок пламени) (метеор `meteor` отложен: в игре прежний спрайт, без аргументов скрипт его не перерисовывает), мина `proj_mine` (6: мигающий огонёк), ледяной шар `proj_frost` (4: блёстки), звено луча `proj_beam` (4: бегущие блики). Число кадров Boot.js берёт по ширине PNG, снаряд листает их по времени сима (`FX.projAnim`, `src/render/world.js`). Пуля виспа `proj_wisp_shot` — это `proj_enemy` с листа с поворотом оттенка в голубой. `proj_poison_cloud` нужен только кодексу (в игре облако рисуется зоной). Иконки `icon_*` новых оружий остаются заглушками до настоящей графики. Размеры кадров из manifest; после правки чисел перезапусти скрипт.
 - `node tools/trim-wisps.mjs [apply]`: у жницы PixelLab дорисовал отдельные язычки пламени над капюшоном и у волос; скрипт стирает в заданных зонах кадра отдельные пятна и синие пиксели, приросшие к фигуре, затем лента пересобирается `hd-frames.mjs` с масштабом 1.5.
 - `node tools/demouth.mjs [key...] [--dry] [--debug]`: PixelLab дорисовывает персонажам рот, которого нет на исходном рисунке. Скрипт находит голову на каждом кадре (сдвиг относительно кадра 0), ищет под глазами замкнутые пятна не цвета кожи и заливает их кожей вокруг; правит `assets/raw/<key>_{anim|walk}_pixellab/*.png` на месте, после него ленты пересобираются `tools/hd-frames.mjs` (0.4 для обычных, 1 для боссов). Точки лица по персонажам и ручные прямоугольники для трудных кадров заданы в начале скрипта; `--debug` пишет лист проверки `tools/out/demouth-debug.png`.
 - `node tools/sprite-table.mjs`: пересобирает раздел «Таблица спрайтов» в этом файле; запускать после правок manifest.
@@ -165,6 +166,15 @@ node tools/slice-sheet.mjs <sheet> [--report]
 | `proj_chain` | 44×44 | 1 | 2 | `assets/raw/projectiles.png` |
 | `proj_firebomb` | 44×44 | 1 | 2 | `assets/raw/projectiles.png` |
 | `proj_enemy` | 20×20 | 1 | 2 | `assets/raw/projectiles.png` |
+| `proj_spear` | 48×16 | 1 | 2 | tools/make-weapon-art.mjs |
+| `proj_bolt` | 36×12 | 1 | 2 | tools/make-weapon-art.mjs |
+| `proj_mine` | 28×28 | 6 | 2 | tools/make-weapon-art.mjs |
+| `proj_frost` | 44×44 | 4 | 2 | tools/make-weapon-art.mjs |
+| `proj_poison_cloud` | 128×128 | 1 | 2 | tools/make-weapon-art.mjs (только кодекс: в игре зона) |
+| `proj_beam` | 28×12 | 4 | 2 | tools/make-weapon-art.mjs |
+| `proj_wisp` | 28×28 | 8 | 2 | tools/make-weapon-art.mjs |
+| `proj_wisp_shot` | 20×20 | 1 | 2 | tools/make-weapon-art.mjs (proj_enemy, оттенок в голубой) |
+| `proj_meteor` | 160×160 | 8 | 1 | tools/make-weapon-art.mjs |
 | `icon_blade_arc` | 96×96 | 1 | 2 | `assets/raw/icons.png` |
 | `icon_throwing_daggers` | 96×96 | 1 | 2 | `assets/raw/icons.png` |
 | `icon_guardian_shields` | 96×96 | 1 | 2 | `assets/raw/icons.png` |
@@ -172,8 +182,15 @@ node tools/slice-sheet.mjs <sheet> [--report]
 | `icon_war_axe` | 96×96 | 1 | 2 | `assets/raw/icons.png` |
 | `icon_storm_chain` | 96×96 | 1 | 2 | `assets/raw/icons.png` |
 | `icon_firebomb` | 96×96 | 1 | 2 | `assets/raw/icons.png` |
-| `icon_aegis_storm` | 96×96 | 1 | 2 | `assets/raw/icons.png` |
-| `icon_thunder_knives` | 96×96 | 1 | 2 | `assets/raw/icons.png` |
+| `icon_spear` | 96×96 | 1 | 2 |  |
+| `icon_hammer` | 96×96 | 1 | 2 |  |
+| `icon_crossbow` | 96×96 | 1 | 2 |  |
+| `icon_mines` | 96×96 | 1 | 2 |  |
+| `icon_frost_orb` | 96×96 | 1 | 2 |  |
+| `icon_poison_cloud` | 96×96 | 1 | 2 |  |
+| `icon_beam` | 96×96 | 1 | 2 |  |
+| `icon_wisp` | 96×96 | 1 | 2 |  |
+| `icon_meteor` | 96×96 | 1 | 2 |  |
 | `icon_max_hp` | 96×96 | 1 | 2 | `assets/raw/icons.png` |
 | `icon_attack` | 96×96 | 1 | 2 | `assets/raw/icons.png` |
 | `icon_speed` | 96×96 | 1 | 2 | `assets/raw/icons.png` |
@@ -183,26 +200,14 @@ node tools/slice-sheet.mjs <sheet> [--report]
 | `icon_luck` | 96×96 | 1 | 2 | `assets/raw/icons.png` |
 | `icon_armor` | 96×96 | 1 | 2 | `assets/raw/icons.png` |
 | `icon_regen` | 96×96 | 1 | 2 | `assets/raw/icons.png` |
+| `icon_magic` | 96×96 | 1 | 2 |  |
+| `icon_crit_dmg` | 96×96 | 1 | 2 |  |
+| `icon_area` | 96×96 | 1 | 2 |  |
+| `icon_duration` | 96×96 | 1 | 2 |  |
+| `icon_xp_gain` | 96×96 | 1 | 2 |  |
+| `icon_dodge` | 96×96 | 1 | 2 |  |
+| `icon_thorns` | 96×96 | 1 | 2 |  |
 | `icon_heal` | 96×96 | 1 | 2 | `assets/raw/icons.png` |
-| `icon_phantom_blades` | 96×96 | 1 | 2 | `assets/raw/icons_evo.png` |
-| `icon_sacred_edge` | 96×96 | 1 | 2 | `assets/raw/icons_evo.png` |
-| `icon_reaper_crescent` | 96×96 | 1 | 2 | `assets/raw/icons_evo.png` |
-| `icon_storm_edge` | 96×96 | 1 | 2 | `assets/raw/icons_evo.png` |
-| `icon_inferno_slash` | 96×96 | 1 | 2 | `assets/raw/icons_evo.png` |
-| `icon_knife_carousel` | 96×96 | 1 | 2 | `assets/raw/icons_evo.png` |
-| `icon_holy_rain` | 96×96 | 1 | 2 | `assets/raw/icons_evo.png` |
-| `icon_gale_cutters` | 96×96 | 1 | 2 | `assets/raw/icons_evo.png` |
-| `icon_ember_knives` | 96×96 | 1 | 2 | `assets/raw/icons_evo.png` |
-| `icon_sanctuary` | 96×96 | 1 | 2 | `assets/raw/icons_evo.png` |
-| `icon_bulwark_spin` | 96×96 | 1 | 2 | `assets/raw/icons_evo.png` |
-| `icon_tesla_ward` | 96×96 | 1 | 2 | `assets/raw/icons_evo.png` |
-| `icon_comet_ring` | 96×96 | 1 | 2 | `assets/raw/icons_evo.png` |
-| `icon_judgement_wheel` | 96×96 | 1 | 2 | `assets/raw/icons_evo.png` |
-| `icon_divine_storm` | 96×96 | 1 | 2 | `assets/raw/icons_evo.png` |
-| `icon_hellfire` | 96×96 | 1 | 2 | `assets/raw/icons_evo.png` |
-| `icon_thunder_axe` | 96×96 | 1 | 2 | `assets/raw/icons_evo.png` |
-| `icon_blast_axe` | 96×96 | 1 | 2 | `assets/raw/icons_evo.png` |
-| `icon_plasma_storm` | 96×96 | 1 | 2 | `assets/raw/icons_evo.png` |
 | `icon_crimson_arc` | 96×96 | 1 | 2 | `assets/raw/icons_evo.png` |
 | `icon_thousand_edge` | 96×96 | 1 | 2 | `assets/raw/icons_evo.png` |
 | `icon_aegis_bastion` | 96×96 | 1 | 2 | `assets/raw/icons_evo.png` |
@@ -210,6 +215,15 @@ node tools/slice-sheet.mjs <sheet> [--report]
 | `icon_death_spiral` | 96×96 | 1 | 2 | `assets/raw/icons_evo.png` |
 | `icon_thunder_loop` | 96×96 | 1 | 2 | `assets/raw/icons_evo.png` |
 | `icon_napalm_rain` | 96×96 | 1 | 2 | `assets/raw/icons_evo.png` |
+| `icon_dragon_lance` | 96×96 | 1 | 2 |  |
+| `icon_titan_maul` | 96×96 | 1 | 2 |  |
+| `icon_ballista` | 96×96 | 1 | 2 |  |
+| `icon_minefield` | 96×96 | 1 | 2 |  |
+| `icon_blizzard` | 96×96 | 1 | 2 |  |
+| `icon_miasma` | 96×96 | 1 | 2 |  |
+| `icon_prism_ray` | 96×96 | 1 | 2 |  |
+| `icon_spirit_choir` | 96×96 | 1 | 2 |  |
+| `icon_starfall` | 96×96 | 1 | 2 |  |
 | `menu_bg` | 265×150 | 1 | 0.4 | `assets/raw/menu_bg.png` (tools/snap-image.mjs) |
 | `grass` | 128×128 | 1 | 1 | tools/make-grass.mjs |
 | `tree` | 128×208 | 2 | 2 | `assets/raw/env_props.png` |

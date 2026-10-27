@@ -17,6 +17,11 @@ export function textStyle(size = 12, color = '#ffffff', extra = {}) {
   return { fontFamily: FONT, fontSize: `${px}px`, color, resolution: RENDER_ZOOM, metrics: { ascent, descent, fontSize: ascent + descent }, ...extra };
 }
 
+// Текст прямо на фоне (не на панели): тот же стиль с тёмной обводкой, чтобы читался на арте меню и на забеге.
+export function bgTextStyle(size = 12, color = '#ffffff', extra = {}) {
+  return textStyle(size, color, { stroke: '#000000', strokeThickness: 3, ...extra });
+}
+
 export const COLORS = {
   panel: 0x1a1426,
   panelFocus: 0x3a2a5a,

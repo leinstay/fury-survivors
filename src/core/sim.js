@@ -1,7 +1,7 @@
 // Симуляция игры. Чистая логика: без Phaser, без DOM, без Math.random.
 // Контракт полей и методов описан в docs/ARCHITECTURE.md.
 import {
-  SIM, PLAYER, COMBAT, XP, DROPS, LEVEL_UP, HUD, SLOTS, GAME_WIDTH, GAME_HEIGHT,
+  SIM, PLAYER, COMBAT, XP, DROPS, LEVEL_UP, HUD, SLOTS, GAME_WIDTH, GAME_HEIGHT, CHEST,
 } from '../data/constants.js';
 import { COOP } from '../data/coop.js';
 import { HEROES } from '../data/heroes.js';
@@ -122,9 +122,11 @@ class Sim {
     this.stamp = 0;
     this.frame = 0;
     this.pendingLevels = 0;
-    // сундук скиллов (state 'chest'): rolls — [{player, cards}] выпавшее (уже применено), done[i] — игрок i
-    // закрыл показ (chestOk); player — кто подобрал
-    this.chest = { rolls: [], done: [], player: 0 };
+    // сундук скиллов (state 'chest'), player — кто подобрал. Два режима: выбор эволюции (cards — варианты,
+    // chooseChest / skipChest; кооп: потом показ выбранного обоим, state 'reveal', shown — что выпало,
+    // revealT — сколько ещё показывать) и показ апгрейдов без выбора (cards пуст, rolls — [{player, cards}]
+    // уже применено, done[i] — игрок i нажал Ok, chestOk)
+    this.chest = { cards: [], shown: [], revealT: 0, rolls: [], done: [], player: 0 };
     // Лоадауты (сумки) по игрокам: o.loadouts[i] (соло — [0]). Лут с боссов (pl.loot) катится своим RNG от
     // seed: ход забега от него не зависит, а у обоих клиентов коопа он одинаковый.
     this.loadouts = Array.isArray(o.loadouts) ? o.loadouts : [];
@@ -285,6 +287,12 @@ class Sim {
         this.state = 'running';
         this._checkLevel(); // уровень, набранный до паузы, открывается сразу
       }
+      return;
+    }
+    if (this.state === 'reveal') {
+      // кооп: показ выбранного из сундука, мир стоит у обоих; время показа идёт по тикам, поэтому одинаково
+      if (dt > 0) this.chest.revealT -= dt;
+      if (this.chest.revealT <= 0) this.endReveal();
       return;
     }
     if (this.state !== 'running') return;
@@ -1391,35 +1399,71 @@ class Sim {
     this.events.push({ type: 'pickup', kind: pk.kind, player: pl.id });
   }
 
-  // Сундук скиллов (с элит): без выбора, UP.skillChest — +1 пассивке и +1 оружию (или эволюция), иначе
-  // лечение. Соло — тому, кто подобрал; кооп — каждому свой бросок. Карточки применяются сразу, мир стоит
-  // (state 'chest'), пока каждый не нажмёт Ok на показе (chestOk). Второй сундук за кадр добавляется к показу.
+  // Сундук скиллов (с элит), docs/META.md 1.4. Готовые эволюции у подобравшего (pl) — выбор (state 'chest',
+  // chest.cards), как раньше. Иначе UP.skillChest без выбора: соло — тому, кто подобрал, кооп — каждому свой
+  // бросок; карточки применяются сразу, показ (state 'chest', chest.rolls) стоит, пока каждый не нажмёт Ok
+  // (chestOk). Если у всех выпало только лечение — без экрана.
   _openChest(pl = this.player) {
+    const choices = this.noEvolution[pl.id] ? [] : UP.chestChoices(pl, this.rng,
+        CHEST.maxChoices + ((pl.uq && pl.uq.evoChoicesAdd) || 0));
+    if (choices.length && this.state === 'running') {
+      this.state = 'chest';
+      this.chest.cards = choices;
+      this.chest.player = pl.id;
+      this._telemetry('offer', pl.id, 'chest', choices);
+      this.events.push({ type: 'chest', items: [], choice: true, player: pl.id });
+      return;
+    }
     const who = this.coop ? this.players : [pl];
     const rolls = [];
+    let show = false;
     for (const p of who) {
-      const cards = UP.skillChest(p, this.rng, !this.noEvolution[p.id]);
+      const cards = UP.skillChest(p, this.rng);
       for (const c of cards) this._applyCard(c, p);
       rolls.push({ player: p.id, cards });
       this._logPick({ act: 'chest', player: p.id, card: null, offered: cards });
+      if (cards.some((c) => c.kind !== 'heal')) show = true;
     }
     this._syncBuild();
+    this.events.push({ type: 'chest', player: pl.id, rolls });
+    if (!show) { this.events.push({ type: 'autoHeal', player: pl.id }); return; }
+    // второй сундук в тот же кадр, пока открыт выбор, применяется без показа
+    if (this.state === 'chest' && this.chest.cards.length) return;
     if (this.state !== 'chest') this.chest.rolls = [];
     this.chest.rolls.push(...rolls);
     this.chest.done = this.players.map(() => false);
     this.chest.player = pl.id;
     this.state = 'chest';
-    this.events.push({ type: 'chest', player: pl.id, rolls });
+  }
+
+  // Кооп: выбранное из сундука видят оба, мир стоит CHEST.revealTime (или пока хозяин не закроет, endReveal).
+  _reveal(items, pl) {
+    if (this.state === 'reveal') this.chest.shown = this.chest.shown.concat(items);
+    else this.chest.shown = items.slice();
+    this.chest.player = pl.id;
+    this.chest.revealT = CHEST.revealTime;
+    this.state = 'reveal';
+  }
+
+  /** Конец показа выбранного (таймер или хозяин сундука): игра идёт дальше, затем отложенные уровни. */
+  endReveal() {
+    if (this.state !== 'reveal') return;
+    this.state = 'running';
+    this.chest.shown = [];
+    this._checkLevel();
+    this.resumeDelay();
   }
 
   /**
-   * Игрок who закрыл показ сундука скиллов. Когда закрыли все, игра идёт дальше (SIM.resumeDelay), затем
-   * отложенные уровни и лут.
+   * Игрок who закрыл показ апгрейдов (сундук без выбора). Когда закрыли все, игра идёт дальше
+   * (SIM.resumeDelay), затем отложенные уровни и лут.
    * @param {number=} who
    * @return {boolean} принято ли
    */
   chestOk(who = 0) {
-    if (this.state !== 'chest' || !this.players[who] || this.chest.done[who]) return false;
+    if (this.state !== 'chest' || this.chest.cards.length || !this.players[who] || this.chest.done[who]) {
+      return false;
+    }
     this.chest.done[who] = true;
     if (this.chest.done.every(Boolean)) {
       this.chest.rolls = [];
@@ -1431,20 +1475,51 @@ class Sim {
     return true;
   }
 
-  /**
-   * Закрыть показ сундука за всех (боты и инструменты; выбора в сундуке больше нет).
-   * @return {!Array<!Object>} применённые карточки
-   */
-  chooseChest() {
-    if (this.state !== 'chest') return [];
+  // Показ апгрейдов закрыть за всех (боты): применённые карточки.
+  _closeRolls() {
     const cards = this.chest.rolls.flatMap((r) => r.cards);
     for (let i = 0; i < this.players.length; i++) this.chestOk(i);
     return cards;
   }
 
-  /** То же, что chooseChest (старое имя для ботов). */
+  /**
+   * Выбор эволюции i из сундука (state 'chest'); потом отложенные уровни. На показе апгрейдов (боты) —
+   * закрыть его за всех.
+   * @return {!Array<!Object>} применённые карточки
+   */
+  chooseChest(i = 0) {
+    if (this.state !== 'chest') return [];
+    if (!this.chest.cards.length) return this._closeRolls();
+    const card = this.chest.cards[i];
+    if (!card) return [];
+    this._logPick({ act: 'evo', player: this.chest.player, card, offered: this.chest.cards });
+    this._closeChest([card]);
+    return [card];
+  }
+
+  /**
+   * Пропустить эволюцию: обычные апгрейды сундука (UP.skillChest: до двух +1 или лечение).
+   * @return {!Array<!Object>} применённые карточки (рендер показывает их)
+   */
   skipChest() {
-    return this.chooseChest();
+    if (this.state !== 'chest') return [];
+    if (!this.chest.cards.length) return this._closeRolls();
+    const items = UP.skillChest(this.players[this.chest.player], this.rng);
+    this._logPick({ act: 'evoSkip', player: this.chest.player, card: null, offered: this.chest.cards });
+    this._closeChest(items);
+    return items;
+  }
+
+  _closeChest(items) {
+    const pl = this.players[this.chest.player];
+    for (const it of items) this._applyCard(it, pl);
+    this._syncBuild();
+    this.chest.cards = [];
+    this.state = 'running';
+    this.events.push({ type: 'chest', items, applied: true, player: pl.id });
+    this._logPick({ act: 'chest', player: pl.id, card: null, offered: items });
+    if (this.coop) { this._reveal(items, pl); return; } // уровни — после показа
+    this._checkLevel();
   }
 
   // Игра после выбора и паузы идёт не сразу, а через SIM.resumeDelay (state 'resume'): экран выбора успевает

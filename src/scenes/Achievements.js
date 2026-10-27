@@ -8,13 +8,13 @@ import { GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
 import { ACHIEVEMENTS } from '../data/achievements.js';
 import { FocusNav, addButton } from '../ui/focus.js';
 import { addPanel } from '../ui/panel.js';
-import { textStyle, COLORS } from '../ui/style.js';
+import { textStyle, bgTextStyle, COLORS } from '../ui/style.js';
 import { achievementProgress, achievementParams, isDone, unseenIds, achievedIds } from '../core/achievements.js';
 import { getAchievements, markAchievementsSeen, checkMetaAchievements } from '../services/achievements.js';
 import { getInventory } from '../services/inventory.js';
 import { getCodex } from '../services/codex.js';
 import { bonusText } from '../ui/items.js';
-import { backRect, screenTitle, PAGE_BOTTOM, CONTENT_TOP } from '../ui/menu-layout.js';
+import { backRect, screenTitle, menuBackdrop, PAGE_BOTTOM, CONTENT_TOP } from '../ui/menu-layout.js';
 
 // Раскладка: два столбца по perCol карточек одной высоты от TOP до кнопки «Назад» (12 × 25 = 300 px из 360).
 // Карточка в две строки: [имя, бонус … награда] и [описание … прогресс или Done]. Тексты стоят по центру
@@ -68,10 +68,8 @@ export class AchievementsScene extends Phaser.Scene {
   }
 
   create() {
-    // поверх паузы закрываем забег целиком
-    if (this.from === 'Pause') {
-      this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x0d0a16, 1).setOrigin(0, 0);
-    }
+    // фон — арт меню без героинь, как у всех подменю (поверх паузы закрывает забег целиком)
+    menuBackdrop(this);
     checkMetaAchievements(); // стеш, сумка и кодекс могли дорасти до ачивки вне экрана
     const state = getAchievements();
     const fresh = new Set(unseenIds(state));
@@ -80,7 +78,7 @@ export class AchievementsScene extends Phaser.Scene {
     const ids = Object.keys(ACHIEVEMENTS);
     const cx = GAME_WIDTH / 2;
     screenTitle(this, t('ach.title'));
-    this.add.text(GAME_WIDTH - M, 10, `${achievedIds(state).length}/${ids.length}`, textStyle(10, '#ffd84a'))
+    this.add.text(GAME_WIDTH - M, 10, `${achievedIds(state).length}/${ids.length}`, bgTextStyle(10, '#ffd84a'))
         .setOrigin(1, 0);
     const perCol = Math.ceil(ids.length / 2);
     const colW = (GAME_WIDTH - 3 * M) / 2;

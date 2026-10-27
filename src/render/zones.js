@@ -140,6 +140,19 @@ function drawBolt(g, p) {
   g.fillStyle(CH.coreColor, a).fillCircle(x1, y1, CH.flash * 0.5);
 }
 
+// Кольца внутри шара (метеор): count колец со сдвигом по фазе, каждое за period с растёт от центра до radius
+// и гаснет к краю.
+function drawPulse(g, p, time, P) {
+  const x = Math.round(p.x);
+  const y = Math.round(p.y);
+  const r = P.radius * (p.scale || 1);
+  for (let i = 0; i < P.count; i++) {
+    const k = ((time / P.period) + i / P.count + (p.uid % 7) * 0.13) % 1;
+    g.lineStyle(P.width, P.color, P.alpha * (1 - k))
+        .strokeCircle(x, y, r * (P.start + (1 - P.start) * k));
+  }
+}
+
 export class Zones {
   // depth — слой зон на земле; topDepth — слой над персонажами (слэш), сложение цвета
   constructor(scene, depth, topDepth = depth) {
@@ -156,7 +169,11 @@ export class Zones {
     this.top.clear();
     this.glow.clear();
     for (const p of projectiles) {
-      if (!p.fx) continue;
+      if (!p.fx) {
+        // падающий метеор: внутри шара бегут кольца от центра к краю, как волны святой земли
+        if (p.sprite === Z.meteorPulse.sprite) drawPulse(this.top, p, time, Z.meteorPulse);
+        continue;
+      }
       if (p.fx === 'slash') { drawSlash(this.top, this.glow, p); continue; }
       if (p.fx === 'bolt') { drawBolt(this.glow, p); continue; }
       const x = Math.round(p.x);

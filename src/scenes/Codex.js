@@ -15,7 +15,7 @@ import { HEROES } from '../data/heroes.js';
 import { heroTraits } from '../core/heroes.js';
 import { DEFAULT_DIFFICULTY } from '../data/difficulty.js';
 import { SPRITES } from '../../assets/sprites/manifest.js';
-import { FocusNav, addButton } from '../ui/focus.js';
+import { FocusNav, addButton, setTextFocusStyle } from '../ui/focus.js';
 import { addPanel } from '../ui/panel.js';
 import { addIcon, iconKeyFor, displayName } from '../ui/icons.js';
 import { textStyle, COLORS } from '../ui/style.js';
@@ -27,8 +27,9 @@ import { isSeen, weaponDps, PICKUP_KINDS, validCodexId } from '../core/codex.js'
 import { getCodex, fetchCodex, replaceCodex } from '../services/codex.js';
 import { UNIQUES } from '../data/items.js';
 import { getInventory } from '../services/inventory.js';
-import { fitSections } from '../ui/grid-fit.js';
-import { BUTTON, PAGE_BOTTOM, backRect, screenTitle } from '../ui/menu-layout.js';
+import {
+  BUTTON, PAGE_BOTTOM, PAGE_TOP, PAGE_TAB_Y, backRect, screenTitle, menuBackdrop,
+} from '../ui/menu-layout.js';
 import { weaponsForStat } from '../core/card-preview.js';
 
 const TABS = ['armory', 'characters', 'bestiary', 'bosses', 'chronicle'];
@@ -37,9 +38,9 @@ const TABS = ['armory', 'characters', 'bestiary', 'bosses', 'chronicle'];
 const M = 8;
 const GAP = 6;
 const PAD = 8;
-const TAB = { y: 40, h: BUTTON.tab.h,
+const TAB = { y: PAGE_TAB_Y, h: BUTTON.tab.h,
   w: (GAME_WIDTH - 2 * M - (TABS.length - 1) * GAP) / TABS.length };
-const TOP = TAB.y + TAB.h / 2 + GAP;
+const TOP = PAGE_TOP;
 const BAR = BUTTON.back; // Back (и Restore справа) — общий Back страниц (ui/menu-layout.js)
 // Низ панелей всех вкладок — общая линия страниц над Back (PAGE_BOTTOM), подписи низа панели на FOOT_Y.
 const BOTTOM = PAGE_BOTTOM;
@@ -53,11 +54,13 @@ const RIGHT = { x: M + 300 + GAP, w: GAME_WIDTH - 2 * M - 300 - GAP };
 const TOTALS_W = 240;
 // Шаг строк в блоках «Stats» и «Your record» справа: 8 статов героя влезают до низа панели.
 const STAT_LINE = 12;
-// Armory: заголовок раздела с отступом до клеток, зазор клеток (между рядами тот же, ряды не склеиваются),
-// зазор между разделами, строка «Discovered» внизу. При 300 px панели: клетка 18, 16 = 8 + 8, уникалки 13 в ряд.
+// Armory: каждый раздел — один ряд клеток на всю ширину панели (клетка по самому длинному разделу: 16 в ряд
+// при 300 px панели — клетка 16, зазор 2; уникалки 13 в ряд той же клеткой), заголовок раздела с отступом
+// до клеток, оставшаяся высота — поровну в зазоры между разделами (не больше ARMORY_SEC_MAX), строка
+// «Discovered» внизу.
 const ARMORY_HEAD = 15;
-const ARMORY_GAP = 4;
-const ARMORY_SEC_GAP = 10;
+const ARMORY_GAP = 2;
+const ARMORY_SEC_MAX = 40;
 const ARMORY_FOOT = 12;
 const DARK = 0x000000;
 const MOVING = { moving: true };
@@ -261,14 +264,8 @@ export class CodexScene extends Phaser.Scene {
       this.alive = false;
       this.dropInput();
     });
-    // Фон: картинка меню под тёмной вуалью (поверх паузы закрывает забег целиком).
-    this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x0d0a16, 1).setOrigin(0, 0);
-    if (this.textures.exists('menu_bg')) {
-      const img = this.textures.get('menu_bg').getSourceImage();
-      const k = Math.max(GAME_WIDTH / img.width, GAME_HEIGHT / img.height);
-      this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, 'menu_bg').setScale(k).setAlpha(0.35);
-    }
-    this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.45).setOrigin(0, 0);
+    // Фон: арт меню без героинь, как у всех подменю (поверх паузы закрывает забег целиком).
+    menuBackdrop(this);
     this.nav = new FocusNav(this, { onBack: () => this.back() });
     this.render();
   }
@@ -412,37 +409,39 @@ export class CodexScene extends Phaser.Scene {
   buildArmory() {
     addPanel(this, LEFT.x + LEFT.w / 2, MID_Y, LEFT.w, AREA_H);
     const secs = armoryEntries();
-    // самая крупная клетка, при которой все разделы с заголовками влезают над строкой «Discovered»;
-    // ряды раздела поровну (16 = 8 + 8), заголовок над рядами с отступом (ui/grid-fit.js)
+    // один ряд на раздел: клетка по самому длинному разделу на всю ширину панели
     const inset = 6;
-    const g = fitSections(secs.map((s) => s.items.length), LEFT.w - 2 * inset,
-        FOOT_Y - ARMORY_FOOT - TOP - inset,
-        { head: ARMORY_HEAD, gap: ARMORY_GAP, secGap: ARMORY_SEC_GAP });
-    const { size, step } = g;
-    const pad = Math.max(inset, Math.floor((LEFT.w - g.width) / 2));
+    const most = Math.max(...secs.map((s) => s.items.length));
+    const step = Math.floor((LEFT.w - 2 * inset + ARMORY_GAP) / most);
+    const size = step - ARMORY_GAP;
+    const width = most * step - ARMORY_GAP;
+    const pad = Math.max(inset, Math.floor((LEFT.w - width) / 2));
+    const avail = FOOT_Y - ARMORY_FOOT - TOP - inset;
+    const used = secs.length * (ARMORY_HEAD + size);
+    const secGap = Math.min(ARMORY_SEC_MAX,
+        Math.floor((avail - used) / Math.max(1, secs.length - 1)));
     const x0 = LEFT.x + pad + size / 2;
     let y = TOP + inset;
     let first = null;
     let found = 0;
     let total = 0;
-    secs.forEach((sec, si) => {
-      const cols = g.cols[si];
+    secs.forEach((sec) => {
       this.add.text(LEFT.x + pad, y, t(`codex.sec.${sec.sec}`), textStyle(9, '#ffd84a')).setOrigin(0, 0);
-      y += g.head;
+      y += ARMORY_HEAD;
       sec.items.forEach((it, i) => {
-        const x = x0 + (i % cols) * step;
-        const cy = y + size / 2 + Math.floor(i / cols) * step;
+        const x = x0 + i * step;
+        const cy = y + size / 2;
         it.key = `${it.type}:${it.id}`;
         it.seen = armorySeen(this.codex, it);
         total++;
         if (it.seen) found++;
         if (!first || this.sel.armory === it.key) first = it;
         this.cell(it.key, x, cy, size, size, it, () => {
-          const icon = addIcon(this, x, cy, iconKeyFor(it.kind, it.id), size - 4, it.kind, it.id);
+          const icon = addIcon(this, x, cy, iconKeyFor(it.kind, it.id), size - 2, it.kind, it.id);
           if (!it.seen) darken(icon);
         });
       });
-      y += g.rows[si] * step - (g.rows[si] ? step - size : 0) + ARMORY_SEC_GAP;
+      y += size + secGap;
     });
     this.add.text(LEFT.x + LEFT.w - pad, FOOT_Y, t('codex.found', { n: found, m: total }),
         textStyle(9, COLORS.dim)).setOrigin(1, 1);
@@ -457,8 +456,8 @@ export class CodexScene extends Phaser.Scene {
     this.add.text(L + 36, y, it.seen ? displayName(it.kind, it.id) : t('codex.locked'), textStyle(14)).setOrigin(0, 0);
     this.add.text(L + 36, y + 18, t(`codex.kind.${it.type}`), textStyle(9, COLORS.dim)).setOrigin(0, 0);
     y += 36;
-    const desc = it.seen ? t(`${it.kind}.${it.id}.desc`) :
-      t(it.kind === 'unique' ? 'codex.unique_locked_desc' : 'codex.locked_desc');
+    const locked = { unique: 'codex.unique_locked_desc', evolution: 'codex.evolution_locked_desc' };
+    const desc = it.seen ? t(`${it.kind}.${it.id}.desc`) : t(locked[it.type] || 'codex.locked_desc');
     const d = this.add.text(L, y, desc, textStyle(10, '#dddddd', { wordWrap: { width: RIGHT.w - 2 * PAD } })).setOrigin(0, 0);
     y += d.height + 8;
     if (it.from) {
@@ -795,7 +794,7 @@ export class CodexScene extends Phaser.Scene {
       x: idText.x + idText.width / 2, y: idText.y - idText.height / 2,
       w: idText.width + 6, h: idText.height + 4,
       disabled: false,
-      setFocus: (f) => idText.setColor(f ? '#ffd84a' : '#9ad0ff'),
+      setFocus: (f) => setTextFocusStyle(idText, f, '#9ad0ff'),
       setLabel: (s) => idText.setText(s),
       text: idText,
       onSelect: () => {

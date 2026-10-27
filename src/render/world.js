@@ -461,6 +461,9 @@ export class World {
     this.pools.projectiles.sync(sim.projectiles, (e) => e.sprite, (s, e, isNew) => {
       this._setKey(s, e.sprite);
       if (isNew) this._launchStart(e, sim);
+      // лента кадров (огонёк виспа, метеор): цикл по времени сима, фаза от uid, чтобы соседи не мигали в такт
+      const nf = SPRITES[e.sprite]?.frames || 1;
+      if (nf > 1) s.setFrame((Math.floor(sim.time * FX.projAnim.fps) + e.uid) % nf);
       const ang = e.angle || 0;
       const off = e.drawOff || 0;
       const lift = e.drawLift || 0;

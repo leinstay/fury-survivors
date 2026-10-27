@@ -304,7 +304,7 @@ test('sim: elite drops a skill chest: +1 weapon level, no passive yet, world sta
   assert.equal(sim.state, 'resume');
 });
 
-test('sim: skill chest evolves a maxed weapon whose passive is taken, and levels the passive', () => {
+test('sim: evolution from chest when the weapon is maxed and its passive is taken', () => {
   const sim = createSim({ seed: 16 });
   sim.player.weapons = [{ id: 'guardian_shields', level: WEAPONS.guardian_shields.maxLevel }];
   sim.player.passives = [{ id: 'resistance', level: 1 }];
@@ -312,17 +312,17 @@ test('sim: skill chest evolves a maxed weapon whose passive is taken, and levels
   sim.dropPickup('chest', sim.player.x, sim.player.y);
   sim.step(DT, idle);
   assert.equal(sim.state, 'chest');
-  const cards = sim.chest.rolls[0].cards;
-  assert.deepEqual(cards.map((c) => c.id), ['resistance', 'aegis_bastion']);
-  assert.equal(cards[1].prev, WEAPONS.guardian_shields.maxLevel);
+  assert.deepEqual(sim.chest.cards.map((c) => c.id), ['aegis_bastion']);
+  sim.chooseChest(0);
   assert.deepEqual(sim.player.weapons.map((w) => w.id), ['aegis_bastion']);
-  assert.deepEqual(sim.player.passives.map((p) => [p.id, p.level]), [['resistance', 2]], 'the passive stays');
-  sim.chooseChest();
+  assert.deepEqual(sim.player.passives.map((p) => p.id), ['resistance'], 'the passive stays');
+  assert.ok(sim.events.some((e) => e.type === 'chest' && e.applied && e.items[0].id === 'aegis_bastion'));
   run(sim, 5);
   assert.ok(sim.projectiles.some((p) => p.wid === 'aegis_bastion'), 'evolved shields orbit');
 });
 
-test('sim: skill chest heals when nothing can be raised; noEvolution keeps the maxed weapon', () => {
+
+test('sim: skill chest heals without a screen when nothing can be raised; noEvolution skips the choice', () => {
   const sim = createSim({ seed: 17, noEvolution: [true] });
   const pl = sim.player;
   pl.weapons = [{ id: 'guardian_shields', level: WEAPONS.guardian_shields.maxLevel }];
@@ -331,7 +331,8 @@ test('sim: skill chest heals when nothing can be raised; noEvolution keeps the m
   pl.hp = 1;
   sim.dropPickup('chest', pl.x, pl.y);
   sim.step(DT, idle);
-  assert.deepEqual(sim.chest.rolls[0].cards.map((c) => c.kind), ['heal']);
+  assert.equal(sim.state, 'running', 'heal only: no screen');
+  assert.ok(sim.events.some((e) => e.type === 'autoHeal'));
   assert.ok(pl.hp > 1);
   assert.deepEqual(pl.weapons.map((w) => w.id), ['guardian_shields']);
 });
@@ -345,7 +346,8 @@ test('sim: every weapon fires and deals damage in a crowd', () => {
     sim.player.hp = sim.player.maxHp = 1e9;
     sim.player.stats.maxHp = 1e9;
     for (let i = 0; i < 12; i++) sim.spawnEnemy('slime', 100 * Math.cos(i * 0.5), 100 * Math.sin(i * 0.5));
-    run(sim, 10); // мины взводятся и ждут касания, им нужно больше времени
+    // мины взводятся и ждут касания; у L1 кулдаун ~8 с (редкая мина почти ваншотит, docs/BALANCE_AUDIT.md 13)
+    run(sim, 20);
     assert.ok((sim.damageByWeapon[id] || 0) > 0, `${id} dealt no damage`);
   }
 });
@@ -387,7 +389,7 @@ test('sim: lightning breaks props on its path to an enemy', () => {
 });
 
 
-test('sim: skill chest with several ready evolutions applies one of them, no choice', () => {
+test('sim: chest with several ready evolutions waits for the choice', () => {
   const sim = createSim({ seed: 21 });
   const pl = sim.player;
   pl.weapons = [{ id: 'blade_arc', level: 5 }, { id: 'war_axe', level: 5 }];
@@ -396,14 +398,34 @@ test('sim: skill chest with several ready evolutions applies one of them, no cho
   sim.dropPickup('chest', pl.x, pl.y);
   sim.step(1 / 60, { x: 0, y: 0 });
   assert.equal(sim.state, 'chest');
-  const cards = sim.chest.rolls[0].cards;
-  assert.equal(cards.length, 2);
-  assert.equal(cards[0].kind, 'passive');
-  assert.ok(cards[1].evolved);
-  assert.equal(pl.weapons.filter((w) => WEAPONS[w.id].evolved).length, 1);
-  assert.deepEqual(sim.chooseChest().map((c) => c.id), cards.map((c) => c.id));
-  assert.equal(sim.chest.rolls.length, 0);
+  assert.equal(sim.chest.cards.length, 2);
+  assert.ok(sim.events.some((e) => e.type === 'chest' && e.choice));
+  const want = sim.chest.cards[1].id;
+  sim.chooseChest(1);
+  assert.equal(sim.state, 'running');
+  assert.ok(sim.player.weapons.some((w) => w.id === want));
+  assert.equal(sim.chest.cards.length, 0);
 });
+
+
+test('sim: skipping the evolution gives the ordinary upgrades instead', () => {
+  const sim = createSim({ seed: 22 });
+  const pl = sim.player;
+  pl.weapons = [{ id: 'blade_arc', level: 5 }, { id: 'war_axe', level: 3 }];
+  pl.passives = [{ id: 'attack', level: 1 }];
+  sim._syncBuild();
+  sim.dropPickup('chest', pl.x, pl.y);
+  sim.step(DT, idle);
+  assert.equal(sim.state, 'chest');
+  const items = sim.skipChest();
+  assert.equal(sim.state, 'running');
+  assert.deepEqual(items.map((c) => [c.id, c.prev, c.level]), [['attack', 1, 2], ['war_axe', 3, 4]]);
+  assert.equal(pl.passives[0].level, 2);
+  assert.deepEqual(pl.weapons.map((w) => w.id), ['blade_arc', 'war_axe']);
+  assert.equal(pl.weapons[1].level, 4); // единственное оружие не на максимуме
+  assert.ok(sim.events.some((e) => e.type === 'chest' && e.applied));
+});
+
 
 test('director: wall and flyby cross the screen on a straight course and vanish, horde rings the elite chest', () => {
   const sim = createSim({ seed: 31 });
@@ -511,7 +533,8 @@ test('luck multiplies the crit chance', () => {
   assert.ok(Math.abs(sim.critChance() - base * 1.5) < 1e-9, `${base} -> ${sim.critChance()}`);
   sim.player.passives.push({ id: 'crit', level: 5 });
   sim._syncBuild();
-  assert.ok(Math.abs(sim.critChance() - (base + 0.25) * 1.5) < 1e-9);
+  // шаг крита из данных (docs/BALANCE_AUDIT.md 13: L5 0.25 → 0.40, полоса glass ↔ mid)
+  assert.ok(Math.abs(sim.critChance() - (base + PASSIVES.crit.levels[4]) * 1.5) < 1e-9);
   // кап: шанс не выше STAT_CAPS.crit, сколько ни набери
   sim.player.stats.crit = 1;
   assert.equal(sim.critChance(), STAT_CAPS.crit);

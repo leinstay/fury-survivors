@@ -266,6 +266,8 @@ class RunTracker {
           if (ev.kind === 'coin') this.coins++;
           break;
         case 'chest':
+          // выбранная эволюция или пропуск (items у того, кому достался) и апгрейды без выбора (rolls)
+          if (ev.player === me) for (const it of ev.items || []) this.seeCard(it);
           for (const r of ev.rolls || []) {
             if (r.player === me) for (const it of r.cards) this.seeCard(it);
           }
@@ -298,8 +300,9 @@ class RunTracker {
     if (sim.state === 'levelup' && sim.picker === this.local && p.levelUp) {
       for (const c of p.levelUp.cards) this.seeCard(c);
     }
-    if (sim.state === 'chest' && sim.chest && sim.chest.rolls) {
-      for (const r of sim.chest.rolls) {
+    if (sim.state === 'chest' && sim.chest) {
+      if (sim.chest.player === this.local) for (const c of sim.chest.cards || []) this.seeCard(c);
+      for (const r of sim.chest.rolls || []) {
         if (r.player === this.local) for (const c of r.cards) this.seeCard(c);
       }
     }

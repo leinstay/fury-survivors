@@ -98,7 +98,6 @@ export const enItems = {
   'item.rarity.epic': 'Epic',
   'item.rarity.unique': 'Unique',
   'item.tier': 'T{n}',
-  'item.enchant': '+{n}',
   'item.locked': 'Locked',
 
   // статы в описании аффиксов
@@ -230,7 +229,7 @@ export const enItems = {
   'pause.inventory': 'Inventory',
 
   // лут босса: сразу после босса и после забега (src/ui/loot.js, сцена Loot)
-  'loot.title': 'Boss loot',
+  'loot.title': 'Loot',
   'loot.chest': 'Chest {i}/{n} · {boss} · T{tier}',
   'loot.take': 'Take',
   'loot.disassemble': 'Disassemble (+{n})',

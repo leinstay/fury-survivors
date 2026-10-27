@@ -147,6 +147,12 @@ export const DROPS = {
 
 export const SLOTS = { weapons: 6, passives: 6 };
 
+// Сундук скиллов с готовыми эволюциями: выбор из не больше maxChoices случайных (src/core/upgrades.js).
+export const CHEST = {
+  maxChoices: 3,
+  revealTime: 2.5,         // кооп: с показа выбранного обоим, мир стоит (хозяин может закрыть раньше)
+};
+
 export const LEVEL_UP = {
   cards: 4,
   rerolls: 3,
@@ -177,7 +183,8 @@ export const FX = {
   levelup: { ringTime: 0.5, ringRadius: 70, ringColor: 0xffe88a }, // белая вспышка на весь экран убрана
   pickupSpark: { count: 2, color: 0x7fd8ff, life: 0.25, speed: 40 },
   // Мягкое свечение под снарядами, чтобы их было видно на траве: спрайт → цвет, диаметр px мира, яркость.
-  // Аддитивное наложение; у снаряда с tint (супероружие) свечение берёт его цвет. У звеньев молнии свечения нет:
+  // Аддитивное наложение; у снаряда с tint (супероружие) свечение берёт его цвет. У метеора свечения нет: ореол
+  // нарисован в спрайте, а пятно росло вместе со scale на пол-экрана. У звеньев молнии свечения нет:
   // их десятки на цепь, и перекрывающиеся ореолы тормозили телефоны.
   projGlow: {
     proj_enemy: { color: 0xff4a4a, size: 26, alpha: 0.75 },
@@ -186,9 +193,13 @@ export const FX = {
     proj_firebomb: { color: 0xffa040, size: 28, alpha: 0.4 },
     proj_shield: { color: 0xfff0a0, size: 28, alpha: 0.3 },
     proj_frost: { color: 0xa0e0ff, size: 30, alpha: 0.35 },
+    proj_meteor: { color: 0xff7a30, size: 60, alpha: 0.65 },  // свечение метеора (общая настройка свечения снарядов)
     proj_wisp: { color: 0x9ff0ff, size: 26, alpha: 0.45 },
-    proj_meteor: { color: 0xff8040, size: 40, alpha: 0.45 },
+    proj_wisp_shot: { color: 0x80e8ff, size: 20, alpha: 0.6 },
   },
+  // Снаряд с лентой кадров (manifest frames по ширине PNG: огонёк виспа, метеор, мина, ледяной шар, луч) листает
+  // их по кругу fps кадров в секунду по времени сима, фаза от uid (render/world.js).
+  projAnim: { fps: 10 },
   hitSquash: { x: 1, y: 1 }, // было 1.18 × 0.82
   // Белая вспышка при попадании (src/render/world.js): горит show с, потом gap с не загорается, даже если
   // попадания идут подряд (иначе под аурой или у босса спрайт белый всё время). Время в с.
@@ -217,6 +228,11 @@ export const FX = {
       wave: 0.45, waveWidth: 1.5, wavesPerHit: 2, rimWidth: 1.5, rim: 0.55,
     },
     boom: { color: 0xff8030, core: 0xfff0b0, alpha: 0.5 },
+    // кольца внутри падающего метеора (sprite): radius — радиус шара в px мира при scale 1 (proj_meteor 56 px
+    // текстуры при density 2, шар r ≈ 28 px текстуры → 14 px мира), start — с какой доли радиуса кольцо
+    // появляется (без точки в центре), count колец, period с на кольцо
+    meteorPulse: { sprite: 'proj_meteor', color: 0xffc070, radius: 13, start: 0.4, count: 2, period: 0.45, width: 1.2,
+      alpha: 0.8 },
     fire: { color: 0xff6a20, core: 0xffc040, fill: 0.13, rim: 0.45, flicker: 0.08, fadeOut: 0.5 },
     // трещина молота (slam): тёмное пятно, rays лучей-изломов по joints звеньев, светлая кромка цвета tint
     crack: { dark: 0x2a1c10, fill: 0.22, line: 0.85, width: 2, edge: 0.5, rays: 7, joints: 3,

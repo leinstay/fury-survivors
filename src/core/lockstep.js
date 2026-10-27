@@ -150,7 +150,7 @@ function runFingerprint() {
   const dt = 1 / 60;
   for (let i = 0; i < 900; i++) {
     if (sim.state === 'levelup') sim.chooseCard(0, sim.picker);
-    else if (sim.state === 'chest') sim.chooseChest();
+    else if (sim.state === 'chest') sim.chooseChest(0);
     const a = i / 50;
     const p0 = { x: Math.sin(a), y: Math.cos(a) };
     sim.step(dt, { players: [p0, { x: -p0.y, y: p0.x }] });
@@ -162,7 +162,8 @@ function runFingerprint() {
 
 /**
  * Применить команду экрана к симуляции. who — индекс игрока, отправившего её: карточки выбирает только тот,
- * чей ход (из своего пула), показ сундука (chestOk) и «лут готов» (lootDone) — каждый за себя;
+ * чей ход (из своего пула), выбор эволюции и конец её показа — тот, кому достался сундук; показ апгрейдов
+ * (chestOk) и «лут готов» (lootDone) — каждый за себя;
  * остальные команды общие.
  * @param {!Object} sim
  * @param {number} who
@@ -181,10 +182,20 @@ export function applyCommand(sim, who, cmd) {
       return sim.skip(who);
     case 'banish':
       return sim.banish(cmd.i, who);
-    case 'chestOk':
-    case 'chest': // старые имена (боты tools/simulation): тоже «закрыл показ»
+    case 'chest':
     case 'skipChest':
-      return sim.chestOk(who); // сундук скиллов: каждый за себя, мир трогается, когда закрыли оба
+      // выбор эволюции — только тот, кому достался сундук; на показе апгрейдов (боты) — как chestOk
+      if (sim.state !== 'chest') return false;
+      if (!sim.chest.cards.length) return sim.chestOk(who);
+      if (sim.chest.player !== who) return false;
+      if (cmd.k === 'chest') sim.chooseChest(cmd.i); else sim.skipChest();
+      return true;
+    case 'chestOk':
+      return sim.chestOk(who); // показ апгрейдов: каждый за себя, мир трогается, когда закрыли оба
+    case 'revealDone':
+      if (sim.state !== 'reveal' || sim.chest.player !== who) return false;
+      sim.endReveal();
+      return true;
     case 'lootDone':
       return sim.lootFinish(who); // экран лута: каждый за себя, мир трогается, когда закончили оба
     case 'finish':

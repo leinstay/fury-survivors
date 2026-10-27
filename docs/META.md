@@ -16,10 +16,19 @@
 
 | билд | цель |
 |---|---|
-| средний (mid) | моб в рамке живёт 3–5 с весь забег, врагов в рамке в среднем ≤ ~45 (≈ 120 на экране), мир не у лимита |
+| средний (mid) | с 8:00 моб в рамке живёт 3–5 с, раньше не меньше 2 с (решение владельца 27.10: в начале жизнь в рамке — в основном время подхода к герою), врагов в рамке в среднем ≤ ~45 (≈ 120 на экране), мир не у лимита |
 | glass cannon (весь фокус в урон) | с 10:00 моб умирает за 1–2 с с первого попадания, но не с одного удара (≥ 2 попаданий в среднем) |
 | защитный (4 защитные пассивки) | клирит хуже, но не проваливается до 2-го босса (10:00) |
 | провал минуты | моб живёт в рамке > 8 с, или > 60 врагов в рамке (≈ 150 на экране), или толпа в рамке растёт (×1.5 за минуту при ≥ 30 и жизни > 5 с), или мир у лимита > 25% минуты; провал забега — 2 таких минуты подряд |
+
+Итог подбора 27.10 (`docs/BALANCE_AUDIT.md` 13.10): glass в цели, tank не проваливается до 10:00, mid поздно
+2.6–3.3 с в рамке, рано ~2 с (цель с 8:00 — решение владельца). Сундуков скиллов ровно 8 за 15 минут (элиты по таймеру).
+
+**Лестница оружия и теги** (`ladder.mjs`, `dps.mjs`): главная цель — клир толпы для всех оружий, f(R) × Q ×
+множитель тега `targets` (`weapons.js`: aoe 1, cleave 0.9, single 0.7). Single тоже обязан клирить паки — частотой и
+пробиванием, а не уроном за удар. По одной цели (манекен-босс) — только потолок: single не больше ~1.5–2× aoe, без
+ваншота босса; TTK боссов не цель подбора (боссы сейчас не угроза), только проверка. `bloom` ('early' | 'late'):
+оружие сильное в начале или к концу — нормально, сравнивается в своём окне минут (`ladder.mjs --bloom`).
 
 Боссы: время убийства (TTK) отчётом, HP за уровень задано владельцем (Кицунэ 250, Гарпия 500, Дриада 1000, Жница 750).
 
@@ -53,35 +62,38 @@
 - Эволюций на карточках уровня нет (`buildPool` пропускает `evolved`): их даёт только сундук скиллов.
 - Два вида сундуков (цвет `CHEST_LOOK` в `src/data/pickups.js`): **сундук скиллов** (с элит, лежит на земле) и
   **сундук шмоток** (с боссов, см. 2.1; свой цвет, один вид на все тиры).
-- Сундук скиллов без выбора (`skillChest` в `src/core/upgrades.js`): +1 уровень случайной своей пассивке и +1
-  уровень случайному своему оружию, если есть что поднять; оружие на максимуме с готовой парой поднимается в
-  эволюцию. Поднять нечего — лечение (как карточка лечения, `LEVEL_UP.healFraction`). Показ: анимация открытия,
-  карточки «Attack Lv 2 → 3», «Victory Sword Lv 5 → Crimson Arc», кнопка Ok; мир стоит (state `chest`).
-  Кооп: каждому игроку свой бросок, экран закрывается, когда Ok нажали оба (команда `chestOk`).
+- Сундук скиллов, три случая (`_openChest` в `src/core/sim.js`):
+  1. У подобравшего есть готовые эволюции (оружие на максимуме + его пассивка) — экран выбора, как раньше:
+     до `CHEST.maxChoices` случайных (уникалка greed +1 вариант), Continue или Skip evolution (пропуск — случай 2).
+     Кооп: выбирает тот, кто подобрал, затем выбранное видят оба (state `reveal`, `CHEST.revealTime`).
+  2. Иначе до двух апгрейдов без выбора (`skillChest`): +1 уровень случайной своей пассивке и +1 уровень
+     случайному своему оружию (не новые). Показ: анимация, карточки «Attack Lv 2 → 3», Ok; мир стоит.
+     Кооп: каждому свой бросок, экран закрывается, когда Ok нажали оба (команда `chestOk`).
+  3. Поднять нечего — лечение (как карточка лечения, `LEVEL_UP.healFraction`) без экрана.
 - Тип урона оружия: `dmgType: 'attack' | 'magic'`.
 - Статусы на оружии (`status: { type, chance }`, `src/data/status.js`): poison (стаки, 30% удара за 3 с) — poison_cloud,
   miasma; burning (сильнейший, 40% за 2 с) — firebomb 0.3, meteor 0.5, napalm_rain 0.4, starfall 0.5; bleeding
   (сильнейший, 30% за 3 с, только ближний бой) — blade_arc и hammer 0.25, titan_maul 0.3, crimson_arc 0.4 (share 0.4); chill —
   замедление без урона. Тики без крита, в статистику своего оружия, отдельного стата урона ДоТов нет.
 
-| оружие | тип | behavior | пассивка эволюции | эволюция |
-|---|---|---|---|---|
-| blade_arc | attack | новый `slash` (росчерк через самую плотную группу рядом, как Victory Sword; растут длина, ширина, скорость, amount на L3/L5) | attack | crimson_arc |
-| throwing_daggers | attack | projectile | haste | thousand_edge |
-| guardian_shields | attack | orbit | resistance | aegis_bastion |
-| war_axe | attack | boomerang | crit | death_spiral |
-| spear | attack | новый `impale` (одно копьё в ближайшего, пробивает N, пригвождает; эволюция взрывается) | crit_dmg | — новая |
-| hammer | attack | новый `slam` (удар по земле кругом, большой knockback, трещины замедляют; эволюция серией вперёд) | max_hp | — новая |
-| crossbow | attack | projectile (один болт, высокий урон) | dodge | — новая |
-| mines | attack | area_drop (лежат до касания) | duration | — новая |
-| holy_ground | magic | aura | regen | soul_garden |
-| storm_chain | magic | chain | luck | thunder_loop |
-| firebomb | magic | area_drop | pickup | napalm_rain |
-| frost_orb | magic | новый `ice_orb` (крупный медленный шар, пробивает всех, морозит; эволюция спиралью) | area | — новая |
-| poison_cloud | magic | новый `cloud` (облако на месте героя, amount облаков со своим кд, яд) | magic | miasma |
-| beam | magic | новый `beam` (лучи в случайные стороны, стоят на месте, урон высокий) | speed | prism_ray |
-| wisp | magic | новый `summon` (летает за героем, стреляет сам) | xp_gain | — новая |
-| meteor | magic | area_drop (долгий замах, большой урон) | thorns | — новая |
+| оружие | тип | behavior | пассивка эволюции | эволюция | цели (оружие / эволюция) | bloom |
+|---|---|---|---|---|---|---|
+| blade_arc | attack | новый `slash` (росчерк через самую плотную группу рядом, как Victory Sword; растут длина, ширина, скорость, amount на L3/L5) | attack | crimson_arc | cleave / cleave | — |
+| throwing_daggers | attack | projectile | haste | thousand_edge | cleave / cleave | early |
+| guardian_shields | attack | orbit | resistance | aegis_bastion | aoe / aoe | — |
+| war_axe | attack | boomerang | crit | death_spiral | cleave / cleave | — |
+| spear | attack | новый `impale` (одно копьё в ближайшего, пробивает N, пригвождает; эволюция взрывается) | crit_dmg | — новая | single / single | early |
+| hammer | attack | новый `slam` (удар по земле кругом, большой knockback, трещины замедляют; эволюция серией вперёд) | max_hp | — новая | aoe / aoe | — |
+| crossbow | attack | projectile (один болт, высокий урон) | dodge | — новая | single / single | — |
+| mines | attack | area_drop (лежат до касания) | duration | — новая | aoe / aoe | late |
+| holy_ground | magic | aura | regen | soul_garden | aoe / aoe | early |
+| storm_chain | magic | chain | luck | thunder_loop | cleave / cleave | early |
+| firebomb | magic | area_drop | pickup | napalm_rain | aoe / aoe | — |
+| frost_orb | magic | новый `ice_orb` (крупный медленный шар, пробивает всех, морозит; эволюция спиралью) | area | — новая | aoe / aoe | — |
+| poison_cloud | magic | новый `cloud` (облако на месте героя, amount облаков со своим кд, яд) | magic | miasma | aoe / aoe | — |
+| beam | magic | новый `beam` (лучи в случайные стороны, стоят на месте, урон высокий) | speed | prism_ray | cleave / cleave | late |
+| wisp | magic | новый `summon` (летает за героем, стреляет сам) | xp_gain | — новая | single / single | early |
+| meteor | magic | area_drop (долгий замах, большой урон) | thorns | — новая | aoe / aoe | — |
 
 ### 1.5 Статы
 Статы героя: `maxHp, attack, magic, speed, crit, critDmg, area, duration, pickup, haste, luck, resistance, regen,

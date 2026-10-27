@@ -3,7 +3,7 @@
 // Оружие с квирками (отталкивание на дистанции, замедление, пробивание, ДоТ, самонаведение, блок снарядов, удар
 // по кругу без наведения) ещё слабее. Цель — урон за секунду владения относительно якоря (меч L5, эволюции —
 // Crimson Arc):
-//   target(w) = f(R_w) × Q_w,   f(R) = 1 / (1 + k · ln(max(R, r0) / r0)),   Q = 1 / (1 + Σ q_i)
+//   target(w) = f(R_w) × Q_w × T[tag],   f(R) = 1 / (1 + k · ln(max(R, r0) / r0)),   Q = 1 / (1 + Σ q_i)
 // R — дальность, на которой оружие начинает бить (из данных, по behavior), r0 — дальность якоря. f логарифмическая:
 // площадь, которую контролирует оружие, растёт как R², а число целей и время до контакта — почти линейно, поэтому
 // степенной штраф (r0/R)^α с α ≥ 0.5 рвёт разрыв ×3+ на дальних; логарифм даёт убывающую отдачу от дальности, как
@@ -15,7 +15,7 @@
 // node tools/simulation/ladder.mjs --lab [--n 8] [--until 600] [--from 2] [--to 9] [--workers 30] [--out x.json]
 //   лаборатория: бессмертная мечница (attack = magic = 1) с одним оружием на макс. уровне, один слот оружия,
 //   пассивки только защитные и сбор (не меняют урон), сундуки пропускает. Меряется сила клира power = 1 / жизнь
-//   моба в рамке (по умолчанию, --metric power; --level 1 — уровень оружия вместо максимального) и урон за секунду (dps — снятый HP, упирается в приток мобов,
+//   моба в рамке (по умолчанию, --metric power; --bloom — оружие с bloom меряется в своём окне LADDER.bloom; --level 1 — уровень оружия вместо максимального) и урон за секунду (dps — снятый HP, упирается в приток мобов,
 //   если оружие успевает; rawDps — с оверкиллом; baseDps — без стата). Окно минут --from..--to.
 // node tools/simulation/ladder.mjs --bots tools/out/targets/x.json [--key normal/1/mid] [--window late]
 //   то же по обычным ботам targets.mjs (оружие на макс. уровне в окне; сборка и статы смешаны).
@@ -57,6 +57,14 @@ export const LADDER = {
     delayed: -0.10,         // долгий замах (delay ≥ delayedMin с): промахи по движущимся
     random: -0.10,          // бьёт в случайную сторону, направление не выбрать (луч)
   },
+  // Вторая ось (владелец, 27.10): число целей за удар (поле targets в weapons.js). Главная лестница — клир толпы
+  // для всех тегов (single тоже обязан клирить паки: частотой и пробиванием, не уроном за удар): цель
+  // f(R) × Q × clear[tag]. По одной цели (босс, dps.mjs) — только потолок f(R) × Q × boss[tag]: single не больше
+  // ~1.5–2× aoe по одной цели, TTK боссов — проверка «не ваншот», не цель. Якорь (меч) — cleave.
+  tags: { clear: { aoe: 1, cleave: 0.9, single: 0.7 },
+    boss: { aoe: 1, cleave: 1.35, single: 3 } },
+  // Окна минут для сравнения по bloom (лаборатория --bloom): early — сильно в начале, late — к концу.
+  bloom: { early: [1, 6], late: [7, 12] },
   // Решения владельца поверх формулы (цель относительно якоря): молния не сильнее ножей, луч слабый.
   owner: { storm_chain: 0.46, thunder_loop: 0.46, beam: 0.45, prism_ray: 0.45 },
   // Чем подбирать силу в --tune: урон (по умолчанию) или кулдаун — у оружия, где урон уходит в оверкилл
@@ -176,9 +184,11 @@ export function ladderRow(id) {
   const f = 1 / (1 + LADDER.k * Math.log(Math.max(R, r0) / r0));
   const qs = quirks(def, lv);
   const Q = 1 / (1 + qs.reduce((s, x) => s + x.q, 0));
-  return { id, behavior: def.behavior, dmgType: def.dmgType, R: Math.round(R), f: r2(f),
-    owner: LADDER.owner[id] ?? null,
-    quirks: qs.map((x) => `${x.id}${x.q < 0 ? '' : '+'}${r2(x.q)}`), Q: r2(Q), target: r2(f * Q),
+  const tag = def.targets || 'aoe';
+  return { id, behavior: def.behavior, dmgType: def.dmgType, tag, bloom: def.bloom || '',
+    R: Math.round(R), f: r2(f), owner: LADDER.owner[id] ?? null,
+    quirks: qs.map((x) => `${x.id}${x.q < 0 ? '' : '+'}${r2(x.q)}`), Q: r2(Q),
+    target: r2(f * Q * LADDER.tags.clear[tag]), boss: r2(f * Q * LADDER.tags.boss[tag]),
     paper: r1(paperDps(def, lv)) };
 }
 
@@ -194,7 +204,9 @@ const LAB_ALLOW = ['max_hp', 'resistance', 'regen', 'dodge', 'speed', 'pickup', 
 const LAB_PROFILE = { id: 'lab', intent: 'evolution', collection: 'opportunistic', reaction: 0.28,
   courage: 0.8, temperature: 0.7, allow: LAB_ALLOW };
 
-export async function lab({ n, until, from, to, workers, experiment, ids, level = 0 }) {
+export async function lab({ n, until, from, to, workers, experiment, ids, level = 0,
+  bloom = false }) {
+  if (bloom) until = Math.max(until, (LADDER.bloom.late[1] + 1) * 60 + 5);
   const lvOf = (id) => (level ? Math.min(level, WEAPONS[id].maxLevel) : WEAPONS[id].maxLevel);
   const { runMatrix } = await import('./matrix.mjs');
   const exp = { ...(experiment || {}), heroSet: { ...(experiment?.heroSet || {}),
@@ -216,14 +228,13 @@ export async function lab({ n, until, from, to, workers, experiment, ids, level 
       console.error(`${done}/${total} ${((Date.now() - t0) / 1000).toFixed(0)}s`);
     }
   } });
-  const out = {};
-  for (const id of ids) {
+  const agg = (id, lo, hi) => {
     const data = rows.filter((r) => r.config.weapon === id);
     const acc = { dealt: 0, raw: 0, base: 0, held: 0, hits: 0, kills: 0, dist: 0, frame: 0,
       frameN: 0, inFrame: 0, samples: 0, pre: 0, killsAll: 0, err: 0 };
     for (const r of data) {
       if (r.outcome === 'error') { acc.err++; continue; }
-      for (let m = from; m <= to; m++) {
+      for (let m = lo; m <= hi; m++) {
         const x = r.clear?.minutes[m];
         if (!x) continue;
         const w = x.weapons[`${id}@${lvOf(id)}`];
@@ -236,11 +247,26 @@ export async function lab({ n, until, from, to, workers, experiment, ids, level 
         acc.samples += x.samples; acc.pre += x.preFrame; acc.killsAll += x.kills;
       }
     }
-    out[id] = { n: data.length, errors: acc.err, dps: r1(acc.dealt / acc.held),
+    return { n: data.length, errors: acc.err, dps: r1(acc.dealt / acc.held),
       rawDps: r1(acc.raw / acc.held), power: r2(acc.frameN / acc.frame),
+      rawPower: acc.frameN / acc.frame,
       baseDps: r1(acc.base / acc.held), dist: acc.dealt ? Math.round(acc.dist / acc.dealt) : null,
       killsPerMin: r1(acc.kills * 60 / acc.held), frameLife: r1(acc.frame / acc.frameN),
       inFrame: r1(acc.inFrame / acc.samples), preFrame: r1(100 * acc.pre / acc.killsAll) };
+  };
+  const out = {};
+  for (const id of ids) out[id] = agg(id, from, to);
+  // bloom: сила в своём окне минут относительно якоря в том же окне, пересчитанная на окно по умолчанию
+  // (сравнимо с целью лестницы). Якорь должен быть в ids.
+  if (bloom) {
+    for (const id of ids) {
+      const win = LADDER.bloom[WEAPONS[id].bloom];
+      const anchor = WEAPONS[id].evolved ? LADDER.anchorEvo : LADDER.anchor;
+      if (!win || !out[anchor]) continue;
+      const w = agg(id, win[0], win[1]);
+      const a = agg(anchor, win[0], win[1]);
+      out[id] = { ...w, window: win, power: r2(w.rawPower / a.rawPower * out[anchor].rawPower) };
+    }
   }
   return out;
 }
@@ -355,7 +381,7 @@ async function main() {
     measured = await lab({ n: Number(opt('n', 8)), until: Number(opt('until', (to + 1) * 60 + 5)),
       from, to, workers: Number(opt('workers', Math.max(1, availableParallelism() - 2))),
       experiment, ids: (opt('ids', '') ? opt('ids').split(',') : [...BASE, ...EVOS]),
-      level: Number(opt('level', 0)) });
+      level: Number(opt('level', 0)), bloom: args.includes('--bloom') });
   } else if (opt('bots', '')) {
     const file = JSON.parse(await readFile(opt('bots'), 'utf8'));
     const rep = file.report[opt('key', 'normal/1/mid')];

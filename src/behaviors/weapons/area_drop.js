@@ -40,6 +40,36 @@ function landing(w, sim, i, prop, stamp) {
   return [pl.x + (sim.rng.next() - 0.5) * 200, pl.y + (sim.rng.next() - 0.5) * 200];
 }
 
+// Метеоры одного залпа не сливаются: точка удара не ближе meteorGap × area к уже выбранным. Сначала другие
+// цели (landing метит взятых врагов), потом точка по кругу вокруг первой (детерминированно, без RNG).
+function spaced(w, sim, i, prop, stamp, spots, tx, ty) {
+  const min = AD.meteorGap * w.params.area;
+  const far = (x, y) => {
+    for (let k = 0; k < spots.length; k += 2) {
+      const dx = x - spots[k];
+      const dy = y - spots[k + 1];
+      if (dx * dx + dy * dy < min * min) return false;
+    }
+    return true;
+  };
+  if (far(tx, ty)) return [tx, ty];
+  for (let n = 0; n < AD.meteorTries; n++) {
+    const [x, y] = landing(w, sim, i, prop, stamp);
+    if (far(x, y)) return [x, y];
+  }
+  const cx = spots[0];
+  const cy = spots[1];
+  for (let ring = 1; ring <= 4; ring++) {
+    for (let k = 0; k < 6 * ring; k++) {
+      const a = (k / (6 * ring)) * Math.PI * 2 + i;
+      const x = cx + Math.cos(a) * min * ring;
+      const y = cy + Math.sin(a) * min * ring;
+      if (far(x, y)) return [x, y];
+    }
+  }
+  return [tx, ty];
+}
+
 function explode(p, w, sim) {
   const P = w.params;
   const boom = sim.addProjectile('player', w.def.sprite);
@@ -107,8 +137,11 @@ export const areaDrop = {
     w.cooldown = P.cooldown;
     const stamp = sim.nextStamp();
     const flight = P.delay || FLIGHT;
+    const spots = [];
     for (let i = 0; i < P.amount; i++) {
-      const [tx, ty] = landing(w, sim, i, prop, stamp);
+      let [tx, ty] = landing(w, sim, i, prop, stamp);
+      if (P.fall && spots.length) [tx, ty] = spaced(w, sim, i, prop, stamp, spots, tx, ty);
+      spots.push(tx, ty);
       const p = sim.addProjectile('player', w.def.sprite);
       if (P.fall) {
         // метеор: падает наискосок сверху, точка удара отмечена кругом

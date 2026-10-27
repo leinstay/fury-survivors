@@ -168,16 +168,19 @@ test('titan maul: a series of slams around the hero, each with its own crack, al
 test('spear: pins hit foes in place for pin seconds, then sticks in the ground', () => {
   const sim = setup('spear', 1);
   const P = WEAPONS.spear.levels[0];
-  const a = dummy(sim, 50, 0, { still: false });
-  const b = dummy(sim, 70, 0, { still: false });
-  const c = dummy(sim, 90, 0, { still: false });
+  // в ряд 2 + pierce целей: первые 1 + pierce задеты, последняя нет
+  // (pierce из данных, docs/BALANCE_AUDIT.md 13)
+  const line = Array.from({ length: P.pierce + 2 },
+      (_, i) => dummy(sim, 50 + i * 12, 0, { still: false }));
+  const a = line[0];
+  const c = line[line.length - 1];
   let pinnedAt = -1;
   run(sim, 1, idle, (s) => {
     if (pinnedAt < 0 && moveMul(a, s) === 0) pinnedAt = s.time;
   });
   sim.player.weapons[0].cooldown = 1e9;
   assert.ok(pinnedAt > 0, 'first foe pinned');
-  assert.ok(a.hp < a.maxHp && b.hp < b.maxHp, 'first 1 + pierce foes hit');
+  assert.ok(line.slice(0, -1).every((e) => e.hp < e.maxHp), 'first 1 + pierce foes hit');
   assert.equal(c.hp, c.maxHp, 'the third foe is past the pierce limit');
   assert.equal(moveMul(c, sim), 1, 'and is not pinned');
   // пригвождённый не двигается

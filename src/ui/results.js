@@ -2,7 +2,7 @@
 import { t } from '../i18n/index.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
 import { FocusNav, addButton } from './focus.js';
-import { BUTTON, rowXs } from './menu-layout.js';
+import { BUTTON, rowXs, overlayTitle } from './menu-layout.js';
 import { textStyle, COLORS, FONT } from './style.js';
 import { formatTime } from './hud.js';
 import { displayName, addIcon, iconKeyFor } from './icons.js';
@@ -42,7 +42,7 @@ export function buildResults(scene, sim,
   scene.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.8).setOrigin(0, 0);
   addPanel(scene, cx, 175, 370, 336);
   if (confetti) addConfetti(scene);
-  scene.add.text(cx, 28, t(titleKey), textStyle(26, titleColor, { stroke: '#000000', strokeThickness: 5 })).setOrigin(0.5);
+  overlayTitle(scene, t(titleKey), titleColor);
   const cursed = sim.difficulty && sim.difficulty !== DEFAULT_DIFFICULTY;
   if (coop) {
     // кооп: пара ников из лобби (хост первым) и сложность одной строкой; потеря связи вместо смерти

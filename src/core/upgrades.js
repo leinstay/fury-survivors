@@ -3,7 +3,7 @@
 import { WEAPONS } from '../data/weapons.js';
 import { PASSIVES } from '../data/passives.js';
 import { COMBOS } from '../data/combos.js';
-import { SLOTS, LEVEL_UP } from '../data/constants.js';
+import { SLOTS, LEVEL_UP, CHEST } from '../data/constants.js';
 
 /**
  * @param {{kind: string, id: string}} c карточка
@@ -180,16 +180,33 @@ export function evolutionCard(combo) {
 }
 
 /**
- * Сундук скиллов (с элит, docs/META.md 1.4): без выбора. +1 уровень случайной своей пассивке и +1 уровень
- * случайному своему оружию, если есть что поднять; оружие на максимуме с готовой парой (его пассивка взята)
- * поднимается в эволюцию. Поднять нечего — карточка лечения (как у карточек уровня, когда всё на максимуме).
+ * Выбор в сундуке скиллов (sim.state = 'chest'): карточки готовых эволюций, не больше max случайных.
+ * Даже одна эволюция идёт через выбор: игрок может её пропустить (sim.skipChest) ради обычных апгрейдов.
+ * @param {!Object} player данные игрока
+ * @param {{int: function(number): number}} rng
+ * @param {number=} max сколько вариантов показать (уникалка greed даёт на один больше)
+ * @return {!Array<!Object>} карточки или пустой массив, если готовых эволюций нет
+ */
+export function chestChoices(player, rng, max = CHEST.maxChoices) {
+  const all = findEvolutions(player);
+  if (!all.length) return [];
+  const out = [];
+  while (out.length < max && all.length) {
+    out.push(all.splice(rng.int(all.length), 1)[0]);
+  }
+  return out.map(evolutionCard);
+}
+
+/**
+ * Сундук скиллов без эволюций (docs/META.md 1.4): +1 уровень случайной своей пассивке и +1 уровень
+ * случайному своему оружию (не новые), если есть что поднять. Эволюции здесь не выпадают (только выбором,
+ * chestChoices). Поднять нечего — карточка лечения (её sim применяет без экрана).
  * Карточки с prev — уровень до подъёма (показ «Lv 2 → 3»).
  * @param {!Object} player данные игрока
  * @param {{int: function(number): number}} rng
- * @param {boolean=} evolution false — без эволюций (лаборатория баланса, createSim noEvolution)
  * @return {!Array<!Object>} пассивка, затем оружие (или одно лечение)
  */
-export function skillChest(player, rng, evolution = true) {
+export function skillChest(player, rng) {
   const out = [];
   const ps = [];
   for (const p of player.passives) {
@@ -199,18 +216,11 @@ export function skillChest(player, rng, evolution = true) {
     }
   }
   if (ps.length) out.push(ps[rng.int(ps.length)]);
-  const evos = evolution ? findEvolutions(player) : [];
   const ws = [];
   for (const w of player.weapons) {
     const def = WEAPONS[w.id];
-    if (def.evolved) continue;
-    if (w.level < def.maxLevel) {
+    if (!def.evolved && w.level < def.maxLevel) {
       ws.push({ kind: 'weapon', id: w.id, level: w.level + 1, prev: w.level, isNew: false, icon: def.icon });
-      continue;
-    }
-    const combo = evos.find((c) => c.from.includes(w.id));
-    if (combo && !ws.some((c) => c.id === combo.result)) {
-      ws.push({ ...evolutionCard(combo), prev: w.level });
     }
   }
   if (ws.length) out.push(ws[rng.int(ws.length)]);

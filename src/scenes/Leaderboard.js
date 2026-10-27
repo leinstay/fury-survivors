@@ -5,19 +5,30 @@ import { BOARD } from '../data/leaderboard.js';
 import { FocusNav, addButton } from '../ui/focus.js';
 import { textStyle, COLORS } from '../ui/style.js';
 import { addPanel } from '../ui/panel.js';
-import { BUTTON, PAGE_BOTTOM, backRect, screenTitle } from '../ui/menu-layout.js';
+import {
+  BUTTON, EDGE, PAGE_GAP, PAGE_TAB_Y, PAGE_TOP, PAGE_BOTTOM, backRect, screenTitle, menuBackdrop,
+} from '../ui/menu-layout.js';
 import { formatTime } from '../ui/hud.js';
 import { fetchTop10 } from '../services/leaderboard.js';
 import { DEFAULT_DIFFICULTY } from '../data/difficulty.js';
 import { pairLabel } from '../core/nick.js';
 import { HEROES, DEFAULT_HERO } from '../data/heroes.js';
 
-// Колонка героя только в соло (в коопе имя — пара ников на всю ширину до очков).
-const COL = { place: 110, name: 140, hero: 206, score: 318, time: 392, kills: 464, mode: 540 };
-const HEAD_Y = 76;
-const ROW0 = 92;
-const ROW_H = 18;
-const PANEL_TOP = 70;
+// Раскладка как у кодекса: заголовок экрана, строка вкладок на всю ширину, панель таблицы от края до края
+// (EDGE) от PAGE_TOP до общей линии PAGE_BOTTOM, Back внизу слева и Refresh зеркально справа.
+const PANEL = { x: EDGE, w: GAME_WIDTH - 2 * EDGE, top: PAGE_TOP, bottom: PAGE_BOTTOM };
+const PAD = 12;
+// Колонки по ширине панели (x левого края текста; score..mode — правого). Колонка героя только в соло
+// (в коопе имя — пара ников на всю ширину до очков).
+const L = PANEL.x + PAD;
+const R = PANEL.x + PANEL.w - PAD;
+const COL = {
+  place: L, name: L + 36, hero: L + 200, score: L + 350, time: L + 430, kills: L + 510, mode: R,
+};
+const HEAD_Y = PANEL.top + 8;
+const ROW0 = HEAD_Y + 20;
+const ROW_H = 22;
+const TAB_W = (PANEL.w - PAGE_GAP) / 2;
 
 export class LeaderboardScene extends Phaser.Scene {
   constructor() {
@@ -25,6 +36,7 @@ export class LeaderboardScene extends Phaser.Scene {
   }
 
   create() {
+    menuBackdrop(this); // фон — арт меню без героинь, как у всех подменю
     this.alive = true;
     this.token = 0;
     const cx = GAME_WIDTH / 2;
@@ -37,12 +49,17 @@ export class LeaderboardScene extends Phaser.Scene {
     this.tabs = {};
     for (const [i, m] of ['solo', 'coop'].entries()) {
       this.tabs[m] = addButton(this, this.nav, {
-        x: cx - 60 + i * 120, y: 46, w: 110, h: BUTTON.tab.h, size: 11, label: t(`lb.tab.${m}`),
+        x: PANEL.x + TAB_W / 2 + i * (TAB_W + PAGE_GAP), y: PAGE_TAB_Y, w: TAB_W, h: BUTTON.tab.h,
+        size: 11, label: t(`lb.tab.${m}`),
         onSelect: () => this.setMode(m),
       });
     }
-    // панель от строки заголовков до общей линии низа страниц (над Back)
-    addPanel(this, cx, (PANEL_TOP + PAGE_BOTTOM) / 2, 460, PAGE_BOTTOM - PANEL_TOP);
+    // панель на всю ширину до общей линии низа страниц (над Back)
+    const midY = (PANEL.top + PANEL.bottom) / 2;
+    addPanel(this, PANEL.x + PANEL.w / 2, midY, PANEL.w, PANEL.bottom - PANEL.top);
+    // рамка панели для тестов (ui-sizes.spec)
+    this.panelBox = { left: PANEL.x, right: PANEL.x + PANEL.w, top: PANEL.top,
+      bottom: PANEL.bottom };
     const head = textStyle(10, COLORS.dim);
     this.add.text(COL.place, HEAD_Y, '#', head);
     this.add.text(COL.name, HEAD_Y, t('lb.col.name'), head);
@@ -53,7 +70,7 @@ export class LeaderboardScene extends Phaser.Scene {
     this.add.text(COL.mode, HEAD_Y, t('lb.col.mode'), head).setOrigin(1, 0);
 
     this.rowObjs = [];
-    this.status = this.add.text(cx, (PANEL_TOP + PAGE_BOTTOM) / 2, '', textStyle(14, COLORS.dim)).setOrigin(0.5);
+    this.status = this.add.text(cx, midY, '', textStyle(14, COLORS.dim)).setOrigin(0.5);
 
     // Back внизу слева (как на всех страницах), Refresh — тем же размером справа
     const back = backRect();

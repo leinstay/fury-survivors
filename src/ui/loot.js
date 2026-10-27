@@ -10,7 +10,7 @@ import { t } from '../i18n/index.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
 import { BOSSES } from '../data/bosses.js';
 import { FocusNav, addButton } from './focus.js';
-import { BUTTON, rowXs } from './menu-layout.js';
+import { BUTTON, rowXs, overlayTitle } from './menu-layout.js';
 import { addPanel } from './panel.js';
 import { textStyle, COLORS } from './style.js';
 import { createRng } from '../core/rng.js';
@@ -22,7 +22,11 @@ import { getInventory, setInventory } from '../services/inventory.js';
 import { checkMetaAchievements } from '../services/achievements.js';
 import { drawItemBox, itemTitle, affixText, RARITY_CSS } from './items.js';
 
-const CARD = { w: 196, h: 226, y: 62, gap: 8 };
+const CARD = { w: 196, h: 226, y: 64, gap: 8 };
+// Заголовок поверх забега — overlayTitle (ui/menu-layout.js). Под ним строка сундука и сердца, затем карточки
+// (до 290) и ряд кнопок.
+const SUB_Y = 45;
+const HEARTS_Y = 55;
 const ROW_W = 150; // кнопки нижнего ряда: Take all, Disassemble all, Continue
 
 const bossName = (id) => (BOSSES[id] ? t(`boss.${id}.name`) : '?');
@@ -281,13 +285,12 @@ export function buildLoot(scene, sim, onDone) {
     const before = new Set(scene.children.list);
     const cx = GAME_WIDTH / 2;
     scene.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.82).setOrigin(0, 0);
-    scene.add.text(cx, 18, t('loot.title'), textStyle(20, '#ffd84a', { stroke: '#000000', strokeThickness: 4 }))
-        .setOrigin(0.5);
+    overlayTitle(scene, t('loot.title'));
     const c = pages[idx];
-    scene.add.text(cx, 38, t('loot.chest', { i: idx + 1, n: pages.length, boss: bossName(c.boss), tier: c.tier }),
+    scene.add.text(cx, SUB_Y, t('loot.chest', { i: idx + 1, n: pages.length, boss: bossName(c.boss), tier: c.tier }),
         textStyle(10, '#dddddd')).setOrigin(0.5);
     if (c.hearts) { // сердца уже в кошельке (initChests)
-      scene.add.text(cx, 50, t('loot.hearts', { n: c.hearts }), textStyle(9, '#ff7090')).setOrigin(0.5);
+      scene.add.text(cx, HEARTS_Y, t('loot.hearts', { n: c.hearts }), textStyle(9, '#ff7090')).setOrigin(0.5);
     }
     const n = c.entries.length;
     const x0 = cx - (n * CARD.w + (n - 1) * CARD.gap) / 2;

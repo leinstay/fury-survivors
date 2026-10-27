@@ -355,8 +355,11 @@ export class GameScene extends Phaser.Scene {
     if (this.overlay && !this.scene.isActive(this.overlay)) this.overlay = null;
     const busy = this.overlay !== null;
     if (sim.state === 'chest' && !busy) {
-      // сундук скиллов: выпавшее уже применено, мир стоит, пока все не нажмут Ok (sim.chestOk)
-      this._open('Chest', { sim, act: this.act });
+      // сундук скиллов: выбор готовой эволюции (chest.cards) или показ уже применённых апгрейдов (Ok у всех)
+      this._open('Chest', { sim, act: this.act, choices: sim.chest.cards });
+    } else if (sim.state === 'reveal' && !busy) {
+      // кооп: выбранное из сундука видят оба, мир стоит (sim), экран закроется по смене sim.state
+      this._open('Chest', { sim, act: this.act, items: sim.chest.shown });
     } else if (sim.state === 'levelup' && !busy) {
       this._open('LevelUp', { sim, act: this.act });
     } else if (sim.state === 'loot' && !busy) {

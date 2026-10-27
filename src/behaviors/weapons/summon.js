@@ -1,4 +1,5 @@
-// Wisp: amount огоньков летают за героем по кругу (WEAPON_BEHAVIOR.summon.orbitR px, догоняют с силой follow) и
+// Wisp: amount огоньков держатся за героем каждый на своём месте окружности orbitR (WEAPON_BEHAVIOR.summon),
+// слегка блуждая вокруг него (wander), догоняют с силой follow, и
 // каждый сам стреляет в ближайшего к себе врага (или объект, если врагов нет) раз в cooldown секунд.
 // Выстрел — снаряд w.def.shot: speed, duration (время полёта), pierce, knockback. У самих огоньков урона нет.
 // p.c у огонька — таймер до его выстрела; огоньки разнесены по фазе, чтобы не стрелять залпом.
@@ -46,7 +47,7 @@ export const summon = {
   init(w) { w.wisps = []; w.t = 0; },
   update(w, sim, dt) {
     const P = w.params;
-    w.t += S.orbitSpeed * dt;
+    w.t += dt;
     while (w.wisps.length < P.amount) addWisp(w, sim);
     while (w.wisps.length > P.amount) w.wisps.pop().life = 0;
     let fired = false;
@@ -62,9 +63,14 @@ export const summon = {
     if (w.removed) { p.life = 0; return; }
     const pl = w.owner;
     const n = w.wisps.length || 1;
-    const a = w.t + (p.a * TAU) / n;
-    const tx = pl.x + Math.cos(a) * S.orbitR;
-    const ty = pl.y - S.lift + Math.sin(a) * S.orbitR * S.flatten;
+    const a = S.slotAngle + (p.a * TAU) / n;
+    // блуждание: сумма синусов с разными частотами и фазами по номеру огонька (детерминировано, время сима)
+    const t = w.t * S.wanderSpeed;
+    const f = p.a * 1.7;
+    const wx = S.wander * (0.6 * Math.sin(t * 1.1 + f) + 0.4 * Math.sin(t * 2.3 + f * 2));
+    const wy = S.wander * (0.6 * Math.sin(t * 1.4 + f + 1) + 0.4 * Math.sin(t * 2.9 - f));
+    const tx = pl.x + Math.cos(a) * S.orbitR + wx;
+    const ty = pl.y - S.lift + Math.sin(a) * S.orbitR * S.flatten + wy;
     const k = Math.min(1, S.follow * dt);
     p.x += (tx - p.x) * k;
     p.y += (ty - p.y) * k;

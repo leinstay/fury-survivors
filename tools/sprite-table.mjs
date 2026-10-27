@@ -7,7 +7,10 @@ import { frameCount } from './sprite-frames.mjs';
 
 const DOC = 'docs/ASSETS.md';
 // Спрайты не из листов: процедурные и собранные из готовой анимации.
+const ART = 'tools/make-weapon-art.mjs';
 const TOOLS = { grass: 'tools/make-grass.mjs', proj_blade_arc: 'tools/make-slash.mjs', proj_crescent: 'tools/make-slash.mjs', menu_bg: '`assets/raw/menu_bg.png` (tools/snap-image.mjs)',
+  proj_wisp: ART, proj_wisp_shot: `${ART} (proj_enemy, оттенок в голубой)`, proj_meteor: ART, proj_spear: ART, proj_bolt: ART,
+  proj_mine: ART, proj_frost: ART, proj_beam: ART, proj_poison_cloud: `${ART} (только кодекс: в игре зона)`,
   heroine_menu: 'tools/crop-raw.mjs', heroine_portrait: 'заглушка (tools/placeholders.mjs)',
   heroine: '`assets/raw/heroine_walk256_pixellab/` (стойка PixelLab Edit Pro + ходьба Animate V3, 256×256, tools/hd-frames.mjs ×0.5)',
   mage: '`assets/raw/mage_walk256_pixellab/` (стойка PixelLab Edit Pro + ходьба Animate V3, 256×256, tools/hd-frames.mjs ×0.5)',

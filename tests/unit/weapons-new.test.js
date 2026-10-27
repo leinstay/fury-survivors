@@ -255,3 +255,22 @@ test('poison cloud: ticks without knockback', () => {
   assert.equal(e.kx, 0);
   assert.equal(e.ky, 0);
 });
+
+test('meteor: a starfall volley never overlaps', () => {
+  const AD = WEAPON_BEHAVIOR.area_drop;
+  const sim = setup('starfall', 1);
+  const P = WEAPONS.starfall.levels[0];
+  for (let i = 0; i < 6; i++) dummy(sim, 'slime', 60 + (i % 2) * 4, (i - 3) * 3);
+  let marks = [];
+  for (let n = 0; n < 600 && marks.length < P.amount; n++) {
+    sim.step(1 / 60, { dx: 0, dy: 0 });
+    marks = sim.projectiles.filter((p) => p.wid === 'starfall' && p.fx === 'aura');
+  }
+  assert.ok(marks.length >= 2, 'a volley fell');
+  for (let a = 0; a < marks.length; a++) {
+    for (let b = a + 1; b < marks.length; b++) {
+      const d = Math.hypot(marks[a].x - marks[b].x, marks[a].y - marks[b].y);
+      assert.ok(d >= AD.meteorGap * P.area - 1e-6, `circles apart: ${d}`);
+    }
+  }
+});
