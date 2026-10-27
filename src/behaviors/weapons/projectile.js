@@ -1,4 +1,5 @@
 // Throwing Daggers: веер снарядов в ближайшего врага. pierce — сколько врагов пробьёт сверх первого.
+// Необязательно: pierceAll — пробивает всех (копьё), hitRadius — радиус попадания вместо общего.
 import { WEAPON_BEHAVIOR } from '../../data/weapons.js';
 
 const SPREAD = 0.16;
@@ -27,10 +28,10 @@ export const projectile = {
       p.vx = Math.cos(a) * P.speed;
       p.vy = Math.sin(a) * P.speed;
       p.life = P.duration;
-      p.radius = HIT_RADIUS;
+      p.radius = P.hitRadius || HIT_RADIUS;
       p.dmg = P.damage;
       p.kb = P.knockback || 0;
-      p.pierce = P.pierce || 0;
+      p.pierce = P.pierceAll ? 1e9 : P.pierce || 0;
       p.wid = w.id;
       p.slot = w.slot;
     }

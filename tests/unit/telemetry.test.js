@@ -157,7 +157,7 @@ test('sender persists offline runs, flushes after restart, and retries idempoten
   assert.equal(await restarted.send(run), true);
   assert.equal(b.docs.size, 1);
   const doc = [...b.docs.values()][0];
-  assert.equal(doc.v, 2);
+  assert.equal(doc.v, 3);
   assert.deepEqual(Object.keys(doc).sort(), ['v', 'ver', 'mode', 'difficulty', 'status',
     'time', 'level', 'hero', 'data', 'createdAt'].sort());
 });

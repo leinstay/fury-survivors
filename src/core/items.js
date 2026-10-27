@@ -722,16 +722,35 @@ export function normalizeItem(raw) {
   };
 }
 
-/** Пустой инвентарь: стеш, сумка, кошелёк. */
+/**
+ * Пустой инвентарь: стеш, сумка, кошелёк, пресеты сумки (BAG.presets, общие; раскладка по uid:
+ * [{uid, x, y, rot}] или null) и уникалки, что когда-либо были у игрока (seen: {id: 1}, кодекс).
+ */
 export function emptyInventory(size = bagSize(null)) {
   return { v: INVENTORY_VERSION, stash: [], bag: createBag(size.cols, size.rows),
-    wallet: emptyWallet() };
+    wallet: emptyWallet(), presets: new Array(BAG.presets).fill(null), seen: {} };
+}
+
+// Пресет из сохранения: до BAG.w × BAG.h мест {uid, x, y, rot}, битые отброшены; не массив — null.
+function normalizePreset(raw) {
+  if (!Array.isArray(raw)) return null;
+  const out = [];
+  const seen = new Set();
+  for (const e of raw.slice(0, BAG.w * BAG.h)) {
+    if (!e || typeof e.uid !== 'string' || !UID_RE.test(e.uid) || seen.has(e.uid)) continue;
+    if (!Number.isInteger(e.x) || !Number.isInteger(e.y)) continue;
+    seen.add(e.uid);
+    out.push({
+      uid: e.uid, x: clamp(e.x, 0, BAG.w - 1), y: clamp(e.y, 0, BAG.h - 1), rot: e.rot === true,
+    });
+  }
+  return out;
 }
 
 /**
  * Проверить инвентарь из сохранения (localStorage / Firestore). size — открытая область сумки
  * по ачивкам (bagSize); что не влезло в сумку, уходит в стеш. Повторные uid отбрасываются.
- * @return {?Object} {v, stash, bag, wallet} или null для чужой версии
+ * @return {?Object} {v, stash, bag, wallet, presets, seen} или null для чужой версии
  */
 export function normalizeInventory(raw, size = null) {
   if (!raw || typeof raw !== 'object') return emptyInventory(size || bagSize(null));
@@ -762,5 +781,11 @@ export function normalizeInventory(raw, size = null) {
   }
   const w = raw.wallet && typeof raw.wallet === 'object' ? raw.wallet : {};
   for (const c of CURRENCIES) inv.wallet[c] = Math.max(0, Math.floor(num(w[c])));
+  const pr = Array.isArray(raw.presets) ? raw.presets : [];
+  for (let i = 0; i < BAG.presets; i++) inv.presets[i] = normalizePreset(pr[i]);
+  const sn = raw.seen && typeof raw.seen === 'object' ? raw.seen : {};
+  for (const id of Object.keys(sn)) if (sn[id] && UNIQUES[id]) inv.seen[id] = 1;
+  for (const it of inv.stash) if (it.unique) inv.seen[it.unique] = 1;
+  for (const e of inv.bag.items) if (e.item.unique) inv.seen[e.item.unique] = 1;
   return inv;
 }

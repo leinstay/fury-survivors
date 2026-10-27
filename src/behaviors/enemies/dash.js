@@ -1,4 +1,5 @@
 // Лисодевочка: подходит, замирает (замах), рывок по прямой, пауза. st: 0 подход, 1 замах, 2 рывок.
+import { moveMul } from '../status.js';
 export const dash = {
   init(e, sim) {
     e.st = 0;
@@ -12,7 +13,7 @@ export const dash = {
     const d = Math.sqrt(dx * dx + dy * dy) || 1;
     if (e.st === 0) {
       e.b -= dt;
-      const k = (e.speed * dt) / d;
+      const k = (e.speed * moveMul(e, sim) * dt) / d;
       e.x += dx * k;
       e.y += dy * k;
       e.moving = true;
@@ -30,8 +31,9 @@ export const dash = {
       }
     } else {
       e.moving = true;
-      e.x += e.vx * dt;
-      e.y += e.vy * dt;
+      const m = moveMul(e, sim);
+      e.x += e.vx * m * dt;
+      e.y += e.vy * m * dt;
       e.a -= dt;
       if (e.a <= 0) { e.st = 0; e.b = P.cooldown; }
     }

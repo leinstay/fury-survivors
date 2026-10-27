@@ -1,6 +1,7 @@
 // Суккуба: держит дистанцию keep и стреляет в игрока каждые cooldown секунд.
 // Пока летит COMBAT.maxEnemyShots снарядов обычных врагов, выстрел пропускается до следующего cooldown.
 import { COMBAT } from '../../data/constants.js';
+import { moveMul } from '../status.js';
 
 export const ranged = {
   init(e, sim) {
@@ -16,7 +17,7 @@ export const ranged = {
     if (d > P.keep) move = 1;
     else if (d < P.keep * 0.7) move = -0.6;
     e.moving = move !== 0;
-    const k = (move * e.speed * dt) / d;
+    const k = (move * e.speed * moveMul(e, sim) * dt) / d;
     e.x += dx * k;
     e.y += dy * k;
     e.facing = dx >= 0 ? 1 : -1;

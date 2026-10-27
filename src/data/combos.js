@@ -10,4 +10,13 @@ export const COMBOS = [
   { from: ['war_axe', 'crit'], result: 'death_spiral' },
   { from: ['storm_chain', 'luck'], result: 'thunder_loop' },
   { from: ['firebomb', 'pickup'], result: 'napalm_rain' },
+  { from: ['spear', 'crit_dmg'], result: 'dragon_lance' },
+  { from: ['hammer', 'max_hp'], result: 'titan_maul' },
+  { from: ['crossbow', 'dodge'], result: 'ballista' },
+  { from: ['mines', 'duration'], result: 'minefield' },
+  { from: ['frost_orb', 'area'], result: 'blizzard' },
+  { from: ['poison_cloud', 'magic'], result: 'miasma' },
+  { from: ['beam', 'speed'], result: 'prism_ray' },
+  { from: ['wisp', 'xp_gain'], result: 'spirit_choir' },
+  { from: ['meteor', 'thorns'], result: 'starfall' },
 ];

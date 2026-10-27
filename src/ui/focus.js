@@ -20,6 +20,9 @@ export function readPad() {
   return null;
 }
 
+// События клавиш, уже обработанные навигацией (см. _key).
+const seenKeys = new WeakSet();
+
 const KEY_DIRS = {
   ArrowUp: [0, -1], KeyW: [0, -1], ArrowDown: [0, 1], KeyS: [0, 1],
   ArrowLeft: [-1, 0], KeyA: [-1, 0], ArrowRight: [1, 0], KeyD: [1, 0],
@@ -142,6 +145,10 @@ export class FocusNav {
   }
 
   _key(ev) {
+    // Phaser отдаёт очередь клавиш заново на каждое новое событие до конца кадра: несколько нажатий
+    // за один кадр приходили бы по нескольку раз. Одно событие обрабатываем один раз.
+    if (seenKeys.has(ev)) return;
+    seenKeys.add(ev);
     // Пока фокус в DOM-поле (ввод ника), клавиши меню не срабатывают.
     const a = typeof document !== 'undefined' ? document.activeElement : null;
     if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA')) return;

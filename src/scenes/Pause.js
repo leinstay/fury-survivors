@@ -9,6 +9,11 @@ import { playSfx } from '../audio/sfx.js';
 import { createActions } from '../core/actions.js';
 import { critChance } from '../core/stats.js';
 import { fadeOutAndStop, resetFade } from '../ui/fade.js';
+import { statReport } from '../core/stats.js';
+import { loadoutReport, loadoutUnique } from '../core/loadout.js';
+import { BagView, ItemTooltip, addStatsPanel, RARITY_CSS } from '../ui/items.js';
+import { PANEL } from '../ui/panel.js';
+import { BAG } from '../data/items.js';
 
 // Билд в две колонки (оружие слева, пассивки справа): 6+6 строк не налезают на кнопки.
 export function addBuildList(scene, x, y, w, h, player) {
@@ -93,7 +98,12 @@ export class PauseScene extends Phaser.Scene {
     resetFade(this);
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.75).setOrigin(0, 0);
     this.add.text(GAME_WIDTH / 2, TITLE_Y, t('pause.title'), textStyle(24, '#ffd84a', { stroke: '#000000', strokeThickness: 4 })).setOrigin(0.5);
-    this.nav = new FocusNav(this, { onBack: () => (this.view === 'options' ? this.show('main') : this.resume()) });
+    this.nav = new FocusNav(this, {
+      onBack: () => (this.view === 'options' || this.view === 'inventory' ? this.show('main') : this.resume()),
+    });
+    this.tip = new ItemTooltip(this);
+    this.cursor = null;
+    this.input.on('pointermove', (p) => { this.cursor = { x: p.worldX, y: p.worldY }; });
     const pad = readPad();
     this.padStart = !!(pad && pad.start);
     this.inCodex = false;
@@ -108,11 +118,72 @@ export class PauseScene extends Phaser.Scene {
     this.view = view;
     this.nav.clear();
     for (const o of this.objs) o.destroy();
+    this.tip.hide();
+    this.bagView = null;
     const before = new Set(this.children.list);
     if (view === 'options') this.showOptions();
+    else if (view === 'inventory') this.showInventory();
     else this.showMain();
     this.objs = this.children.list.filter((o) => !before.has(o) && o.type !== 'Zone');
-    this.nav.focus(view === 'options' ? 0 : (this.focusMain || 0));
+    this.nav.focus(view === 'main' ? (this.focusMain || 0) : view === 'inventory' ? this.nav.items.length - 1 : 0);
+  }
+
+  // Инвентарь только для просмотра: сумка своего героя, статы с сумкой и пассивками, подсказки.
+  showInventory() {
+    const me = this.sim.players[this.sim.local];
+    const C = 24;
+    const bx = M;
+    const by = TOP + 14;
+    this.add.text(bx, TOP, t('inv.bag', { c: me.bag.cols, r: me.bag.rows }), textStyle(10, '#ffd84a'))
+        .setOrigin(0, 0);
+    this.bagView = new BagView(this, { x: bx, y: by, cell: C });
+    this.bagView.draw(me.bag);
+    for (let y = 0; y < BAG.h; y++) {
+      for (let x = 0; x < BAG.w; x++) {
+        const cx = bx + x * C + C / 2;
+        const cy = by + y * C + C / 2;
+        const g = this.add.graphics();
+        this.nav.add({
+          x: cx, y: cy, w: C, h: C, onPointer: () => {},
+          setFocus: (f) => {
+            g.clear();
+            if (!f) return;
+            g.lineStyle(1, PANEL.borderFocus, 1)
+                .strokeRect(cx - C / 2 + 0.5, cy - C / 2 + 0.5, C - 1, C - 1);
+            this.cursor = { x: cx, y: cy };
+          },
+        });
+      }
+    }
+    const u = loadoutUnique(me.bag);
+    let y = by + BAG.h * C + 8;
+    if (u) {
+      this.add.text(bx, y, t(`unique.${u}.name`), textStyle(11, RARITY_CSS.unique)).setOrigin(0, 0);
+      const d = this.add.text(bx, y + 14, t(`unique.${u}.desc`), textStyle(9, '#ffd8a0',
+          { wordWrap: { width: BAG.w * C } })).setOrigin(0, 0);
+      y += 18 + d.height;
+    }
+    this.add.text(bx, y, t('inv.readonly'), textStyle(9, '#aaaaaa', { wordWrap: { width: BAG.w * C } }))
+        .setOrigin(0, 0);
+    const rx = bx + BAG.w * C + GAP + 4;
+    const rw = GAME_WIDTH - M - rx;
+    const base = me.heroDef.stats;
+    addStatsPanel(this, rx, TOP, rw, RIGHT_BOTTOM - TOP, loadoutReport(base, me.passives, me.bag),
+        statReport(base, me.passives));
+    addButton(this, this.nav, {
+      x: bx + 60, y: RIGHT_BOTTOM - ROW / 2, w: 120, h: ROW, size: 12, label: t('settings.back'),
+      onSelect: () => { this.focusMain = 2; this.show('main'); },
+    });
+  }
+
+  // Подсказка предмета под курсором или в фокусе (вкладка инвентаря).
+  updateTip() {
+    const v = this.bagView;
+    const c = this.cursor;
+    const cell = v && c ? v.cellAt(c.x, c.y) : null;
+    const e = cell ? v.entryAt(cell.x, cell.y) : null;
+    if (e) this.tip.show(e.item, c.x, c.y, { mul: v.mul });
+    else this.tip.hide();
   }
 
   showOptions() {
@@ -130,6 +201,7 @@ export class PauseScene extends Phaser.Scene {
     const rows = [
       [t('pause.resume'), () => this.resume()],
       [t('pause.options'), () => this.show('options')],
+      [t('pause.inventory'), () => this.show('inventory')],
       [t('menu.codex'), () => this.openCodex()],
       [t('pause.quit'), () => this.quit()],
     ];
@@ -180,6 +252,7 @@ export class PauseScene extends Phaser.Scene {
       return;
     }
     this.nav.update(time);
+    this.updateTip();
     const pad = readPad();
     const start = !!(pad && pad.start);
     if (start && !this.padStart) this.resume();

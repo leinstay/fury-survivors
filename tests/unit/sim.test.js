@@ -310,7 +310,7 @@ test('sim: evolution from chest when the weapon is maxed and its passive is take
 });
 
 test('sim: every weapon fires and deals damage in a crowd', () => {
-  for (const id of ['blade_arc', 'throwing_daggers', 'guardian_shields', 'holy_ground', 'war_axe', 'storm_chain', 'firebomb', 'crimson_arc', 'aegis_bastion']) {
+  for (const id of Object.keys(WEAPONS)) {
     const sim = createSim({ seed: 20 });
     sim.player.weapons.length = 0;
     sim.player.weapons.push({ id, level: 1 });

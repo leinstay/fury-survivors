@@ -5,8 +5,12 @@
 //   { type: 'hero', id }           смена своего героя (каждый выбирает сам; герой напарника занят).
 //                                  id '' — герой отпущен (повторный клик по своему), его может взять напарник.
 //                                  Если оба оказались на одном (выбрали одновременно), уступает гость.
+//   { type: 'bag', bag }           надетая сумка (лоадаут), оба сразу после hello; принимается через
+//                                  normalizeLoadout (core/loadout.js). Старт ждёт сумку напарника
 //   { type: 'diff', id }           хост при смене сложности
-//   { type: 'start', seed, difficulty, names, heroes }   хост; оба стартуют Game с data.coop
+//   { type: 'start', seed, difficulty, names, heroes, loadouts }   хост; оба стартуют Game с data.coop;
+//                                  loadouts — сумки по индексам игроков (хост 0, гость 1) в том виде,
+//                                  в каком их увидит хост: у обоих в createSim одинаковые
 //   { type: 'leave' }              выход из лобби
 import { t } from '../i18n/index.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
@@ -23,6 +27,8 @@ import { addHeroPicker } from '../ui/hero-picker.js';
 import { simFingerprint } from '../core/lockstep.js';
 import { netLog } from '../services/net.js';
 import { copyText } from '../ui/clipboard.js';
+import { normalizeLoadout } from '../core/loadout.js';
+import { getInventory } from '../services/inventory.js';
 
 // Колонки лобби: кнопки сложности, Start/Cancel и карточки героев одной ширины, центры на cx ± BTN_DX.
 const BTN_W = 120;
@@ -59,6 +65,8 @@ export class LobbyScene extends Phaser.Scene {
     this.started = false;
     this.alive = true;
     this.mismatch = false; // у напарника другая версия игры
+    this.myBag = normalizeLoadout(getInventory().bag); // своя сумка (меняется только в меню)
+    this.partnerBag = null;  // сумка напарника, пока не пришла — null
   }
 
   create() {
@@ -169,6 +177,7 @@ export class LobbyScene extends Phaser.Scene {
     });
     this.fp = simFingerprint();
     conn.send({ type: 'hello', name: this.nick, hero: this.hero, fp: this.fp });
+    conn.send({ type: 'bag', bag: this.myBag });
     if (this.role === 'host') conn.send({ type: 'diff', id: this.difficulty });
     this.renderButtons();
   }
@@ -192,6 +201,10 @@ export class LobbyScene extends Phaser.Scene {
         this.resolveHeroes();
         this.renderButtons();
         break;
+      case 'bag':
+        this.partnerBag = normalizeLoadout(m.bag);
+        this.renderButtons();
+        break;
       case 'diff':
         if (this.role === 'guest' && DIFFICULTIES[m.id]) { this.difficulty = m.id; this.renderButtons(); }
         break;
@@ -200,9 +213,11 @@ export class LobbyScene extends Phaser.Scene {
           const names = Array.isArray(m.names) ? m.names.slice(0, 2).map(nickOf)
             : [this.partner, this.nick];
           const heroes = distinctHeroes(2, Array.isArray(m.heroes) ? m.heroes : this.heroes());
+          const loadouts = Array.isArray(m.loadouts) && m.loadouts.length === 2 ?
+            m.loadouts.map(normalizeLoadout) : [this.partnerBag, this.myBag].map(normalizeLoadout);
           this.startGame(m.seed, m.difficulty, names, heroes,
               typeof m.sessionId === 'string' && /^[a-zA-Z0-9_-]{1,64}$/.test(m.sessionId) ?
-                m.sessionId : '');
+                m.sessionId : '', loadouts);
         }
         break;
       case 'leave':
@@ -283,7 +298,8 @@ export class LobbyScene extends Phaser.Scene {
     if (this.role !== 'host') {
       this.add.text(cx, 278, t('lobby.host_picks'), textStyle(9, '#aaaaaa')).setOrigin(0.5);
     }
-    const ready = !!(this.conn && this.partner && this.partnerHero && this.hero) &&
+    const ready = !!(this.conn && this.partner && this.partnerHero && this.hero &&
+      this.partnerBag) &&
       this.partnerHero !== this.hero && !this.mismatch;
     if (this.role === 'host') {
       const start = addButton(this, this.nav, { x: cx - BTN_DX, y: 308, w: BTN_W, h: 28, label: t('lobby.start'), onSelect: () => this.start() });
@@ -305,16 +321,18 @@ export class LobbyScene extends Phaser.Scene {
   start() {
     if (this.role !== 'host' || !this.conn || !this.partner) return;
     if (!this.hero || !this.partnerHero || this.partnerHero === this.hero || this.mismatch) return; // кто-то без героя или гость не уступил
+    if (!this.partnerBag) return; // сумка гостя ещё не пришла
     const seed = globalThis.navigator?.webdriver && Number.isInteger(globalThis.__furyTestSeed) ?
       globalThis.__furyTestSeed : (Date.now() ^ Math.floor(Math.random() * 0x7fffffff)) >>> 0;
     const names = this.names();
     const heroes = distinctHeroes(2, this.heroes());
     const sessionId = globalThis.crypto.randomUUID();
-    this.conn.send({ type: 'start', seed, difficulty: this.difficulty, names, heroes, sessionId });
-    this.startGame(seed, this.difficulty, names, heroes, sessionId);
+    const loadouts = [this.myBag, this.partnerBag];
+    this.conn.send({ type: 'start', seed, difficulty: this.difficulty, names, heroes, sessionId, loadouts });
+    this.startGame(seed, this.difficulty, names, heroes, sessionId, loadouts.map(normalizeLoadout));
   }
 
-  startGame(seed, difficulty, names, heroes, sessionId) {
+  startGame(seed, difficulty, names, heroes, sessionId, loadouts) {
     if (this.started || !this.conn) return;
     this.started = true;
     const conn = this.conn;
@@ -322,7 +340,7 @@ export class LobbyScene extends Phaser.Scene {
     conn.onClose(null);
     const local = this.role === 'host' ? 0 : 1;
     this.scene.start('Game', {
-      coop: { net: conn, local, seed, difficulty, names, heroes, sessionId },
+      coop: { net: conn, local, seed, difficulty, names, heroes, sessionId, loadouts },
     });
   }
 

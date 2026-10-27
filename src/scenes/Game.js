@@ -14,6 +14,9 @@ import { recordRun } from '../services/codex.js';
 import { createTelemetry } from '../core/telemetry.js';
 import { sendRun, flushRuns } from '../services/telemetry.js';
 import { computeScore } from '../services/leaderboard.js';
+import { createRunSummaryTracker } from '../core/run-summary.js';
+import { recordRunAchievements } from '../services/achievements.js';
+import { getInventory } from '../services/inventory.js';
 
 const MAX_DT = SIM.maxFrameDt;
 const STEP = 1 / SIM.tickRate;
@@ -26,7 +29,8 @@ export class GameScene extends Phaser.Scene {
 
   // data.difficulty: id из data/difficulty.js (Menu, Retry на экране итогов); data.sim: готовый sim
   // (только для плейтестов и скриншотов: забег, прокрученный ботом headless);
-  // data.coop: сетевой кооп из лобби { net, local, seed, difficulty, names, heroes } (net: services/net.js)
+  // data.coop: сетевой кооп из лобби { net, local, seed, difficulty, names, heroes, loadouts }
+  // (net: services/net.js; loadouts — сумки игроков по индексам, одинаковые у обоих)
   init(data) {
     this.difficulty = data && data.difficulty;
     this.hero = data && data.hero; // id из data/heroes.js; sim заменит неизвестный на DEFAULT_HERO
@@ -40,6 +44,7 @@ export class GameScene extends Phaser.Scene {
     if (co) {
       this.sim = createSim({
         stage: 'forest', seed: co.seed, difficulty: co.difficulty, players: 2, heroes: co.heroes,
+        loadouts: co.loadouts || [],
       });
       this.sim.local = co.local;
       this.sim.players.forEach((p, i) => { p.name = (co.names && co.names[i]) || ''; });
@@ -62,6 +67,7 @@ export class GameScene extends Phaser.Scene {
         hero: this.hero, stage: 'forest',
         seed: globalThis.navigator?.webdriver && Number.isInteger(globalThis.__furyTestSeed) ?
           globalThis.__furyTestSeed : Date.now(), difficulty: this.difficulty,
+        loadouts: [getInventory().bag], // надетая сумка (меняется только в меню)
       });
       this.ls = null;
     }
@@ -71,6 +77,10 @@ export class GameScene extends Phaser.Scene {
       local: this.sim.local || 0, coop: !!co,
       partner: co && co.names ? co.names[1 - co.local] || '' : '',
     });
+    // Ачивки: итог забега своего игрока (src/core/run-summary.js), проверка в конце забега.
+    this.summary = this.givenSim ? null :
+      createRunSummaryTracker({ local: this.sim.local || 0, coop: !!co });
+    this.unlocked = [];
     // Телеметрия для баланса: срезы раз в минуту, итог отправляется вместе с кодексом.
     this.telemetry = this.givenSim ? null :
       createTelemetry({ sim: this.sim, local: this.sim.local || 0, coop: !!co,
@@ -170,6 +180,10 @@ export class GameScene extends Phaser.Scene {
     const sim = this.sim;
     const score = computeScore({ time: sim.time, kills: sim.kills, coins: sim.coins, victory: status === 'victory' });
     recordRun(tr.finish(sim, { status, at: Date.now(), score }));
+    if (this.summary) {
+      this.unlocked = recordRunAchievements(this.summary.finish(sim, { status })).unlocked;
+      this.summary = null;
+    }
     const ui = this.overlay ? this.scene.get(this.overlay) : null;
     const diagnostics = this.ls ? {
       tick: this.ls.tick, paused: this.ls.paused, local: sim.local,
@@ -186,6 +200,7 @@ export class GameScene extends Phaser.Scene {
   handleEvents(events) {
     if (!events.length) return;
     if (this.tracker) this.tracker.onEvents(events);
+    if (this.summary) this.summary.onEvents(events, this.sim);
     this.fx.onEvents(events);
     this.hud.onEvents(events);
     // два сундука за кадр: sim уже выдал оба, показываем всё вместе
@@ -317,6 +332,7 @@ export class GameScene extends Phaser.Scene {
     if (this.ls) this._stepCoop(delta / 1000, input);
     else this._stepSolo(dt, input);
     if (this.tracker) this.tracker.observe(sim);
+    if (this.summary) this.summary.observe(sim);
     this._predict(input);
     this.hitCool -= dt;
     this.fx.update(dt);
@@ -350,7 +366,7 @@ export class GameScene extends Phaser.Scene {
       if (this.overlay) { this.scene.stop(this.overlay); this.overlay = null; }
       this.scene.pause('Game');
       this.scene.launch(sim.state === 'victory' ? 'Victory' : 'GameOver', {
-        sim, coop: this.coop, lost: this.lost && !over,
+        sim, coop: this.coop, lost: this.lost && !over, unlocked: this.unlocked,
       });
     }
   }

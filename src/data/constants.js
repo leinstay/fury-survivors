@@ -185,6 +185,9 @@ export const FX = {
     proj_axe: { color: 0xffd9a0, size: 30, alpha: 0.3 },
     proj_firebomb: { color: 0xffa040, size: 28, alpha: 0.4 },
     proj_shield: { color: 0xfff0a0, size: 28, alpha: 0.3 },
+    proj_frost: { color: 0xa0e0ff, size: 30, alpha: 0.35 },
+    proj_wisp: { color: 0x9ff0ff, size: 26, alpha: 0.45 },
+    proj_meteor: { color: 0xff8040, size: 40, alpha: 0.45 },
   },
   hitSquash: { x: 1, y: 1 }, // было 1.18 × 0.82
   // Ходьба (src/render/anim.js): fps — кадров ходьбы в секунду у спрайтов с кадрами; однокадровые подпрыгивают

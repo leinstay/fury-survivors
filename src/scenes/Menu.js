@@ -104,14 +104,17 @@ export class MenuScene extends Phaser.Scene {
     if (view === 'main') {
       this.menuArt();
       const bw = 160;
-      const bh = 28;
-      const y0 = 134;
-      const gap = 36;
+      const bh = 24;
+      const y0 = 118;
+      const gap = 29;
+      const half = (bw - 6) / 2;
       addButton(this, this.nav, { x: cx, y: y0, w: bw, h: bh, label: t('menu.play'), onSelect: () => this.show('hero') });
       addButton(this, this.nav, { x: cx, y: y0 + gap, w: bw, h: bh, label: t('menu.coop'), onSelect: () => this.show('coop') });
-      addButton(this, this.nav, { x: cx, y: y0 + gap * 2, w: bw, h: bh, label: t('menu.leaderboard'), onSelect: () => this.scene.start('Leaderboard') });
-      addButton(this, this.nav, { x: cx, y: y0 + gap * 3, w: bw, h: bh, label: t('menu.codex'), onSelect: () => this.scene.start('Codex', { from: 'Menu' }) });
-      addButton(this, this.nav, { x: cx, y: y0 + gap * 4, w: bw, h: bh, label: t('menu.settings'), onSelect: () => this.show('settings') });
+      addButton(this, this.nav, { x: cx, y: y0 + gap * 2, w: bw, h: bh, label: t('menu.inventory'), onSelect: () => this.scene.start('Inventory') });
+      addButton(this, this.nav, { x: cx, y: y0 + gap * 3, w: bw, h: bh, label: t('menu.achievements'), onSelect: () => this.scene.start('Achievements') });
+      addButton(this, this.nav, { x: cx, y: y0 + gap * 4, w: bw, h: bh, label: t('menu.leaderboard'), onSelect: () => this.scene.start('Leaderboard') });
+      addButton(this, this.nav, { x: cx - (half + 6) / 2, y: y0 + gap * 5, w: half, h: bh, size: 12, label: t('menu.codex'), onSelect: () => this.scene.start('Codex', { from: 'Menu' }) });
+      addButton(this, this.nav, { x: cx + (half + 6) / 2, y: y0 + gap * 5, w: half, h: bh, size: 12, label: t('menu.settings'), onSelect: () => this.show('settings') });
       this.add.text(cx, GAME_HEIGHT - 14, t('menu.hint'), textStyle(10, '#dddddd', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5);
     } else if (view === 'hero') {
       // Выбор героя перед сложностью; последний выбор запоминается и стоит в фокусе.

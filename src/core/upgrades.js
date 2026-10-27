@@ -184,13 +184,14 @@ export function evolutionCard(combo) {
  * Даже одно супероружие идёт через выбор: игрок может его пропустить (sim.skipChest) ради обычного апгрейда.
  * @param {!Object} player данные игрока
  * @param {{int: function(number): number}} rng
+ * @param {number=} max сколько вариантов показать (уникалка greed даёт на один больше)
  * @return {!Array<!Object>} карточки или пустой массив, если готовых супероружий нет
  */
-export function chestChoices(player, rng) {
+export function chestChoices(player, rng, max = CHEST.maxChoices) {
   const all = findEvolutions(player);
   if (!all.length) return [];
   const out = [];
-  while (out.length < CHEST.maxChoices && all.length) {
+  while (out.length < max && all.length) {
     out.push(all.splice(rng.int(all.length), 1)[0]);
   }
   return out.map(evolutionCard);

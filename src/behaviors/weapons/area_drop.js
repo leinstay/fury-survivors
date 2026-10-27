@@ -1,7 +1,96 @@
 // Firebomb: бомба летит в ближайшего врага, взрывается и оставляет огонь на земле.
+// Необязательные поля уровня (src/data/weapons.js):
+//   fireDamage > 0 — огонь на земле duration секунд (без него только взрыв);
+//   delay — время полёта вместо WEAPON_BEHAVIOR.area_drop.flight; fall — снаряд падает сверху с высоты fall px
+//     (метеор), на земле на всё время delay лежит круг-предупреждение, точка удара упреждает врага (lead);
+//   mine — мина: ложится в случайную точку не дальше spread px от героя (первая на объект, если врагов нет),
+//     ждёт до duration секунд и взрывается, когда враг или объект подходит на trigger px (или по истечении).
+// Состояние снаряда p.c: 0 летит, 1 мина на земле.
 import { WEAPON_BEHAVIOR } from '../../data/weapons.js';
 
-const { targetRange: TARGET_RANGE, flight: FLIGHT, fireTick: TICK } = WEAPON_BEHAVIOR.area_drop;
+const AD = WEAPON_BEHAVIOR.area_drop;
+const { targetRange: TARGET_RANGE, flight: FLIGHT, fireTick: TICK } = AD;
+const FLYING = 0;
+const ARMED = 1;
+const buf = new Int32Array(4096);
+
+// Точка падения для i-й бомбы залпа: ближайший ещё не выбранный враг, объект или случайная точка рядом.
+function landing(w, sim, i, prop, stamp) {
+  const P = w.params;
+  const pl = w.owner;
+  if (P.mine) {
+    if (prop && i === 0) return [prop.x, prop.y];
+    const a = sim.rng.next() * Math.PI * 2;
+    const r = P.spread * (0.35 + 0.65 * sim.rng.next());
+    return [pl.x + Math.cos(a) * r, pl.y + Math.sin(a) * r];
+  }
+  const t = prop ? null : sim.nearestEnemy(pl.x, pl.y, TARGET_RANGE, stamp);
+  if (t) {
+    t.mark = stamp;
+    if (!P.fall) return [t.x, t.y];
+    // метеор падает долго: точка удара сдвинута к герою на путь врага за время падения (враги идут на героя)
+    const dx = pl.x - t.x;
+    const dy = pl.y - t.y;
+    const d = Math.sqrt(dx * dx + dy * dy) || 1;
+    const k = Math.min(d * AD.leadMax, t.speed * (P.delay || FLIGHT) * AD.lead) / d;
+    return [t.x + dx * k, t.y + dy * k];
+  }
+  if (prop && i === 0) return [prop.x, prop.y];
+  return [pl.x + (sim.rng.next() - 0.5) * 200, pl.y + (sim.rng.next() - 0.5) * 200];
+}
+
+function explode(p, w, sim) {
+  const P = w.params;
+  const boom = sim.addProjectile('player', w.def.sprite);
+  boom.x = p.a; boom.y = p.b;
+  boom.life = boom.life0 = 0.3;
+  boom.radius = P.area;
+  boom.fx = 'boom';
+  boom.tint = p.tint;
+  boom.dmg = P.damage;
+  boom.kb = P.knockback || 0;
+  boom.once = true;
+  boom.pierce = 1e9;
+  boom.wid = w.id;
+  boom.ws = w;
+  if (P.mine || !(P.fireDamage > 0) || !(P.duration > 0)) return;
+  const fire = sim.addProjectile('player', w.def.sprite);
+  fire.x = p.a; fire.y = p.b;
+  fire.life = fire.life0 = P.duration;
+  fire.radius = P.area * 0.85;
+  fire.fx = 'fire';
+  fire.tint = p.tint;
+  fire.dmg = P.damage * P.fireDamage;
+  fire.rehit = TICK;
+  fire.pierce = 1e9;
+  fire.wid = w.id;
+  fire.slot = w.slot;
+  fire.ws = w;
+}
+
+// Враг или целый объект в радиусе r от мины.
+function touched(p, sim, r) {
+  const en = sim.enemies;
+  const cnt = sim.grid.query(p.x, p.y, r + sim.maxSize, buf);
+  for (let c = 0; c < cnt; c++) {
+    const e = en[buf[c]];
+    if (e.dead) continue;
+    const dx = e.x - p.x;
+    const dy = e.y - p.y;
+    const rr = r + e.size;
+    if (dx * dx + dy * dy <= rr * rr) return true;
+  }
+  const props = sim.props;
+  for (let i = 0; i < props.length; i++) {
+    const o = props[i];
+    if (o.dead) continue;
+    const dx = o.x - p.x;
+    const dy = o.y - p.y;
+    const rr = r + o.radius;
+    if (dx * dx + dy * dy <= rr * rr) return true;
+  }
+  return false;
+}
 
 export const areaDrop = {
   init(w) { w.cooldown = 0.5; },
@@ -16,57 +105,63 @@ export const areaDrop = {
     if (!enemy && !prop) { w.cooldown = 0.15; return; }
     w.cooldown = P.cooldown;
     const stamp = sim.nextStamp();
+    const flight = P.delay || FLIGHT;
     for (let i = 0; i < P.amount; i++) {
-      const t = prop ? null : sim.nearestEnemy(pl.x, pl.y, TARGET_RANGE, stamp);
-      let tx;
-      let ty;
-      if (t) { t.mark = stamp; tx = t.x; ty = t.y; }
-      else if (prop && i === 0) { tx = prop.x; ty = prop.y; }
-      else { tx = pl.x + (sim.rng.next() - 0.5) * 200; ty = pl.y + (sim.rng.next() - 0.5) * 200; }
+      const [tx, ty] = landing(w, sim, i, prop, stamp);
       const p = sim.addProjectile('player', w.def.sprite);
-      p.x = pl.x; p.y = pl.y;
-      p.vx = (tx - pl.x) / FLIGHT;
-      p.vy = (ty - pl.y) / FLIGHT;
-      p.life = FLIGHT;
-      p.scale = 0.8;
+      if (P.fall) {
+        // метеор: падает наискосок сверху, точка удара отмечена кругом
+        p.x = tx + P.fall * AD.fallSlant; p.y = ty - P.fall;
+        const mark = sim.addProjectile('player', w.def.sprite);
+        mark.x = tx; mark.y = ty;
+        mark.life = mark.life0 = flight;
+        mark.radius = P.area;
+        mark.fx = 'aura';
+        mark.tint = AD.markTint;
+        mark.wid = w.id;
+        mark.ws = w;
+      } else {
+        p.x = pl.x; p.y = pl.y;
+      }
+      p.vx = (tx - p.x) / flight;
+      p.vy = (ty - p.y) / flight;
+      p.life = flight;
+      p.scale = P.fall ? 1 : 0.8;
       p.wid = w.id;
       p.ws = w;
       p.bk = areaDrop;
       p.a = tx; p.b = ty;
+      p.c = FLYING;
     }
     sim.events.push({ type: 'weaponFire', weapon: w.id });
   },
   moveProjectile(p, w, sim, dt) {
+    if (p.c === ARMED) {
+      if (w.removed) { p.life = 0; return; }
+      if (touched(p, sim, w.params.trigger)) p.life = 0;
+      return;
+    }
     p.x += p.vx * dt;
     p.y += p.vy * dt;
-    p.angle += 8 * dt;
+    if (!w.params.fall) p.angle += 8 * dt;
   },
   expire(p, w, sim) {
     if (w.removed) return;
     const P = w.params;
-    const boom = sim.addProjectile('player', w.def.sprite);
-    boom.x = p.a; boom.y = p.b;
-    boom.life = boom.life0 = 0.3;
-    boom.radius = P.area;
-    boom.fx = 'boom';
-    boom.tint = p.tint;
-    boom.dmg = P.damage;
-    boom.kb = P.knockback || 0;
-    boom.once = true;
-    boom.pierce = 1e9;
-    boom.wid = w.id;
-    boom.ws = w;
-    const fire = sim.addProjectile('player', w.def.sprite);
-    fire.x = p.a; fire.y = p.b;
-    fire.life = fire.life0 = P.duration;
-    fire.radius = P.area * 0.85;
-    fire.fx = 'fire';
-    fire.tint = p.tint;
-    fire.dmg = P.damage * (P.fireDamage || 0.3);
-    fire.rehit = TICK;
-    fire.pierce = 1e9;
-    fire.wid = w.id;
-    fire.slot = w.slot;
-    fire.ws = w;
+    if (P.mine && p.c === FLYING) {
+      // мина легла: ждёт касания
+      const m = sim.addProjectile('player', w.def.sprite);
+      m.x = p.a; m.y = p.b;
+      m.a = p.a; m.b = p.b;
+      m.life = P.duration;
+      m.tint = p.tint;
+      m.wid = w.id;
+      m.slot = w.slot;
+      m.ws = w;
+      m.bk = areaDrop;
+      m.c = ARMED;
+      return;
+    }
+    explode(p, w, sim);
   },
 };

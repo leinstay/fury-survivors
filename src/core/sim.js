@@ -19,6 +19,11 @@ import { computeStats, critChance } from './stats.js';
 import { createDirector } from './director.js';
 import { createRoads } from './roads.js';
 import * as UP from './upgrades.js';
+import { UNIQUES } from '../data/items.js';
+import { bagBonus, rollChest, rollHearts, bossDrop } from './items.js';
+import {
+  normalizeLoadout, loadoutUnique, loadoutExtra, applyUniqueRules, DICE_STATS,
+} from './loadout.js';
 
 const STAGES = { forest };
 const EMPTY = {};
@@ -114,6 +119,11 @@ class Sim {
     // выбор супероружия из сундука (state 'chest'), см. chooseChest; кооп: показ выпавшего обоим (state 'reveal',
     // shown — что выпало, revealT — сколько ещё показывать)
     this.chest = { cards: [], shown: [], revealT: 0 };
+    // Лоадауты (сумки) по игрокам: o.loadouts[i] (соло — [0]). Лут с боссов (pl.loot) катится своим RNG от
+    // seed: ход забега от него не зависит, а у обоих клиентов коопа он одинаковый.
+    this.loadouts = Array.isArray(o.loadouts) ? o.loadouts : [];
+    this.lootRng = createRng(hashSeed(this.seed, 11, 13));
+    this.bossKills = 0;     // убито боссов (номер следующего сундука с лутом, BOSS_DROPS)
 
     this.grid = new Grid(SIM.gridCellSize, 7, 1024);
     this.pgrid = new Grid(XP.mergeRadius * 2, 7, 2048);
@@ -137,6 +147,8 @@ class Sim {
     const n = this.coop ? Math.min(o.players, COOP.players) : 1;
     for (let i = 0; i < n; i++) this.players.push(this._makePlayer(i, n));
     this.player = this.players[0];
+    // Библия у любого игрока: Жница уязвима в освящённом круге (docs/META.md, 4)
+    this.hasBible = this.players.some((p) => !!(p.uq && p.uq.reaperVulnerable));
     this.view = { x: 0, y: 0, dirX: 1, dirY: 0 };
     this.local = 0;         // индекс игрока за этим экраном (HUD, экраны выбора); сеть ставит 1 у гостя
     this.levelTurn = 0;     // чей ход выбирать карточку (по очереди, индекс растёт с каждым уровнем)
@@ -152,7 +164,10 @@ class Sim {
     const heroDef = HEROES[hero];
     const stats = computeStats(heroDef.stats, [], {});
     const slots = n > 1 ? COOP.slots : SLOTS;
-    return {
+    const bag = normalizeLoadout(this.loadouts[i]);
+    const unique = loadoutUnique(bag);
+    const uq = unique ? UNIQUES[unique] : null;
+    const pl = {
       id: i, hero, heroDef, sprite: heroDef.sprite,
       x: i * 24, y: 0, hp: stats.maxHp, maxHp: stats.maxHp,
       level: 1, xp: 0, xpNext: xpForLevel(1),
@@ -177,7 +192,18 @@ class Sim {
       damageByWeapon: {}, dps: 0, dpsByWeapon: {}, dpsAcc: {}, dpsBuckets: [],
       // телеметрия: полный урон ударов с перебором и число ударов по оружию (src/core/telemetry.js)
       rawByWeapon: {}, hitsByWeapon: {},
+      // сумка и уникалка (действует только на владельца): bonus — bagBonus, uq — эффект из UNIQUES или null;
+      // uqDmg — у уникалки есть множитель урона по обстановке (damageEnemy)
+      bag, bonus: bagBonus(bag), unique, uq,
+      uqDmg: !!(uq && (uq.dmgPerSpeed || uq.dmgPerMissingHp || uq.nearRange)),
+      dynMore: null,     // множители, что меняются в забеге: кости, last_chance
+      dice: null, diceNext: 0, // кости: {up, down} текущей минуты, время следующего броска
+      cheatUsed: false, cheatT: 0, // last_chance: сработал ли, сколько ещё неуязвимости до штрафа HP
+      loot: [],          // сундуки с боссов: [{tier, boss, entries (rollChest), hearts}], разбор после забега
     };
+    if (uq && uq.passiveSlotsAdd) pl.slots.passives += uq.passiveSlotsAdd;
+    if (uq && uq.noNewWeapons) pl.slots.weapons = pl.weapons.length;
+    return pl;
   }
 
   /** Выбор карточек первого игрока (соло). */
@@ -258,6 +284,9 @@ class Sim {
     this.frame++;
     this._markPrev();
     const pl = this.player;
+    for (const p of this.players) {
+      if (p.uq && p.uq.dice && this.time >= p.diceNext) this._rollDice(p);
+    }
     while (this.time >= this.dpsNext) {
       this.dpsNext++;
       this._closeDpsSecond(this);
@@ -317,7 +346,12 @@ class Sim {
     }
     if (pl.iframes > 0) pl.iframes -= dt;
     if (pl.hurtFlash > 0) pl.hurtFlash -= dt;
-    if (pl.stats.regen > 0 && pl.hp < pl.maxHp) {
+    if (pl.cheatT > 0) {
+      pl.cheatT -= dt;
+      if (pl.cheatT <= 0) this._cheatPenalty(pl);
+    }
+    const still = pl.uq && pl.uq.regenOnlyStill;
+    if (pl.stats.regen > 0 && pl.hp < pl.maxHp && !(still && pl.moving)) {
       pl.hp = Math.min(pl.maxHp, pl.hp + pl.stats.regen * dt);
     }
   }
@@ -638,6 +672,7 @@ class Sim {
   // Урон врагу. (sx, sy) — источник для направления отбрасывания; by — игрок-владелец оружия (крит по его статам).
   damageEnemy(e, dmg, wid, kb, sx, sy, by = this.player, component = '') {
     if (e.dead || e.def.invulnerable) return; // жница: урон не проходит, чисел урона нет
+    if (by.uqDmg) dmg *= this._uniqueDmg(by, e);
     const crit = this.rng.next() < this.critChance(by);
     e.lastBy = by.id;
     e.lastWid = wid;
@@ -684,6 +719,7 @@ class Sim {
     });
     if (e.xp > 0) this.dropPickup(xpTierFor(e.xp), e.x, e.y, e.xp);
     if (e.boss) {
+      this._bossLoot(e);
       if (e.def.drop) this.dropPickup(e.def.drop, e.x, e.y);
       if (e.def.final) {
         this.won = true;
@@ -774,6 +810,7 @@ class Sim {
     pl.hurtFlash = PLAYER.hurtFlash;
     this.events.push({ type: 'playerHurt', amount, player: pl.id, src });
     if (pl.stats.thorns > 0) this._thorns(pl);
+    if (pl.hp <= 0 && this._cheatDeath(pl)) return;
     if (pl.hp > 0) return;
     pl.hp = 0;
     if (this.coop) {
@@ -1228,7 +1265,7 @@ class Sim {
         this.player.xp += pk.value * (pl.stats.xpGain ?? 1); // опыт общий (у первого игрока), множитель подобравшего
         break;
       case 'heal':
-        pl.hp = Math.min(pl.maxHp, pl.hp + pk.value);
+        if (!(pl.uq && pl.uq.foodHeals === false)) pl.hp = Math.min(pl.maxHp, pl.hp + pk.value);
         break;
       case 'magnet':
         for (const o of this.pickups) if (o.kind === 'xp' || o.kind === 'coin') o.pulled = true;
@@ -1248,7 +1285,8 @@ class Sim {
   // Сундук достаётся тому, кто его подобрал (pl): его супероружия, его апгрейды.
   _openChest(pl = this.player) {
     // Несколько готовых супероружий: игрок выбирает сам (state 'chest', рендер открывает экран сундука с выбором).
-    const choices = UP.chestChoices(pl, this.rng);
+    const choices = UP.chestChoices(pl, this.rng,
+        CHEST.maxChoices + ((pl.uq && pl.uq.evoChoicesAdd) || 0));
     if (choices.length && this.state === 'running') {
       this.state = 'chest';
       this.chest.cards = choices;
@@ -1535,11 +1573,84 @@ class Sim {
       if (w.beh.init) w.beh.init(w, this);
     }
     const old = pl.maxHp;
-    computeStats(pl.heroDef.stats, pl.passives, pl.stats);
+    computeStats(pl.heroDef.stats, pl.passives, pl.stats,
+        loadoutExtra(pl.bonus, pl.passives, pl.uq, pl.dynMore));
+    applyUniqueRules(pl.stats, pl.uq);
     pl.maxHp = pl.stats.maxHp;
     if (pl.maxHp > old) pl.hp += pl.maxHp - old;
     if (pl.hp > pl.maxHp) pl.hp = pl.maxHp;
     for (let i = 0; i < ws.length; i++) this._refreshWeapon(ws[i]);
+  }
+
+  // ---------- уникалки (docs/META.md 2.8, поля в UNIQUES) ----------
+
+  // Множитель урона владельца уникалки по врагу e: скорость (sprinter), недостающее HP (berserk),
+  // расстояние до врага (myopia).
+  _uniqueDmg(pl, e) {
+    const u = pl.uq;
+    let m = 1;
+    if (u.dmgPerSpeed) {
+      const base = pl.heroDef.stats.speed || 1;
+      m *= Math.max(0, 1 + u.dmgPerSpeed * (pl.stats.speed / base - 1));
+      if (!pl.moving && u.stillDmgMore) m *= 1 + u.stillDmgMore;
+    }
+    if (u.dmgPerMissingHp && pl.maxHp > 0) {
+      m *= 1 + u.dmgPerMissingHp * Math.max(0, 1 - pl.hp / pl.maxHp);
+    }
+    if (u.nearRange) {
+      const dx = e.x - pl.x;
+      const dy = e.y - pl.y;
+      m *= 1 + (dx * dx + dy * dy <= u.nearRange * u.nearRange ? u.nearDmgMore : u.farDmgMore);
+    }
+    return m;
+  }
+
+  // Кости: раз в dice.interval с случайный стат more +up, другой more down (вместо прошлой пары).
+  _rollDice(pl) {
+    const d = pl.uq.dice;
+    const n = DICE_STATS.length;
+    const ui = this.rng.int(n);
+    let di = this.rng.int(n - 1);
+    if (di >= ui) di++;
+    const up = DICE_STATS[ui];
+    const down = DICE_STATS[di];
+    pl.dice = { up, down };
+    pl.diceNext += d.interval;
+    pl.dynMore = { [up]: 1 + d.up, [down]: 1 + d.down };
+    this._syncPlayer(pl);
+    this.events.push({ type: 'dice', player: pl.id, up, down });
+  }
+
+  // last_chance: смертельный удар раз за забег даёт неуязвимость и полное HP; штраф HP — когда она кончится.
+  _cheatDeath(pl) {
+    const c = pl.uq && pl.uq.cheatDeath;
+    if (!c || pl.cheatUsed) return false;
+    pl.cheatUsed = true;
+    pl.hp = pl.maxHp * c.heal;
+    pl.iframes = c.invuln;
+    pl.cheatT = c.invuln;
+    this.events.push({ type: 'lastChance', player: pl.id, x: pl.x, y: pl.y });
+    return true;
+  }
+
+  _cheatPenalty(pl) {
+    pl.cheatT = 0;
+    const more = { ...(pl.dynMore || {}) };
+    more.maxHp = (more.maxHp ?? 1) * (1 + pl.uq.cheatDeath.maxHpMore);
+    pl.dynMore = more;
+    this._syncPlayer(pl);
+  }
+
+  // Сундук с босса номер bossKills (BOSS_DROPS): каждому игроку свой (rollChest + сердца хаоса).
+  _bossLoot(e) {
+    const index = this.bossKills++;
+    const tier = bossDrop(index).tier;
+    for (const pl of this.players) {
+      const entries = rollChest(this.lootRng, tier);
+      const hearts = rollHearts(this.lootRng, index);
+      pl.loot.push({ tier, boss: e.type, entries, hearts });
+    }
+    this.events.push({ type: 'loot', boss: e.type, tier, index });
   }
 
   // Свободный слот таймеров повторного попадания среди оружия всех игроков.
@@ -1565,6 +1676,8 @@ class Sim {
     const st = w.owner.stats;
     p.damage = lv.damage * (st[w.def.dmgType] ?? 1);
     p.cooldown = lv.cooldown / st.haste;
+    const uq = w.owner.uq;
+    if (uq && uq.cooldownMore) p.cooldown *= 1 + uq.cooldownMore;
     if (lv.area !== undefined) p.area = lv.area * st.area;
     if (lv.duration !== undefined) p.duration = lv.duration * st.duration;
   }
@@ -1572,7 +1685,9 @@ class Sim {
 
 /**
  * @param {{hero: (string|undefined), stage: (string|undefined), seed: (number|undefined),
- *     difficulty: (string|undefined), players: (number|undefined)}=} opts players: 2 — кооп
+ *     difficulty: (string|undefined), players: (number|undefined),
+ *     loadouts: (!Array<?Object>|undefined)}=} opts players: 2 — кооп; loadouts — сумки по игрокам
+ *     (формат сохранения, проверяются normalizeLoadout), соло — loadouts[0]
  * @return {!Sim} новая симуляция забега
  */
 export function createSim(opts) {

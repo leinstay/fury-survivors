@@ -4,6 +4,9 @@
 
 export const enAchievements = {
   'ach.title': 'Achievements',
+  'menu.achievements': 'Achievements',
+  'ach.done': 'Done',
+  'ach.new': 'NEW',
   'ach.hidden.name': '???',
   'ach.hidden.desc': 'A secret. Keep playing.',
   'ach.unlocked': 'Achievement unlocked',

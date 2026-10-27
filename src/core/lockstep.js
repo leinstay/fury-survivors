@@ -17,6 +17,9 @@ import { PICKUPS } from '../data/pickups.js';
 import { COOP } from '../data/coop.js';
 import { DIFFICULTIES } from '../data/difficulty.js';
 import { forest } from '../data/stages/forest.js';
+import * as ITEMS from '../data/items.js';
+import { createRng } from './rng.js';
+import { rollItem, makeUnique, createBag, place } from './items.js';
 
 const { NET } = CONSTANTS;
 
@@ -44,7 +47,7 @@ export function hashParts(sim) {
     ['state', sim.state], ['rng', sim.rng.state], ['uid', sim.uid], ['enemies', sim.enemies.length],
     ['projectiles', sim.projectiles.length], ['pickups', sim.pickups.length],
     ['pendingLevels', sim.pendingLevels], ['levelTurn', sim.levelTurn], ['picker', sim.picker],
-    ['overtime', r(sim.overtime)]];
+    ['overtime', r(sim.overtime)], ['lootRng', sim.lootRng.state], ['bossKills', sim.bossKills]];
   for (const p of sim.players) {
     const lu = p.levelUp;
     const k = `p${p.id}.`;
@@ -53,7 +56,8 @@ export function hashParts(sim) {
         [k + 'rerolls', lu.rerolls], [k + 'skips', lu.skips], [k + 'banishes', lu.banishes],
         [k + 'banished', lu.banished.size], [k + 'picks', lu.picks],
         [k + 'weapons', p.weapons.map((w) => `${w.id}${w.level}`).join(' ')],
-        [k + 'passives', p.passives.map((q) => `${q.id}${q.level}`).join(' ')]);
+        [k + 'passives', p.passives.map((q) => `${q.id}${q.level}`).join(' ')],
+        [k + 'bag', bagKey(p.bag)], [k + 'loot', lootKey(p.loot)]);
   }
   let ex = 0;
   let ey = 0;
@@ -64,6 +68,20 @@ export function hashParts(sim) {
   }
   out.push(['enemyX', r(ex)], ['enemyY', r(ey)], ['enemyHp', r(eh)]);
   return out;
+}
+
+// Сумка игрока одной строкой: предметы, место, поворот, заточка (лоадаут из лобби должен совпадать у обоих).
+function bagKey(bag) {
+  if (!bag) return '';
+  return `${bag.cols}x${bag.rows}:` + bag.items.map((e) =>
+    `${e.item.uid}@${e.x},${e.y}${e.rot ? 'r' : ''}+${e.item.enchant || 0}`).join(' ');
+}
+
+// Лут с боссов: uid предметов (или вид записи) и сердца по сундукам.
+function lootKey(loot) {
+  if (!loot) return '';
+  return loot.map((c) => `${c.tier}:` + c.entries.map((e) => (e.item ? e.item.uid : e.kind)).join('.') +
+    `:${c.hearts}`).join('|');
 }
 
 /**
@@ -87,7 +105,7 @@ export function simFingerprint(fresh = false) {
   if (fingerprint !== null && !fresh) return fingerprint;
   const data = JSON.stringify([BUILD, CONSTANTS, HEROES, HERO_BASE, WEAPONS, WEAPON_BEHAVIOR,
     PASSIVES, STATS, STAT_CAPS, STAT_CAPS_REL,
-    COMBOS, ENEMIES, BOSS, BOSSES, PICKUPS, COOP, DIFFICULTIES, forest]);
+    COMBOS, ENEMIES, BOSS, BOSSES, PICKUPS, COOP, DIFFICULTIES, forest, ITEMS]);
   fingerprint = fnv(`${data}|${runFingerprint()}`);
   return fingerprint;
 }
@@ -100,8 +118,20 @@ export function versionTag() {
   return simFingerprint().toString(16).padStart(8, '0').slice(0, 6);
 }
 
+// Лоадауты для отпечатка: обычные предметы у первого, кости (уникалка с бросками) у второго.
+function fingerprintLoadouts() {
+  const rng = createRng(77);
+  let a = createBag();
+  a = place(a, rollItem(rng, 2, { type: 'gloves' }), 0, 0) || a;
+  a = place(a, rollItem(rng, 3, { type: 'ring' }), 2, 0) || a;
+  let b = createBag();
+  b = place(b, makeUnique('dice', 2, 'fpdice'), 0, 0) || b;
+  return [a, b];
+}
+
 function runFingerprint() {
-  const sim = createSim({ seed: 20261022, players: 2, heroes: [], difficulty: 'cursed' });
+  const sim = createSim({ seed: 20261022, players: 2, heroes: [], difficulty: 'cursed',
+    loadouts: fingerprintLoadouts() });
   const dt = 1 / 60;
   for (let i = 0; i < 900; i++) {
     if (sim.state === 'levelup') sim.chooseCard(0, sim.picker);
@@ -111,6 +141,7 @@ function runFingerprint() {
     sim.step(dt, { players: [p0, { x: -p0.y, y: p0.x }] });
     if (sim.state === 'gameover' || sim.state === 'victory') break;
   }
+  sim._bossLoot({ type: 'kitsune_empress' }); // ролл лута с босса (rollChest, rollHearts)
   return hashSim(sim);
 }
 

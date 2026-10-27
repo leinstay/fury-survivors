@@ -8,6 +8,7 @@
 // e.alpha — прозрачность для рендера (blink).
 // Ярость: когда hp ниже def.rage.hpFraction, кулдауны атак умножаются на def.rage.cooldownMul (один раз, событие bossRage).
 import { BOSS } from '../../data/bosses.js';
+import { moveMul } from '../status.js';
 
 const CAST_TIME = BOSS.castTime;
 const TAU = Math.PI * 2;
@@ -99,7 +100,7 @@ export const boss = {
       e.facing = dx >= 0 ? 1 : -1;
       e.pose = 'idle';
     } else if (e.st === 0) {
-      const k = (e.speed * speedMul * dt) / d;
+      const k = (e.speed * speedMul * moveMul(e, sim) * dt) / d;
       e.x += dx * k;
       e.y += dy * k;
       e.moving = true;

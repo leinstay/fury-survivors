@@ -25,6 +25,8 @@ import { createTextInput } from '../ui/dom-input.js';
 import { animateCharacter } from '../render/anim.js';
 import { isSeen, weaponDps, PICKUP_KINDS, validCodexId } from '../core/codex.js';
 import { getCodex, fetchCodex, replaceCodex } from '../services/codex.js';
+import { UNIQUES } from '../data/items.js';
+import { getInventory } from '../services/inventory.js';
 
 const TABS = ['armory', 'characters', 'bestiary', 'bosses', 'chronicle'];
 // Рабочая область: от вкладок до нижней строки кнопок. Слева сетка (или итоги), справа детали.
@@ -149,7 +151,8 @@ function placeFigure(scene, sp, key, scale, x, bottom) {
   return sp.y;
 }
 
-// Записи оружейной по разделам: оружие, эволюции (оружие + пассивка), улучшения.
+// Записи оружейной по разделам: оружие, эволюции (оружие + пассивка), улучшения, уникалки (открыты,
+// когда уникалка хоть раз была у игрока: inventory.seen).
 function armoryEntries() {
   const recipe = {};
   for (const c of COMBOS) recipe[c.result] = c.from;
@@ -159,7 +162,15 @@ function armoryEntries() {
     { sec: 'weapon', items: base.map((id) => ({ kind: 'weapon', type: 'weapon', id })) },
     { sec: 'evolution', items: evolved.map((id) => ({ kind: 'weapon', type: 'evolution', id, from: recipe[id] || null })) },
     { sec: 'passive', items: Object.keys(PASSIVES).map((id) => ({ kind: 'passive', type: 'passive', id })) },
+    { sec: 'unique', items: Object.keys(UNIQUES).map((id) => ({ kind: 'unique', type: 'unique', id })) },
   ];
+}
+
+// Видел ли игрок запись оружейной: уникалки — по инвентарю, остальное — по кодексу.
+function armorySeen(codex, it) {
+  if (it.kind !== 'unique') return isSeen(codex, it.kind, it.id);
+  const inv = getInventory();
+  return !!(inv.seen && inv.seen[it.id]);
 }
 
 // Иконка-силуэт: картинка залита тёмным, у заглушки вместо буквы «?».
@@ -350,28 +361,38 @@ export class CodexScene extends Phaser.Scene {
 
   buildArmory() {
     addPanel(this, LEFT.x + LEFT.w / 2, MID_Y, LEFT.w, AREA_H);
-    const size = 24;
+    const secs = armoryEntries();
+    // клетки помельче, если разделы не влезают по высоте (оружия и уникалок прибавилось)
+    let size = 24;
+    let cols = 11;
+    let head = 26;
+    for (const [s, h] of [[24, 26], [20, 18], [18, 16], [16, 14]]) {
+      size = s;
+      head = h;
+      cols = Math.floor((LEFT.w - 8) / (s + 2));
+      const rows = secs.reduce((n, sec) => n + Math.ceil(sec.items.length / cols), 0);
+      if (secs.length * (head + 2) + rows * (s + 2) + 24 <= AREA_H) break;
+    }
     const step = size + 2;
-    const cols = 11;
     const pad = (LEFT.w - (cols * step - 2)) / 2;
     const x0 = LEFT.x + pad + size / 2;
-    let y = TOP + pad;
+    let y = TOP + Math.min(pad, 8);
     let first = null;
     let found = 0;
     let total = 0;
-    for (const sec of armoryEntries()) {
-      this.add.text(LEFT.x + pad, y, t(`codex.sec.${sec.sec}`), textStyle(10, '#ffd84a')).setOrigin(0, 0);
-      y += 26;
+    for (const sec of secs) {
+      this.add.text(LEFT.x + pad, y, t(`codex.sec.${sec.sec}`), textStyle(head > 20 ? 10 : 9, '#ffd84a')).setOrigin(0, 0);
+      y += head;
       sec.items.forEach((it, i) => {
         const x = x0 + (i % cols) * step;
         const cy = y + Math.floor(i / cols) * step;
         it.key = `${it.type}:${it.id}`;
-        it.seen = isSeen(this.codex, it.kind, it.id);
+        it.seen = armorySeen(this.codex, it);
         total++;
         if (it.seen) found++;
         if (!first || this.sel.armory === it.key) first = it;
         this.cell(it.key, x, cy, size, size, it, () => {
-          const icon = addIcon(this, x, cy, iconKeyFor(it.kind, it.id), 20, it.kind, it.id);
+          const icon = addIcon(this, x, cy, iconKeyFor(it.kind, it.id), size - 4, it.kind, it.id);
           if (!it.seen) darken(icon);
         });
       });
@@ -402,7 +423,7 @@ export class CodexScene extends Phaser.Scene {
       this.add.text(L, y, t('codex.min_level', { n: minLevel }), textStyle(9, '#ffd84a')).setOrigin(0, 0);
       y += 16;
     }
-    if (!it.seen) return;
+    if (!it.seen || it.kind === 'unique') return;
     if (it.kind === 'passive') this.passiveTable(L, y, PASSIVES[it.id]);
     else this.weaponTable(L, y, WEAPONS[it.id]);
   }

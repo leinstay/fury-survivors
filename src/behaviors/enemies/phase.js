@@ -1,5 +1,6 @@
 // Призрак: летит по прямой туда, где был игрок на момент прицеливания (раз в aimEvery с).
 // Не расталкивается с другими врагами, поэтому кольцо призраков сходится к игроку.
+import { moveMul } from '../status.js';
 export const phase = {
   init(e) { e.a = 0; },
   update(e, sim, dt) {
@@ -13,8 +14,9 @@ export const phase = {
       e.vx = (dx / d) * e.speed;
       e.vy = (dy / d) * e.speed;
     }
-    e.x += e.vx * dt;
-    e.y += e.vy * dt;
+    const m = moveMul(e, sim);
+    e.x += e.vx * m * dt;
+    e.y += e.vy * m * dt;
     e.facing = e.vx >= 0 ? 1 : -1;
     e.moving = true;
   },

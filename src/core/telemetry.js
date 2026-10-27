@@ -1,8 +1,10 @@
-// Балансная телеметрия v2. Старые picks/snaps/end остаются читаемыми.
+// Балансная телеметрия v3 (v3: слепок сумки bag — предметы, уникалка, суммы бонусов по статам,
+// src/core/loadout.js bagSnapshot). Старые picks/snaps/end остаются читаемыми.
 // Наблюдатель не расходует RNG и не меняет игровое состояние. Ника и IP нет.
 import { BUILD } from '../data/build.js';
 import { SIM } from '../data/constants.js';
 import { TELEMETRY } from '../data/telemetry.js';
+import { bagSnapshot } from './loadout.js';
 
 const r1 = (v) => Math.round(v * 10) / 10;
 const r2 = (v) => Math.round(v * 100) / 100;
@@ -302,6 +304,8 @@ class Telemetry {
         exactReplay: false, dropped: { ...this.dropped } },
       elapsedMs: this.startedAt == null ? null : Math.round(this.clock() - this.startedAt),
       initial: this.initial, mode: this.coop ? 'duo' : 'solo', hero: p.hero,
+      bag: bagSnapshot(p.bag), loot: (p.loot || []).map((c) => ({ tier: c.tier, hearts: c.hearts,
+        entries: c.entries.map((e) => (e.item ? `${e.item.rarity}:${e.item.type}` : e.kind)) })),
       heroes: sim.players.map((x) => x.hero), stage: sim.stage || 'forest',
       difficulty: sim.difficulty, status, time: r1(sim.time),
       terminal: { state: sim.state, picker: sim.picker, pendingLevels: sim.pendingLevels,

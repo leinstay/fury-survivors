@@ -82,7 +82,7 @@ test('i18n: all values are strings', () => {
 import { WEAPON_BEHAVIORS, ENEMY_BEHAVIORS } from '../../src/behaviors/index.js';
 
 test('data: weapons have behavior, damage type, icon, sprite and full level tables', () => {
-  assert.equal(Object.keys(WEAPONS).filter((id) => !WEAPONS[id].evolved).length, 7);
+  assert.equal(Object.keys(WEAPONS).filter((id) => !WEAPONS[id].evolved).length, 16);
   assert.ok(!WEAPON_BEHAVIORS.combo, 'no collab behavior');
   for (const [id, w] of Object.entries(WEAPONS)) {
     assert.ok(WEAPON_BEHAVIORS[w.behavior], `${id}: unknown behavior ${w.behavior}`);
@@ -117,9 +117,9 @@ test('data: passives are well formed (16, one per stat, 5 levels, i18n)', () => 
 
 test('data: combos use maxed regular weapons and evolved results', () => {
   // по эволюции с пассивкой на каждое оружие, 1 к 1; коллабов (оружие + оружие) нет
-  assert.equal(COMBOS.length, 7);
-  assert.equal(new Set(COMBOS.map((c) => c.from[0])).size, 7, 'one evolution per weapon');
-  assert.equal(new Set(COMBOS.map((c) => c.from[1])).size, 7, 'one evolution per passive');
+  assert.equal(COMBOS.length, 16);
+  assert.equal(new Set(COMBOS.map((c) => c.from[0])).size, 16, 'one evolution per weapon');
+  assert.equal(new Set(COMBOS.map((c) => c.from[1])).size, 16, 'one evolution per passive');
   for (const c of COMBOS) {
     assert.equal(WEAPONS[c.result].dmgType, WEAPONS[c.from[0]].dmgType, `${c.result}: dmgType of its weapon`);
     for (const id of c.from) assert.ok(PASSIVES[id] || !WEAPONS[id].evolved, `${id} is evolved`);
