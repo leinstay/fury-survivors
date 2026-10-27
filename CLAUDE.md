@@ -22,7 +22,7 @@ src/
     telemetry.js           телеметрия для баланса: коллекция fury_runs, шаг срезов, лимиты
     stats.js               статы героя: процентные (increased/more) и плоские, капы
     items.js               предметы: типы и формы, аффиксы, редкости, таблицы сундуков, уникалки, крафт, сумка, стеш
-    achievements.js        ачивки: условия, награды (валюта, столбцы и ряд сумки), хранение
+    achievements.js        ачивки: условия, награды (валюта, столбцы и ряд сумки), постоянный бонус к стату, хранение
     heroes.js              герои: статы, стартовое оружие, спрайт (heroine мечница, mage магесса); выбор в меню и лобби
     weapons.js             оружие: behavior, dmgType (steel/magic), 5 уровней (урон, кулдаун, количество, area...)
     passives.js            пассивки и статы по уровням
@@ -58,7 +58,7 @@ src/
   render/                  Phaser-слой: синхронизирует спрайты с sim, анимация, эффекты; decor.js декор с логикой расстановки, roads.js песок дорог по чанкам; reaper.js круги и часы Жницы
     anim.js                процедурная ходьба/покачивание/наклон/вспышка/смерть
     fx.js                  частицы, числа урона, тряска, хитстоп
-  scenes/                  Boot, Menu (выбор героя, вид Co-op), Lobby (код, герои, сложность, старт), Game, LevelUp, Chest, Pause, GameOver, Victory, Leaderboard, Codex (Armory, Bestiary, Bosses, Chronicle; из меню и паузы), Inventory (сумка, стеш, пресеты, крафт), Achievements
+  scenes/                  Boot, Menu (выбор героя, вид Co-op), Lobby (код, герои, сложность, старт), Game, LevelUp, Chest, Pause, GameOver, Victory, Leaderboard, Codex (Armory, Bestiary, Bosses, Chronicle; из меню и паузы), Inventory (сумка, стеш, пресеты, крафт), Achievements, Toast (плашки ачивок поверх всех сцен)
   services/                leaderboard.js (таблицы соло и коопа, ip), net.js (WebRTC + сигналинг через Firestore rooms, логи `[fury-net]` в консоль), codex.js (кодекс в localStorage + копия в Firestore fury_codex/{id}, восстановление по id), telemetry.js (забег в Firestore fury_runs), inventory.js (стеш и сумка: localStorage + fury_inventory), achievements.js (localStorage + fury_achievements), firebase.js, nick-store.js
   ui/                      фокус-навигация (focus.js) (клава/мышь/геймпад), HUD (счёт, DPS, миникарта), экранный джойстик; settings.js настройки (свечение снарядов, свечение своего героя, миникарта, DPS, последний герой и сложность); hero-picker.js карточки выбора героя (сетка от 3 героев); dom-input.js текстовое поле (ник, код) поверх холста; clipboard.js копирование в буфер (код лобби по тапу); text-align.js центрует текст по пикселям; fullscreen.js полный экран на телефоне (кнопка Play и настройка, не любое касание); items.js картинка предмета, подсказка, сетка сумки, панель статов; loot.js экран лута после забега; toast.js плашки ачивок
   audio/sfx.js             воспроизведение звуков, рандом тона, лимит одновременных

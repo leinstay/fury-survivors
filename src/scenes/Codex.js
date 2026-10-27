@@ -687,7 +687,7 @@ export class CodexScene extends Phaser.Scene {
 
     const pct = (v) => `${Math.round(v * 100)}%`;
     const stats = [
-      [t('stat.hp'), String(st.maxHp)], [t('stat.steel'), pct(st.steel)], [t('stat.magic'), pct(st.magic)],
+      [t('stat.hp'), String(st.maxHp)], [t('stat.attack'), pct(st.attack)], [t('stat.magic'), pct(st.magic)],
       [t('stat.spd'), String(st.speed)], [t('stat.crt'), pct(st.crit)], [t('stat.haste'), pct(st.haste)],
       [t('stat.pickup'), pct(st.pickup)], [t('stat.armor'), String(st.armor)],
     ];

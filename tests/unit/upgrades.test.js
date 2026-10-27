@@ -91,13 +91,13 @@ test('upgrades: evolution needs the weapon maxed and its passive, then replaces 
 test('upgrades: chestChoices lists ready evolutions, chestItems can skip them', () => {
   const p = {
     weapons: [{ id: 'blade_arc', level: WEAPONS.blade_arc.maxLevel }, { id: 'war_axe', level: WEAPONS.war_axe.maxLevel }],
-    passives: [{ id: 'steel', level: 1 }, { id: 'crit', level: 1 }],
+    passives: [{ id: 'attack', level: 1 }, { id: 'crit', level: 1 }],
   };
-  // blade_arc + steel, war_axe + crit → две
+  // blade_arc + attack, war_axe + crit → две
   const choices = chestChoices(p, createRng(1));
   assert.deepEqual(choices.map((c) => c.id).sort(), ['crimson_arc', 'death_spiral']);
   assert.ok(choices.every((c) => c.evolved && c.from.length === 2));
-  p.passives = [{ id: 'steel', level: 1 }];
+  p.passives = [{ id: 'attack', level: 1 }];
   // одно готовое супероружие тоже идёт через выбор (его можно пропустить); без готовых — пусто
   assert.equal(chestChoices(p, createRng(1)).length, 1);
   p.weapons[0].level = 1;
@@ -109,7 +109,7 @@ test('upgrades: chestChoices lists ready evolutions, chestItems can skip them', 
   // четыре готовых: показываются не больше CHEST.maxChoices, все разные
   p.weapons.push({ id: 'holy_ground', level: WEAPONS.holy_ground.maxLevel },
       { id: 'storm_chain', level: WEAPONS.storm_chain.maxLevel });
-  p.passives = [{ id: 'steel', level: 1 }, { id: 'crit', level: 1 }, { id: 'regen', level: 1 }, { id: 'luck', level: 1 }];
+  p.passives = [{ id: 'attack', level: 1 }, { id: 'crit', level: 1 }, { id: 'regen', level: 1 }, { id: 'luck', level: 1 }];
   const four = chestChoices(p, createRng(2));
   assert.equal(four.length, CHEST.maxChoices);
   assert.equal(new Set(four.map((c) => c.id)).size, four.length);

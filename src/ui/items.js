@@ -39,7 +39,7 @@ function num(stat, v, flat, unit = true) {
   return `${sign}${a.toFixed(1)}`;
 }
 
-/** Строка аффикса: «Steel +3.2%  [−2.5 … +5.0]», цвет (минус красный, обязательный ярче). */
+/** Строка аффикса: «Attack +3.2%  [−2.5 … +5.0]», цвет (минус красный, обязательный ярче). */
 export function affixText(line) {
   const range = `[${num(line.stat, line.min, line.flat, false)} … ${num(line.stat, line.max, line.flat, false)}]`;
   return {
@@ -147,7 +147,7 @@ export class ItemTooltip {
 }
 
 /**
- * Сетка сумки 9×5: открытые клетки, закрытые затемнены, предметы по местам.
+ * Сетка сумки BAG.w × BAG.h: открытые клетки, закрытые затемнены, предметы по местам.
  * Координаты клетки по точке: cellAt(px, py) → {x, y} или null.
  */
 export class BagView {
@@ -240,7 +240,36 @@ function statOver(k, v) {
 }
 
 /**
- * Панель статов героя (loadoutReport): все статы, отличие от базы цветом, упор в кап «(max)» и перебор.
+ * Прибавка к стату: «+2%», «+0.5», «+0.10/s» (процентные и доли шанса — в процентах).
+ * @param {string} k стат
+ * @param {number} v increased у процентных, прибавка у плоских
+ * @return {string}
+ */
+export function statDelta(k, v) {
+  const sign = v < 0 ? '−' : '+';
+  const a = Math.abs(v);
+  if (k === 'regen') return `${sign}${a.toFixed(2)}/s`;
+  if (STATS[k] === 'flat' && k !== 'crit' && k !== 'dodge' && k !== 'critDmg') {
+    return `${sign}${Math.round(a * 10) / 10}`;
+  }
+  return `${sign}${Math.round(a * 1000) / 10}%`;
+}
+
+/** Бонус ачивки ({stat: v}) строкой: «+2% Attack, +2% Magic». */
+export function bonusText(bonus) {
+  return Object.keys(bonus || {}).filter((k) => STATS[k] && bonus[k])
+      .map((k) => t('ach.bonus.part', { v: statDelta(k, bonus[k]), stat: t(`item.stat.${k}`) }))
+      .join(', ');
+}
+
+// Цвета вкладов в панели статов: пассивки, предметы сумки, ачивки.
+export const PART_CSS = { passives: '#7fb8ff', items: '#d29bff', ach: '#ffd84a' };
+const PARTS = ['passives', 'items', 'ach'];
+
+/**
+ * Панель статов героя (loadoutReport): итог, отличие от базы цветом, упор в кап «(max)» и перебор,
+ * перед итогом — вклады источников (parts): пассивки, предметы (и × more уникалок), ачивки.
+ * Легенда цветов вкладов — в строке заголовка справа.
  * @param {!Object} report loadoutReport(...)
  * @param {!Object} base итог без сумки (statReport без extra) для сравнения
  * @return {!Array} созданные объекты
@@ -249,13 +278,18 @@ export function addStatsPanel(scene, x, y, w, h, report, base, title = t('inv.st
   const before = new Set(scene.children.list);
   addPanel(scene, x + w / 2, y + h / 2, w, h);
   scene.add.text(x + 6, y + 4, title, textStyle(10, '#ffd84a')).setOrigin(0, 0);
+  let lx = x + w - 6;
+  for (const part of [...PARTS].reverse()) {
+    const o = scene.add.text(lx, y + 6, t(`inv.part.${part}`), textStyle(7, PART_CSS[part])).setOrigin(1, 0);
+    lx -= o.width + 4;
+  }
   const keys = Object.keys(STATS);
   const line = Math.min(12, Math.floor((h - 22) / keys.length));
   keys.forEach((k, i) => {
     const r = report[k];
     if (!r) return;
     const yy = y + 20 + i * line;
-    scene.add.text(x + 6, yy, t(`item.stat.${k}`), textStyle(9, COLORS.dim)).setOrigin(0, 0);
+    const label = scene.add.text(x + 6, yy, t(`item.stat.${k}`), textStyle(9, COLORS.dim)).setOrigin(0, 0);
     const b = base && base[k] ? base[k].value : r.value;
     const diff = r.value - b;
     const color = Math.abs(diff) < 1e-6 ? '#ffffff' : diff > 0 ? '#8cff6a' : '#ff7070';
@@ -264,7 +298,25 @@ export function addStatsPanel(scene, x, y, w, h, report, base, title = t('inv.st
       const over = r.raw - r.cap;
       text += over > 1e-6 ? ` ${t('inv.max_over', { n: statOver(k, over) })}` : ` ${t('inv.max')}`;
     }
-    scene.add.text(x + w - 6, yy, text, textStyle(9, r.capped ? '#ffd84a' : color)).setOrigin(1, 0);
+    const val = scene.add.text(x + w - 6, yy, text, textStyle(9, r.capped ? '#ffd84a' : color))
+        .setOrigin(1, 0);
+    // вклады справа налево перед итогом; не влезают — не рисуются (итог важнее)
+    const pr = r.parts;
+    if (!pr) return;
+    const segs = [];
+    for (const p of PARTS) {
+      if (Math.abs(pr[p]) > 1e-6) segs.push({ p, s: t('inv.part', { v: statDelta(k, pr[p]) }) });
+      if (p === 'items' && Math.abs(pr.more - 1) > 1e-6) {
+        segs.push({ p, s: t('inv.part.more', { v: Math.round(pr.more * 100) / 100 }) });
+      }
+    }
+    let px = val.x - val.width - 3;
+    const minX = label.x + label.width + 3;
+    for (const seg of segs.reverse()) {
+      const o = scene.add.text(px, yy + 1, seg.s, textStyle(7, PART_CSS[seg.p])).setOrigin(1, 0);
+      if (o.x - o.width < minX) { o.destroy(); break; }
+      px -= o.width + 2;
+    }
   });
   return scene.children.list.filter((o) => !before.has(o));
 }

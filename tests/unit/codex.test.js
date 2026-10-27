@@ -263,10 +263,9 @@ test('codex tracker on a real co-op sim: own kills of both players sum to team k
   assert.equal(ra.run.kills + rb.run.kills, sim.kills);
 });
 
-test('codex: old Attack passive stays unlocked as Steel, removed collabs are dropped', () => {
+test('codex: Attack passive stays unlocked, removed collabs are dropped', () => {
   const c = normalizeCodex({ v: 1,
     seen: { passive: { attack: 1 }, weapon: { phantom_blades: 1, blade_arc: 1 } } });
-  assert.ok(c.seen.passive.steel);
-  assert.ok(!c.seen.passive.attack);
+  assert.ok(c.seen.passive.attack);
   assert.ok(!c.seen.weapon.phantom_blades && c.seen.weapon.blade_arc);
 });

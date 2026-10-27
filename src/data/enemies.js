@@ -48,7 +48,7 @@ export const ENEMIES = {
     elite: elite(),
   },
   foxgirl: {
-    sprite: 'foxgirl', behavior: 'dash', hp: 160, speed: 50, damage: 12, xp: 6, size: 9, knockbackResist: 0.2,
+    sprite: 'foxgirl', behavior: 'dash', hp: 140, speed: 50, damage: 12, xp: 6, size: 9, knockbackResist: 0.2,
     params: { range: 140, windup: 0.55, dashSpeed: 240, dashTime: 0.35, cooldown: 2.4 },
     elite: elite(),
   },
@@ -63,7 +63,7 @@ export const ENEMIES = {
     elite: elite(),
   },
   lamia: {
-    sprite: 'lamia', behavior: 'chase', hp: 700, speed: 48, damage: 14, xp: 12, size: 11, knockbackResist: 0.6,
+    sprite: 'lamia', behavior: 'chase', hp: 500, speed: 48, damage: 14, xp: 12, size: 11, knockbackResist: 0.6,
     params: {},
     elite: elite(),
   },

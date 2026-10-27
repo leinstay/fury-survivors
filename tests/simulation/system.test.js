@@ -80,7 +80,8 @@ test('honest solo and duo traces replay every checkpoint and reject altered inpu
     assert.equal(replay(r.trace).matched, true);
     const bad = structuredClone(r.trace);
     bad.inputs[0][1] += 0.5;
-    assert.throws(() => replay(bad), /diverged|differs/);
+    // изменённый ввод отвергается: расхождение по чекпоинту или невозможная команда экрана
+    assert.throws(() => replay(bad), /diverged|differs|Illegal replay command/);
     assert.equal(r.interventions.length, 0);
   }
 });

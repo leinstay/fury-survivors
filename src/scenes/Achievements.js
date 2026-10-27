@@ -1,5 +1,6 @@
 // Ачивки (из меню): список в две колонки по порядку src/data/achievements.js — имя, описание, награда,
-// прогресс счётчика (achievementProgress), полученные ярче, новые с плашкой. Скрытые до получения: «???».
+// прогресс счётчика (achievementProgress), постоянный бонус к статам (зелёный у полученных), полученные ярче,
+// новые с плашкой. Скрытые до получения: «???».
 // Открытие отмечает полученные показанными (markAchievementsSeen).
 import { t } from '../i18n/index.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
@@ -11,6 +12,7 @@ import { achievementProgress, achievementParams, isDone, unseenIds, achievedIds 
 import { getAchievements, markAchievementsSeen, checkMetaAchievements } from '../services/achievements.js';
 import { getInventory } from '../services/inventory.js';
 import { getCodex } from '../services/codex.js';
+import { bonusText } from '../ui/items.js';
 
 const M = 8;
 const TOP = 34;
@@ -55,7 +57,11 @@ export class AchievementsScene extends Phaser.Scene {
       addPanel(this, L + colW / 2, y, colW, ROW - 2, done ? { border: 0xb89a3a } : {});
       const name = masked ? t('ach.hidden.name') : t(`ach.${id}.name`);
       const desc = masked ? t('ach.hidden.desc') : t(`ach.${id}.desc`, achievementParams(id));
-      this.add.text(L + 6, y - 9, name, textStyle(9, done ? '#ffd84a' : '#ffffff')).setOrigin(0, 0);
+      const nm = this.add.text(L + 6, y - 9, name, textStyle(9, done ? '#ffd84a' : '#ffffff')).setOrigin(0, 0);
+      if (!masked && def.bonus) {
+        this.add.text(nm.x + nm.width + 6, y - 8, bonusText(def.bonus),
+            textStyle(7, done ? '#8cff6a' : '#6f8f6a')).setOrigin(0, 0);
+      }
       this.add.text(L + 6, y + 1, desc, textStyle(7, done ? '#dddddd' : COLORS.dim)).setOrigin(0, 0);
       const right = L + colW - 6;
       this.add.text(right, y - 9, masked ? '' : rewardText(def.reward), textStyle(8, '#9ad0ff')).setOrigin(1, 0);

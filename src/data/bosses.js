@@ -44,7 +44,7 @@ export const BOSS = {
 
 export const BOSSES = {
   kitsune_empress: {
-    sprite: 'kitsune_empress', behavior: 'boss', hp: 3200, hpPerLevel: 240, speed: 38, damage: 17, xp: 0, size: 36, knockbackResist: 1,
+    sprite: 'kitsune_empress', behavior: 'boss', hp: 3200, hpPerLevel: 250, speed: 38, damage: 17, xp: 0, size: 36, knockbackResist: 1,
     attacks: [
       { type: 'fan', cooldown: 3.6, count: 3, spread: 36, speed: 110, damage: 8, life: 4, volleys: 2, interval: 0.5 },
       { type: 'blink', cooldown: 8, delay: 0.7, distance: 80, fadeIn: 0.35 },
@@ -54,7 +54,7 @@ export const BOSSES = {
     drop: 'chest',
   },
   harpy_queen: {
-    sprite: 'harpy_queen', behavior: 'boss', hp: 22000, hpPerLevel: 400, speed: 62, damage: 15, xp: 0, size: 36, knockbackResist: 1,
+    sprite: 'harpy_queen', behavior: 'boss', hp: 22000, hpPerLevel: 500, speed: 62, damage: 15, xp: 0, size: 36, knockbackResist: 1,
     attacks: [
       { type: 'dash', cooldown: 4.5, windup: 0.55, speed: 340, time: 0.55 },
       { type: 'ring', cooldown: 7, count: 14, volleys: 5, interval: 0.28, spin: 0.22, speed: 100, damage: 15, life: 4.5 },
@@ -64,7 +64,7 @@ export const BOSSES = {
     drop: 'chest',
   },
   dryad_queen: {
-    sprite: 'dryad_queen', behavior: 'boss', hp: 60000, hpPerLevel: 1200, speed: 34, damage: 18, xp: 0, size: 38, knockbackResist: 1,
+    sprite: 'dryad_queen', behavior: 'boss', hp: 60000, hpPerLevel: 1000, speed: 34, damage: 18, xp: 0, size: 38, knockbackResist: 1,
     attacks: [
       { type: 'dash', cooldown: 5, windup: 0.8, speed: 260, time: 0.6 },
       { type: 'summon', cooldown: 6, enemy: 'catgirl', count: 10, radius: 90 },
@@ -88,12 +88,12 @@ export const BOSSES = {
   //
   // HP: сильная сборка T3 к 20:00 ~1500-2500 DPS по одной цели; круг живёт 15 из 20 с, Жница в нём примерно
   // половину времени при хорошем кайтинге — 60-90 с боя дают ~35-45 с урона. Уровень к 20:00 ~60-70:
-  // 1300 × 65 ≈ 85k.
+  // 750 × 65 ≈ 49k (меньше, чем у Дриады за уровень: бьёшь её не всё время, только в круге; число задал владелец).
   reaper: {
     sprite: 'reaper', behavior: 'chase', hp: 1, speed: 70, damage: 18, xp: 0, size: 45, knockbackResist: 1,
     attacks: [], invulnerable: true, oneShot: true, lootIndex: 3, victory: true,
     holy: {
-      hpPerLevel: 1300,      // HP Жницы при Библии: × уровень игрока при появлении (кооп × COOP.bossHpMul)
+      hpPerLevel: 750,       // HP Жницы при Библии: × уровень игрока при появлении (кооп × COOP.bossHpMul)
       first: 4,              // с после появления до первого круга
       every: 20, life: 15,   // с: раз в every новый круг, живёт life (вместе с проявлением)
       warn: 1.5,             // с проявления: круг виден, но ещё не действует

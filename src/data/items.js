@@ -4,20 +4,21 @@
 // Статы, которые бывают на предметах. Процентные идут в increased (доля, 0.1 = +10%),
 // плоские прибавляются как есть (crit и dodge — доли шанса, armor — единицы, regen — HP/с,
 // thorns — урон).
-export const ITEM_PERCENT_STATS = ['maxHp', 'steel', 'magic', 'speed', 'critDmg', 'area',
+export const ITEM_PERCENT_STATS = ['maxHp', 'attack', 'magic', 'speed', 'critDmg', 'area',
   'duration', 'pickup', 'haste', 'luck', 'xpGain'];
 export const ITEM_FLAT_STATS = ['crit', 'dodge', 'armor', 'regen', 'thorns'];
 export const ITEM_STATS = [...ITEM_PERCENT_STATS, ...ITEM_FLAT_STATS];
 
 // Ориентир силы: сколько стата даёт вкачанная пассивка (уровень 5). Для старых пассивок
-// это их числа (attack L5 = +0.5 → steel/magic 0.5), для новых статов — оценка.
-// Защита (maxHp, armor, regen, dodge) и speed на предметах намеренно слабее пассивки (0.3 от max_hp L5,
-// 0.4 от armor L5...): боты с полной сумкой T2 выживали почти всегда, проверка ботами —
-// docs/BALANCE_AUDIT.md, раздел 11. База аффикса на единицу бюджета = ref × ITEM_POWER.scale.
+// это их числа (attack L5 = +0.5 → attack/magic 0.5), для новых статов — оценка.
+// Защита (maxHp, armor, regen, dodge) тоже равна пассивке L5: большой предмет (2×3, T2) даёт около одного уровня
+// защитной пассивки, то есть ≈ +1 удар запаса на 10:00 (tools/simulation/defense.mjs, docs/BALANCE_AUDIT.md 12);
+// раньше было 0.3–0.4 от пассивки, и предмет давал неощутимые +8 HP. speed пока 0.25 от пассивки.
+// База аффикса на единицу бюджета = ref × ITEM_POWER.scale.
 export const STAT_REF = {
-  maxHp: 0.3, steel: 0.5, magic: 0.5, speed: 0.25, critDmg: 0.75, area: 0.5, duration: 0.5,
+  maxHp: 1.0, attack: 0.5, magic: 0.5, speed: 0.25, critDmg: 0.75, area: 0.5, duration: 0.5,
   pickup: 1.25, haste: 0.4, luck: 0.5, xpGain: 0.5,
-  crit: 0.25, dodge: 0.08, armor: 2, regen: 0.35, thorns: 20,
+  crit: 0.25, dodge: 0.4, armor: 9, regen: 0.6, thorns: 20,
 };
 
 export const ITEM_POWER = {
@@ -48,7 +49,7 @@ export const ITEM_TYPES = {
     implicit: null },
   belt:   { weight: 7, shapes: [{ size: [2, 1], weight: 1 }], implicit: ['regen', 'maxHp'] },
   gloves: { weight: 6, shapes: [{ size: [2, 2], weight: 1 }],
-    implicit: ['haste', 'steel', 'magic'] },
+    implicit: ['haste', 'attack', 'magic'] },
   boots:  { weight: 6, shapes: [{ size: [2, 2], weight: 1 }], implicit: ['speed', 'dodge'] },
   helm:   { weight: 6, shapes: [{ size: [2, 2], weight: 1 }], implicit: ['armor', 'maxHp'] },
   shield: { weight: 5, shapes: [{ size: [2, 2], weight: 2 }, { size: [2, 3], weight: 1 }],
@@ -57,13 +58,13 @@ export const ITEM_TYPES = {
   weapon: { weight: 5, shapes: [
     { size: [1, 3], weight: 3 }, { size: [2, 3], weight: 3 },
     { size: [1, 4], weight: 2 }, { size: [2, 4], weight: 1 },
-  ], implicit: ['steel', 'magic'] },
+  ], implicit: ['attack', 'magic'] },
   relic:  { weight: 0, shapes: [{ size: [3, 3], weight: 1 }], implicit: [] },
 };
 
 // Вес аффикса (ходовые чаще). Им же выбирается обязательный внутри пула типа.
 export const AFFIX_WEIGHTS = {
-  maxHp: 10, steel: 8, magic: 8, speed: 7, crit: 6, critDmg: 5, area: 6, duration: 5,
+  maxHp: 10, attack: 8, magic: 8, speed: 7, crit: 6, critDmg: 5, area: 6, duration: 5,
   pickup: 6, haste: 6, luck: 5, armor: 7, regen: 6, xpGain: 4, dodge: 3, thorns: 3,
 };
 
@@ -102,7 +103,7 @@ export const BOSS_DROPS = [
 export const UNIQUES = {
   bible:        { type: 'relic', size: [3, 3], minTier: 3, reaperVulnerable: true },
   glass_cannon: { type: 'weapon', size: [1, 3], minTier: 2,
-    more: { steel: 1, magic: 1 }, maxHpSet: 1, armorOff: true },
+    more: { attack: 1, magic: 1 }, maxHpSet: 1, armorOff: true },
   kaom_heart:   { type: 'armor', size: [2, 3], minTier: 2,
     more: { regen: 1 }, regenOnlyStill: true },
   greed:        { type: 'ring', size: [1, 1], minTier: 2, evoChoicesAdd: 1, foodHeals: false },
@@ -110,7 +111,7 @@ export const UNIQUES = {
   turtle:       { type: 'shield', size: [2, 3], minTier: 2, more: { armor: 2, speed: -0.4 } },
   berserk:      { type: 'gloves', size: [2, 2], minTier: 2, dmgPerMissingHp: 1, regenOff: true },
   spiked_shell: { type: 'shield', size: [2, 2], minTier: 2,
-    more: { thorns: 2, steel: -0.3, magic: -0.3 } },
+    more: { thorns: 2, attack: -0.3, magic: -0.3 } },
   last_chance:  { type: 'amulet', size: [1, 1], minTier: 2,
     cheatDeath: { invuln: 3, heal: 1, maxHpMore: -0.5 } },
   myopia:       { type: 'helm', size: [2, 2], minTier: 2,
@@ -123,14 +124,15 @@ export const UNIQUES = {
     dice: { interval: 60, up: 0.3, down: -0.15 } },
 };
 
-// Сумка: сетка 9×5, открыто 7×4, ачивки открывают столбцы и ряд (id из docs/META.md, 5).
+// Сумка: сетка 9×6, открыто 7×4, ачивки открывают столбцы и ряд (id из docs/META.md, 5).
 export const BAG = {
-  w: 9, h: 5,
+  w: 9, h: 6,
   startCols: 7, startRows: 4,
   unlocks: {
     three_crowns: { cols: 1 },
     hoarder: { cols: 1 },
     tetris: { rows: 1 },
+    evolutionist: { rows: 1 },
   },
   maxUniques: 1,
   diversityPerType: 0.02, // +2% ко всем аффиксам за каждый разный тип в сумке

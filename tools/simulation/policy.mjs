@@ -2,6 +2,8 @@ import { createRng, hashSeed } from '../../src/core/rng.js';
 import { COMBOS } from '../../src/data/combos.js';
 import { cardFeatures, linearScore, probabilities } from './features.mjs';
 import { MODEL } from './model.mjs';
+import { BUILD_BIAS } from './profiles.mjs';
+import { WEAPONS } from '../../src/data/weapons.js';
 
 function sample(scores, rng, temperature) {
   const ps = probabilities(scores, temperature);
@@ -51,7 +53,16 @@ export function createPolicy({ seed = 1, profile, evolution = true, model = MODE
     if (c.id === target) v += 4;
     if (profile.intent === 'focus' && c.id === focus) v += 2.4;
     if (profile.intent === 'defensive' && ['armor', 'regen', 'max_hp'].includes(c.id)) v += 1.5;
-    if (o.self.hp / o.self.maxHp < 0.35 && ['armor', 'regen', 'max_hp'].includes(c.id)) v += 0.9;
+    if (profile.build && c.kind === 'passive') {
+      v += BUILD_BIAS[profile.build][c.id] || 0;
+      // glass: урон своего типа (большинство оружия attack или magic), чужой тип почти не нужен
+      if (profile.build === 'glass' && (c.id === 'attack' || c.id === 'magic')) {
+        const magic = o.self.w.filter(([id]) => WEAPONS[id]?.dmgType === 'magic').length;
+        const main = magic * 2 >= o.self.w.length ? 'magic' : 'attack';
+        v += c.id === main ? 1.5 : -4;
+      }
+    }
+    if (!profile.build && o.self.hp / o.self.maxHp < 0.35 && ['armor', 'regen', 'max_hp'].includes(c.id)) v += 0.9;
     return v;
   };
   const choose = (o) => {

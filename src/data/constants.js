@@ -190,6 +190,9 @@ export const FX = {
     proj_meteor: { color: 0xff8040, size: 40, alpha: 0.45 },
   },
   hitSquash: { x: 1, y: 1 }, // было 1.18 × 0.82
+  // Белая вспышка при попадании (src/render/world.js): горит show с, потом gap с не загорается, даже если
+  // попадания идут подряд (иначе под аурой или у босса спрайт белый всё время). Время в с.
+  hitBlink: { mob: { show: 0.08, gap: 0.1 }, boss: { show: 0.05, gap: 0.3 } },
   // Ходьба (src/render/anim.js): fps — кадров ходьбы в секунду у спрайтов с кадрами; однокадровые подпрыгивают
   // на hop целых px мира, steps шагов в секунду; летуны парят на hoverHeight px, качаясь на ±hover px.
   walk: { fps: 8, steps: 2.4, hop: 0, hover: 0, hoverHeight: 6, hoverSpeed: 4 }, // было hop 1, hover 2

@@ -14,6 +14,9 @@ export function createDirector(stage, rng) {
   let idx = 0;
   const warned = new Set(); // боссы, о которых уже предупредили
   const active = []; // активные spawn-события { ev, acc, check }
+  // События с afterBoss: N ждут, пока убито N боссов (sim.bossKills, детерминировано и в коопе).
+  // Разовые срабатывают в момент убийства, если их время уже прошло; spawn живёт в своём окне at..until.
+  const pending = [];
   const ot = stage.overtime || null;
   // овертайм: накопитель групп, индекс типа, таймеры кольца и элиты, предупреждение и приход жницы
   const otState = { acc: 0, next: 0, ring: 0, elite: 0, reaperWarned: false, reaper: false };
@@ -169,7 +172,14 @@ export function createDirector(stage, rng) {
           }
         }
       }
-      while (idx < events.length && events[idx].at <= t) start(events[idx++], sim);
+      while (idx < events.length && events[idx].at <= t) {
+        const ev = events[idx++];
+        if (ev.afterBoss && sim.bossKills < ev.afterBoss) pending.push(ev);
+        else start(ev, sim);
+      }
+      for (let i = 0; i < pending.length; i++) {
+        if (sim.bossKills >= pending[i].afterBoss) start(pending.splice(i--, 1)[0], sim);
+      }
       for (let i = active.length - 1; i >= 0; i--) {
         const a = active[i];
         const ev = a.ev;

@@ -1,4 +1,6 @@
 // Лоадаут (надетая сумка) в забеге: проверка, бонус к статам, эффекты уникалки, слепок для телеметрии.
+// Лоадаут = сумка {cols, rows, items} + ach: [id] — полученные ачивки с постоянным бонусом
+// (src/data/achievements.js, поле bonus). В коопе оба поля уходят напарнику через лобби вместе с сумкой.
 // Чистая логика без Phaser и DOM. Сим (src/core/sim.js) и панели статов (инвентарь, пауза) считают
 // статы одной функцией loadoutStats, поэтому в меню видно то же, что будет в забеге.
 // Поля эффектов уникалок — UNIQUES в src/data/items.js.
@@ -6,6 +8,7 @@ import { UNIQUES, ITEM_STATS } from '../data/items.js';
 import { PASSIVES } from '../data/passives.js';
 import { normalizeInventory, bagBonus, createBag } from './items.js';
 import { computeStats, statReport } from './stats.js';
+import { achievementBonus, normalizeAchievementIds } from './achievements.js';
 
 /**
  * Сумка из чего угодно (сохранение, сообщение напарника): normalizeInventory без стеша; что не влезло — пропадает.
@@ -13,9 +16,25 @@ import { computeStats, statReport } from './stats.js';
  * @return {{cols: number, rows: number, items: !Array}}
  */
 export function normalizeLoadout(raw) {
-  if (!raw || typeof raw !== 'object') return createBag();
+  if (!raw || typeof raw !== 'object') return { ...createBag(), ach: [] };
   const inv = normalizeInventory({ bag: raw, stash: [] });
-  return inv ? inv.bag : createBag();
+  return { ...(inv ? inv.bag : createBag()), ach: normalizeAchievementIds(raw.ach) };
+}
+
+/**
+ * Бонус лоадаута к статам: bagBonus сумки, плюс бонусы ачивок (ach) в inc и flat.
+ * ach — отдельно та же часть ачивок (разбивка в панели статов).
+ * @param {?Object} bag лоадаут
+ * @return {!Object} поля bagBonus и ach: {inc, flat}
+ */
+export function loadoutBonus(bag) {
+  const b = bagBonus(bag || createBag());
+  const ach = achievementBonus(bag && bag.ach);
+  const inc = { ...b.inc };
+  const flat = { ...b.flat };
+  for (const k of Object.keys(ach.inc)) inc[k] = (inc[k] || 0) + ach.inc[k];
+  for (const k of Object.keys(ach.flat)) flat[k] = (flat[k] || 0) + ach.flat[k];
+  return { ...b, inc, flat, ach };
 }
 
 /** Id надетой уникалки или null (в сумке не больше одной). */
@@ -70,7 +89,7 @@ export function applyUniqueRules(stats, def) {
  * @return {!Object<string, number>}
  */
 export function loadoutStats(base, passives, bag, out = {}) {
-  const b = bagBonus(bag || createBag());
+  const b = loadoutBonus(bag);
   const id = loadoutUnique(bag);
   const def = id ? UNIQUES[id] : null;
   computeStats(base, passives, out, loadoutExtra(b, passives, def));
@@ -78,16 +97,16 @@ export function loadoutStats(base, passives, bag, out = {}) {
 }
 
 /**
- * Разбор статов для панели (statReport) с сумкой и правилами уникалки.
- * @return {!Object<string, {value: number, raw: number, cap: number, capped: boolean}>}
+ * Разбор статов для панели (statReport) с сумкой, ачивками (bag.ach) и правилами уникалки.
+ * @return {!Object<string, {value: number, raw: number, cap: number, capped: boolean, parts: !Object}>}
  */
 export function loadoutReport(base, passives, bag) {
-  const b = bagBonus(bag || createBag());
+  const b = loadoutBonus(bag);
   const id = loadoutUnique(bag);
   const def = id ? UNIQUES[id] : null;
-  const rep = statReport(base, passives, loadoutExtra(b, passives, def));
+  const rep = statReport(base, passives, loadoutExtra(b, passives, def), b.ach);
   const set = (k, v) => {
-    if (rep[k]) rep[k] = { value: v, raw: v, cap: rep[k].cap, capped: false };
+    if (rep[k]) rep[k] = { value: v, raw: v, cap: rep[k].cap, capped: false, parts: rep[k].parts };
   };
   if (def && def.maxHpSet) set('maxHp', def.maxHpSet);
   if (def && def.armorOff) set('armor', 0);

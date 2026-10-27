@@ -4,14 +4,15 @@ import { createTelemetry } from '../../src/core/telemetry.js';
 import { WEAPONS } from '../../src/data/weapons.js';
 import { observe } from './observe.mjs';
 import { createPolicy } from './policy.mjs';
-import { PROFILES, recipeProfiles, PROFILE_VERSION } from './profiles.mjs';
+import { PROFILES, BUILD_PROFILES, recipeProfiles, PROFILE_VERSION } from './profiles.mjs';
+import { createClearMetrics } from './clear.mjs';
 import { installExperiment } from './experiment.mjs';
 import { MODEL } from './model.mjs';
 import { bagsFor } from './bags.mjs';
 import { stateHash, sourceHash, createMetrics, installImmortality, FIXED_STEP } from './record.mjs';
 
 export function resolveProfile(id = 'focus') {
-  const p = [...PROFILES, ...recipeProfiles()].find((x) => x.id === id);
+  const p = [...PROFILES, ...BUILD_PROFILES, ...recipeProfiles()].find((x) => x.id === id);
   if (!p) throw new Error(`Unknown profile: ${id}`);
   return p;
 }
@@ -49,6 +50,7 @@ function execute(options) {
     local: p.id, coop: sim.coop, sessionId: `bot-${config.seed}-${config.behaviorSeed}`,
     fingerprint: simFingerprint().toString(16) })) : [];
   const metrics = createMetrics(sim, { detailed: config.detailed });
+  const clear = config.clear ? createClearMetrics(sim) : null;
   const inputs = sim.players.map(() => ({ x: 0, y: 0 }));
   const nextThink = sim.players.map(() => 0);
   const trace = config.record ? { schema: 1, source: sourceHash(), model: MODEL.version,
@@ -121,6 +123,7 @@ function execute(options) {
   };
   if (config.detailed) result.hits = metrics.hits;
   metrics.detach();
+  if (clear) { result.clear = clear.result(); clear.detach(); }
   if (trace) {
     trace.steps = step; trace.finalHash = stateHash(sim); trace.outcome = outcome;
     result.trace = trace;

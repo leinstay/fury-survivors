@@ -236,6 +236,17 @@ export class World {
     if (s.spriteKey !== key) { s.spriteKey = key; this._origin(s, key); }
   }
 
+  // Горит ли белая вспышка врага: попадание зажигает её на show с, затем gap с перерыва (FX.hitBlink).
+  _blink(s, e, time) {
+    if (s.blinkUid !== e.uid) { s.blinkUid = e.uid; s.blinkEnd = 0; s.blinkNext = 0; }
+    if (e.hitFlash > 0 && time >= s.blinkNext) {
+      const b = e.boss ? FX.hitBlink.boss : FX.hitBlink.mob;
+      s.blinkEnd = time + b.show;
+      s.blinkNext = time + b.show + b.gap;
+    }
+    return time < s.blinkEnd;
+  }
+
   // base: постоянная подкраска (цвет игрока в коопе), 0 — без неё
   _tint(s, flash, elite, base = 0) {
     const state = flash ? 1 : 0;
@@ -366,7 +377,8 @@ export class World {
       this._setKey(s, key);
       s.baseScale = (e.elite ? (e.def?.elite?.sizeMul ?? 1) : 1) * spriteScale(key);
       const lift2 = animateCharacter(s, key, e, time, e.uid);
-      applyHitSquash(s, e.hitFlash);
+      const blink = this._blink(s, e, time);
+      applyHitSquash(s, blink ? 1 : 0);
       this._lerp(e);
       const ex = this.ix;
       const ey = this.iy;
@@ -375,7 +387,7 @@ export class World {
       s.setFlipX(e.facing < 0);
       s.setDepth(ey);
       s.setAlpha(e.alpha == null ? 1 : e.alpha);
-      this._tint(s, e.hitFlash > 0, e.elite, isSlowed(e, sim) ? SLOW_TINT : 0);
+      this._tint(s, blink, e.elite, isSlowed(e, sim) ? SLOW_TINT : 0);
       if (e.elite) this._glow(s, e, time);
       else if (s.eliteGlow) dropGlow(s);
     });

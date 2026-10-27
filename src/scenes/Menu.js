@@ -7,7 +7,7 @@ import { stopMusic } from '../audio/sfx.js';
 import { spriteScale } from '../render/density.js';
 import { requestFullscreen } from '../ui/fullscreen.js';
 import { DIFFICULTIES, DEFAULT_DIFFICULTY } from '../data/difficulty.js';
-import { getSetting, setSetting } from '../ui/settings.js';
+import { getSetting, setSetting, isMobile } from '../ui/settings.js';
 import { createTextInput } from '../ui/dom-input.js';
 import { addPanel } from '../ui/panel.js';
 import { NICK } from '../data/leaderboard.js';
@@ -115,7 +115,8 @@ export class MenuScene extends Phaser.Scene {
       addButton(this, this.nav, { x: cx, y: y0 + gap * 4, w: bw, h: bh, label: t('menu.leaderboard'), onSelect: () => this.scene.start('Leaderboard') });
       addButton(this, this.nav, { x: cx - (half + 6) / 2, y: y0 + gap * 5, w: half, h: bh, size: 12, label: t('menu.codex'), onSelect: () => this.scene.start('Codex', { from: 'Menu' }) });
       addButton(this, this.nav, { x: cx + (half + 6) / 2, y: y0 + gap * 5, w: half, h: bh, size: 12, label: t('menu.settings'), onSelect: () => this.show('settings') });
-      this.add.text(cx, GAME_HEIGHT - 14, t('menu.hint'), textStyle(10, '#dddddd', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5);
+      // подсказка про клавиши: на телефоне клавиатуры нет
+      if (!isMobile()) this.add.text(cx, GAME_HEIGHT - 14, t('menu.hint'), textStyle(10, '#dddddd', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5);
     } else if (view === 'hero') {
       // Выбор героя перед сложностью; последний выбор запоминается и стоит в фокусе.
       this.add.text(cx, 100, t('hero.title'), textStyle(16)).setOrigin(0.5);

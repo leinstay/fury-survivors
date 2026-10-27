@@ -63,7 +63,7 @@ test('loadout: player stats come from the bag (solo and each coop player)', () =
   const c = createSim({ seed: 1, players: 2, heroes: [], loadouts: [a, b] });
   const e0 = loadoutStats(c.players[0].heroDef.stats, [], a);
   const e1 = loadoutStats(c.players[1].heroDef.stats, [], b);
-  near(c.players[0].stats.steel, e0.steel);
+  near(c.players[0].stats.attack, e0.attack);
   near(c.players[1].stats.maxHp, e1.maxHp);
   // без сумки — как раньше
   const plain = createSim({ seed: 1 });
@@ -78,7 +78,7 @@ test('unique glass_cannon: ×2 damage stats, max HP 1, armor off', () => {
   const { sim, pl } = solo('glass_cannon', [flatItem('helmarmor', 'helm', 'armor', 3)]);
   near(pl.maxHp, 1);
   near(pl.hp, 1);
-  near(pl.stats.steel, heroStats(sim).steel * 2);
+  near(pl.stats.attack, heroStats(sim).attack * 2);
   near(pl.stats.magic, heroStats(sim).magic * 2);
   near(pl.stats.armor, 0);
 });
@@ -152,7 +152,7 @@ test('unique spiked_shell: thorns ×3, −30% damage', () => {
   const { pl, sim } = solo('spiked_shell', [flatItem('shieldthorn', 'shield', 'thorns', 4)]);
   assert.ok(pl.bonus.flat.thorns > 0);
   near(pl.stats.thorns, (heroStats(sim).thorns + pl.bonus.flat.thorns) * 3);
-  near(pl.stats.steel, heroStats(sim).steel * 0.7);
+  near(pl.stats.attack, heroStats(sim).attack * 0.7);
 });
 
 test('unique last_chance: one fatal hit grants invulnerability and full HP, then −50% max HP', () => {
@@ -194,12 +194,12 @@ test('unique monk: no new weapons, passives doubled, +2 passive slots', () => {
   const plain = createSim({ seed: 3 });
   assert.equal(pl.slots.weapons, pl.weapons.length);
   assert.equal(pl.slots.passives, plain.player.slots.passives + 2);
-  pl.passives = [{ id: 'steel', level: 2 }];
-  plain.player.passives = [{ id: 'steel', level: 2 }];
+  pl.passives = [{ id: 'attack', level: 2 }];
+  plain.player.passives = [{ id: 'attack', level: 2 }];
   sim._syncBuild();
   plain._syncBuild();
-  const base = heroStats(sim).steel;
-  near(pl.stats.steel - base, 2 * (plain.player.stats.steel - base));
+  const base = heroStats(sim).attack;
+  near(pl.stats.attack - base, 2 * (plain.player.stats.attack - base));
   // карточки нового оружия не выпадают
   for (let i = 0; i < 30; i++) {
     const cards = sim._draw(pl);

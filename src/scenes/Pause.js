@@ -2,12 +2,9 @@ import { t } from '../i18n/index.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
 import { FocusNav, addButton, readPad } from '../ui/focus.js';
 import { addVolumeSliders } from '../ui/volume.js';
-import { addIcon, displayName, iconKeyFor } from '../ui/icons.js';
 import { textStyle } from '../ui/style.js';
-import { addPanel } from '../ui/panel.js';
 import { playSfx } from '../audio/sfx.js';
 import { createActions } from '../core/actions.js';
-import { critChance } from '../core/stats.js';
 import { fadeOutAndStop, resetFade } from '../ui/fade.js';
 import { statReport } from '../core/stats.js';
 import { loadoutReport, loadoutUnique } from '../core/loadout.js';
@@ -15,73 +12,20 @@ import { BagView, ItemTooltip, addStatsPanel, RARITY_CSS } from '../ui/items.js'
 import { PANEL } from '../ui/panel.js';
 import { BAG } from '../data/items.js';
 
-// Билд в две колонки (оружие слева, пассивки справа): 6+6 строк не налезают на кнопки.
-export function addBuildList(scene, x, y, w, h, player) {
-  addPanel(scene, x + w / 2, y + h / 2, w, h);
-  scene.add.text(x + PAD, y + PAD, t('pause.build'), textStyle(14, '#ffd84a')).setOrigin(0, 0);
-  [
-    ['weapon', t('pause.weapons'), player.weapons, x + PAD],
-    ['passive', t('pause.passives'), player.passives, x + w / 2 + PAD / 2],
-  ].forEach(([kind, title, list, cx]) => {
-    let cy = y + PAD + 24;
-    scene.add.text(cx, cy, title, textStyle(10, '#aaaaaa')).setOrigin(0, 0);
-    cy += 14;
-    if (!list.length) scene.add.text(cx + 4, cy, t('pause.none'), textStyle(10, '#777777')).setOrigin(0, 0);
-    for (const it of list) {
-      addIcon(scene, cx + 7, cy + 7, iconKeyFor(kind, it.id), 14, kind, it.id);
-      scene.add.text(cx + 20, cy + 7, `${displayName(kind, it.id)} ${t('levelup.lv', { n: it.level })}`, textStyle(10)).setOrigin(0, 0.5);
-      cy += 16;
-    }
-  });
-}
-
-// Сетка отступов как в кодексе: M от края экрана, GAP между панелями, PAD внутри панели, строки слева
+// Сетка отступов как в кодексе: M от края экрана, GAP между панелями, строки слева
 // одной высоты ROW с шагом STEP.
 const M = 8;
 const GAP = 6;
-const PAD = 8;
 const ROW = 24;
 const STEP = ROW + 4;
 const TOP = 46;
 const TITLE_Y = 27; // заголовок по линии полосы HP в HUD (ui/hud.js: y 21, высота 12)
-const LEFT_W = 300;
 // Вкладка настроек как настройки главного меню (Menu.js): подзаголовок на y 100, столбец шириной 300 с y 126.
 const OPT = { title: 100, y: 126, w: 300 };
-// Кнопки паузы шириной как кнопки главного меню, столбец по центру левой колонки и по высоте панелей справа.
-const BTN_W = 160;
-// Низ панелей справа: как со столбцом настроек (9 строк), не по короткому столбцу кнопок.
+// Кнопки паузы как кнопки главного меню (Menu.js, вид main): столбец по центру, y с 118 шагом 29, 160×24.
+const BTN = { y: 118, step: 29, w: 160, h: 24 };
+// Низ панели статов во вкладке инвентаря: как со столбцом настроек (9 строк).
 const RIGHT_BOTTOM = TOP + 9 * STEP + ROW;
-const STAT_LINE = 18;
-
-const fmtPct = (v) => `${Math.round(v * 100)}%`;
-const STAT_ROWS = [
-  ['stat.hp', (s, p) => `${Math.ceil(p.hp)}/${Math.ceil(s.maxHp ?? p.maxHp)}`],
-  ['stat.steel', (s) => fmtPct(s.steel ?? 1)],
-  ['stat.magic', (s) => fmtPct(s.magic ?? 1)],
-  ['stat.spd', (s) => String(Math.round(s.speed ?? 0))],
-  ['stat.crt', (s) => fmtPct(critChance(s))], // с учётом удачи и капа, как в sim.critChance
-  ['stat.pickup', (s) => fmtPct(s.pickup ?? 1)],
-  ['stat.haste', (s) => fmtPct(s.haste ?? 1)],
-  ['stat.armor', (s) => String(Math.round((s.armor ?? 0) * 10) / 10)],
-];
-
-// Компактный блок статов: 2 колонки по 4 строки, между колонками зазор, чтобы значение первой не сливалось
-// с названием второй.
-// Высота блока статов: 4 строки и PAD сверху и снизу.
-export const STATS_H = 4 * STAT_LINE + 2 * PAD - 4;
-
-export function addStatsBlock(scene, x, y, w, player) {
-  const stats = player.stats || {};
-  addPanel(scene, x + w / 2, y + STATS_H / 2, w, STATS_H);
-  const colW = (w - 4 * PAD) / 2;
-  STAT_ROWS.forEach(([key, fn], i) => {
-    const col = Math.floor(i / 4);
-    const cx = x + PAD + col * (colW + 2 * PAD);
-    const cy = y + PAD + (i % 4) * STAT_LINE;
-    scene.add.text(cx, cy, t(key), textStyle(10, '#aaaaaa')).setOrigin(0, 0);
-    scene.add.text(cx + colW, cy, fn(stats, player), textStyle(10)).setOrigin(1, 0);
-  });
-}
 
 export class PauseScene extends Phaser.Scene {
   constructor() {
@@ -113,7 +57,7 @@ export class PauseScene extends Phaser.Scene {
     this.input.keyboard.on('keydown-P', () => this.resume());
   }
 
-  // Виды паузы: main (столбец кнопок, справа билд и статы) и options (настройки столбцом по центру).
+  // Виды паузы: main (столбец кнопок), inventory и options (настройки столбцом по центру).
   show(view) {
     this.view = view;
     this.nav.clear();
@@ -196,7 +140,8 @@ export class PauseScene extends Phaser.Scene {
     });
   }
 
-  // Слева столбец кнопок: Resume, Options, Codex, Quit (в овертайме ещё Finish). Справа билд и статы.
+  // Столбец кнопок как в главном меню: Resume, Options, Inventory, Codex, Quit (в овертайме ещё Finish).
+  // Статы — во вкладке инвентаря, билд в забеге под полосой HP.
   showMain() {
     const rows = [
       [t('pause.resume'), () => this.resume()],
@@ -207,19 +152,11 @@ export class PauseScene extends Phaser.Scene {
     ];
     // в овертайме забег можно закончить сразу: победа с текущими очками
     if (this.sim.overtime >= 0) rows.push([t('pause.finish'), () => this.finish(), '#ffd84a']);
-    const cx = M + LEFT_W / 2;
-    const y0 = (TOP + RIGHT_BOTTOM - rows.length * STEP + (STEP - ROW)) / 2 + ROW / 2;
     rows.forEach(([label, onSelect, color], i) => {
       addButton(this, this.nav, {
-        x: cx, y: y0 + i * STEP, w: BTN_W, h: ROW, size: 12, label, color, onSelect,
+        x: GAME_WIDTH / 2, y: BTN.y + i * BTN.step, w: BTN.w, h: BTN.h, label, color, onSelect,
       });
     });
-    const bottom = RIGHT_BOTTOM;
-    const rx = M + LEFT_W + GAP;
-    const rw = GAME_WIDTH - M - rx;
-    const me = this.sim.players[this.sim.local];
-    addStatsBlock(this, rx, bottom - STATS_H, rw, me);
-    addBuildList(this, rx, TOP, rw, bottom - STATS_H - GAP - TOP, me);
   }
 
   // Кодекс поверх паузы: пауза и забег остаются как есть, ввод паузы выключен, пока кодекс открыт.

@@ -1,10 +1,10 @@
 // Выбор героя (меню соло и лобби коопа). Два вида по числу героев:
 //   карточки — героев меньше GRID_FROM (базовые два): спрайт (кадр 0 ленты, стойка), имя,
-//              стартовое оружие с иконкой, черты столбиком в левом верхнем углу («+ATK» зелёным, «-HP» красным);
+//              стартовое оружие с иконкой;
 //   сетка    — героев GRID_FROM и больше: плитки со спрайтом под размер области, ряды поровну
 //              (7 = 4 + 3, 13 = 7 + 6) и каждый по центру; описание героя в фокусе (или выбранного)
-//              одной строкой под сеткой (имя, оружие, черты), как в выборе персонажа VS.
-// Числа статов не показываем: только черты относительно среднего героя (core/heroes.js heroTraits).
+//              одной строкой под сеткой (имя, оружие), как в выборе персонажа VS.
+// Что даёт герой (черты, статы) здесь не показываем: это в кодексе (Codex.js, core/heroes.js heroTraits).
 // Фокус — жёлтая рамка; выбранный (mark) — зелёная рамка и галочка; занятый напарником — тусклый.
 import { t } from '../i18n/index.js';
 import { HEROES } from '../data/heroes.js';
@@ -12,7 +12,6 @@ import { addPanel, PANEL } from './panel.js';
 import { addIcon, iconKeyFor, displayName } from './icons.js';
 import { textStyle } from './style.js';
 import { spriteScale } from '../render/density.js';
-import { heroTraits } from '../core/heroes.js';
 
 const SELECTED = PANEL.borderSelected;
 const PICKER_MAX_W = 600;  // ширина ряда карточек на экране 640
@@ -22,17 +21,6 @@ const TILE_MAX = 64;       // плитка не крупнее
 const INFO_H = 14;         // строка описания под сеткой
 const ICON = 14;           // иконка стартового оружия
 const ICON_GAP = 4;
-const TRAIT_UP = '#8cff6a';
-const TRAIT_DOWN = '#ff7a7a';
-const TRAIT_SIZE = 8;     // шрифт черт
-const TRAIT_STEP = 10;    // шаг строк столбика черт на карточке
-const TRAIT_GAP = 6;      // зазор черт в строке под сеткой
-
-// Тексты черт героя: «+ATK», «-HP» (цвет по знаку).
-function addTraitTexts(scene, id) {
-  return heroTraits(id).map((tr) => scene.add.text(0, 0, `${tr.up ? '+' : '-'}${t(`trait.${tr.stat}`)}`,
-      textStyle(TRAIT_SIZE, tr.up ? TRAIT_UP : TRAIT_DOWN, { stroke: '#000000', strokeThickness: 2 })));
-}
 
 // Галочка графикой (в пиксельном шрифте может не быть такого символа), правый верхний угол рамки.
 function addCheck(scene, right, top, size) {
@@ -112,23 +100,15 @@ export function addHeroPicker(scene, nav, o) {
     info.box.removeAll(true);
     const def = HEROES[id];
     const name = scene.add.text(0, info.y, t(`hero.${id}.name`), textStyle(10)).setOrigin(0, 0.5);
-    const traits = addTraitTexts(scene, id);
     const wrow = addWeaponRow(scene, def, 0, info.y);
     const ww = ICON + ICON_GAP + wrow[1].width;
-    const gaps = TRAIT_GAP * Math.max(0, traits.length - 1);
-    const tw = traits.reduce((s, tx) => s + tx.width, 0) + gaps;
-    const total = name.width + 10 + ww + (traits.length ? 10 + tw : 0);
+    const total = name.width + 10 + ww;
     let x = Math.round(o.x - total / 2);
     name.x = x;
     x += name.width + 10;
     wrow[0].x = x + ICON / 2;
     wrow[1].x = x + ICON + ICON_GAP;
-    x += ww + 10;
-    for (const tx of traits) {
-      tx.setOrigin(0, 0.5).setPosition(x, info.y);
-      x += tx.width + TRAIT_GAP;
-    }
-    info.box.add([name, ...traits, ...wrow]);
+    info.box.add([name, ...wrow]);
   };
   const paint = (id, focused) => {
     const p = panels[id];
@@ -169,10 +149,6 @@ export function addHeroPicker(scene, nav, o) {
       scene.add.text(x, nameY, t(`hero.${id}.name`), textStyle(o.compact ? 11 : 13)).setOrigin(0.5, 0);
       const wy = nameY + (o.compact ? 18 : 22);
       addWeaponRow(scene, def, x, wy);
-      // черты столбиком в левом верхнем углу (галочка выбора — в правом)
-      addTraitTexts(scene, id).forEach((tx, k) => {
-        tx.setPosition(x - w / 2 + 5, top + 4 + k * TRAIT_STEP);
-      });
       addItem(id, x, o.y, w, h);
     });
   } else {

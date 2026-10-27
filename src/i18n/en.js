@@ -34,9 +34,6 @@ export const en = {
   'pause.options': 'Options',
   'pause.quit': 'Quit to menu',
   'pause.finish': 'Finish run',
-  'pause.build': 'Build',
-  'pause.weapons': 'Weapons',
-  'pause.passives': 'Passives',
   'pause.none': 'none',
 
   // Повышение уровня
@@ -111,7 +108,7 @@ export const en = {
   // Статы игрока
   'stat.title': 'Stats',
   'stat.hp': 'HP',
-  'stat.steel': 'Steel',
+  'stat.attack': 'Attack',
   'stat.magic': 'Magic',
   'stat.spd': 'SPD',
   'stat.crt': 'CRT',
@@ -168,7 +165,7 @@ export const en = {
   'hero.mage.desc': 'A lightning-wielding astrologer. Less health, stronger magic and a higher critical hit chance.',
   'hero.title': 'Choose your hero',
   'trait.maxHp': 'HP',
-  'trait.steel': 'STEEL',
+  'trait.attack': 'ATTACK',
   'trait.magic': 'MAGIC',
   'trait.speed': 'SPD',
   'trait.crit': 'CRIT',
@@ -255,8 +252,8 @@ export const en = {
   // Пассивки
   'passive.max_hp.name': 'Max HP',
   'passive.max_hp.desc': 'Increases maximum health and restores the added amount.',
-  'passive.steel.name': 'Steel',
-  'passive.steel.desc': 'Increases damage of steel weapons and thorns.',
+  'passive.attack.name': 'Attack',
+  'passive.attack.desc': 'Increases damage of physical weapons and thorns.',
   'passive.magic.name': 'Magic',
   'passive.magic.desc': 'Increases damage of magic weapons.',
   'passive.speed.name': 'Speed',
@@ -284,7 +281,7 @@ export const en = {
   'passive.dodge.name': 'Dodge',
   'passive.dodge.desc': 'Chance to avoid a hit from contact or enemy shots.',
   'passive.thorns.name': 'Thorns',
-  'passive.thorns.desc': 'Taking a hit damages every enemy on screen. Scales with Steel.',
+  'passive.thorns.desc': 'Taking a hit damages every enemy on screen. Scales with Attack.',
   'weapon.thorns.name': 'Thorns',
 
   // Враги и боссы

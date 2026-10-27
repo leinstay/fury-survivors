@@ -20,9 +20,9 @@ import { createDirector } from './director.js';
 import { createRoads } from './roads.js';
 import * as UP from './upgrades.js';
 import { UNIQUES } from '../data/items.js';
-import { bagBonus, rollChest, rollHearts, bossDrop } from './items.js';
+import { rollChest, rollHearts, bossDrop } from './items.js';
 import {
-  normalizeLoadout, loadoutUnique, loadoutExtra, applyUniqueRules, DICE_STATS,
+  normalizeLoadout, loadoutUnique, loadoutExtra, applyUniqueRules, DICE_STATS, loadoutBonus,
 } from './loadout.js';
 import { initReaper, updateReaper, groundMul } from './reaper.js';
 
@@ -197,9 +197,9 @@ class Sim {
       damageByWeapon: {}, dps: 0, dpsByWeapon: {}, dpsAcc: {}, dpsBuckets: [],
       // телеметрия: полный урон ударов с перебором и число ударов по оружию (src/core/telemetry.js)
       rawByWeapon: {}, hitsByWeapon: {},
-      // сумка и уникалка (действует только на владельца): bonus — bagBonus, uq — эффект из UNIQUES или null;
+      // сумка и уникалка (действует только на владельца): bonus — loadoutBonus (+ ачивки), uq — UNIQUES или null;
       // uqDmg — у уникалки есть множитель урона по обстановке (damageEnemy)
-      bag, bonus: bagBonus(bag), unique, uq,
+      bag, bonus: loadoutBonus(bag), unique, uq,
       uqDmg: !!(uq && (uq.dmgPerSpeed || uq.dmgPerMissingHp || uq.nearRange)),
       dynMore: null,     // множители, что меняются в забеге: кости, last_chance
       dice: null, diceNext: 0, // кости: {up, down} текущей минуты, время следующего броска
@@ -859,12 +859,12 @@ class Sim {
     this.events.push({ type: 'gameover' });
   }
 
-  // Шипы: удар по герою бьёт всех врагов на экране вокруг него на thorns × steel (не чаще COMBAT.thornsCooldown).
+  // Шипы: удар по герою бьёт всех врагов на экране вокруг него на thorns × attack (не чаще COMBAT.thornsCooldown).
   // Урон пишется на 'thorns' (как оружие: DPS, итоги, телеметрия).
   _thorns(pl) {
     if (this.time - pl.thornsAt < COMBAT.thornsCooldown) return;
     pl.thornsAt = this.time;
-    const dmg = pl.stats.thorns * pl.stats.steel;
+    const dmg = pl.stats.thorns * pl.stats.attack;
     const hw = GAME_WIDTH / 2;
     const hh = GAME_HEIGHT / 2;
     const en = this.enemies;

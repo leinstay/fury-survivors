@@ -19,9 +19,11 @@
 //                             //   серию не обрывает, но и не идёт; обрывает только удар)
 //   xpPickedBefore120: number,   // свои подобранные кристаллы опыта до ACHIEVEMENTS.ascetic.seconds
 //   rerolls, skips, banishes: number,  // свои использованные на карточках уровня
-//   revives: number,          // напарник встал из гроба, пока свой герой стоял рядом (COOP.allyRadius)
+//   revives: number,          // напарник встал из гроба, а свой герой простоял у гроба (COOP.allyRadius)
+//                             //   не меньше ACHIEVEMENTS.medic.nearSeconds
 //   anyoneFell: boolean,      // кто-то лёг в гроб или забег кончился смертью
-//   maxMagnetGems: number,    // больше всего кристаллов опыта на земле в момент своего подбора магнита
+//   maxMagnetGems: number,    // больше всего кристаллов опыта, притянутых одним своим магнитом (на земле
+//                             //   в момент подбора; слитый кристалл считается одним)
 //   maxKillsPerMinute: number,   // свои убийства в скользящем окне ACHIEVEMENTS.meat_grinder.seconds
 //   evolutionsGot: [id],      // эволюции (evolved в weapons.js), что были у своего героя
 // }
@@ -34,6 +36,7 @@ const DRYAD = ACHIEVEMENTS.monogamy.boss;
 const CROWD = ACHIEVEMENTS.untouchable.enemies;
 const ASCETIC_T = ACHIEVEMENTS.ascetic.seconds;
 const KILL_WINDOW = Math.max(1, Math.round(ACHIEVEMENTS.meat_grinder.seconds));
+const MEDIC_NEAR = ACHIEVEMENTS.medic.nearSeconds || 0;
 
 const isEvolved = (id) => typeof id === 'string' &&
   Object.prototype.hasOwnProperty.call(WEAPONS, id) && !!WEAPONS[id].evolved;
@@ -110,7 +113,7 @@ class RunSummaryTracker {
     this.hpFrac = 1;       // доля HP своего героя в последнем кадре
     this.streak = 0;       // текущая серия без урона в толпе
     this.last = null;      // остатки reroll/skip/banish в прошлом кадре
-    this.helped = {};      // id напарника → свой герой стоял у его гроба
+    this.helped = {};      // id напарника → сколько с свой герой простоял у его гроба (живым)
     this.evo = new Set();
     // скользящее окно своих убийств: ring[сек % окно], sum — сумма за окно
     this.ring = new Array(KILL_WINDOW).fill(0);
@@ -181,15 +184,8 @@ class RunSummaryTracker {
           break;
         case 'revive': {
           if (ev.player === me) break;
-          const p = this.me(sim);
-          let near = !!this.helped[ev.player];
-          if (!near && p && !p.dead) {
-            const dx = p.x - ev.x;
-            const dy = p.y - ev.y;
-            near = dx * dx + dy * dy <= COOP.allyRadius * COOP.allyRadius;
-          }
-          if (near) s.revives++;
-          this.helped[ev.player] = false;
+          if ((this.helped[ev.player] || 0) >= MEDIC_NEAR) s.revives++;
+          this.helped[ev.player] = 0;
           break;
         }
         case 'pickup':
@@ -236,10 +232,31 @@ class RunSummaryTracker {
         if (o === p || !o.dead) continue;
         const dx = o.x - p.x;
         const dy = o.y - p.y;
-        if (dx * dx + dy * dy <= r2) this.helped[o.id] = true;
+        // кадр, в котором герой подошёл, засчитывается хотя бы как «был рядом» (MEDIC_NEAR 0)
+        if (dx * dx + dy * dy > r2) continue;
+        this.helped[o.id] = (this.helped[o.id] || 0) + Math.max(dt, 1e-6);
       }
     }
     this.noteWeapons(p);
+  }
+
+  /**
+   * Итог «пока что» для проверки посреди забега (evaluateLive): won false, время и эволюции на сейчас.
+   * Трекер не меняется.
+   * @param {!Object} sim
+   * @return {!Object} RunSummary
+   */
+  snapshot(sim) {
+    const p = this.me(sim) || sim.player;
+    const s = { ...this.s, bossesKilled: this.s.bossesKilled.slice() };
+    s.won = false;
+    s.time = num(sim.time);
+    s.hero = (p && p.hero) || '';
+    s.evolutionsGot = [...this.evo];
+    for (const w of p ? p.weapons : []) {
+      if (isEvolved(w.id) && !this.evo.has(w.id)) s.evolutionsGot.push(w.id);
+    }
+    return normalizeRunSummary(s);
   }
 
   /**

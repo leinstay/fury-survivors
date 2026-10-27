@@ -7,6 +7,7 @@ import { readPad } from '../ui/focus.js';
 import { World } from '../render/world.js';
 import { Fx } from '../render/fx.js';
 import { FX, SIM, NET } from '../data/constants.js';
+import { ACHIEVEMENT_LIVE } from '../data/achievements.js';
 import { handleSimEvents, startMusic, fadeOutMusic } from '../audio/sfx.js';
 import { netLog } from '../services/net.js';
 import { createRunTracker, runStatus } from '../core/codex.js';
@@ -15,11 +16,15 @@ import { createTelemetry } from '../core/telemetry.js';
 import { sendRun, flushRuns } from '../services/telemetry.js';
 import { computeScore } from '../services/leaderboard.js';
 import { createRunSummaryTracker } from '../core/run-summary.js';
-import { recordRunAchievements } from '../services/achievements.js';
+import {
+  recordRunAchievements, checkLiveAchievements, withAchievements,
+} from '../services/achievements.js';
+import { showAchievementToasts } from '../ui/toast.js';
 import { getInventory } from '../services/inventory.js';
 
 const MAX_DT = SIM.maxFrameDt;
 const STEP = 1 / SIM.tickRate;
+const ACH_CHECK_S = ACHIEVEMENT_LIVE.checkEvery;
 
 export class GameScene extends Phaser.Scene {
   constructor() {
@@ -67,7 +72,8 @@ export class GameScene extends Phaser.Scene {
         hero: this.hero, stage: 'forest',
         seed: globalThis.navigator?.webdriver && Number.isInteger(globalThis.__furyTestSeed) ?
           globalThis.__furyTestSeed : Date.now(), difficulty: this.difficulty,
-        loadouts: [getInventory().bag], // надетая сумка (меняется только в меню)
+        // надетая сумка (меняется только в меню) и бонусы полученных ачивок
+        loadouts: [withAchievements(getInventory().bag)],
       });
       this.ls = null;
     }
@@ -77,10 +83,12 @@ export class GameScene extends Phaser.Scene {
       local: this.sim.local || 0, coop: !!co,
       partner: co && co.names ? co.names[1 - co.local] || '' : '',
     });
-    // Ачивки: итог забега своего игрока (src/core/run-summary.js), проверка в конце забега.
+    // Ачивки: итог забега своего игрока (src/core/run-summary.js). Что можно проверить по ходу забега —
+    // раз в ACH_CHECK_S с сима (плашка сразу), остальное (победа) — в конце забега.
     this.summary = this.givenSim ? null :
       createRunSummaryTracker({ local: this.sim.local || 0, coop: !!co });
     this.unlocked = [];
+    this.achCheckAt = 0;
     // Телеметрия для баланса: срезы раз в минуту, итог отправляется вместе с кодексом.
     this.telemetry = this.givenSim ? null :
       createTelemetry({ sim: this.sim, local: this.sim.local || 0, coop: !!co,
@@ -170,6 +178,15 @@ export class GameScene extends Phaser.Scene {
       this.scene.pause('Game');
       this.scene.launch(name, data);
     }
+  }
+
+  // Трекер ачивок раз в кадр, проверка посреди забега раз в ACH_CHECK_S: плашка сразу.
+  _checkAchievements(sim) {
+    this.summary.observe(sim);
+    if (sim.time < this.achCheckAt) return;
+    this.achCheckAt = sim.time + ACH_CHECK_S;
+    const ids = checkLiveAchievements(this.summary.snapshot(sim));
+    if (ids.length) showAchievementToasts(this, ids);
   }
 
   // Итог забега в кодекс (один раз): статус victory | dead | disconnected | quit, очки как на экране итогов.
@@ -332,7 +349,7 @@ export class GameScene extends Phaser.Scene {
     if (this.ls) this._stepCoop(delta / 1000, input);
     else this._stepSolo(dt, input);
     if (this.tracker) this.tracker.observe(sim);
-    if (this.summary) this.summary.observe(sim);
+    if (this.summary) this._checkAchievements(sim);
     this._predict(input);
     this.hitCool -= dt;
     this.fx.update(dt);

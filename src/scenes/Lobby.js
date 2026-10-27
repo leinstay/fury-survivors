@@ -29,6 +29,7 @@ import { netLog } from '../services/net.js';
 import { copyText } from '../ui/clipboard.js';
 import { normalizeLoadout } from '../core/loadout.js';
 import { getInventory } from '../services/inventory.js';
+import { withAchievements } from '../services/achievements.js';
 
 // Колонки лобби: кнопки сложности, Start/Cancel и карточки героев одной ширины, центры на cx ± BTN_DX.
 const BTN_W = 120;
@@ -65,7 +66,8 @@ export class LobbyScene extends Phaser.Scene {
     this.started = false;
     this.alive = true;
     this.mismatch = false; // у напарника другая версия игры
-    this.myBag = normalizeLoadout(getInventory().bag); // своя сумка (меняется только в меню)
+    // своя сумка (меняется только в меню) и бонусы своих ачивок (ach): напарник получает их вместе
+    this.myBag = normalizeLoadout(withAchievements(getInventory().bag));
     this.partnerBag = null;  // сумка напарника, пока не пришла — null
   }
 

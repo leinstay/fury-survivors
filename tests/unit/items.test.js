@@ -143,7 +143,7 @@ test('items: affix lines carry the enchant multiplier and range', () => {
   assert.ok(Math.abs(l[0].value - it.affixes[0].value * 1.1) < 1e-9);
   assert.ok(Math.abs(l[0].max - it.affixes[0].max * 1.1) < 1e-9);
   assert.equal(l[0].implicit, true);
-  const r = affixRange('steel', [2, 2], 2, false);
+  const r = affixRange('attack', [2, 2], 2, false);
   assert.ok(Math.abs(r.min + r.max / 2) < 1e-3);
 });
 
@@ -175,6 +175,8 @@ test('bag: placement, overlap, rotation, unlocked bounds', () => {
   // ачивки открывают столбцы и ряд
   assert.deepEqual(bagSize(['three_crowns']), { cols: 8, rows: 4 });
   assert.deepEqual(bagSize({ three_crowns: 1, hoarder: 1, tetris: 1 }), { cols: 9, rows: 5 });
+  assert.deepEqual(bagSize({ three_crowns: 1, hoarder: 1, tetris: 1, evolutionist: 1 }),
+      { cols: 9, rows: 6 });
   assert.deepEqual(bagSize(new Set(['tetris'])), { cols: 7, rows: 5 });
   const small = resizeBag(place(createBag(9, 5), sword, 8, 0), 7, 4);
   assert.equal(small.dropped.length, 1);
@@ -190,15 +192,15 @@ test('bag: one unique at most, diversity bonus, unique more', () => {
   assert.ok(canPlace(bag, makeUnique('greed', 2, 'u1'), 5, 0), 'moving the same unique is fine');
   const ring = { uid: 'r1', type: 'ring', shape: [1, 1], tier: 1, rarity: 'common',
     implicit: 'crit', affixes: [{ stat: 'crit', value: 0.01, min: 0.005, max: 0.01 },
-      { stat: 'steel', value: 0.02, min: -0.01, max: 0.02 }], enchant: 2, unique: null,
+      { stat: 'attack', value: 0.02, min: -0.01, max: 0.02 }], enchant: 2, unique: null,
     locked: false };
   bag = place(bag, ring, 3, 0);
   const b = bagBonus(bag);
   assert.equal(b.types, 2);
   assert.ok(Math.abs(b.diversity - 1.04) < 1e-9);
   assert.ok(Math.abs(b.flat.crit - 0.01 * 1.1 * 1.04) < 1e-9);
-  assert.ok(Math.abs(b.inc.steel - 0.02 * 1.1 * 1.04) < 1e-9);
-  assert.deepEqual(b.more, { steel: 1, magic: 1 });
+  assert.ok(Math.abs(b.inc.attack - 0.02 * 1.1 * 1.04) < 1e-9);
+  assert.deepEqual(b.more, { attack: 1, magic: 1 });
   assert.deepEqual(b.uniques, ['glass_cannon']);
 });
 

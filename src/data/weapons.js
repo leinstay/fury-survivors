@@ -4,7 +4,7 @@
 //   icon: 'icon_<id>',          // ключ иконки 24×24 в manifest.js
 //   sprite: 'proj_blade_arc',    // ключ спрайта снаряда/эффекта
 //   behavior: 'melee_arc',       // файл src/behaviors/weapons/<behavior>.js
-//   dmgType: 'steel',            // 'steel' | 'magic': урон умножается на стат владельца этого типа
+//   dmgType: 'attack',            // 'attack' | 'magic': урон умножается на стат владельца этого типа
 //   maxLevel: 5,
 //   evolved: true,               // только у супероружия (см. combos.js); в карточки не попадает
 //   tint: 0xff9040,              // цвет снарядов (необязательно)
@@ -12,7 +12,7 @@
 //     { damage, cooldown, amount, area, speed, duration, pierce, knockback, ... },
 //   ],
 // }
-// Смысл полей по behavior (damage умножается на steel или magic по dmgType, cooldown делится на haste,
+// Смысл полей по behavior (damage умножается на attack или magic по dmgType, cooldown делится на haste,
 // area и duration, если они есть в уровне, умножаются на статы area и duration владельца):
 //   melee_arc  : amount — число взмахов подряд (чередуют стороны), area — длина удара, knockback
 //   projectile : amount — число снарядов веером, speed, duration — время полёта, pierce — сколько врагов пробьёт сверх первого
@@ -90,7 +90,7 @@ export const WEAPONS = {
   blade_arc: {
     // VS Whip: L1 10 урона / 1.35 с; L8 40 × 2 (обе стороны), area 120%. Наш урон за удар выше: ближний бой
     // бьёт сильнее дальнобойного (docs/BALANCE_AUDIT.md 6.4), а HP врагов удвоены; удар на 2 ступени колец длиннее.
-    icon: 'icon_blade_arc', sprite: 'proj_blade_arc', behavior: 'melee_arc', dmgType: 'steel', maxLevel: 5,
+    icon: 'icon_blade_arc', sprite: 'proj_blade_arc', behavior: 'melee_arc', dmgType: 'attack', maxLevel: 5,
     levels: [
       { damage: 20, cooldown: 1.0, amount: 1, area: RINGS[3], knockback: 90 },
       { damage: 20, cooldown: 1.0, amount: 2, area: RINGS[3], knockback: 90 },
@@ -101,7 +101,7 @@ export const WEAPONS = {
   },
   throwing_daggers: {
     // VS Knife: L1 6.5 / 1.0 с, 1 нож; L8 16.5 × 6, pierce 3.
-    icon: 'icon_throwing_daggers', sprite: 'proj_dagger', behavior: 'projectile', dmgType: 'steel', maxLevel: 5,
+    icon: 'icon_throwing_daggers', sprite: 'proj_dagger', behavior: 'projectile', dmgType: 'attack', maxLevel: 5,
     levels: [
       { damage: 8, cooldown: 0.9, amount: 2, speed: 280,
         duration: 1.2, pierce: 1, knockback: 40 },
@@ -117,7 +117,7 @@ export const WEAPONS = {
   },
   guardian_shields: {
     // VS King Bible: L1 10 урона, 1 книга, 3 с вращения, пауза 3 с; L8 30 × 4, 4 с.
-    icon: 'icon_guardian_shields', sprite: 'proj_shield', behavior: 'orbit', dmgType: 'steel', maxLevel: 5,
+    icon: 'icon_guardian_shields', sprite: 'proj_shield', behavior: 'orbit', dmgType: 'attack', maxLevel: 5,
     levels: [
       { damage: 18, cooldown: 2.0, amount: 2, area: onRing(1, SHIELD_R), hitRadius: 12,
         speed: 3.2, duration: 4.0, knockback: 40 },
@@ -144,7 +144,7 @@ export const WEAPONS = {
   },
   war_axe: {
     // VS Axe: L1 20 / 4.0 с; L8 80 × 3, pierce 7. Наш топор возвращается и бьёт дважды, поэтому урон ниже.
-    icon: 'icon_war_axe', sprite: 'proj_axe', behavior: 'boomerang', dmgType: 'steel', maxLevel: 5,
+    icon: 'icon_war_axe', sprite: 'proj_axe', behavior: 'boomerang', dmgType: 'attack', maxLevel: 5,
     levels: [
       { damage: 15, cooldown: 1.5, amount: 1, area: 110, speed: 200, duration: 4, knockback: 60 },
       { damage: 15, cooldown: 1.45, amount: 2, area: 120, speed: 210, duration: 4, knockback: 60 },
@@ -186,7 +186,7 @@ export const WEAPONS = {
   // META 1.4: новые оружия. Сталь: копьё, молот, арбалет, мины; магия: ледяной шар, ядовитое облако, луч, огонёк, метеор.
   spear: {
     // Пробивает всех на линии; один-три снаряда, медленнее ножей. Урон за удар между ножами и арбалетом.
-    icon: 'icon_spear', sprite: 'proj_spear', behavior: 'projectile', dmgType: 'steel', maxLevel: 5,
+    icon: 'icon_spear', sprite: 'proj_spear', behavior: 'projectile', dmgType: 'attack', maxLevel: 5,
     levels: [
       { damage: 10, cooldown: 1.3, amount: 1, speed: 260, duration: 1.1, pierceAll: true,
         hitRadius: 6, knockback: 30 },
@@ -203,7 +203,7 @@ export const WEAPONS = {
   hammer: {
     // Медленный тяжёлый удар конусом: самый большой урон за удар и knockback (ближний бой, docs/BALANCE_AUDIT.md 6.4).
     // Картинка — взмах клинка с цветом молота.
-    icon: 'icon_hammer', sprite: 'proj_blade_arc', behavior: 'melee_arc', dmgType: 'steel', maxLevel: 5, tint: 0xd8b070,
+    icon: 'icon_hammer', sprite: 'proj_blade_arc', behavior: 'melee_arc', dmgType: 'attack', maxLevel: 5, tint: 0xd8b070,
     levels: [
       { damage: 36, cooldown: 1.7, amount: 1, area: RINGS[4], knockback: 220 },
       { damage: 42, cooldown: 1.6, amount: 1, area: RINGS[4], knockback: 230 },
@@ -214,7 +214,7 @@ export const WEAPONS = {
   },
   crossbow: {
     // Один быстрый болт с большим уроном в ближайшего врага; с L4 два.
-    icon: 'icon_crossbow', sprite: 'proj_bolt', behavior: 'projectile', dmgType: 'steel', maxLevel: 5,
+    icon: 'icon_crossbow', sprite: 'proj_bolt', behavior: 'projectile', dmgType: 'attack', maxLevel: 5,
     levels: [
       { damage: 65, cooldown: 1.4, amount: 1, speed: 440, duration: 0.9, pierce: 0, knockback: 70 },
       { damage: 79, cooldown: 1.35, amount: 1, speed: 440, duration: 0.9, pierce: 1,
@@ -229,7 +229,7 @@ export const WEAPONS = {
   },
   mines: {
     // Мины вокруг героя ждут врага до duration с; взрыв без огня.
-    icon: 'icon_mines', sprite: 'proj_mine', behavior: 'area_drop', dmgType: 'steel', maxLevel: 5,
+    icon: 'icon_mines', sprite: 'proj_mine', behavior: 'area_drop', dmgType: 'attack', maxLevel: 5,
     levels: [
       { damage: 25, cooldown: 2.2, amount: 1, area: 40, duration: 8, mine: true, trigger: 14,
         spread: 90, knockback: 80 },
@@ -316,16 +316,16 @@ export const WEAPONS = {
   },
 
   // Эволюции: оружие на maxLevel + своя пассивка (combos.js), существующие behavior с усиленными числами.
-  // blade_arc + steel
+  // blade_arc + attack
   crimson_arc: {
-    icon: 'icon_crimson_arc', sprite: 'proj_blade_arc', behavior: 'melee_arc', dmgType: 'steel', maxLevel: 1, evolved: true, tint: 0xff5050,
+    icon: 'icon_crimson_arc', sprite: 'proj_blade_arc', behavior: 'melee_arc', dmgType: 'attack', maxLevel: 1, evolved: true, tint: 0xff5050,
     levels: [
       { damage: 52, cooldown: 1.0, amount: 3, area: RINGS[7], knockback: 150 },
     ],
   },
   // throwing_daggers + haste
   thousand_edge: {
-    icon: 'icon_thousand_edge', sprite: 'proj_dagger', behavior: 'projectile', dmgType: 'steel', maxLevel: 1, evolved: true,
+    icon: 'icon_thousand_edge', sprite: 'proj_dagger', behavior: 'projectile', dmgType: 'attack', maxLevel: 1, evolved: true,
     levels: [
       { damage: 34, cooldown: 0.3, amount: 3, speed: 420,
         duration: 1.4, pierce: 3, knockback: 50 },
@@ -333,7 +333,7 @@ export const WEAPONS = {
   },
   // guardian_shields + armor
   aegis_bastion: {
-    icon: 'icon_aegis_bastion', sprite: 'proj_shield', behavior: 'orbit', dmgType: 'steel', maxLevel: 1, evolved: true, tint: 0xa0c8ff,
+    icon: 'icon_aegis_bastion', sprite: 'proj_shield', behavior: 'orbit', dmgType: 'attack', maxLevel: 1, evolved: true, tint: 0xa0c8ff,
     levels: [
       { damage: 211, cooldown: 0, amount: 6, area: onRing(0, SHIELD_R * 1.4), speed: 4.4,
         duration: 1e9, knockback: 160, size: 1.4, hitRadius: 14 },
@@ -348,7 +348,7 @@ export const WEAPONS = {
   },
   // war_axe + crit
   death_spiral: {
-    icon: 'icon_death_spiral', sprite: 'proj_axe', behavior: 'boomerang', dmgType: 'steel', maxLevel: 1, evolved: true, tint: 0xd0a0ff,
+    icon: 'icon_death_spiral', sprite: 'proj_axe', behavior: 'boomerang', dmgType: 'attack', maxLevel: 1, evolved: true, tint: 0xd0a0ff,
     levels: [
       { damage: 34, cooldown: 1.6, amount: 5, area: 210, speed: 300, duration: 4, knockback: 110 },
     ],
@@ -370,7 +370,7 @@ export const WEAPONS = {
   },
   // spear + crit_dmg
   dragon_lance: {
-    icon: 'icon_dragon_lance', sprite: 'proj_spear', behavior: 'projectile', dmgType: 'steel', maxLevel: 1, evolved: true, tint: 0xffb040,
+    icon: 'icon_dragon_lance', sprite: 'proj_spear', behavior: 'projectile', dmgType: 'attack', maxLevel: 1, evolved: true, tint: 0xffb040,
     levels: [
       { damage: 22, cooldown: 0.8, amount: 4, speed: 360, duration: 1.4, pierceAll: true,
         hitRadius: 10, knockback: 50 },
@@ -378,14 +378,14 @@ export const WEAPONS = {
   },
   // hammer + max_hp
   titan_maul: {
-    icon: 'icon_titan_maul', sprite: 'proj_blade_arc', behavior: 'melee_arc', dmgType: 'steel', maxLevel: 1, evolved: true, tint: 0xffd060,
+    icon: 'icon_titan_maul', sprite: 'proj_blade_arc', behavior: 'melee_arc', dmgType: 'attack', maxLevel: 1, evolved: true, tint: 0xffd060,
     levels: [
       { damage: 70, cooldown: 1.2, amount: 3, area: RINGS[8], knockback: 320 },
     ],
   },
   // crossbow + dodge
   ballista: {
-    icon: 'icon_ballista', sprite: 'proj_bolt', behavior: 'projectile', dmgType: 'steel', maxLevel: 1, evolved: true, tint: 0xa0e0ff,
+    icon: 'icon_ballista', sprite: 'proj_bolt', behavior: 'projectile', dmgType: 'attack', maxLevel: 1, evolved: true, tint: 0xa0e0ff,
     levels: [
       { damage: 113, cooldown: 0.9, amount: 3, speed: 560, duration: 1.1, pierce: 4,
         knockback: 110 },
@@ -393,7 +393,7 @@ export const WEAPONS = {
   },
   // mines + duration
   minefield: {
-    icon: 'icon_minefield', sprite: 'proj_mine', behavior: 'area_drop', dmgType: 'steel', maxLevel: 1, evolved: true, tint: 0xff6060,
+    icon: 'icon_minefield', sprite: 'proj_mine', behavior: 'area_drop', dmgType: 'attack', maxLevel: 1, evolved: true, tint: 0xff6060,
     levels: [
       { damage: 38, cooldown: 1.5, amount: 5, area: 64, duration: 14, mine: true, trigger: 18,
         spread: 130, knockback: 120 },

@@ -248,7 +248,7 @@ test('achievements: rewards once, idempotent, input not mutated', () => {
   // bagSize из items.js видит открытия
   assert.equal(bagSize(achievedIds(a.state)).cols, BAG.startCols + 1);
   const all = rewardsFor(Object.keys(ACHIEVEMENTS));
-  assert.deepEqual(all.bag, { cols: 2, rows: 1 });
+  assert.deepEqual(all.bag, { cols: 2, rows: 2 });
   // повтор мета-проверки
   const m1 = evaluateMeta(emptyAchievements(), { stash: [], bag: createBag() });
   const m2 = evaluateMeta(m1.state, { stash: [], bag: createBag() });

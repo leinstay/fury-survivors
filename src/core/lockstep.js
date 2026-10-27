@@ -18,6 +18,7 @@ import { COOP } from '../data/coop.js';
 import { DIFFICULTIES } from '../data/difficulty.js';
 import { forest } from '../data/stages/forest.js';
 import * as ITEMS from '../data/items.js';
+import { ACHIEVEMENTS } from '../data/achievements.js';
 import { createRng } from './rng.js';
 import { rollItem, makeUnique, createBag, place } from './items.js';
 
@@ -77,7 +78,8 @@ export function hashParts(sim) {
 function bagKey(bag) {
   if (!bag) return '';
   return `${bag.cols}x${bag.rows}:` + bag.items.map((e) =>
-    `${e.item.uid}@${e.x},${e.y}${e.rot ? 'r' : ''}+${e.item.enchant || 0}`).join(' ');
+    `${e.item.uid}@${e.x},${e.y}${e.rot ? 'r' : ''}+${e.item.enchant || 0}`).join(' ') +
+    (bag.ach && bag.ach.length ? `|${bag.ach.join(',')}` : '');
 }
 
 // Лут с боссов: uid предметов (или вид записи) и сердца по сундукам.
@@ -108,7 +110,7 @@ export function simFingerprint(fresh = false) {
   if (fingerprint !== null && !fresh) return fingerprint;
   const data = JSON.stringify([BUILD, CONSTANTS, HEROES, HERO_BASE, WEAPONS, WEAPON_BEHAVIOR,
     PASSIVES, STATS, STAT_CAPS, STAT_CAPS_REL,
-    COMBOS, ENEMIES, BOSS, BOSSES, PICKUPS, COOP, DIFFICULTIES, forest, ITEMS]);
+    COMBOS, ENEMIES, BOSS, BOSSES, PICKUPS, COOP, DIFFICULTIES, forest, ITEMS, ACHIEVEMENTS]);
   fingerprint = fnv(`${data}|${runFingerprint()}`);
   return fingerprint;
 }
@@ -121,7 +123,7 @@ export function versionTag() {
   return simFingerprint().toString(16).padStart(8, '0').slice(0, 6);
 }
 
-// Лоадауты для отпечатка: обычные предметы у первого, кости (уникалка с бросками) у второго.
+// Лоадауты для отпечатка: обычные предметы и все ачивки у первого, кости (уникалка с бросками) у второго.
 function fingerprintLoadouts() {
   const rng = createRng(77);
   let a = createBag();
@@ -129,7 +131,8 @@ function fingerprintLoadouts() {
   a = place(a, rollItem(rng, 3, { type: 'ring' }), 2, 0) || a;
   let b = createBag();
   b = place(b, makeUnique('dice', 2, 'fpdice'), 0, 0) || b;
-  return [a, b];
+  // бонусы ачивок (src/data/achievements.js bonus) тоже в отпечатке: все у первого
+  return [{ ...a, ach: Object.keys(ACHIEVEMENTS) }, b];
 }
 
 function runFingerprint() {

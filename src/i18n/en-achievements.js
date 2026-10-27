@@ -18,6 +18,10 @@ export const enAchievements = {
   'ach.reward.hearts.many': '{n} chaos hearts',
   'ach.reward.col': '+1 bag column',
   'ach.reward.row': '+1 bag row',
+  // постоянный бонус ачивки ко всем забегам: части через запятую
+  'ach.bonus.part': '{v} {stat}',
+  'ach.bonus': 'Bonus: {b}',
+  'ach.bonus.total': 'All bonuses: {b}',
 
   'ach.cat.progress': 'Progress',
   'ach.cat.challenge': 'Challenges',
@@ -73,7 +77,7 @@ export const enAchievements = {
   'ach.side_by_side.name': 'Side by Side',
   'ach.side_by_side.desc': 'Defeat {n} bosses in one co-op run.',
   'ach.medic.name': 'Medic',
-  'ach.medic.desc': 'Revive your partner {n} times (in total).',
+  'ach.medic.desc': 'Help revive your partner {n} times (in total): stay by the coffin.',
   'ach.no_one_left.name': 'No One Left Behind',
   'ach.no_one_left.desc': 'Win a co-op run where nobody fell.',
 

@@ -27,6 +27,9 @@
 //     { at, type: 'boss', boss }                                    // несколько боссов: убийство нефинального даёт сундук, забег идёт дальше
 //     { at, type: 'wall', enemy, count?, length?, speed? }          // шеренга через весь экран прямым курсом сквозь игрока (VS)
 //     { at, type: 'flyby', enemy, count?, speed? }                  // стая пролетает мимо игрока случайным курсом и исчезает
+//     у любого события необязательное afterBoss: N — ждёт, пока убито N боссов (sim.bossKills); разовое
+//     срабатывает в момент убийства, если его at уже прошло; spawn работает в своём окне at..until (рост rate
+//     и min по абсолютному времени), если окно кончилось до убийства, не начинается. Призывы боссов не гейтятся.
 //   ],
 //   chestHorde: { count, radius },  // мини-орда врагов типа элиты вокруг её сундука
 //   overtime: {                  // после финального босса: бесконечные волны, пока героиня не погибнет (смерть = победа)
@@ -62,12 +65,15 @@ export const forest = {
     { sprite: 'fence', density: 0.5, breakable: false, place: 'roadside' },
     { sprite: 'stump', density: 0.8, breakable: false },
   ],
-  // HP врагов × (1 + hpPerMinute × минуты): ранние типы повторяются поздно, поэтому к 15:00 они втрое крепче
-  // (catgirl 16 -> 48, lamia к 15:00 ~600, как Mantichana в VS). Скорость не растёт.
-  scaling: { hpPerMinute: 0.133, damagePerMinute: 0.07 },
+  // HP врагов × (1 + hpPerMinute × минуты): ранние типы повторяются поздно, поэтому к 15:00 они в 2.65 раза крепче
+  // (catgirl 32 -> 85, lamia 500 -> ~1300). Скорость не растёт. Волны 10:00–15:00 подобраны под клир
+  // (docs/BALANCE_AUDIT.md 12): средний билд держит моба на экране 3–5 с, мир не упирается в лимит врагов.
+  scaling: { hpPerMinute: 0.11, damagePerMinute: 0.07 },
   chestHorde: { count: 10, radius: 44 },
-  // Ритм как в Mad Forest: 0-5 мин летучие и слизни, ряд колец призраков; 5:00 босс 1; 5-10 стрелки и лисы;
+  // Ритм как в Mad Forest: 0-5 мин летучие и слизни, ряд колец призраков; 5:00 босс 1; 5-10 кролики и лисы;
   // 10:00 босс 2; 10-15 всё сразу, волны стрелков, стены призраков, финал 15:00.
+  // Гейтинг (afterBoss): лисы-кицунэ (рывок) только после убийства 1-го босса (её призыв лис остаётся),
+  // суккубы (стрелки) только после 2-го: у людей удары в 5:00–8:00 шли от выстрелов и рывков (BALANCE_AUDIT 12).
   timeline: [
     { at: 0, type: 'spawn', enemy: 'harpy', rate: 0.5, rateEnd: 1.2, until: 240, group: 3, min: 12, minEnd: 30 },
     { at: 60, type: 'spawn', enemy: 'slime', rate: 0.3, rateEnd: 0.8, until: 330, group: 2, min: 6, minEnd: 16 },
@@ -79,22 +85,22 @@ export const forest = {
     { at: 210, type: 'ring', enemy: 'ghost', count: 24 },
     { at: 240, type: 'elite', enemy: 'slime' },
     { at: 240, type: 'ring', enemy: 'ghost', count: 28 },
-    { at: 250, type: 'spawn', enemy: 'succubus', rate: 0.03, rateEnd: 0.1, until: 400, group: 1 },
+    { at: 250, type: 'spawn', enemy: 'bunnygirl', rate: 0.03, rateEnd: 0.1, until: 400, group: 1 },
     { at: 270, type: 'spawn', enemy: 'bunnygirl', rate: 0.3, rateEnd: 0.7, until: 540, group: 2, min: 4, minEnd: 12 },
     { at: 270, type: 'wall', enemy: 'slime', count: 22 },
     { at: 300, type: 'boss', boss: 'kitsune_empress' },
-    { at: 300, type: 'spawn', enemy: 'foxgirl', rate: 0.44, rateEnd: 0.89, until: 480, group: 3 },
+    { at: 300, type: 'spawn', enemy: 'foxgirl', rate: 0.44, rateEnd: 0.89, until: 480, group: 3, afterBoss: 1 },
     { at: 300, type: 'spawn', enemy: 'harpy', rate: 0.53, rateEnd: 0.98, until: 420, group: 4 },
     { at: 330, type: 'ring', enemy: 'ghost', count: 28 },
-    { at: 330, type: 'spawn', enemy: 'succubus', rate: 0.1, rateEnd: 0.18, until: 360, group: 1 },
+    { at: 330, type: 'spawn', enemy: 'bunnygirl', rate: 0.1, rateEnd: 0.18, until: 360, group: 1 },
     { at: 345, type: 'burst', enemy: 'harpy', count: 35 },
-    { at: 360, type: 'spawn', enemy: 'succubus', rate: 0.35, rateEnd: 0.53, until: 420, group: 3 },
-    { at: 390, type: 'spawn', enemy: 'succubus', rate: 0.13, rateEnd: 0.31, until: 620, group: 2 },
+    { at: 360, type: 'spawn', enemy: 'bunnygirl', rate: 0.35, rateEnd: 0.53, until: 420, group: 3 },
+    { at: 390, type: 'spawn', enemy: 'bunnygirl', rate: 0.13, rateEnd: 0.31, until: 600, group: 2 },
     { at: 390, type: 'flyby', enemy: 'harpy', count: 32 },
     { at: 420, type: 'spawn', enemy: 'lamia', rate: 0.13, rateEnd: 0.31, until: 600, group: 2 },
-    { at: 420, type: 'spawn', enemy: 'succubus', rate: 0.13, rateEnd: 0.28, until: 660, group: 2 },
+    { at: 420, type: 'spawn', enemy: 'catgirl', rate: 0.13, rateEnd: 0.28, until: 600, group: 2 },
     { at: 450, type: 'elite', enemy: 'catgirl' },
-    { at: 480, type: 'elite', enemy: 'succubus' },
+    { at: 480, type: 'elite', enemy: 'bunnygirl' },
     { at: 480, type: 'wall', enemy: 'catgirl', count: 28 },
     { at: 510, type: 'spawn', enemy: 'catgirl', rate: 1.04, rateEnd: 1.67, until: 570, group: 4, min: 63, minEnd: 125 },
     { at: 510, type: 'spawn', enemy: 'harpy', rate: 1.04, rateEnd: 1.67, until: 570, group: 4, min: 63, minEnd: 125 },
@@ -102,29 +108,30 @@ export const forest = {
     { at: 540, type: 'elite', enemy: 'lamia' },
     { at: 570, type: 'ring', enemy: 'ghost', count: 38 },
     { at: 600, type: 'boss', boss: 'harpy_queen' },
-    { at: 600, type: 'spawn', enemy: 'bunnygirl', rate: 0.98, rateEnd: 1.95, until: 900, group: 3, min: 39, minEnd: 98 },
-    { at: 600, type: 'spawn', enemy: 'foxgirl', rate: 0.98, rateEnd: 1.76, until: 900, group: 3 },
-    { at: 630, type: 'ring', enemy: 'ghost', count: 74 },
-    { at: 630, type: 'spawn', enemy: 'lamia', rate: 0.64, rateEnd: 1.27, until: 900, group: 2 },
-    { at: 660, type: 'elite', enemy: 'succubus' },
-    { at: 660, type: 'spawn', enemy: 'succubus', rate: 0.77, rateEnd: 1.52, until: 780, group: 2 },
-    { at: 660, type: 'flyby', enemy: 'harpy', count: 89 },
-    { at: 690, type: 'burst', enemy: 'harpy', count: 113 },
-    { at: 720, type: 'spawn', enemy: 'succubus', rate: 1.46, rateEnd: 2.33, until: 800, group: 3 },
-    { at: 720, type: 'elite', enemy: 'foxgirl' },
-    { at: 720, type: 'wall', enemy: 'bunnygirl', count: 57 },
-    { at: 750, type: 'spawn', enemy: 'catgirl', rate: 1.6, rateEnd: 2.4, until: 840, group: 4, min: 80, minEnd: 140 },
-    { at: 780, type: 'ring', enemy: 'ghost', count: 90 },
-    { at: 780, type: 'spawn', enemy: 'lamia', rate: 0.5, rateEnd: 1.0, until: 900, group: 3, min: 20, minEnd: 60 },
-    { at: 800, type: 'burst', enemy: 'slime', count: 62 },
-    { at: 810, type: 'spawn', enemy: 'harpy', rate: 1.3, rateEnd: 2.1, until: 870, group: 4, min: 80, minEnd: 140 },
-    { at: 810, type: 'flyby', enemy: 'harpy', count: 124 },
-    { at: 810, type: 'wall', enemy: 'lamia', count: 30 },
+    { at: 600, type: 'spawn', enemy: 'succubus', rate: 0.17, rateEnd: 0.24, until: 660, group: 2, afterBoss: 2 },
+    { at: 600, type: 'spawn', enemy: 'bunnygirl', rate: 0.83, rateEnd: 1.66, until: 900, group: 3, min: 23, minEnd: 59 },
+    { at: 600, type: 'spawn', enemy: 'foxgirl', rate: 0.83, rateEnd: 1.5, until: 900, group: 3, afterBoss: 1 },
+    { at: 630, type: 'ring', enemy: 'ghost', count: 63 },
+    { at: 630, type: 'spawn', enemy: 'lamia', rate: 0.38, rateEnd: 0.76, until: 900, group: 2 },
+    { at: 660, type: 'elite', enemy: 'succubus', afterBoss: 2 },
+    { at: 660, type: 'spawn', enemy: 'succubus', rate: 0.65, rateEnd: 1.29, until: 780, group: 2, afterBoss: 2 },
+    { at: 660, type: 'flyby', enemy: 'harpy', count: 76 },
+    { at: 690, type: 'burst', enemy: 'harpy', count: 96 },
+    { at: 720, type: 'spawn', enemy: 'succubus', rate: 0.62, rateEnd: 0.99, until: 800, group: 3, afterBoss: 2 },
+    { at: 720, type: 'elite', enemy: 'foxgirl', afterBoss: 1 },
+    { at: 720, type: 'wall', enemy: 'bunnygirl', count: 48 },
+    { at: 750, type: 'spawn', enemy: 'catgirl', rate: 1.09, rateEnd: 1.63, until: 840, group: 4, min: 41, minEnd: 71 },
+    { at: 780, type: 'ring', enemy: 'ghost', count: 62 },
+    { at: 780, type: 'spawn', enemy: 'lamia', rate: 0.24, rateEnd: 0.48, until: 900, group: 3, min: 6, minEnd: 19 },
+    { at: 800, type: 'burst', enemy: 'slime', count: 42 },
+    { at: 810, type: 'spawn', enemy: 'harpy', rate: 0.88, rateEnd: 1.42, until: 870, group: 4, min: 41, minEnd: 71 },
+    { at: 810, type: 'flyby', enemy: 'harpy', count: 84 },
+    { at: 810, type: 'wall', enemy: 'lamia', count: 17 },
     { at: 840, type: 'elite', enemy: 'lamia' },
-    { at: 840, type: 'wall', enemy: 'lamia', count: 30 },
+    { at: 840, type: 'wall', enemy: 'lamia', count: 17 },
     { at: 840, type: 'elite', enemy: 'slime' },
-    { at: 870, type: 'ring', enemy: 'ghost', count: 98 },
-    { at: 870, type: 'wall', enemy: 'lamia', count: 41 },
+    { at: 870, type: 'ring', enemy: 'ghost', count: 66 },
+    { at: 870, type: 'wall', enemy: 'lamia', count: 22 },
     { at: 900, type: 'boss', boss: 'dryad_queen' },
   ],
   // Овертайм ради очков в таблице: через минуту враги почти вдвое крепче, через две — почти втрое, и толпа растёт

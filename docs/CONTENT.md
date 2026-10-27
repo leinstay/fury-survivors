@@ -31,7 +31,7 @@ Behavior: `melee_arc`, `projectile`, `orbit`, `aura`, `boomerang`, `chain`, `are
 
 ## Оружие с новым behavior
 
-1. Файл `src/behaviors/weapons/<имя>.js`, `export const <имяCamelCase> = { init(w, sim), update(w, sim, dt) }` (только именованный экспорт, `export default` запрещён линтером). `w` это состояние оружия: `w.id`, `w.level`, `w.def`, `w.params` (числа текущего уровня; `params.damage` уже умножен на `steel` или `magic` по `dmgType`, `params.cooldown` поделён на `haste`, `area` и `duration` умножены на статы `area` и `duration`), `w.slot`. Снаряды: `sim.addProjectile('player', w.def.sprite)`, затем заполнить `life`, `radius`, `dmg`, `vx/vy` и т. д. Образцы: `projectile.js` (простой), `orbit.js` (снаряд с `p.bk = orbit` и методом `moveProjectile`). Событие выстрела: `sim.events.push({ type: 'weaponFire', weapon: w.id })`.
+1. Файл `src/behaviors/weapons/<имя>.js`, `export const <имяCamelCase> = { init(w, sim), update(w, sim, dt) }` (только именованный экспорт, `export default` запрещён линтером). `w` это состояние оружия: `w.id`, `w.level`, `w.def`, `w.params` (числа текущего уровня; `params.damage` уже умножен на `attack` или `magic` по `dmgType`, `params.cooldown` поделён на `haste`, `area` и `duration` умножены на статы `area` и `duration`), `w.slot`. Снаряды: `sim.addProjectile('player', w.def.sprite)`, затем заполнить `life`, `radius`, `dmg`, `vx/vy` и т. д. Образцы: `projectile.js` (простой), `orbit.js` (снаряд с `p.bk = orbit` и методом `moveProjectile`). Событие выстрела: `sim.events.push({ type: 'weaponFire', weapon: w.id })`.
 2. Регистрация: именованный импорт и строка в `WEAPON_BEHAVIORS` в `src/behaviors/index.js` (имя ключа = значение `behavior` в data).
 3. Дальше как в рецепте выше. `src/core/` не импортирует Phaser и DOM; числа берутся из `w.params`, не хардкодятся.
 4. Новые поля уровня опиши в шапке `src/data/weapons.js`.
@@ -47,7 +47,7 @@ Behavior: `melee_arc`, `projectile`, `orbit`, `aura`, `boomerang`, `chain`, `are
 
 Герои перечислены только в `src/data/heroes.js`. Меню (картинки у кнопок), карточки выбора в соло и в лобби коопа, сим и тесты читают этот список сами, правок в сценах не нужно.
 
-1. `src/data/heroes.js`: запись `id: { sprite, portrait, menu?, startWeapon, stats }`. `stats` с полным набором статов из `src/data/stats.js` (`maxHp, steel, magic, speed, crit, critDmg, area, duration, pickup, haste, luck, armor, regen, xpGain, dodge, thorns`). `menu: { art, side }` необязательно: картинка у кнопок главного меню, `side: 'left'` рисуется отражённой, несколько на одной стороне встают дальше от кнопок по порядку. Порядок записей = порядок карточек выбора.
+1. `src/data/heroes.js`: запись `id: { sprite, portrait, menu?, startWeapon, stats }`. `stats` с полным набором статов из `src/data/stats.js` (`maxHp, attack, magic, speed, crit, critDmg, area, duration, pickup, haste, luck, armor, regen, xpGain, dodge, thorns`). `menu: { art, side }` необязательно: картинка у кнопок главного меню, `side: 'left'` рисуется отражённой, несколько на одной стороне встают дальше от кнопок по порядку. Порядок записей = порядок карточек выбора.
 2. Спрайты в `assets/sprites/manifest.js`: лента ходьбы `chara('<id>', '#цвет')` (кадр 110×110, число кадров по ширине PNG, кадр 0 стойка, см. `docs/ASSETS.md`), портрет 48×48 и картинка меню. Как сделать ленту того же размера пикселя: `docs/ASSETS.md` (PixelLab, `hd-frames.mjs`, пример магессы).
 3. i18n: `hero.<id>.name`. Статы игроку числами не показываются: на карточке выбора черты относительно среднего героя `HERO_BASE` (`+ATK` зелёным, `-HP` красным, `core/heroes.js heroTraits`); подписи `trait.<stat>` уже есть.
 4. Тест `data: every hero is complete` проверяет спрайты, картинку меню, имя и набор статов; `data: hero start weapons exist` проверяет оружие.
@@ -134,6 +134,13 @@ Behavior: `chase`, `dash`, `ranged`, `swarm`, `phase` (`boss` только дл�
    - `elite`: `{ at, type: 'elite', enemy }`, один элитный враг с дропом-сундуком.
    - `burst`: `{ at, type: 'burst', enemy, count }`, кучка врагов у края экрана.
    - `boss`: `{ at, type: 'boss', boss }`.
+   - `wall`, `flyby`: шеренга и пролёт стаи (формат в шапке `forest.js`).
+   - У любого события, кроме `boss`, необязательное `afterBoss: N`: событие ждёт, пока убито N боссов
+     (`sim.bossKills`, общее в коопе, детерминировано). Разовое (`ring`, `elite`, `burst`, `wall`, `flyby`)
+     срабатывает в момент убийства, если его `at` уже прошло. `spawn` идёт в своём окне `at..until`
+     (рост `rate` и `min` по абсолютному времени); если окно кончилось раньше убийства, не начинается.
+     Призывы боссов (`attacks: summon`) не гейтятся. В лесу: лисы (`foxgirl`) `afterBoss: 1`, суккубы `afterBoss: 2`
+     (тест `forest: kitsune (foxgirl) waves after the 1st boss, succubi after the 2nd`, `tests/unit/director.test.js`).
 7. `bossWarning`: за сколько секунд до события `boss` слать `bossWarning` (0 или не задано: без предупреждения).
 8. i18n: `stage.<id>.name`. manifest: спрайты props и фон.
 9. Тесты: `stage: timeline sorted and references known enemies`, `data: pickups, props drops and timeline are consistent` (проверяют `forest`; для нового этапа добавь аналогичные проверки). Баланс: `tests/balance/` ходит по лесу.
@@ -158,7 +165,8 @@ Behavior: `chase`, `dash`, `ranged`, `swarm`, `phase` (`boss` только дл�
 { at: 150, type: 'ring', enemy: 'ghost', count: 16 },
 { at: 240, type: 'elite', enemy: 'slime' },
 { at: 510, type: 'burst', enemy: 'slime', count: 30 },
-{ at: 390, type: 'spawn', enemy: 'succubus', rate: 0.1, rateEnd: 0.25, until: 560, group: 2 },
+{ at: 390, type: 'spawn', enemy: 'bunnygirl', rate: 0.1, rateEnd: 0.25, until: 560, group: 2 },
+{ at: 660, type: 'spawn', enemy: 'succubus', rate: 0.8, rateEnd: 1.5, until: 780, group: 2, afterBoss: 2 },
 ```
 
 Держи список отсортированным по `at`. Лимит живых врагов `SIM.maxEnemies` (400) общий; при нехватке места элита и босс вытесняют самого дальнего обычного врага. Проверка: `npm test` (структура и отсортированность) и баланс-тесты (пик врагов не выше лимита).
@@ -166,7 +174,7 @@ Behavior: `chase`, `dash`, `ranged`, `swarm`, `phase` (`boss` только дл�
 ## Супероружие: эволюции
 
 Коллабов (оружие + оружие) больше нет (docs/META.md 1.4). Каждая запись в `src/data/combos.js` — эволюция
-(как в Vampire Survivors), 1 к 1: `{ from: ['blade_arc', 'steel'], result: 'crimson_arc' }` — оружие на `maxLevel`
+(как в Vampire Survivors), 1 к 1: `{ from: ['blade_arc', 'attack'], result: 'crimson_arc' }` — оружие на `maxLevel`
 и своя пассивка любого уровня; пассивка остаётся.
 
 Результат встаёт в слот оружия. Выпадает из сундука элиты или босса (сундук шлёт item с `evolved: true` и `from`). Порядок в `COMBOS` = приоритет, если готовы сразу несколько.
@@ -174,7 +182,7 @@ Behavior: `chase`, `dash`, `ranged`, `swarm`, `phase` (`boss` только дл�
 1. `src/data/weapons.js`, запись с `evolved: true`, `maxLevel: 1`, одним уровнем, тем же `dmgType`, что у оружия. Одно поведение с усиленными числами и необязательным цветом снарядов:
    ```js
    crimson_arc: {
-     icon: 'icon_crimson_arc', sprite: 'proj_blade_arc', behavior: 'melee_arc', dmgType: 'steel', maxLevel: 1, evolved: true, tint: 0xff5050,
+     icon: 'icon_crimson_arc', sprite: 'proj_blade_arc', behavior: 'melee_arc', dmgType: 'attack', maxLevel: 1, evolved: true, tint: 0xff5050,
      levels: [ { damage: 60, cooldown: 0.8, amount: 4, area: 96, knockback: 150 } ],
    },
    ```

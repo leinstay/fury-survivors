@@ -3,7 +3,7 @@
 
 const PREFIX = {
   maxHp: ['Anemic', 'Frail', 'Hale', 'Hearty', 'Stalwart', "Titan's"],
-  steel: ['Rusted', 'Dull', 'Honed', 'Tempered', 'Razor', "Warlord's"],
+  attack: ['Rusted', 'Dull', 'Honed', 'Tempered', 'Razor', "Warlord's"],
   magic: ['Muted', 'Flickering', 'Glowing', 'Arcane', 'Runic', "Archmage's"],
   speed: ["Snail's", 'Plodding', 'Brisk', 'Fleet', 'Galloping', "Hurricane's"],
   crit: ['Clumsy', 'Wobbly', 'Keen', 'Precise', 'Deadeye', "Assassin's"],
@@ -23,7 +23,7 @@ const PREFIX = {
 const SUFFIX = {
   maxHp: ['of Fading', 'of the Sickly', 'of Vigor', 'of the Ox', 'of the Mountain',
     'of Undying Flesh'],
-  steel: ['of Rust', 'of the Butter Knife', 'of Edges', 'of the Blademaster', 'of Carnage',
+  attack: ['of Rust', 'of the Butter Knife', 'of Edges', 'of the Blademaster', 'of Carnage',
     'of a Thousand Cuts'],
   magic: ['of Fizzling', 'of the Novice', 'of Sorcery', 'of the Magus', 'of Starfire',
     'of a Thousand Truths'],
@@ -103,7 +103,7 @@ export const enItems = {
 
   // статы в описании аффиксов
   'item.stat.maxHp': 'Max HP',
-  'item.stat.steel': 'Steel',
+  'item.stat.attack': 'Attack',
   'item.stat.magic': 'Magic',
   'item.stat.speed': 'Move Speed',
   'item.stat.crit': 'Crit Chance',
@@ -203,9 +203,17 @@ export const enItems = {
   'inv.confirm_dis': 'Press again to disassemble for {n} crystals.',
   'inv.disassembled': '+{n} crystals',
   'inv.hint': 'Click: pick up / place (or drag). R / right click / Y: rotate. L / X: lock. Esc: cancel. Keys and gamepad move between cells.',
+  'inv.hint_touch': 'Tap: pick up / place (or drag with a finger). Rotate and Lock: buttons under the bag. Tap the hero name in Stats to switch.',
   'inv.stats': 'Stats',
+  'inv.hero_switch': '‹ {name} ›',
   'inv.max': '(max)',
   'inv.max_over': '(max, {n} wasted)',
+  // вклады в стат в панели статов: (+пассивки) (+предметы) (+ачивки), легенда цветов в заголовке
+  'inv.part': '({v})',
+  'inv.part.more': '(×{v})',
+  'inv.part.passives': 'passives',
+  'inv.part.items': 'items',
+  'inv.part.ach': 'achiev.',
   'inv.one_unique': 'Only one unique fits in the bag.',
   'inv.cant_place': 'It does not fit there.',
   'inv.cant_rotate': 'No room to rotate.',

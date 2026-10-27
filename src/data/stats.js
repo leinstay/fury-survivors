@@ -6,7 +6,7 @@
 // critDmg плоский: «+X% урона крита» сверх COMBAT.critMul, база героя 0 (процентный от нуля не рос бы).
 export const STATS = {
   maxHp: 'percent',
-  steel: 'percent',    // × урон оружия со стальным уроном (dmgType 'steel', weapons.js)
+  attack: 'percent',    // × урон оружия со стальным уроном (dmgType 'attack', weapons.js)
   magic: 'percent',    // × урон оружия с магическим уроном (dmgType 'magic')
   speed: 'percent',    // px/с
   crit: 'flat',        // доля шанса крита; итоговый шанс = crit × luck, затем кап
@@ -20,7 +20,7 @@ export const STATS = {
   regen: 'flat',       // HP/с
   xpGain: 'percent',   // × опыт с подобранных кристаллов
   dodge: 'flat',       // доля шанса не получить удар (контакт и снаряды)
-  thorns: 'flat',      // урон по всем врагам на экране при получении удара (× steel), COMBAT.thornsCooldown
+  thorns: 'flat',      // урон по всем врагам на экране при получении удара (× attack), COMBAT.thornsCooldown
 };
 
 // Жёсткие капы итогового значения. haste: кулдаун не ниже ×0.35, то есть haste ≤ 1 / 0.35.

@@ -331,7 +331,7 @@ export function rotate(bag, uid) {
   return place(bag, e.item, e.x, e.y, !e.rot);
 }
 
-/** Сетка [y][x] uid или null (вся 9×5; закрытые клетки: x ≥ cols или y ≥ rows). */
+/** Сетка [y][x] uid или null (вся BAG.w × BAG.h; закрытые клетки: x ≥ cols или y ≥ rows). */
 export function bagGrid(bag) {
   const g = Array.from({ length: BAG.h }, () => new Array(BAG.w).fill(null));
   for (const e of bag.items) {

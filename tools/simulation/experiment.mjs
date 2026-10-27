@@ -2,7 +2,11 @@ import { XP, COMBAT } from '../../src/data/constants.js';
 import { DIFFICULTIES } from '../../src/data/difficulty.js';
 import { COOP } from '../../src/data/coop.js';
 import { HEROES } from '../../src/data/heroes.js';
+import { PASSIVES } from '../../src/data/passives.js';
 import { WEAPONS } from '../../src/data/weapons.js';
+import { ENEMIES } from '../../src/data/enemies.js';
+import { BOSSES } from '../../src/data/bosses.js';
+import { forest } from '../../src/data/stages/forest.js';
 import { simFingerprint } from '../../src/core/lockstep.js';
 
 // Explicit experimental overrides are scoped to one synchronous run/replay, then restored.
@@ -12,7 +16,26 @@ export function installExperiment(experiment) {
     coop: structuredClone(COOP), combat: { ...COMBAT },
     weapons: structuredClone(Object.fromEntries(Object.keys(experiment.weapons || {})
       .map((id) => [id, WEAPONS[id].levels]))),
-    heroes: Object.fromEntries(Object.entries(HEROES).map(([id, h]) => [id, { ...h.stats }])) };
+    heroes: Object.fromEntries(Object.entries(HEROES).map(([id, h]) => [id, { ...h.stats }])),
+    enemies: structuredClone(Object.fromEntries(Object.keys(experiment.enemies || {})
+      .map((id) => [id, { ...ENEMIES[id] }]))),
+    bosses: Object.fromEntries(Object.keys(experiment.bosses || {})
+      .map((id) => [id, { ...BOSSES[id] }])),
+    timeline: forest.timeline, scaling: { ...forest.scaling },
+    passives: Object.fromEntries(Object.keys(experiment.passives || {})
+      .map((id) => [id, PASSIVES[id].levels])),
+    difficulty: structuredClone(DIFFICULTIES) };
+  // passives: { id: [уровни] } — замена таблицы уровней; difficulty: { id: { поле: значение } }.
+  for (const [id, lv] of Object.entries(experiment.passives || {})) PASSIVES[id].levels = lv;
+  for (const [id, patch] of Object.entries(experiment.difficulty || {})) {
+    Object.assign(DIFFICULTIES[id], patch);
+  }
+  // enemies / bosses: { id: { поле: значение } } — замена полей записи; timeline — весь таймлайн леса;
+  // scaling — поля forest.scaling.
+  for (const [id, p] of Object.entries(experiment.enemies || {})) Object.assign(ENEMIES[id], p);
+  for (const [id, p] of Object.entries(experiment.bosses || {})) Object.assign(BOSSES[id], p);
+  if (experiment.timeline) forest.timeline = experiment.timeline;
+  if (experiment.scaling) Object.assign(forest.scaling, experiment.scaling);
   if (experiment.xp) Object.assign(XP, experiment.xp);
   if (experiment.cursedXP !== undefined) DIFFICULTIES.cursed.xpMul = experiment.cursedXP;
   if (experiment.coopXP !== undefined) COOP.xpMul = experiment.coopXP;
@@ -45,6 +68,12 @@ export function installExperiment(experiment) {
     Object.assign(COMBAT, saved.combat);
     for (const [id, levels] of Object.entries(saved.weapons)) WEAPONS[id].levels = levels;
     for (const [id, stats] of Object.entries(saved.heroes)) Object.assign(HEROES[id].stats, stats);
+    for (const [id, def] of Object.entries(saved.enemies)) Object.assign(ENEMIES[id], def);
+    for (const [id, def] of Object.entries(saved.bosses)) Object.assign(BOSSES[id], def);
+    forest.timeline = saved.timeline;
+    for (const [id, levels] of Object.entries(saved.passives)) PASSIVES[id].levels = levels;
+    for (const [id, def] of Object.entries(saved.difficulty)) Object.assign(DIFFICULTIES[id], def);
+    Object.assign(forest.scaling, saved.scaling);
     simFingerprint(true);
   };
 }

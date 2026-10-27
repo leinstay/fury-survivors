@@ -3,7 +3,7 @@
 // Выпадает из сундука элиты или босса. Результат описан в weapons.js с флагом evolved: true;
 // он занимает слот оружия, пассивка остаётся.
 export const COMBOS = [
-  { from: ['blade_arc', 'steel'], result: 'crimson_arc' },
+  { from: ['blade_arc', 'attack'], result: 'crimson_arc' },
   { from: ['throwing_daggers', 'haste'], result: 'thousand_edge' },
   { from: ['guardian_shields', 'armor'], result: 'aegis_bastion' },
   { from: ['holy_ground', 'regen'], result: 'soul_garden' },

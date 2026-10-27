@@ -85,7 +85,7 @@ test('evolution retains consumed weapon damage and distinguishes reward from cho
   const { sim, tr } = setup();
   const p = sim.player;
   p.weapons = [{ id: 'blade_arc', level: WEAPONS.blade_arc.maxLevel }];
-  p.passives = [{ id: 'steel', level: 1 }];
+  p.passives = [{ id: 'attack', level: 1 }];
   p.damageByWeapon.blade_arc = 1234;
   p.rawByWeapon.blade_arc = 1500;
   p.hitsByWeapon.blade_arc = 99;
@@ -93,7 +93,7 @@ test('evolution retains consumed weapon damage and distinguishes reward from cho
   sim.chooseChest(0);
   assert.deepEqual(tr.picks.map((x) => x[1]), ['evo', 'chest']);
   assert.equal(tr.applications.length, 1);
-  assert.deepEqual(tr.applications[0].from, ['blade_arc', 'steel']);
+  assert.deepEqual(tr.applications[0].from, ['blade_arc', 'attack']);
   const result = finish(sim, tr);
   assert.equal(result.end.w.some((x) => x[0] === 'blade_arc'), false);
   assert.deepEqual(result.end.damage.find((x) => x[0] === 'blade_arc'),

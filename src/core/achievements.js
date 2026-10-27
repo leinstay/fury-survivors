@@ -17,6 +17,7 @@ import { HEROES } from '../data/heroes.js';
 import { WEAPONS } from '../data/weapons.js';
 import { ENEMIES } from '../data/enemies.js';
 import { STASH, BAG, CURRENCIES } from '../data/items.js';
+import { STATS } from '../data/stats.js';
 import { bagFull, bagTypes, emptyWallet } from './items.js';
 import { normalizeRunSummary } from './run-summary.js';
 
@@ -260,6 +261,57 @@ export function evaluateRun(state, run, at = 1) {
   if (r.won && has(HEROES, r.hero)) s.heroesWon[r.hero] = 1;
   for (const id of r.evolutionsGot) s.evolutions[id] = 1;
   return settle(s, r, null, at);
+}
+
+/**
+ * Проверка посреди забега (плашка сразу, как условие выполнено): итог «пока что» (RunSummaryTracker.snapshot)
+ * без победы. Счётчик medic не копится (его прибавит evaluateRun в конце), берётся счётчик + оживления забега;
+ * эволюции забега учитываются. Ачивки победы (won) здесь не срабатывают — они придут из evaluateRun.
+ * @param {!Object} state
+ * @param {*} run
+ * @param {number=} at
+ * @return {{state: !Object, unlocked: !Array<string>, rewards: {wallet: !Object, bag: !Object}}}
+ */
+export function evaluateLive(state, run, at = 1) {
+  const s = clone(normalizeAchievements(state) || emptyAchievements());
+  const r = normalizeRunSummary(run);
+  r.won = false;
+  const view = clone(s);
+  view.counters.medic += r.revives;
+  for (const id of r.evolutionsGot) view.evolutions[id] = 1;
+  const res = settle(view, r, null, at);
+  for (const id of res.unlocked) s.done[id] = view.done[id];
+  return { state: s, unlocked: res.unlocked, rewards: res.rewards };
+}
+
+// ---------- постоянные бонусы ----------
+
+/**
+ * Бонус ачивок к статам (поле bonus в src/data/achievements.js): процентные — increased (inc),
+ * плоские — прибавка (flat). Неизвестные id и статы отброшены, порядок сложения — порядок ACHIEVEMENTS.
+ * @param {?Array<string>} ids полученные ачивки
+ * @return {{inc: !Object<string, number>, flat: !Object<string, number>}}
+ */
+export function achievementBonus(ids) {
+  const inc = {};
+  const flat = {};
+  const got = new Set(Array.isArray(ids) ? ids : []);
+  for (const id of Object.keys(ACHIEVEMENTS)) {
+    if (!got.has(id)) continue;
+    const b = ACHIEVEMENTS[id].bonus || {};
+    for (const k of Object.keys(b)) {
+      if (!has(STATS, k) || typeof b[k] !== 'number' || !Number.isFinite(b[k])) continue;
+      const to = STATS[k] === 'flat' ? flat : inc;
+      to[k] = (to[k] || 0) + b[k];
+    }
+  }
+  return { inc, flat };
+}
+
+/** Полученные ачивки с бонусом из чего угодно (сохранение, сообщение напарника): порядок ACHIEVEMENTS. */
+export function normalizeAchievementIds(raw) {
+  const got = new Set(Array.isArray(raw) ? raw.filter((id) => typeof id === 'string') : []);
+  return Object.keys(ACHIEVEMENTS).filter((id) => got.has(id) && ACHIEVEMENTS[id].bonus);
 }
 
 /**

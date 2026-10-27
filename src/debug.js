@@ -50,7 +50,9 @@ export function installDebug(game) {
       }, 50);
     },
     debug() {
-      const active = game.scene.getScenes(true).map((s) => s.sys.settings.key);
+      // плашки ачивок (сцена Toast поверх всех) — не экран, в списке их нет
+      const active = game.scene.getScenes(true).map((s) => s.sys.settings.key)
+          .filter((k) => k !== 'Toast');
       const gameScene = game.scene.getScene('Game');
       const sim = gameScene && gameScene.sim;
       return {
@@ -76,6 +78,7 @@ export function installDebug(game) {
             input: ui?.input?.enabled ?? null, keyboard: ui?.input?.keyboard?.enabled ?? null,
             items: ui?.nav?.items.length ?? 0 };
         }),
+        toasts: game.scene.getScene('Toast')?.shownIds?.slice() ?? [],
         weapons: sim ? sim.player.weapons.map((w) => ({ id: w.id, level: w.level })) : [],
         errors: errors.slice(),
       };

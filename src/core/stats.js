@@ -24,12 +24,8 @@ function rawStats(base, passives, extra, out) {
   const inc = {};
   const more = {};
   for (const k in STATS) { inc[k] = 0; more[k] = 1; }
-  for (let i = 0; i < passives.length; i++) {
-    const p = passives[i];
-    const def = PASSIVES[p.id];
-    if (!def || p.level < 1) continue;
-    inc[def.stat] = (inc[def.stat] || 0) + def.levels[Math.min(p.level, def.levels.length) - 1];
-  }
+  const ps = passiveSums(passives);
+  for (const k in ps) inc[k] = (inc[k] || 0) + ps[k];
   if (extra) {
     const ei = extra.inc || NONE;
     const ef = extra.flat || NONE;
@@ -81,15 +77,40 @@ export function critChance(st) {
   return c < STAT_CAPS.crit ? c : STAT_CAPS.crit;
 }
 
+// Сумма пассивок по статам (increased у процентных, прибавка у плоских).
+function passiveSums(passives) {
+  const out = {};
+  for (let i = 0; i < passives.length; i++) {
+    const p = passives[i];
+    const def = PASSIVES[p.id];
+    if (!def || p.level < 1) continue;
+    out[def.stat] = (out[def.stat] || 0) + def.levels[Math.min(p.level, def.levels.length) - 1];
+  }
+  return out;
+}
+
 /**
- * Разбор статов для панели: итог, значение без капа и упор в кап. У crit — итоговый шанс (crit × luck).
+ * Разбор статов для панели: итог, значение без капа, упор в кап и вклад источников.
+ * У crit — итоговый шанс (crit × luck), вклады — в сам стат crit.
+ * parts: passives — сумма пассивок, items — сумма внешних источников без ачивок (сумка, уникалка),
+ * ach — сумма ачивок, more — произведение more (уникалки, кости). У процентных вклады — доли increased
+ * (0.1 = +10%), у плоских — прибавка в единицах стата.
  * @param {!Object<string, number>} base
  * @param {!Array<{id: string, level: number}>} passives
- * @param {?Object=} extra как в computeStats
- * @return {!Object<string, {value: number, raw: number, cap: number, capped: boolean}>}
+ * @param {?Object=} extra как в computeStats (ачивки уже внутри)
+ * @param {?{inc: (Object<string, number>|undefined), flat: (Object<string, number>|undefined)}=} ach
+ *     часть extra от ачивок (для разбивки; в итог второй раз не прибавляется)
+ * @return {!Object<string, {value: number, raw: number, cap: number, capped: boolean,
+ *     parts: {passives: number, items: number, ach: number, more: number}}>}
  */
-export function statReport(base, passives, extra = null) {
+export function statReport(base, passives, extra = null, ach = null) {
   const raw = rawStats(base, passives, extra, {});
+  const ps = passiveSums(passives);
+  const ei = (extra && extra.inc) || NONE;
+  const ef = (extra && extra.flat) || NONE;
+  const em = (extra && extra.more) || NONE;
+  const ai = (ach && ach.inc) || NONE;
+  const af = (ach && ach.flat) || NONE;
   const out = {};
   for (const k in STATS) {
     let r = raw[k];
@@ -98,7 +119,14 @@ export function statReport(base, passives, extra = null) {
       r = raw.crit * Math.min(raw.luck, capOf(base, 'luck'));
       cap = STAT_CAPS.crit;
     }
-    out[k] = { value: r > cap ? cap : r, raw: r, cap, capped: r >= cap };
+    const a = (ai[k] || 0) + (af[k] || 0);
+    const parts = {
+      passives: ps[k] || 0,
+      items: (ei[k] || 0) + (ef[k] || 0) - a,
+      ach: a,
+      more: em[k] ?? 1,
+    };
+    out[k] = { value: r > cap ? cap : r, raw: r, cap, capped: r >= cap, parts };
   }
   return out;
 }

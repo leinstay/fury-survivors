@@ -86,7 +86,7 @@ test('data: weapons have behavior, damage type, icon, sprite and full level tabl
   assert.ok(!WEAPON_BEHAVIORS.combo, 'no collab behavior');
   for (const [id, w] of Object.entries(WEAPONS)) {
     assert.ok(WEAPON_BEHAVIORS[w.behavior], `${id}: unknown behavior ${w.behavior}`);
-    assert.ok(['steel', 'magic'].includes(w.dmgType), `${id}: dmgType`);
+    assert.ok(['attack', 'magic'].includes(w.dmgType), `${id}: dmgType`);
     assert.equal(w.levels.length, w.maxLevel, `${id}: levels vs maxLevel`);
     if (!w.evolved) assert.equal(w.maxLevel, 5, `${id}: 5 levels`);
     assert.ok(w.icon && w.sprite, `${id}: icon/sprite`);

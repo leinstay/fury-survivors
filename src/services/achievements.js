@@ -3,8 +3,8 @@
 // Без DOM на импорте.
 import { ACHIEVEMENT_STORE, ACHIEVEMENTS_VERSION } from '../data/achievements.js';
 import {
-  emptyAchievements, normalizeAchievements, evaluateRun, evaluateMeta, achievedIds, markSeen,
-  bumpCounters,
+  emptyAchievements, normalizeAchievements, evaluateRun, evaluateMeta, evaluateLive, achievedIds,
+  markSeen, bumpCounters, normalizeAchievementIds,
 } from '../core/achievements.js';
 import { bagSize } from '../core/items.js';
 import { loadFirestore } from './firebase.js';
@@ -79,6 +79,29 @@ export function recordRunAchievements(summary) {
   // medic меняет счётчик и без новых ачивок
   if (!res.unlocked.length && summary.revives) backupAchievements();
   return { unlocked: res.unlocked, rewards: res.rewards };
+}
+
+/**
+ * Проверка посреди забега (RunSummaryTracker.snapshot): ачивки, условие которых уже выполнено, получаются
+ * сразу (плашка в забеге). Без новых ачивок ничего не пишется.
+ * @param {?Object} snapshot
+ * @return {!Array<string>} полученные сейчас
+ */
+export function checkLiveAchievements(snapshot) {
+  if (!snapshot || readOnly) return [];
+  const res = evaluateLive(getAchievements(), snapshot, Date.now());
+  if (!res.unlocked.length) return [];
+  return commit(res).unlocked;
+}
+
+/** Полученные ачивки с постоянным бонусом (поле ach лоадаута, src/core/loadout.js). */
+export function achievementLoadoutIds() {
+  return readOnly ? [] : normalizeAchievementIds(achievedIds(getAchievements()));
+}
+
+/** Лоадаут для забега: сумка + бонусы полученных ачивок. */
+export function withAchievements(bag) {
+  return { ...bag, ach: achievementLoadoutIds() };
 }
 
 /**

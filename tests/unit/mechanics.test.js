@@ -224,19 +224,19 @@ test('orbit: each shield rehits a target on its own timer', () => {
   assert.ok(hits >= 15 && hits <= 21, `hits ${hits}`);
 });
 
-// ---- ребаланс забега (docs/META.md 1): статы steel/magic, area, duration, xpGain, dodge, thorns, очередь карточек ----
+// ---- ребаланс забега (docs/META.md 1): статы attack/magic, area, duration, xpGain, dodge, thorns, очередь карточек ----
 
 test('stats: weapon damage uses the owner stat of its dmgType, area and duration scale level fields', () => {
   const sim = createSim({ seed: 81 });
   const pl = sim.player;
   pl.weapons = [{ id: 'blade_arc', level: 1 }, { id: 'firebomb', level: 1 }];
-  pl.passives = [{ id: 'steel', level: 5 }, { id: 'area', level: 5 }, { id: 'duration', level: 5 }];
+  pl.passives = [{ id: 'attack', level: 5 }, { id: 'area', level: 5 }, { id: 'duration', level: 5 }];
   sim._syncBuild();
   const [blade, bomb] = pl.weapons;
   const st = pl.stats;
   const b1 = WEAPONS.blade_arc.levels[0];
   const f1 = WEAPONS.firebomb.levels[0];
-  assert.ok(Math.abs(blade.params.damage - b1.damage * st.steel) < 1e-9, 'steel weapon × steel');
+  assert.ok(Math.abs(blade.params.damage - b1.damage * st.attack) < 1e-9, 'attack weapon × attack');
   assert.ok(Math.abs(bomb.params.damage - f1.damage * st.magic) < 1e-9, 'magic weapon × magic');
   assert.ok(Math.abs(blade.params.area - b1.area * st.area) < 1e-9);
   assert.ok(Math.abs(bomb.params.duration - f1.duration * st.duration) < 1e-9);
@@ -271,13 +271,13 @@ test('dodge avoids contact and shots (event dodge), not telegraphed slams', () =
   assert.equal(a.rng.state, state);
 });
 
-test('thorns hit every enemy on screen for thorns × steel, with an internal cooldown', () => {
+test('thorns hit every enemy on screen for thorns × attack, with an internal cooldown', () => {
   const sim = createSim({ seed: 85 });
   sim.director = { update() {} };
   const pl = sim.player;
   god(sim);
   pl.stats.thorns = 10;
-  pl.stats.steel = 1.5;
+  pl.stats.attack = 1.5;
   pl.stats.crit = 0;
   const near = sim.spawnEnemy('slime', pl.x + 100, pl.y);
   const far = sim.spawnEnemy('slime', pl.x + 2000, pl.y);
