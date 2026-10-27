@@ -186,7 +186,7 @@ export class Hud {
       const q = at(e.x, e.y);
       if (!q) continue;
       if (e.boss) this._skull(top, q.x, q.y, m.dots.skull);
-      else top.fillStyle(m.dots.elite, 1).fillRect(q.x - 1, q.y - 1, 3, 3);
+      else this._skull(top, q.x, q.y, m.dots.elite); // элитка: тот же череп, красный
     }
     this.sim.players.forEach((pl, i) => {
       const q = at(pl.x, pl.y);
