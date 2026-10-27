@@ -355,7 +355,6 @@ export const en = {
   'codex.stat.rage_at': 'below {n}% HP',
   'codex.stats': 'Stats',
   'codex.base_stats': 'Base stats',
-  'codex.scaling_note': 'HP and damage vary with time/mode; boss HP uses level at spawn.',
   'codex.p.reach': 'Reach',
   'codex.p.orbit_radius': 'Orbit radius',
   'codex.p.jump_radius': 'Jump radius',

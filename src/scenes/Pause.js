@@ -39,8 +39,12 @@ const STEP = ROW + 4;
 const TOP = 46;
 const TITLE_Y = 27; // заголовок по линии полосы HP в HUD (ui/hud.js: y 21, высота 12)
 const LEFT_W = 300;
-// Вкладка настроек: столбец по центру экрана шириной как кнопки меню настроек.
-const OPT_W = 220;
+// Вкладка настроек как настройки главного меню (Menu.js): подзаголовок на y 100, столбец шириной 300 с y 126.
+const OPT = { title: 100, y: 126, w: 300 };
+// Кнопки паузы шириной как кнопки главного меню, столбец по центру левой колонки и по высоте панелей справа.
+const BTN_W = 160;
+// Низ панелей справа: как со столбцом настроек (9 строк), не по короткому столбцу кнопок.
+const RIGHT_BOTTOM = TOP + 9 * STEP + ROW;
 const STAT_LINE = 18;
 
 const fmtPct = (v) => `${Math.round(v * 100)}%`;
@@ -112,32 +116,32 @@ export class PauseScene extends Phaser.Scene {
 
   showOptions() {
     const cx = GAME_WIDTH / 2;
-    const rows = addVolumeSliders(this, this.nav, { x: cx, y: TOP + ROW / 2, w: OPT_W, gap: STEP });
+    this.add.text(cx, OPT.title, t('pause.options'), textStyle(16)).setOrigin(0.5);
+    const rows = addVolumeSliders(this, this.nav, { x: cx, y: OPT.y, w: OPT.w, gap: STEP });
     addButton(this, this.nav, {
-      x: cx, y: TOP + ROW / 2 + rows * STEP, w: OPT_W, h: ROW, size: 12, label: t('settings.back'),
+      x: cx, y: OPT.y + rows * STEP, w: OPT.w, h: ROW, size: 12, label: t('settings.back'),
       onSelect: () => { this.focusMain = 1; this.show('main'); },
     });
   }
 
-  // Слева столбец строк одной ширины: Resume, Options, Codex, Quit (и Finish в овертайме).
-  // Справа билд и статы, их верх и низ совпадают со столбцом.
+  // Слева столбец кнопок: Resume, Options, Codex, Quit (в овертайме ещё Finish). Справа билд и статы.
   showMain() {
+    const rows = [
+      [t('pause.resume'), () => this.resume()],
+      [t('pause.options'), () => this.show('options')],
+      [t('menu.codex'), () => this.openCodex()],
+      [t('pause.quit'), () => this.quit()],
+    ];
+    // в овертайме забег можно закончить сразу: победа с текущими очками
+    if (this.sim.overtime >= 0) rows.push([t('pause.finish'), () => this.finish(), '#ffd84a']);
     const cx = M + LEFT_W / 2;
-    const rowY = (i) => TOP + i * STEP + ROW / 2;
-    addButton(this, this.nav, { x: cx, y: rowY(0), w: LEFT_W, h: ROW, size: 12, label: t('pause.resume'), onSelect: () => this.resume() });
-    addButton(this, this.nav, { x: cx, y: rowY(1), w: LEFT_W, h: ROW, size: 12, label: t('pause.options'), onSelect: () => this.show('options') });
-    addButton(this, this.nav, { x: cx, y: rowY(2), w: LEFT_W, h: ROW, size: 12, label: t('menu.codex'), onSelect: () => this.openCodex() });
-    const qy = rowY(3);
-    if (this.sim.overtime >= 0) {
-      // В овертайме забег можно закончить сразу: победа с текущими очками.
-      const half = (LEFT_W - GAP) / 2;
-      addButton(this, this.nav, { x: M + half / 2, y: qy, w: half, h: ROW, size: 12, label: t('pause.quit'), onSelect: () => this.quit() });
-      addButton(this, this.nav, { x: M + LEFT_W - half / 2, y: qy, w: half, h: ROW, size: 12, label: t('pause.finish'), color: '#ffd84a', onSelect: () => this.finish() });
-    } else {
-      addButton(this, this.nav, { x: cx, y: qy, w: LEFT_W, h: ROW, size: 12, label: t('pause.quit'), onSelect: () => this.quit() });
-    }
-    // справа панели на прежнюю высоту (как со столбцом настроек), не по короткому столбцу кнопок
-    const bottom = TOP + 9 * STEP + ROW;
+    const y0 = (TOP + RIGHT_BOTTOM - rows.length * STEP + (STEP - ROW)) / 2 + ROW / 2;
+    rows.forEach(([label, onSelect, color], i) => {
+      addButton(this, this.nav, {
+        x: cx, y: y0 + i * STEP, w: BTN_W, h: ROW, size: 12, label, color, onSelect,
+      });
+    });
+    const bottom = RIGHT_BOTTOM;
     const rx = M + LEFT_W + GAP;
     const rw = GAME_WIDTH - M - rx;
     const me = this.sim.players[this.sim.local];

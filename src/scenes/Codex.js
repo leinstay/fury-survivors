@@ -595,8 +595,6 @@ export class CodexScene extends Phaser.Scene {
         this.add.text(x + colW, sy + 15 + i * STAT_LINE, String(v), textStyle(9)).setOrigin(1, 0);
       });
     });
-    this.add.text(L, BOTTOM - 4, t('codex.scaling_note'),
-        textStyle(8, COLORS.dim, { wordWrap: { width: RIGHT.w - 2 * PAD } })).setOrigin(0, 1);
   }
 
   // ---------- Characters ----------
