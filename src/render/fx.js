@@ -2,9 +2,9 @@
 // след за снарядами, блеск кристаллов опыта и искры над огнём (FX.trail, FX.twinkle, FX.embers).
 // Все пулы кольцевые и ограниченные (самые старые переиспользуются), поэтому без утечек и без просадок fps.
 import { SPRITES } from '../../assets/sprites/manifest.js';
-import { GAME_WIDTH, GAME_HEIGHT, FX, LOW_QUALITY } from '../data/constants.js';
+import { GAME_WIDTH, GAME_HEIGHT, FX, LOW_QUALITY, RENDER_ZOOM } from '../data/constants.js';
 import { STATUS, DOT_TEXT } from '../data/status.js';
-import { textStyle } from '../ui/style.js';
+import { digitFont } from './digits.js';
 import { spriteScale } from './density.js';
 import { getSetting, lowQuality } from '../ui/settings.js';
 
@@ -62,10 +62,17 @@ export class Fx {
     this.offsetX = 0;
     this.offsetY = 0;
 
+    // числа урона — BitmapText на шрифте цифр (render/digits.js): без перерисовки канваса на каждое попадание
+    const D = FX.dmgText;
+    this.fonts = {
+      hit: digitFont(scene, D.size, D.stroke, 2),
+      crit: digitFont(scene, D.critSize, D.stroke, 2),
+      dot: digitFont(scene, DOT_TEXT.size, D.stroke, 2),
+    };
+    this.tints = new Map();
     const mkText = () => {
-      const t = scene.add.text(0, 0, '', textStyle(FX.dmgText.size, FX.dmgText.color, {
-        stroke: FX.dmgText.stroke, strokeThickness: 2,
-      })).setOrigin(0.5, 1).setDepth(DEPTH_TEXT).setVisible(false);
+      const t = scene.add.bitmapText(0, 0, this.fonts.hit, '').setOrigin(0.5, 1).setDepth(DEPTH_TEXT)
+          .setScale(1 / RENDER_ZOOM).setVisible(false);
       t.life = 0;
       return t;
     };
@@ -135,11 +142,8 @@ export class Fx {
   _hit(ev) {
     const c = FX.dmgText;
     const t = this.texts.acquire();
-    const size = ev.crit ? c.critSize : c.size;
-    if (t.fxSize !== size) { t.setFontSize(size); t.fxSize = size; }
-    const color = ev.crit ? c.critColor : c.color;
-    if (t.fxColor !== color) { t.setColor(color); t.fxColor = color; }
-    t.setText(String(ev.amount));
+    const font = ev.crit ? this.fonts.crit : this.fonts.hit;
+    this._number(t, font, ev.crit ? c.critColor : c.color, ev.amount);
     t.life = c.life;
     t.baseX = Math.round(ev.x + (Math.random() - 0.5) * 10);
     t.baseY = Math.round(ev.y - 10);
@@ -149,15 +153,23 @@ export class Fx {
     this._burst(ev.x, ev.y - 4, n, s.speed, s.life, [ev.crit ? s.critColor : s.color], 1, 'fx_px');
   }
 
+  // Число урона: шрифт (размер), цвет тинтом, текст — всё дёшево у BitmapText; меняется только то, что другое.
+  _number(t, font, color, amount) {
+    if (t.fxFont !== font) { t.setFont(font); t.fxFont = font; }
+    let tint = this.tints.get(color);
+    if (tint === undefined) {
+      tint = Phaser.Display.Color.HexStringToColor(color).color;
+      this.tints.set(color, tint);
+    }
+    if (t.fxTint !== tint) { t.setTint(tint); t.fxTint = tint; }
+    t.setText(String(amount));
+  }
+
   // Тик ДоТа: число мельче (DOT_TEXT) цветом статуса (STATUS[type].text), без искр.
   _dot(ev) {
     const def = STATUS[ev.status];
     const t = this.texts.acquire();
-    const size = DOT_TEXT.size;
-    if (t.fxSize !== size) { t.setFontSize(size); t.fxSize = size; }
-    const color = def ? def.text : FX.dmgText.color;
-    if (t.fxColor !== color) { t.setColor(color); t.fxColor = color; }
-    t.setText(String(ev.amount));
+    this._number(t, this.fonts.dot, def ? def.text : FX.dmgText.color, ev.amount);
     t.life = FX.dmgText.life;
     t.baseX = Math.round(ev.x + (Math.random() - 0.5) * 12);
     t.baseY = Math.round(ev.y - 6);
