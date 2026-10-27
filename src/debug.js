@@ -15,10 +15,23 @@ const errors = [];
 const LAST_ERROR_KEY = 'fury-survivors.lastError';
 // Замер кадра в забеге (для владельца, в консоли во время лагов): __game.perf() — за seconds с средние мс
 // на кадр по частям (сим, спрайты мира, эффекты-зоны, числа урона и частицы, HUD, рендер Phaser) и счётчики.
-// Части оборачиваются на время замера и возвращаются как были.
+// Можно ввести на паузе: замер начнётся, когда забег снова пойдёт (Game не на паузе, sim.state 'running'),
+// итог — таблицей в консоли. Части оборачиваются на время замера и возвращаются как были.
 function perf(game, seconds) {
   const gs = game.scene.getScene('Game');
   if (!gs || !gs.world) return Promise.resolve('start a run first');
+  const running = () => !game.scene.isPaused('Game') && gs.sim.state === 'running';
+  console.log(running() ? `perf: measuring ${seconds}s…` : `perf: waiting for the run to resume, then ${seconds}s…`);
+  return new Promise((res) => {
+    const wait = setInterval(() => {
+      if (!running()) return;
+      clearInterval(wait);
+      measure(game, gs, seconds).then(res);
+    }, 100);
+  });
+}
+
+function measure(game, gs, seconds) {
   const sum = {};
   const wrap = (obj, name, key) => {
     const orig = obj[name];
@@ -179,7 +192,7 @@ export function installDebug(game) {
     },
     unlockCodex,
     lockCodex,
-    perf: (seconds = 3) => perf(game, seconds),
+    perf: (seconds = 5) => perf(game, seconds),
     // Последняя записанная ошибка (localStorage) или null.
     lastError() {
       try { return JSON.parse(localStorage.getItem(LAST_ERROR_KEY)); } catch { return null; }
