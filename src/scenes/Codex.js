@@ -460,7 +460,12 @@ export class CodexScene extends Phaser.Scene {
     const icon = addIcon(this, L + 14, y + 14, iconKeyFor(it.kind, it.id), 28, it.kind, it.id);
     if (!it.seen) darken(icon);
     this.add.text(L + 36, y, it.seen ? displayName(it.kind, it.id) : t('codex.locked'), textStyle(14)).setOrigin(0, 0);
-    this.add.text(L + 36, y + 18, t(`codex.kind.${it.type}`), textStyle(9, COLORS.dim)).setOrigin(0, 0);
+    // у оружия под видом записи — теги: тип урона (dmgType) и цели (targets)
+    const w = it.kind === 'weapon' && it.seen ? WEAPONS[it.id] : null;
+    const kind = [t(`codex.kind.${it.type}`)];
+    if (w && w.dmgType) kind.push(t(`codex.dmg.${w.dmgType}`));
+    if (w && w.targets) kind.push(t(`codex.targets.${w.targets}`));
+    this.add.text(L + 36, y + 18, kind.join(' · '), textStyle(9, COLORS.dim)).setOrigin(0, 0);
     y += 36;
     const locked = { unique: 'codex.unique_locked_desc', evolution: 'codex.evolution_locked_desc' };
     const desc = it.seen ? t(`${it.kind}.${it.id}.desc`) : t(locked[it.type] || 'codex.locked_desc');
