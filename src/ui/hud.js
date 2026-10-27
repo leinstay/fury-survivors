@@ -3,7 +3,7 @@ import { GAME_WIDTH, GAME_HEIGHT, HUD } from '../data/constants.js';
 import { COOP } from '../data/coop.js';
 import { t, hasKey } from '../i18n/index.js';
 import { textStyle, COLORS } from './style.js';
-import { addIcon, iconKeyFor, displayName } from './icons.js';
+import { addIcon, iconKeyFor, displayName, sizedTexture } from './icons.js';
 import { getSetting } from './settings.js';
 import { computeScore } from '../services/leaderboard.js';
 
@@ -48,7 +48,12 @@ export class Hud {
     this.dpsObjs = [];
     // Миникарта в правом верхнем углу: настройка minimap: full / transparent.
     this.mapMode = getSetting('minimap');
-    this.map = add(scene.add.graphics()).setAlpha(this.mapMode === 'transparent' ? HUD.transparentAlpha : 1);
+    this.mapAlpha = this.mapMode === 'transparent' ? HUD.transparentAlpha : 1;
+    this.map = add(scene.add.graphics()).setAlpha(this.mapAlpha);
+    // поверх подложки и дорог: иконки предметов (пул картинок), затем стрелки и черепа
+    this.mapIcons = [];
+    this.mapTop = add(scene.add.graphics()).setAlpha(this.mapAlpha);
+    this.mapAdd = add;
     this.mapNext = 0;
 
     // Полоса HP босса под таймером
@@ -125,37 +130,99 @@ export class Hud {
     }
   }
 
-  // Миникарта: круг, в нём точками предметы (сундук, еда, магнит, монеты), элиты и боссы в радиусе range.
+  // Миникарта: круг, в нём дороги, предметы своими спрайтами (сундук, еда, магнит, монеты), элиты точкой,
+  // боссы черепом и герои стрелкой по направлению движения, всё в радиусе range.
   _drawMap() {
     const m = HUD.minimap;
     const g = this.map;
+    const top = this.mapTop;
     const cx = GAME_WIDTH - m.margin - m.radius;
     const cy = m.top + m.radius;
     const k = m.radius / m.range;
     const p = this.sim.view;
     g.clear();
+    top.clear();
     g.fillStyle(m.bg, m.alpha).fillCircle(cx, cy, m.radius);
+    // дороги: выборка через road.step px карты, точка там, где до дороги меньше полуширины и полшага
+    const roads = this.sim.roads;
+    if (roads) {
+      const st = m.road.step;
+      const near = roads.cfg.width / 2 + st / k / 2;
+      g.fillStyle(m.road.color, m.road.alpha);
+      for (let y = -m.radius; y <= m.radius; y += st) {
+        for (let x = -m.radius; x <= m.radius; x += st) {
+          if (x * x + y * y > (m.radius - 1) * (m.radius - 1)) continue;
+          if (roads.distance(p.x + x / k, p.y + y / k) >= near) continue;
+          g.fillRect(cx + x - st / 2, cy + y - st / 2, st, st);
+        }
+      }
+    }
     g.lineStyle(1, m.rim, 0.8).strokeCircle(cx, cy, m.radius);
-    const r2 = m.range * m.range;
-    const dot = (x, y, color, size) => {
-      const dx = x - p.x;
-      const dy = y - p.y;
-      if (dx * dx + dy * dy > r2) return;
-      const h = size >> 1;
-      g.fillStyle(color, 1)
-          .fillRect(Math.round(cx + dx * k) - h, Math.round(cy + dy * k) - h, size, size);
+    const r2 = (m.radius - 2) * (m.radius - 2);
+    // точка на карте или null, если вне круга
+    const at = (x, y) => {
+      const mx = (x - p.x) * k;
+      const my = (y - p.y) * k;
+      return mx * mx + my * my > r2 ? null : { x: Math.round(cx + mx), y: Math.round(cy + my) };
     };
+    let used = 0;
     for (const pk of this.sim.pickups) {
-      if (pk.kind === 'xp') continue;
-      const c = m.dots[pk.kind];
-      if (c !== undefined) dot(pk.x, pk.y, c, pk.kind === 'chest' ? 3 : 2);
+      const size = m.icons[pk.type]; // по типу предмета (food, а не kind heal)
+      const q = size && at(pk.x, pk.y);
+      if (!q || !this.scene.textures.exists(pk.sprite)) continue;
+      let img = this.mapIcons[used];
+      if (!img) {
+        img = this.mapAdd(this.scene.add.image(0, 0, '__DEFAULT')).setScale(0.5).setAlpha(this.mapAlpha);
+        this.mapIcons.push(img);
+      }
+      // спрайт предмета, один раз уменьшенный под размер (как иконки оружия)
+      img.setTexture(sizedTexture(this.scene, pk.sprite, size * 2));
+      img.setPosition(q.x, q.y).setVisible(true);
+      used++;
     }
+    for (let i = used; i < this.mapIcons.length; i++) this.mapIcons[i].setVisible(false);
     for (const e of this.sim.enemies) {
-      if (e.dead) continue;
-      if (e.boss) dot(e.x, e.y, m.dots.boss, 4);
-      else if (e.elite) dot(e.x, e.y, m.dots.elite, 3);
+      if (e.dead || !(e.boss || e.elite)) continue;
+      const q = at(e.x, e.y);
+      if (!q) continue;
+      if (e.boss) this._skull(top, q.x, q.y, m.dots.skull);
+      else top.fillStyle(m.dots.elite, 1).fillRect(q.x - 1, q.y - 1, 3, 3);
     }
-    for (const pl of this.sim.players) dot(pl.x, pl.y, pl.dead ? m.dots.coffin : m.dots.player, 2);
+    this.sim.players.forEach((pl, i) => {
+      const q = at(pl.x, pl.y);
+      if (!q) return;
+      if (pl.dead) {
+        top.fillStyle(m.dots.coffin, 1).fillRect(q.x - 1, q.y - 1, 2, 2);
+        return;
+      }
+      const color = i === this.sim.local ? m.arrow.self : m.arrow.ally;
+      this._arrow(top, q.x, q.y, pl.dirX, pl.dirY, color);
+    });
+  }
+
+  // Стрелка-«галочка» по направлению (dx, dy): острие вперёд, вырез сзади, чёрная обводка.
+  _arrow(g, x, y, dx, dy, color) {
+    const a = HUD.minimap.arrow;
+    const len = Math.hypot(dx, dy) || 1;
+    const ux = dx / len;
+    const uy = dy / len;
+    const pt = (f, s) => ({ x: x + ux * f - uy * s, y: y + uy * f + ux * s });
+    const back = -a.len * 0.7;
+    const shape = [pt(a.len, 0), pt(back, a.half), pt(-a.len * 0.25, 0), pt(back, -a.half)];
+    g.fillStyle(color, 1).fillPoints(shape, true);
+    g.lineStyle(1, 0x000000, 1).strokePoints(shape, true);
+  }
+
+  // Череп босса 7×7 с чёрной обводкой: глаза и зубы — пустые клетки.
+  _skull(g, x, y, color) {
+    const rows = ['.#####.', '#######', '#..#..#', '#######', '.##.##.', '.#.#.#.'];
+    const x0 = x - 3;
+    const y0 = y - 3;
+    g.fillStyle(0x000000, 1).fillRect(x0 - 1, y0 - 1, 9, rows.length + 2);
+    g.fillStyle(color, 1);
+    rows.forEach((r, j) => {
+      for (let i = 0; i < r.length; i++) if (r[i] === '#') g.fillRect(x0 + i, y0 + j, 1, 1);
+    });
   }
 
   // Панель DPS-метра: рамка как у миникарты, строка общего DPS сверху, затем до maxRows строк оружия,

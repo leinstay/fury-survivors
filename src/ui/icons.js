@@ -23,7 +23,7 @@ export function displayName(kind, id) {
 
 // Иконка лежит в манифесте крупнее любого показа. Под каждый размер на холсте она один раз плавно уменьшается
 // в отдельную текстуру (альфа порогом, как в tools/hd-frames.mjs) и рисуется 1:1, без растяжения пикселей.
-function sizedTexture(scene, key, px) {
+export function sizedTexture(scene, key, px) {
   const id = `${key}@${px}`;
   if (scene.textures.exists(id)) return id;
   const src = scene.textures.get(key).getSourceImage();

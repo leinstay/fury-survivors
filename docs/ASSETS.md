@@ -134,21 +134,21 @@ node tools/slice-sheet.mjs <sheet> [--report]
 | `heroine` | 128×128 | 9 | 2 | `assets/raw/heroine_walk256_pixellab/` (стойка PixelLab Edit Pro + ходьба Animate V3, 256×256, tools/hd-frames.mjs ×0.5) |
 | `heroine_portrait` | 48×48 | 1 | 1 | заглушка (tools/placeholders.mjs) |
 | `mage` | 128×128 | 9 | 2 | `assets/raw/mage_walk256_pixellab/` (стойка PixelLab Edit Pro + ходьба Animate V3, 256×256, tools/hd-frames.mjs ×0.5) |
-| `mage_menu` | 205×279 | 1 | 2 | `assets/raw/roster/mage.png`: вырезка из `assets/raw/mage.png` (tools/crop-raw.mjs), уменьшена ×261/637 по копии героини на том же листе |
+| `mage_menu` | 164×223 | 1 | 2 | `assets/raw/roster/mage.png`: вырезка из `assets/raw/mage.png` (tools/crop-raw.mjs), уменьшена ×261/637 по копии героини на том же листе |
 | `mage_portrait` | 48×48 | 1 | 1 | заглушка (tools/placeholders.mjs) |
-| `heroine_menu` | 139×261 | 1 | 2 | tools/crop-raw.mjs |
-| `catgirl` | 110×110 | 9 | 2 | `assets/raw/catgirl_walk_pixellab/` (PixelLab, tools/hd-frames.mjs) |
-| `foxgirl` | 110×110 | 9 | 2 | `assets/raw/foxgirl_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
-| `succubus` | 110×110 | 9 | 2 | `assets/raw/succubus_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
-| `slime` | 110×110 | 9 | 2 | `assets/raw/slime_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
-| `ghost` | 110×110 | 9 | 2 | `assets/raw/ghost_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
-| `bunnygirl` | 110×110 | 9 | 2 | `assets/raw/bunnygirl_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
-| `harpy` | 110×110 | 9 | 2 | `assets/raw/harpy_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
-| `lamia` | 110×110 | 9 | 2 | `assets/raw/lamia_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
-| `kitsune_empress` | 192×256 | 9 | 2 | `assets/raw/kitsune_empress_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
-| `harpy_queen` | 192×256 | 9 | 2 | `assets/raw/harpy_queen_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
-| `reaper` | 288×384 | 9 | 2 | `assets/raw/reaper_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
-| `dryad_queen` | 192×256 | 9 | 2 | `assets/raw/dryad_queen_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
+| `heroine_menu` | 114×209 | 1 | 2 | tools/crop-raw.mjs |
+| `catgirl` | 128×128 | 9 | 2 | `assets/raw/catgirl_walk_pixellab/` (PixelLab, tools/hd-frames.mjs) |
+| `foxgirl` | 128×128 | 9 | 2 | `assets/raw/foxgirl_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
+| `succubus` | 128×128 | 9 | 2 | `assets/raw/succubus_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
+| `slime` | 128×128 | 9 | 2 | `assets/raw/slime_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
+| `ghost` | 128×128 | 9 | 2 | `assets/raw/ghost_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
+| `bunnygirl` | 128×128 | 9 | 2 | `assets/raw/bunnygirl_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
+| `harpy` | 128×128 | 9 | 2 | `assets/raw/harpy_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
+| `lamia` | 128×128 | 9 | 2 | `assets/raw/lamia_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
+| `kitsune_empress` | 256×256 | 9 | 2 | `assets/raw/kitsune_empress_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
+| `harpy_queen` | 256×256 | 9 | 2 | `assets/raw/harpy_queen_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
+| `reaper` | 256×256 | 9 | 2 | `assets/raw/reaper_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
+| `dryad_queen` | 256×256 | 9 | 2 | `assets/raw/dryad_queen_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
 | `xp_small` | 20×24 | 1 | 2 | `assets/raw/items.png` |
 | `xp_medium` | 24×30 | 1 | 2 | `assets/raw/items.png` |
 | `xp_large` | 28×40 | 1 | 2 | `assets/raw/items.png` |

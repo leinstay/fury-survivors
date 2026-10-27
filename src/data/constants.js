@@ -98,14 +98,15 @@ export const HUD = {
     colors: [0xc41e3a, 0xff7c0a, 0xa330c9, 0x3fc7eb, 0xaad372, 0xfff468, 0xf48cba, 0x0070dd],
   },
   transparentAlpha: 0.45,  // прозрачность миникарты и DPS в режиме transparent (миникарта не выключается)
-  // Миникарта: круг в правом верхнем углу под XP-баром, точки для предметов, элит и боссов (обычных врагов нет).
+  // Миникарта: круг в правом верхнем углу под XP-баром. Дороги (road: цвет, шаг выборки в px карты), герои
+  // стрелкой по направлению движения (arrow: длина и полуширина, свой и напарник), предметы своими спрайтами
+  // (icons: размер в px), боссы черепом, элиты точкой (обычных врагов нет).
   minimap: {
     radius: 34, margin: 8, top: 18, range: 900, fps: 12, alpha: 0.6, bg: 0x000000, rim: 0xb0a0d0,
-    dots: {
-      player: 0xffffff, coffin: 0x9a8a7a, chest: 0xffd84a, food: 0x8cff6a, magnet: 0x7fd8ff,
-      coin: 0xffb52e,
-      elite: 0xff3d6e, boss: 0xff2020,
-    },
+    road: { color: 0xc8a868, alpha: 0.75, step: 2 },
+    arrow: { len: 5, half: 3.5, self: 0xffffff, ally: 0x9ad0ff },
+    icons: { chest: 9, food: 7, magnet: 7, coin: 5 },
+    dots: { coffin: 0x9a8a7a, elite: 0xff3d6e, skull: 0xf2ead8 },
   },
 };
 

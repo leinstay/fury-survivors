@@ -55,7 +55,7 @@ src/
   debug.js                 window.__game.debug(), запись ошибок в localStorage
   i18n/                    en.js + index.js (t('key')). Все строки UI только через t()
 assets/
-  sprites/manifest.js      ключ спрайта -> файл, размер кадра, точка опоры; персонажи кадр 110×110 (CHAR), число кадров по ширине PNG (Boot.js)
+  sprites/manifest.js      ключ спрайта -> файл, размер кадра, точка опоры; персонажи кадр 128 (CHAR), боссы 256 (BOSS), число кадров по ширине PNG (Boot.js)
   sprites/*.png            спрайты (заглушки и настоящие с тем же именем и кадром)
   audio/sfx/*.wav          эффекты (jsfxr)
   audio/music/theme.mp3    фоновая музыка (Whispers of the Abyss, royalty-free), заменяется подменой файла
@@ -66,7 +66,8 @@ tools/                     локальные скрипты Node, в игру �
   slice-sheet.mjs          нарезка листа (персонажи, окружение, предметы, иконки, снаряды) по tools/sheets.json; "hd" — плавное уменьшение без сетки
   snap-image.mjs           целая картинка (фон меню) по родной сетке модели, клетка в пиксель
   crop-raw.mjs             фигура из сырого листа в исходном разрешении (героиня в меню)
-  hd-frames.mjs            лента из готовой анимации (PixelLab) без снятия сетки: плавное уменьшение, показ 1:1; --canvas 110x110 для персонажей
+  hd-frames.mjs            лента из готовой анимации (PixelLab) без снятия сетки: плавное уменьшение, показ 1:1
+  approved-to-raw.mjs      утверждённые листы 3×3 (tools/out/first-frames-256/approved, правятся руками) → assets/raw/<key>_walk256_pixellab и ленты: персонажи ×0.5 (128), боссы и жница ×1 (256)
   sprite-frames.mjs        число кадров ленты по ширине PNG для скриптов и тестов (как Boot.js)
   demouth.mjs              убирает рот, который PixelLab дорисовывает на кадрах анимации (assets/raw/*_pixellab)
   trim-wisps.mjs           стирает лишние язычки пламени на кадрах жницы (зоны кадра), лента потом через hd-frames

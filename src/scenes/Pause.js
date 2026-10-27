@@ -39,6 +39,8 @@ const STEP = ROW + 4;
 const TOP = 46;
 const TITLE_Y = 27; // заголовок по линии полосы HP в HUD (ui/hud.js: y 21, высота 12)
 const LEFT_W = 300;
+// Вкладка настроек: столбец по центру экрана шириной как кнопки меню настроек.
+const OPT_W = 220;
 const STAT_LINE = 18;
 
 const fmtPct = (v) => `${Math.round(v * 100)}%`;
@@ -86,20 +88,46 @@ export class PauseScene extends Phaser.Scene {
     resetFade(this);
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.75).setOrigin(0, 0);
     this.add.text(GAME_WIDTH / 2, TITLE_Y, t('pause.title'), textStyle(24, '#ffd84a', { stroke: '#000000', strokeThickness: 4 })).setOrigin(0.5);
-    this.nav = new FocusNav(this, { onBack: () => this.resume() });
+    this.nav = new FocusNav(this, { onBack: () => (this.view === 'options' ? this.show('main') : this.resume()) });
     const pad = readPad();
     this.padStart = !!(pad && pad.start);
-
-    // Слева столбец строк одной ширины: Resume, настройки, Codex, Quit (и Finish в овертайме).
-    // Справа билд и статы, их верх и низ совпадают со столбцом.
-    const cx = M + LEFT_W / 2;
-    const rowY = (i) => TOP + i * STEP + ROW / 2;
     this.inCodex = false;
     this.wake = false;
+    this.objs = [];
+    this.show('main');
+    this.input.keyboard.on('keydown-P', () => this.resume());
+  }
+
+  // Виды паузы: main (столбец кнопок, справа билд и статы) и options (настройки столбцом по центру).
+  show(view) {
+    this.view = view;
+    this.nav.clear();
+    for (const o of this.objs) o.destroy();
+    const before = new Set(this.children.list);
+    if (view === 'options') this.showOptions();
+    else this.showMain();
+    this.objs = this.children.list.filter((o) => !before.has(o) && o.type !== 'Zone');
+    this.nav.focus(view === 'options' ? 0 : (this.focusMain || 0));
+  }
+
+  showOptions() {
+    const cx = GAME_WIDTH / 2;
+    const rows = addVolumeSliders(this, this.nav, { x: cx, y: TOP + ROW / 2, w: OPT_W, gap: STEP });
+    addButton(this, this.nav, {
+      x: cx, y: TOP + ROW / 2 + rows * STEP, w: OPT_W, h: ROW, size: 12, label: t('settings.back'),
+      onSelect: () => { this.focusMain = 1; this.show('main'); },
+    });
+  }
+
+  // Слева столбец строк одной ширины: Resume, Options, Codex, Quit (и Finish в овертайме).
+  // Справа билд и статы, их верх и низ совпадают со столбцом.
+  showMain() {
+    const cx = M + LEFT_W / 2;
+    const rowY = (i) => TOP + i * STEP + ROW / 2;
     addButton(this, this.nav, { x: cx, y: rowY(0), w: LEFT_W, h: ROW, size: 12, label: t('pause.resume'), onSelect: () => this.resume() });
-    const rows = addVolumeSliders(this, this.nav, { x: cx, y: rowY(1), w: LEFT_W, gap: STEP });
-    addButton(this, this.nav, { x: cx, y: rowY(rows + 1), w: LEFT_W, h: ROW, size: 12, label: t('menu.codex'), onSelect: () => this.openCodex() });
-    const qy = rowY(rows + 2);
+    addButton(this, this.nav, { x: cx, y: rowY(1), w: LEFT_W, h: ROW, size: 12, label: t('pause.options'), onSelect: () => this.show('options') });
+    addButton(this, this.nav, { x: cx, y: rowY(2), w: LEFT_W, h: ROW, size: 12, label: t('menu.codex'), onSelect: () => this.openCodex() });
+    const qy = rowY(3);
     if (this.sim.overtime >= 0) {
       // В овертайме забег можно закончить сразу: победа с текущими очками.
       const half = (LEFT_W - GAP) / 2;
@@ -108,14 +136,13 @@ export class PauseScene extends Phaser.Scene {
     } else {
       addButton(this, this.nav, { x: cx, y: qy, w: LEFT_W, h: ROW, size: 12, label: t('pause.quit'), onSelect: () => this.quit() });
     }
-    const bottom = qy + ROW / 2;
+    // справа панели на прежнюю высоту (как со столбцом настроек), не по короткому столбцу кнопок
+    const bottom = TOP + 9 * STEP + ROW;
     const rx = M + LEFT_W + GAP;
     const rw = GAME_WIDTH - M - rx;
     const me = this.sim.players[this.sim.local];
     addStatsBlock(this, rx, bottom - STATS_H, rw, me);
     addBuildList(this, rx, TOP, rw, bottom - STATS_H - GAP - TOP, me);
-
-    this.input.keyboard.on('keydown-P', () => this.resume());
   }
 
   // Кодекс поверх паузы: пауза и забег остаются как есть, ввод паузы выключен, пока кодекс открыт.

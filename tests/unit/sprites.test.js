@@ -2,9 +2,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { SPRITES, CHAR, CHAR_OLD } from '../../assets/sprites/manifest.js';
+import { SPRITES, CHAR, BOSS } from '../../assets/sprites/manifest.js';
 import { HEROES } from '../../src/data/heroes.js';
 import { ENEMIES } from '../../src/data/enemies.js';
+import { BOSSES } from '../../src/data/bosses.js';
 import { pngSize, frameCount } from '../../tools/sprite-frames.mjs';
 import { walkFrame } from '../../src/render/anim.js';
 
@@ -19,15 +20,15 @@ test('sprites: strip width is a whole number of frames, height is one frame', ()
   }
 });
 
-// Герои уже на CHAR, враги до новых анимаций на CHAR_OLD.
-test('sprites: heroes use CHAR×CHAR, regular enemies CHAR or CHAR_OLD, count from strip width', () => {
-  const heroes = new Set(Object.values(HEROES).map((d) => d.sprite));
-  const keys = new Set([...Object.values(HEROES), ...Object.values(ENEMIES)].map((d) => d.sprite));
+test('sprites: heroes and enemies use CHAR×CHAR, bosses BOSS×BOSS, count from strip width', () => {
+  const bosses = new Set(Object.values(BOSSES).map((d) => d.sprite));
+  const defs = [...Object.values(HEROES), ...Object.values(ENEMIES), ...Object.values(BOSSES)];
+  const keys = new Set(defs.map((d) => d.sprite));
   for (const key of keys) {
     const s = SPRITES[key];
-    assert.equal(s.frameWidth, s.frameHeight, `${key}: square frame`);
-    if (heroes.has(key)) assert.equal(s.frameWidth, CHAR, `${key}: hero frame`);
-    else assert.ok([CHAR, CHAR_OLD].includes(s.frameWidth), `${key}: enemy frame ${s.frameWidth}`);
+    const frame = bosses.has(key) ? BOSS : CHAR;
+    assert.equal(s.frameWidth, frame, `${key}: frameWidth`);
+    assert.equal(s.frameHeight, frame, `${key}: frameHeight`);
     assert.equal(s.frames, undefined, `${key}: frames comes from the strip, not manifest`);
     assert.ok(frameCount(s, root) >= 2, `${key}: walk strip`);
   }

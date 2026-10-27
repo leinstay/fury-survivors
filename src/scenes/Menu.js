@@ -132,14 +132,13 @@ export class MenuScene extends Phaser.Scene {
       const last = getSetting('difficulty');
       ids.forEach((id, i) => {
         const cursed = id !== DEFAULT_DIFFICULTY;
-        const y = 136 + i * 54;
+        // кнопки с шагом главного меню, без подписей под ними
         addButton(this, this.nav, {
-          x: cx, y, w: 200, h: 30, label: t(`difficulty.${id}.name`), color: cursed ? COLORS.cursed : '#ffffff',
+          x: cx, y: 134 + i * 36, w: 200, h: 28, label: t(`difficulty.${id}.name`), color: cursed ? COLORS.cursed : '#ffffff',
           onSelect: () => this.play(id),
         });
-        this.add.text(cx, y + 22, t(`difficulty.${id}.desc`), textStyle(10, '#dddddd', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5);
       });
-      addButton(this, this.nav, { x: cx, y: 136 + ids.length * 54 + 6, w: 120, h: 28, label: t('settings.back'), onSelect: () => this.show('hero') });
+      addButton(this, this.nav, { x: cx, y: 134 + ids.length * 36, w: 120, h: 28, label: t('settings.back'), onSelect: () => this.show('hero') });
       this.objs = this.children.list.filter((o) => !before.has(o) && o.type !== 'Zone');
       this.nav.focus(Math.max(0, ids.indexOf(last)));
       return;

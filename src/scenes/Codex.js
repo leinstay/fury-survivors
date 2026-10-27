@@ -94,12 +94,58 @@ function fmtPassive(def, v) {
   return `+${round2(v)}`;
 }
 
-// Самый крупный масштаб из SCALES, при котором кадр влезает в w×h.
-function fitScale(key, w, h) {
+// Границы фигуры в кадре 0 (px текстуры, x0..x1 и y0..y1 включительно): масштаб и место считаются по фигуре,
+// а не по пустому запасу кадра. Без пикселей (заглушка не загрузилась) — весь кадр.
+const BOUNDS = new Map();
+function figureBounds(scene, key) {
+  if (BOUNDS.has(key)) return BOUNDS.get(key);
   const s = SPRITES[key];
-  if (!s) return 1;
-  const k = SCALES.find((v) => s.frameWidth * v <= w && s.frameHeight * v <= h);
-  return k || SCALES[SCALES.length - 1];
+  let b = { x0: 0, y0: 0, x1: s.frameWidth - 1, y1: s.frameHeight - 1 };
+  const img = scene.textures.get(key).getSourceImage();
+  if (img && img.width) {
+    const c = document.createElement('canvas');
+    c.width = s.frameWidth;
+    c.height = s.frameHeight;
+    const g = c.getContext('2d', { willReadFrequently: true });
+    g.drawImage(img, 0, 0);
+    const a = g.getImageData(0, 0, c.width, c.height).data;
+    const n = { x0: c.width, y0: c.height, x1: -1, y1: -1 };
+    for (let y = 0; y < c.height; y++) {
+      for (let x = 0; x < c.width; x++) {
+        if (!a[(y * c.width + x) * 4 + 3]) continue;
+        n.x0 = Math.min(n.x0, x);
+        n.x1 = Math.max(n.x1, x);
+        n.y0 = Math.min(n.y0, y);
+        n.y1 = Math.max(n.y1, y);
+      }
+    }
+    if (n.x1 >= 0) b = n;
+  }
+  BOUNDS.set(key, b);
+  return b;
+}
+
+// Самый крупный масштаб из SCALES, при котором фигура каждого из keys влезает в w×h
+// (одна вкладка — один масштаб).
+function fitScale(scene, keys, w, h) {
+  const list = (Array.isArray(keys) ? keys : [keys])
+      .filter((k) => SPRITES[k] && scene.textures.exists(k));
+  const fits = (v) => list.every((k) => {
+    const b = figureBounds(scene, k);
+    return (b.x1 - b.x0 + 1) * v <= w && (b.y1 - b.y0 + 1) * v <= h;
+  });
+  return SCALES.find(fits) || SCALES[SCALES.length - 1];
+}
+
+// Спрайт фигурой по центру x и низом фигуры на bottom (ноги, у летающих — нижний край).
+// Возвращает y опоры (для покачивания ходьбы в update).
+function placeFigure(scene, sp, key, scale, x, bottom) {
+  const s = SPRITES[key];
+  const b = figureBounds(scene, key);
+  sp.setOrigin(0.5, 1).setScale(scale);
+  sp.x = Math.round(x + (s.frameWidth / 2 - (b.x0 + b.x1 + 1) / 2) * scale);
+  sp.y = Math.round(bottom + (s.frameHeight - 1 - b.y1) * scale);
+  return sp.y;
 }
 
 // Записи оружейной по разделам: оружие, эволюции (оружие + пассивка), коллабы (два оружия), улучшения.
@@ -440,11 +486,23 @@ export class CodexScene extends Phaser.Scene {
     addPanel(this, LEFT.x + LEFT.w / 2, MID_Y, LEFT.w, AREA_H);
     const defs = kind === 'boss' ? BOSSES : ENEMIES;
     const ids = Object.keys(defs);
-    // монстры 4×2 мелкими ячейками, боссы 2×2 крупными
+    // монстры 4×2, боссы 2×2; ячейки по всей высоте панели, все фигуры вкладки в одном масштабе
     const boss = kind === 'boss';
     const cols = boss ? 2 : 4;
     const w = boss ? 138 : 66;
-    const h = boss ? 116 : 70;
+    const rowsN = Math.ceil(ids.length / cols);
+    const edge = (LEFT.w - cols * (w + GAP) + GAP) / 2;
+    const keys = ids.map((id) => defs[id].sprite);
+    // масштаб по самой большой высоте, что даёт панель (минус строка подписей внизу), а высота ячейки — под фигуры
+    const maxH = Math.floor((AREA_H - 2 * edge - 14 - (rowsN - 1) * GAP) / rowsN);
+    const scale = fitScale(this, keys, w - 8, maxH - 18);
+    const height = (k) => {
+      if (!this.textures.exists(k)) return 0;
+      const b = figureBounds(this, k);
+      return b.y1 - b.y0 + 1;
+    };
+    const tallest = Math.max(...keys.map(height));
+    const h = Math.min(maxH, Math.ceil(tallest * scale) + 24);
     const sx = w + GAP;
     const sy = h + GAP;
     const pad = (LEFT.w - cols * sx + GAP) / 2;
@@ -461,8 +519,8 @@ export class CodexScene extends Phaser.Scene {
       this.cell(e.key, x, y, w, h, e, () => {
         const key = defs[id].sprite;
         if (this.textures.exists(key)) {
-          const sp = this.add.sprite(x, y + h / 2 - 14, key, 0).setOrigin(0.5, 1)
-              .setScale(fitScale(key, w - 8, h - 18));
+          const sp = this.add.sprite(x, 0, key, 0);
+          placeFigure(this, sp, key, scale, x, y + h / 2 - 14);
           if (!e.seen) sp.setTintFill(DARK);
         }
         this.add.text(x, y + h / 2 - 3, e.seen ? displayName(kind, id) : t('codex.locked'),
@@ -488,10 +546,10 @@ export class CodexScene extends Phaser.Scene {
     // слева фигура с циклом ходьбы, справа имя, описание, атаки
     const key = def.sprite;
     if (this.textures.exists(key)) {
-      const sp = this.add.sprite(L + 52, T + 132, key, 0).setOrigin(0.5, 1);
-      sp.baseScale = fitScale(key, 104, 128);
-      sp.setScale(sp.baseScale);
-      if (e.seen) this.anims.push({ sprite: sp, key, y: T + 132, seed: 0 });
+      const sp = this.add.sprite(0, 0, key, 0);
+      sp.baseScale = fitScale(this, key, 104, 128);
+      const y = placeFigure(this, sp, key, sp.baseScale, L + 52, T + 132);
+      if (e.seen) this.anims.push({ sprite: sp, key, y, seed: 0 });
       else sp.setTintFill(DARK);
     }
     const tx = L + 112;
@@ -517,7 +575,7 @@ export class CodexScene extends Phaser.Scene {
     // статы и свой счёт двумя колонками
     const sy = T + 140;
     const stats = [];
-    if (def.invulnerable) stats.push([t('codex.stat.hp'), t('codex.invulnerable')]);
+    if (def.invulnerable) stats.push([t('codex.stat.hp'), t('codex.unknown')]); // жница: HP не раскрываем
     else if (def.hpPerLevel) stats.push([t('codex.stat.hp_level'), t('codex.stat.hp_per_level', { n: def.hpPerLevel })]);
     else stats.push([t('codex.stat.hp'), String(def.hp)]);
     stats.push([t('codex.stat.speed'), String(def.speed)], [t('codex.stat.damage'), String(def.damage)]);
@@ -547,8 +605,9 @@ export class CodexScene extends Phaser.Scene {
   buildHeroes() {
     addPanel(this, LEFT.x + LEFT.w / 2, MID_Y, LEFT.w, AREA_H);
     const w = 138;
-    const h = 116;
+    const h = 134;
     const pad = (LEFT.w - 2 * w - GAP) / 2;
+    const scale = fitScale(this, Object.values(HEROES).map((d) => d.sprite), w - 8, h - 18);
     const x0 = LEFT.x + pad + w / 2;
     const y0 = TOP + pad + h / 2;
     let first = null;
@@ -560,8 +619,7 @@ export class CodexScene extends Phaser.Scene {
       this.cell(e.key, x, y, w, h, e, () => {
         const key = HEROES[id].sprite;
         if (this.textures.exists(key)) {
-          this.add.sprite(x, y + h / 2 - 14, key, 0).setOrigin(0.5, 1)
-              .setScale(fitScale(key, w - 8, h - 18));
+          placeFigure(this, this.add.sprite(x, 0, key, 0), key, scale, x, y + h / 2 - 14);
         }
         this.add.text(x, y + h / 2 - 3, t(`hero.${id}.name`), textStyle(8)).setOrigin(0.5, 1);
       });
@@ -576,11 +634,11 @@ export class CodexScene extends Phaser.Scene {
     const T = TOP + PAD;
     const key = def.sprite;
     if (this.textures.exists(key)) {
-      // рамка 112×128 (вся колонка слева от текста): магесса с посохом 110 px шириной идёт в полный размер
-      const sp = this.add.sprite(L + 56, T + 132, key, 0).setOrigin(0.5, 1);
-      sp.baseScale = fitScale(key, 112, 128);
-      sp.setScale(sp.baseScale);
-      this.anims.push({ sprite: sp, key, y: T + 132, seed: 0 });
+      // рамка 112×128 (вся колонка слева от текста), фигура по своим границам, не по кадру
+      const sp = this.add.sprite(0, 0, key, 0);
+      sp.baseScale = fitScale(this, key, 112, 128);
+      const y = placeFigure(this, sp, key, sp.baseScale, L + 56, T + 132);
+      this.anims.push({ sprite: sp, key, y, seed: 0 });
     }
     const tx = L + 112;
     const tw = RIGHT.w - 2 * PAD - 112;
@@ -689,9 +747,6 @@ export class CodexScene extends Phaser.Scene {
       [t('codex.tot.best_duo'), String(tt.best.duo)],
       null,
       ...PICKUP_KINDS.filter((k) => k !== 'coin').map((k) => [t(`codex.pick.${k}`), String(tt.pickups[k] || 0)]),
-      null,
-      // по зонам: забеги и лучший счёт
-      ...Object.entries(tt.stages).map(([id, z]) => [t(`stage.${id}.name`), t('codex.tot.stage', { runs: z.runs, best: z.best })]),
     ];
     let y = TOP + PAD + 18;
     for (const r of rows) {

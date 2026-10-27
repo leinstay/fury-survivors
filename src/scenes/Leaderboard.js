@@ -9,8 +9,10 @@ import { formatTime } from '../ui/hud.js';
 import { fetchTop10 } from '../services/leaderboard.js';
 import { DEFAULT_DIFFICULTY } from '../data/difficulty.js';
 import { pairLabel } from '../core/nick.js';
+import { HEROES, DEFAULT_HERO } from '../data/heroes.js';
 
-const COL = { place: 110, name: 140, score: 318, time: 392, kills: 464, mode: 540 };
+// Колонка героя только в соло (в коопе имя — пара ников на всю ширину до очков).
+const COL = { place: 110, name: 140, hero: 206, score: 318, time: 392, kills: 464, mode: 540 };
 const HEAD_Y = 76;
 const ROW0 = 92;
 const ROW_H = 18;
@@ -41,6 +43,7 @@ export class LeaderboardScene extends Phaser.Scene {
     const head = textStyle(10, COLORS.dim);
     this.add.text(COL.place, HEAD_Y, '#', head);
     this.add.text(COL.name, HEAD_Y, t('lb.col.name'), head);
+    this.heroHead = this.add.text(COL.hero, HEAD_Y, t('lb.col.hero'), head);
     this.add.text(COL.score, HEAD_Y, t('lb.col.score'), head).setOrigin(1, 0);
     this.add.text(COL.time, HEAD_Y, t('lb.col.time'), head).setOrigin(1, 0);
     this.add.text(COL.kills, HEAD_Y, t('lb.col.kills'), head).setOrigin(1, 0);
@@ -58,6 +61,7 @@ export class LeaderboardScene extends Phaser.Scene {
   setMode(mode) {
     this.mode = mode;
     for (const m in this.tabs) this.tabs[m].setDisabled(m === mode);
+    this.heroHead.setVisible(mode === 'solo');
     this.refresh();
   }
 
@@ -95,6 +99,8 @@ export class LeaderboardScene extends Phaser.Scene {
       this.rowObjs.push(
         this.add.text(COL.place, y, String(i + 1), st),
         this.add.text(COL.name, y, pairLabel(r.name), st),
+        // у старых записей героя нет: по умолчанию воин (HERO_FIELD.fallback)
+        ...(this.mode === 'solo' ? [this.add.text(COL.hero, y, t(`hero.${HEROES[r.hero] ? r.hero : DEFAULT_HERO}.name`), textStyle(12, COLORS.dim))] : []),
         this.add.text(COL.score, y, String(r.score), st).setOrigin(1, 0),
         this.add.text(COL.time, y, formatTime(r.time), st).setOrigin(1, 0),
         this.add.text(COL.kills, y, String(r.kills), st).setOrigin(1, 0),

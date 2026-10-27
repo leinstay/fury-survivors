@@ -25,10 +25,11 @@ const HD = 2;
 
 // Кадр всех персонажей, кроме боссов и жницы: CHAR×CHAR, ноги на нижней строке по центру.
 // Лента — сколько угодно квадратов вправо: кадр 0 стойка, остальные цикл ходьбы. Число кадров берётся из ширины PNG.
-// Исходник 256×256 (запас над головой), в игру ровно ×0.5. Враги пока на прежнем кадре CHAR_OLD, до новых анимаций.
+// Исходник 256×256 (запас над головой, ноги на нижней строке), в игру ровно ×0.5.
 export const CHAR = 128;
-export const CHAR_OLD = 110;
-// Тень персонажа по ширине прежнего кадра 77 px (77 × 0.5 мира × widthK 0.5), а не по запасу кадра 110.
+// Боссы и жница: исходник 256×256, в игру ×1.
+export const BOSS = 256;
+// Тень персонажа ~19 px мира по ширине ног, а не по запасу кадра.
 const CHAR_SHADOW = { dx: 0, width: 19 };
 
 function item(key, w, h, color, shape = 'round', frames = 1, origin = [0.5, 0.5]) {
@@ -58,25 +59,28 @@ const FEET = [0.5, 1];
 
 // Персонаж (не босс): кадр CHAR×CHAR, число кадров по ширине ленты. Анимации PixelLab: стойка вставлена
 // переходом на стыке последний -> 1 (seam), иначе цикл дёргается.
-function chara(key, color, shape = 'humanoid', frame = CHAR_OLD) {
-  return art(key, frame, frame, { frames: null, seam: true, density: HD, origin: FEET, color, shape, shadow: CHAR_SHADOW });
+// Босс: кадр BOSS×BOSS, тень по ширине ног (shadow.width px мира, dx — сдвиг от центра кадра).
+function boss(key, color, shape, shadow) {
+  return art(key, BOSS, BOSS, { frames: null, seam: true, density: HD, origin: FEET, color, shape, shadow });
+}
+
+function chara(key, color, shape = 'humanoid') {
+  return art(key, CHAR, CHAR, { frames: null, seam: true, density: HD, origin: FEET, color, shape, shadow: CHAR_SHADOW });
 }
 
 export const SPRITES = Object.fromEntries([
   // Герои и портрет
-  // Героиня и магесса: стойка Edit Pro + ходьба Animate V3 в холсте 256×256 (assets/raw/<key>_walk256_pixellab),
-  // лента tools/hd-frames.mjs 0.5 → кадр 128, показ 1:1 на холсте.
-  chara('heroine', '#e0603a', 'humanoid', CHAR),
+  // Все персонажи: стойка PixelLab Edit Pro + анимация Animate V3 в холсте 256×256, утверждённые листы
+  // (tools/out/first-frames-256/approved) → assets/raw/<key>_walk256_pixellab и ленты: tools/approved-to-raw.mjs.
+  chara('heroine', '#e0603a'),
   item('heroine_portrait', 48, 48, '#e0603a', 'rect'),
-  chara('mage', '#6a5cff', 'humanoid', CHAR),
-  art('mage_menu', 205, 279, { density: HD, origin: FEET }),
+  chara('mage', '#6a5cff'),
+  art('mage_menu', 164, 223, { density: HD, origin: FEET }),
   item('mage_portrait', 48, 48, '#6a5cff', 'rect'),
-  // Героиня в меню: вырезана из сырого листа в исходном разрешении модели (tools/crop-raw.mjs), пиксель картинки = пиксель холста.
-  art('heroine_menu', 139, 261, { density: HD, origin: FEET }),
+  // Героини в меню: стойка (кадр 0 утверждённой анимации 256) по границам фигуры, показ 1:1 на холсте.
+  art('heroine_menu', 114, 209, { density: HD, origin: FEET }),
 
   // Враги
-  // Ходьба/парение PixelLab (assets/raw/<key>_anim_pixellab, у кошки catgirl_walk_pixellab), лента через
-  // tools/hd-frames.mjs 0.4 --canvas 110x110.
   chara('catgirl', '#d9a441'),
   chara('foxgirl', '#e3803a'),
   chara('succubus', '#b33a6b'),
@@ -87,18 +91,11 @@ export const SPRITES = Object.fromEntries([
   chara('lamia', '#2f7a4a', 'blob'),
 
 
-  // Боссы: анимация PixelLab в масштабе 1 (обычные враги 0.4), примерно втрое выше героини. Свой кадр,
-  // число кадров тоже по ширине ленты.
-  art('kitsune_empress', 192, 256, { frames: null, seam: true, density: HD, origin: FEET, color: '#f08a3a', shape: 'humanoid' }),
-  art('harpy_queen', 192, 256, { frames: null, seam: true, density: HD, origin: FEET, color: '#8a6040', shape: 'flyer' }),
-  // Банши-жница овертайма: парение PixelLab (assets/raw/reaper_anim_pixellab, холст 192×256, максимум API),
-  // лента увеличена в 1.5 (tools/hd-frames.mjs 1.5): рост в полтора босса. Тело левее центра кадра из-за косы,
-  // тень сдвинута (shadow.dx, зеркалится вместе со спрайтом).
-  art('reaper', 288, 384, {
-    frames: null, seam: true, density: HD, origin: FEET, color: '#9fd8ff', shape: 'flyer',
-    shadow: { dx: -17, width: 50 },
-  }),
-  art('dryad_queen', 192, 256, { frames: null, seam: true, density: HD, origin: FEET, color: '#3f8a4a', shape: 'humanoid' }),
+  // Боссы и банши-жница овертайма (в листах death): кадр 256, ×1, ростом с босса.
+  boss('kitsune_empress', '#f08a3a', 'humanoid', { dx: -1, width: 48 }),
+  boss('harpy_queen', '#8a6040', 'flyer', { dx: 0, width: 36 }),
+  boss('reaper', '#9fd8ff', 'flyer', { dx: 1, width: 36 }),
+  boss('dryad_queen', '#3f8a4a', 'humanoid', { dx: -2, width: 52 }),
 
   // Предметы
   art('xp_small', 20, 24, { density: HD }),
