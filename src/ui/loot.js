@@ -27,7 +27,8 @@ const CARD = { w: 196, h: 226, y: 64, gap: 8 };
 // (до 290) и ряд кнопок.
 const SUB_Y = 45;
 const HEARTS_Y = 55;
-const ROW_W = 150; // кнопки нижнего ряда: Take all, Disassemble all, Continue
+const ROW_W = 150; // кнопки нижнего ряда: Take all, Disassemble all, Continue (и End run у 3-го и 4-го сундука)
+const ROW_W4 = 140;
 
 const bossName = (id) => (BOSSES[id] ? t(`boss.${id}.name`) : '?');
 
@@ -98,11 +99,12 @@ export function hasPendingLoot(sim) {
 }
 
 /**
- * Экран лута: сундуки своего игрока, по которым решение не принято. onDone(unlocked) — когда решено всё
- * (ids полученных ачивок за стеш и разбор). Нечего решать — onDone сразу.
+ * Экран лута: сундуки своего игрока, по которым решение не принято. onDone(unlocked, endRun) — когда решено
+ * всё (ids полученных ачивок за стеш и разбор); endRun — нажат End run (последний сундук — 3-й или 4-й, c.endRun:
+ * финальный босс или Жница убиты). Нечего решать — onDone сразу.
  * @param {!Phaser.Scene} scene
  * @param {!Object} sim
- * @param {function(!Array<string>)} onDone
+ * @param {function(!Array<string>, boolean)} onDone
  * @return {!FocusNav} навигация экрана (update(time) из сцены)
  */
 export function buildLoot(scene, sim, onDone) {
@@ -202,7 +204,7 @@ export function buildLoot(scene, sim, onDone) {
     render();
   };
 
-  const finish = () => {
+  const finish = (endRun = false) => {
     if (finished) return;
     finished = true;
     nav.clear();
@@ -210,7 +212,7 @@ export function buildLoot(scene, sim, onDone) {
     objs = [];
     inv = setInventory(getInventory(), { backup: true });
     const res = checkMetaAchievements();
-    onDone([...unlocked, ...res.unlocked]);
+    onDone([...unlocked, ...res.unlocked], endRun);
   };
 
   function next() {
@@ -300,16 +302,23 @@ export function buildLoot(scene, sim, onDone) {
     const left = open();
     const done = !left.length;
     const crystals = left.reduce((s, ei) => s + disassembleValue(c.entries[ei].item), 0);
-    const xs = rowXs(3, cx, ROW_W);
+    const last = idx >= pages.length - 1;
+    const end = last && pages.some((p) => p.endRun); // 3-й или 4-й сундук: можно закончить забег
+    const rw = end ? ROW_W4 : ROW_W;
+    const xs = rowXs(end ? 4 : 3, cx, rw);
     const by = GAME_HEIGHT - 22;
-    const all = addButton(scene, nav, { x: xs[0], y: by, w: ROW_W, h: BUTTON.action.h, size: 11,
+    const all = addButton(scene, nav, { x: xs[0], y: by, w: rw, h: BUTTON.action.h, size: 11,
       label: t('loot.take_all'), onSelect: () => takeAll() });
     const disAllBtn = addButton(scene, nav, {
-      x: xs[1], y: by, w: ROW_W, h: BUTTON.action.h, size: 11,
+      x: xs[1], y: by, w: rw, h: BUTTON.action.h, size: 11,
       label: t('loot.disassemble_all', { n: crystals }), onSelect: () => disAll() });
-    const last = idx >= pages.length - 1;
-    const go = addButton(scene, nav, { x: xs[2], y: by, w: ROW_W, h: BUTTON.action.h, size: 11,
+    const go = addButton(scene, nav, { x: xs[2], y: by, w: rw, h: BUTTON.action.h, size: 11,
       label: t(last ? 'loot.done' : 'loot.next'), onSelect: () => next() });
+    if (end) {
+      const stop = addButton(scene, nav, { x: xs[3], y: by, w: rw, h: BUTTON.action.h, size: 11,
+        label: t('loot.end_run'), color: '#ffd84a', onSelect: () => { if (chestDone(c)) finish(true); } });
+      stop.setDisabled(!done);
+    }
     all.setDisabled(done);
     disAllBtn.setDisabled(done);
     go.setDisabled(!done);

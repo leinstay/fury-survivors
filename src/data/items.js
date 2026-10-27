@@ -91,6 +91,8 @@ export const BOSS_DROPS = [
   { boss: 'dryad_queen', tier: 3, hearts: { chance: 1, n: 1 } },
   { boss: 'reaper', tier: 4, hearts: { chance: 1, n: 2 } },
 ];
+// С какого сундука (номер в BOSS_DROPS, с 0) на экране лута есть кнопка End run: 3-й и 4-й (финал, Жница).
+export const BOSS_END_RUN = 2;
 
 // Уникалки: фиксированный тип и форма, без аффиксов. Поля эффекта — данные, их читает сим:
 //   more: { стат: доля }   — множитель «more» (1 = ×2, −0.4 = ×0.6), в т.ч. для плоских статов

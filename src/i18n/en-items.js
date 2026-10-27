@@ -243,6 +243,7 @@ export const enItems = {
   'loot.hearts': 'Chaos hearts: +{n} (taken)',
   'loot.next': 'Next chest',
   'loot.done': 'Done',
+  'loot.end_run': 'End run',
   'loot.evicted': '{name} was disassembled into {n} crystals.',
 
   // кодекс: уникалки в оружейной

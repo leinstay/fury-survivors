@@ -32,16 +32,22 @@ export class LootScene extends Phaser.Scene {
     // сундук шмоток (свой цвет, CHEST_LOOK.loot) открывается, затем свои предметы
     playChestOpen(this, 'loot', () => {
       title.destroy();
-      this.nav = buildLoot(this, this.sim, (ids) => this.done(ids));
+      this.nav = buildLoot(this, this.sim, (ids, endRun) => this.done(ids, endRun));
     });
     // экран закрыли, не решив (дисконнект в коопе, конец забега): нерешённое — в стеш само
     this.events.once('shutdown', () => { if (!this.finished) claimPendingLoot(this.sim); });
   }
 
-  // Свои решения приняты (стеш и кристаллы уже сохранены).
-  done(ids) {
+  // Свои решения приняты (стеш и кристаллы уже сохранены). endRun — End run на 3-м или 4-м сундуке: забег
+  // кончается победой (act.finish, в коопе у обоих).
+  done(ids, endRun = false) {
     this.finished = true;
     if (ids.length) showAchievementToasts(this, ids);
+    if (endRun) {
+      this.act.finish();
+      if (!this.act.coop) this.close();
+      return;
+    }
     this.act.lootDone();
     if (!this.act.coop) { this.close(); return; }
     this.waiting = true;

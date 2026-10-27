@@ -165,18 +165,29 @@ test('disassemble from loot: crystals by the disassembly rules, counted for recy
   assert.ok(getInventory());
 });
 
-test('loot screen: a victory boss (no overtime) wins only after its loot is decided', () => {
+test('victory boss (Reaper): chest on the ground, End run on its loot screen ends the run as a win', () => {
   const sim = createSim({ seed: 6, lootScreen: true });
   const e = sim.spawnBoss('kitsune_empress');
-  e.def = { ...e.def, final: false, victory: true }; // как Жница: убийство — победа
+  e.def = { ...e.def, final: false, victory: true, lootIndex: 3 }; // как Жница (сама неуязвима без Библии)
   sim.damageEnemy(e, 1e12, 'test', 0, 0, 0);
-  assert.notEqual(sim.state, 'victory');
-  assert.equal(sim.winAfterLoot, true);
+  assert.equal(sim.state, 'running', 'no instant win: the chest must be picked up');
+  assert.equal(sim.won, true);
+  const pk = sim.pickups.find((p) => p.type === 'loot_chest');
+  assert.ok(pk);
+  pk.x = sim.player.x;
+  pk.y = sim.player.y;
   sim.step(DT, {});
   assert.equal(sim.state, 'loot');
-  sim.lootFinish(0);
+  assert.equal(sim.player.loot[0].endRun, true);
+  sim.finishOvertime(); // End run
   assert.equal(sim.state, 'victory');
   assert.ok(sim.events.some((ev) => ev.type === 'victory'));
+});
+
+test('End run only on the 3rd and 4th boss chest', () => {
+  const sim = createSim({ seed: 7, lootScreen: true });
+  for (let i = 0; i < 4; i++) sim._rollLoot(i, 'x');
+  assert.deepEqual(sim.player.loot.map((c) => c.endRun), [false, false, true, true]);
 });
 
 test('skill chest coop over lockstep: each presses Ok, both close on the same tick, hashes match', () => {

@@ -20,7 +20,7 @@ import { computeStats, critChance } from './stats.js';
 import { createDirector } from './director.js';
 import { createRoads } from './roads.js';
 import * as UP from './upgrades.js';
-import { UNIQUES } from '../data/items.js';
+import { UNIQUES, BOSS_END_RUN } from '../data/items.js';
 import { rollChest, rollHearts, bossDrop } from './items.js';
 import {
   normalizeLoadout, loadoutUnique, loadoutExtra, applyUniqueRules, DICE_STATS, loadoutBonus,
@@ -790,7 +790,7 @@ class Sim {
     });
     if (e.xp > 0) this.dropPickup(xpTierFor(e.xp), e.x, e.y, e.xp);
     if (e.boss) {
-      this._bossLoot(e, !!(e.def.victory || (e.def.final && !this.stageDef.overtime)));
+      this._bossLoot(e);
       if (e.def.drop) this.dropPickup(e.def.drop, e.x, e.y);
       if (e.def.final) {
         this.won = true;
@@ -798,13 +798,17 @@ class Sim {
           // Овертайм: забег идёт дальше ради очков, смерть засчитывается как победа.
           this.overtime = this.time;
           this.events.push({ type: 'overtime' });
-        } else {
+        } else if (!this.lootScreen) {
           this._winAfterLoot();
         }
       } else {
         this.events.push({ type: 'bossDown', boss: e.type });
-        // Жница: победа, овертайм кончается
-        if (e.def.victory) { this.won = true; this._winAfterLoot(); }
+        // Жница: победа. С экраном лута забег идёт, пока сундук не подобран и не нажат End run (или смерть,
+        // она уже победа); без экрана (боты, инструменты) — сразу.
+        if (e.def.victory) {
+          this.won = true;
+          if (!this.lootScreen) this._winAfterLoot();
+        }
       }
       return;
     }
@@ -964,9 +968,11 @@ class Sim {
     this.events.push({ type: 'victory' });
   }
 
-  // Досрочно закончить овертайм (кнопка в паузе): победа с текущими очками.
+  // Досрочно закончить забег победой: кнопка Finish в паузе в овертайме или End run на экране лута 3-го и
+  // 4-го сундука (финальный босс убит, won).
   finishOvertime() {
-    if (this.overtime < 0 || this.state !== 'running') return;
+    if (this.overtime < 0 && !this.won) return;
+    if (this.state !== 'running' && this.state !== 'loot') return;
     this._win();
   }
 
@@ -1815,13 +1821,13 @@ class Sim {
   }
 
   // Сундук с босса номер bossKills (BOSS_DROPS). У Жницы номер задан (lootIndex): её сундук всегда T4,
-  // сколько бы боссов ни пало до неё. С экраном лута босс роняет сундук (loot_chest), лут катится и экран
-  // открывается при подборе; если убийство кончает забег (now: финал без овертайма, Жница) — сразу.
-  _bossLoot(e, now = false) {
+  // сколько бы боссов ни пало до неё. С экраном лута босс роняет сундук (loot_chest) у всех боссов: лут
+  // катится и экран открывается при подборе, не донёс (смерть) — сундук пропал.
+  _bossLoot(e) {
     const fixed = e.def && e.def.lootIndex;
     const index = fixed !== undefined ? fixed : this.bossKills;
     this.bossKills++;
-    if (this.lootScreen && !now) {
+    if (this.lootScreen) {
       const pk = this.dropPickup('loot_chest', e.x, e.y, index);
       pk.boss = e.type;
       return;
@@ -1835,7 +1841,8 @@ class Sim {
     for (const pl of this.players) {
       const entries = rollChest(this.lootRng, tier);
       const hearts = rollHearts(this.lootRng, index);
-      pl.loot.push({ tier, boss, entries, hearts });
+      // 3-й и 4-й сундук (финальный босс, Жница): на экране лута кнопка End run
+      pl.loot.push({ tier, boss, entries, hearts, endRun: index >= BOSS_END_RUN });
     }
     if (this.lootScreen) this.lootPending++;
     this.events.push({ type: 'loot', boss, tier, index });
