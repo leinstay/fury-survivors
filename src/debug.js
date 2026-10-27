@@ -13,6 +13,56 @@ import { UNIQUES } from './data/items.js';
 
 const errors = [];
 const LAST_ERROR_KEY = 'fury-survivors.lastError';
+// Замер кадра в забеге (для владельца, в консоли во время лагов): __game.perf() — за seconds с средние мс
+// на кадр по частям (сим, спрайты мира, эффекты-зоны, числа урона и частицы, HUD, рендер Phaser) и счётчики.
+// Части оборачиваются на время замера и возвращаются как были.
+function perf(game, seconds) {
+  const gs = game.scene.getScene('Game');
+  if (!gs || !gs.world) return Promise.resolve('start a run first');
+  const sum = {};
+  const wrap = (obj, name, key) => {
+    const orig = obj[name];
+    obj[name] = function(...args) {
+      const t = performance.now();
+      const r = orig.apply(this, args);
+      sum[key] = (sum[key] || 0) + performance.now() - t;
+      return r;
+    };
+    return () => { obj[name] = orig; };
+  };
+  const undo = [
+    wrap(gs.sim, 'step', 'sim'),
+    wrap(gs.world, 'update', 'world (sprites + zones)'),
+    wrap(gs.world.zones, 'draw', 'zones (beam, bolt, aura, rings)'),
+    wrap(gs.fx, 'update', 'fx update'),
+    wrap(gs.fx, 'onEvents', 'fx events (numbers, sparks)'),
+    wrap(gs.hud, 'update', 'hud'),
+  ];
+  let frames = 0;
+  let renderT = 0;
+  let pre = 0;
+  const onPre = () => { pre = performance.now(); };
+  const onPost = () => { renderT += performance.now() - pre; frames++; };
+  game.events.on('prerender', onPre);
+  game.events.on('postrender', onPost);
+  const t0 = performance.now();
+  return new Promise((res) => setTimeout(() => {
+    for (const u of undo) u();
+    game.events.off('prerender', onPre);
+    game.events.off('postrender', onPost);
+    const n = Math.max(1, frames);
+    const out = { fps: Math.round((frames * 1000) / (performance.now() - t0)), 'phaser render': renderT / n };
+    for (const k of Object.keys(sum)) out[k] = sum[k] / n;
+    for (const k of Object.keys(out)) if (k !== 'fps') out[k] = `${out[k].toFixed(2)} ms`;
+    const sim = gs.sim;
+    out.counts = { enemies: sim.enemies.length, projectiles: sim.projectiles.length,
+      fx: sim.projectiles.filter((p) => p.fx).length, pickups: sim.pickups.length,
+      objects: gs.children.list.length, visible: gs.children.list.filter((o) => o.visible).length };
+    console.table(out);
+    res(out);
+  }, seconds * 1000));
+}
+
 // Открытые записи кодекса до unlockCodex(): lockCodex() возвращает их (без копии — сброс к пустому).
 const CODEX_BACKUP_KEY = 'fury-survivors.codexSeenBackup';
 const CODEX_DEFS = { weapon: WEAPONS, passive: PASSIVES, enemy: ENEMIES, boss: BOSSES };
@@ -129,6 +179,7 @@ export function installDebug(game) {
     },
     unlockCodex,
     lockCodex,
+    perf: (seconds = 3) => perf(game, seconds),
     // Последняя записанная ошибка (localStorage) или null.
     lastError() {
       try { return JSON.parse(localStorage.getItem(LAST_ERROR_KEY)); } catch { return null; }

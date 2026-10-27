@@ -151,6 +151,7 @@ class Sim {
     this.projPool = [];
     this.mergeTimer = 0;
     this.xpCount = 0;
+    this.xpOverflow = null; // кристалл переполнения (XP.maxGems), пока лежит на земле
     this.deadN = 0;
     this.chunks = new Set();
     this.chunkX = NaN;
@@ -1320,12 +1321,25 @@ class Sim {
   dropPickup(id, x, y, value) {
     const def = PICKUPS[id];
     if (!def) return null;
+    // кристаллов на земле больше XP.maxGems: опыт в кристалл переполнения, новый спрайт не появляется
+    if (def.kind === 'xp' && this.xpCount >= XP.maxGems) {
+      const o = this.xpOverflow;
+      if (o && !o.gone && !o.taken) {
+        o.value += value === undefined ? (def.value || 0) : value;
+        const tier = xpTierFor(o.value);
+        o.type = tier;
+        o.sprite = PICKUPS[tier].sprite;
+        return o;
+      }
+    }
     const pk = {
       uid: ++this.uid, type: id, sprite: def.sprite, x, y, kind: def.kind,
-      value: value === undefined ? (def.value || 0) : value, pulled: false, gone: false, to: -1,
+      value: value === undefined ? (def.value || 0) : value,
+      pulled: false, gone: false, taken: false, to: -1,
       tint: def.tint || 0, boss: '',
     };
     this.pickups.push(pk);
+    if (def.kind === 'xp' && this.xpCount >= XP.maxGems) this.xpOverflow = pk;
     return pk;
   }
 
@@ -1367,6 +1381,7 @@ class Sim {
         }
       }
       if (take) {
+        pk.taken = true;
         this._collect(pk, take);
         arr[i] = arr[arr.length - 1];
         arr.pop();
@@ -1574,6 +1589,7 @@ class Sim {
         if (dx * dx + dy * dy > r2) continue;
         a.value += b.value;
         b.gone = true;
+        if (b === this.xpOverflow) this.xpOverflow = a;
         changed = true;
       }
       if (changed) {
