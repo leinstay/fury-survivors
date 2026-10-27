@@ -112,7 +112,7 @@ export const HUD = {
   minimap: {
     radius: 34, margin: 8, top: 18, range: 900, fps: 12, alpha: 0.6, bg: 0x000000, rim: 0xb0a0d0,
     arrow: { len: 5, half: 3.5, self: 0xffffff, ally: 0x9ad0ff },
-    icons: { chest: 9, loot_chest: 9, food: 7, magnet: 7, coin: 5 },
+    icons: { chest: 9, loot_chest: 9, food: 7, magnet: 7 },
     dots: { coffin: 0x9a8a7a, elite: 0xff3d6e, skull: 0xf2ead8 },
   },
 };
