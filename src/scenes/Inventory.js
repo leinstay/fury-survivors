@@ -102,7 +102,8 @@ export class InventoryScene extends Phaser.Scene {
     const before = new Set(this.children.list);
     this.add.text(10, 6, t('inv.title'), textStyle(16, COLORS.accent, { stroke: '#000000', strokeThickness: 4 }))
         .setOrigin(0, 0);
-    this.add.text(GAME_WIDTH - 10, 8, this.walletText(), textStyle(10, '#ffd84a')).setOrigin(1, 0);
+    // под панелью статов справа внизу: сверху мешают вкладки
+    this.add.text(GAME_WIDTH - 10, GAME_HEIGHT - 14, this.walletText(), textStyle(10, '#ffd84a')).setOrigin(1, 1);
     ['bag', 'craft'].forEach((tab, i) => {
       this.button({ key: `tab:${tab}`, x: 270 + i * 100, y: 18, w: 92, h: 18,
         label: t(`inv.tab.${tab}`), selected: this.tab === tab,

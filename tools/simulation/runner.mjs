@@ -7,6 +7,7 @@ import { createPolicy } from './policy.mjs';
 import { PROFILES, recipeProfiles, PROFILE_VERSION } from './profiles.mjs';
 import { installExperiment } from './experiment.mjs';
 import { MODEL } from './model.mjs';
+import { bagsFor } from './bags.mjs';
 import { stateHash, sourceHash, createMetrics, installImmortality, FIXED_STEP } from './record.mjs';
 
 export function resolveProfile(id = 'focus') {
@@ -26,8 +27,10 @@ function execute(options) {
   if (!Number.isSafeInteger(config.seed) || !Number.isSafeInteger(config.behaviorSeed) ||
       ![1, 2].includes(config.players) || !['normal', 'cursed'].includes(config.difficulty) ||
       !Number.isFinite(config.until) || config.until <= 0) throw new Error('Invalid run config');
+  // Сумки: config.loadouts (готовые, формат сохранения) или config.bag ({tier, cells, pick}) — сгенерировать.
+  const loadouts = config.loadouts || bagsFor(config);
   const sim = createSim({ seed: config.seed, players: config.players, difficulty: config.difficulty,
-    hero: config.heroes[0], heroes: config.heroes });
+    hero: config.heroes[0], heroes: config.heroes, ...(loadouts ? { loadouts } : {}) });
   // Fixture installation is explicit and is forbidden in honest balance runs.
   if (config.fixture) {
     if (!config.immortal.some(Boolean)) throw new Error('Fixture requires diagnostic cohort');
@@ -101,7 +104,8 @@ function execute(options) {
   } catch (err) { outcome = 'error'; error = err.stack; }
   const result = {
     config, outcome, error, time: sim.time, steps: step, kills: sim.kills, level: sim.player.level,
-    won: sim.won, fingerprint: simFingerprint().toString(16), model: MODEL.version,
+    won: sim.won, bossKills: sim.bossKills, fingerprint: simFingerprint().toString(16),
+    model: MODEL.version,
     profileVersion: PROFILE_VERSION, policies: policies.map((p) => p.describe()),
     minutes: metrics.minutes, recipes: metrics.recipes, combat: metrics.combat,
     economy: metrics.economy, opportunities: metrics.opportunities, blocks: metrics.blocks,
@@ -131,8 +135,9 @@ export function replay(trace) {
 function replayExact(trace) {
   if (trace.source !== sourceHash()) throw new Error('Replay requires original source hash');
   const c = trace.config;
+  const loadouts = c.loadouts || bagsFor(c);
   const sim = createSim({ seed: c.seed, players: c.players, difficulty: c.difficulty,
-    hero: c.heroes[0], heroes: c.heroes });
+    hero: c.heroes[0], heroes: c.heroes, ...(loadouts ? { loadouts } : {}) });
   if (c.fixture) {
     sim.player.weapons = c.fixture.weapons.map(([id, level]) => ({ id, level }));
     sim.player.passives = (c.fixture.passives || []).map(([id, level]) => ({ id, level }));

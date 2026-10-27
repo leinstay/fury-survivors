@@ -103,15 +103,15 @@ export const WEAPONS = {
     // VS Knife: L1 6.5 / 1.0 с, 1 нож; L8 16.5 × 6, pierce 3.
     icon: 'icon_throwing_daggers', sprite: 'proj_dagger', behavior: 'projectile', dmgType: 'steel', maxLevel: 5,
     levels: [
-      { damage: 6, cooldown: 0.9, amount: 2, speed: 280,
+      { damage: 8, cooldown: 0.9, amount: 2, speed: 280,
         duration: 1.2, pierce: 1, knockback: 40 },
-      { damage: 7, cooldown: 0.9, amount: 3, speed: 280,
+      { damage: 9, cooldown: 0.9, amount: 3, speed: 280,
         duration: 1.2, pierce: 1, knockback: 40 },
-      { damage: 10, cooldown: 0.85, amount: 4, speed: 300,
+      { damage: 13, cooldown: 0.85, amount: 4, speed: 300,
         duration: 1.3, pierce: 2, knockback: 50 },
-      { damage: 15, cooldown: 0.8, amount: 5, speed: 320,
+      { damage: 20, cooldown: 0.8, amount: 5, speed: 320,
         duration: 1.4, pierce: 3, knockback: 60 },
-      { damage: 20, cooldown: 0.7, amount: 6, speed: 340,
+      { damage: 26, cooldown: 0.7, amount: 6, speed: 340,
         duration: 1.4, pierce: 3, knockback: 70 },
     ],
   },
@@ -119,15 +119,15 @@ export const WEAPONS = {
     // VS King Bible: L1 10 урона, 1 книга, 3 с вращения, пауза 3 с; L8 30 × 4, 4 с.
     icon: 'icon_guardian_shields', sprite: 'proj_shield', behavior: 'orbit', dmgType: 'steel', maxLevel: 5,
     levels: [
-      { damage: 12, cooldown: 2.0, amount: 2, area: onRing(1, SHIELD_R), hitRadius: 12,
+      { damage: 18, cooldown: 2.0, amount: 2, area: onRing(1, SHIELD_R), hitRadius: 12,
         speed: 3.2, duration: 4.0, knockback: 40 },
-      { damage: 15, cooldown: 2.0, amount: 3, area: onRing(1, SHIELD_R), hitRadius: 14,
+      { damage: 23, cooldown: 2.0, amount: 3, area: onRing(1, SHIELD_R), hitRadius: 14,
         speed: 3.3, duration: 4.0, knockback: 40 },
-      { damage: 22, cooldown: 1.9, amount: 4, area: onRing(1, SHIELD_R), hitRadius: 16,
+      { damage: 33, cooldown: 1.9, amount: 4, area: onRing(1, SHIELD_R), hitRadius: 16,
         speed: 3.7, duration: 4.0, knockback: 45 },
-      { damage: 30, cooldown: 1.7, amount: 5, area: onRing(1, SHIELD_R), hitRadius: 20,
+      { damage: 45, cooldown: 1.7, amount: 5, area: onRing(1, SHIELD_R), hitRadius: 20,
         speed: 4.1, duration: 4.0, knockback: 50 },
-      { damage: 36, cooldown: 1.6, amount: 6, area: onRing(1, SHIELD_R), hitRadius: 22,
+      { damage: 54, cooldown: 1.6, amount: 6, area: onRing(1, SHIELD_R), hitRadius: 22,
         speed: 4.4, duration: 4.0, knockback: 55 },
     ],
   },
@@ -146,11 +146,11 @@ export const WEAPONS = {
     // VS Axe: L1 20 / 4.0 с; L8 80 × 3, pierce 7. Наш топор возвращается и бьёт дважды, поэтому урон ниже.
     icon: 'icon_war_axe', sprite: 'proj_axe', behavior: 'boomerang', dmgType: 'steel', maxLevel: 5,
     levels: [
-      { damage: 19, cooldown: 1.5, amount: 1, area: 110, speed: 200, duration: 4, knockback: 60 },
-      { damage: 19, cooldown: 1.45, amount: 2, area: 120, speed: 210, duration: 4, knockback: 60 },
-      { damage: 26, cooldown: 1.3, amount: 2, area: 145, speed: 230, duration: 4, knockback: 70 },
-      { damage: 32, cooldown: 1.1, amount: 3, area: 170, speed: 250, duration: 4, knockback: 80 },
-      { damage: 40, cooldown: 1.0, amount: 3, area: 185, speed: 260, duration: 4, knockback: 90 },
+      { damage: 15, cooldown: 1.5, amount: 1, area: 110, speed: 200, duration: 4, knockback: 60 },
+      { damage: 15, cooldown: 1.45, amount: 2, area: 120, speed: 210, duration: 4, knockback: 60 },
+      { damage: 21, cooldown: 1.3, amount: 2, area: 145, speed: 230, duration: 4, knockback: 70 },
+      { damage: 26, cooldown: 1.1, amount: 3, area: 170, speed: 250, duration: 4, knockback: 80 },
+      { damage: 32, cooldown: 1.0, amount: 3, area: 185, speed: 260, duration: 4, knockback: 90 },
     ],
   },
   storm_chain: {
@@ -158,11 +158,11 @@ export const WEAPONS = {
     // много целей, поэтому урон за удар у неё ниже всех (docs/BALANCE_AUDIT.md 6.4).
     icon: 'icon_storm_chain', sprite: 'proj_chain', behavior: 'chain', dmgType: 'magic', maxLevel: 5,
     levels: [
-      { damage: 7, cooldown: 1.25, amount: 1, jumps: 2, area: 90, range: 230, knockback: 20 },
-      { damage: 7, cooldown: 1.25, amount: 1, jumps: 3, area: 95, range: 240, knockback: 20 },
-      { damage: 9, cooldown: 1.2, amount: 2, jumps: 4, area: 105, range: 260, knockback: 25 },
-      { damage: 11, cooldown: 1.15, amount: 3, jumps: 4, area: 115, range: 280, knockback: 30 },
-      { damage: 14, cooldown: 1.1, amount: 3, jumps: 4, area: 120, range: 290, knockback: 35 },
+      { damage: 20, cooldown: 1.25, amount: 1, jumps: 2, area: 90, range: 230, knockback: 20 },
+      { damage: 20, cooldown: 1.25, amount: 1, jumps: 3, area: 95, range: 240, knockback: 20 },
+      { damage: 26, cooldown: 1.2, amount: 2, jumps: 4, area: 105, range: 260, knockback: 25 },
+      { damage: 31, cooldown: 1.15, amount: 3, jumps: 4, area: 115, range: 280, knockback: 30 },
+      { damage: 41, cooldown: 1.1, amount: 3, jumps: 4, area: 120, range: 290, knockback: 35 },
     ],
   },
   firebomb: {
@@ -170,15 +170,15 @@ export const WEAPONS = {
     // Взрыв бьёт на damage, огонь — damage × fireDamage раз в WEAPON_BEHAVIOR.area_drop.fireTick.
     icon: 'icon_firebomb', sprite: 'proj_firebomb', behavior: 'area_drop', dmgType: 'magic', maxLevel: 5,
     levels: [
-      { damage: 10, cooldown: 3.0, amount: 1, area: 36,
+      { damage: 7, cooldown: 3.0, amount: 1, area: 36,
         duration: 2.0, fireDamage: 0.5, knockback: 50 },
-      { damage: 10, cooldown: 3.0, amount: 1, area: 40,
+      { damage: 7, cooldown: 3.0, amount: 1, area: 40,
         duration: 2.2, fireDamage: 0.5, knockback: 50 },
-      { damage: 15, cooldown: 2.8, amount: 2, area: 48,
+      { damage: 11, cooldown: 2.8, amount: 2, area: 48,
         duration: 2.6, fireDamage: 0.5, knockback: 55 },
-      { damage: 25, cooldown: 2.6, amount: 3, area: 56,
+      { damage: 17, cooldown: 2.6, amount: 3, area: 56,
         duration: 2.9, fireDamage: 0.5, knockback: 60 },
-      { damage: 30, cooldown: 2.5, amount: 3, area: 60,
+      { damage: 21, cooldown: 2.5, amount: 3, area: 60,
         duration: 3.0, fireDamage: 0.5, knockback: 70 },
     ],
   },
@@ -188,15 +188,15 @@ export const WEAPONS = {
     // Пробивает всех на линии; один-три снаряда, медленнее ножей. Урон за удар между ножами и арбалетом.
     icon: 'icon_spear', sprite: 'proj_spear', behavior: 'projectile', dmgType: 'steel', maxLevel: 5,
     levels: [
-      { damage: 12, cooldown: 1.3, amount: 1, speed: 260, duration: 1.1, pierceAll: true,
+      { damage: 10, cooldown: 1.3, amount: 1, speed: 260, duration: 1.1, pierceAll: true,
         hitRadius: 6, knockback: 30 },
-      { damage: 14, cooldown: 1.25, amount: 1, speed: 270, duration: 1.15, pierceAll: true,
+      { damage: 12, cooldown: 1.25, amount: 1, speed: 270, duration: 1.15, pierceAll: true,
         hitRadius: 6, knockback: 30 },
-      { damage: 19, cooldown: 1.15, amount: 2, speed: 280, duration: 1.2, pierceAll: true,
+      { damage: 16, cooldown: 1.15, amount: 2, speed: 280, duration: 1.2, pierceAll: true,
         hitRadius: 7, knockback: 35 },
-      { damage: 26, cooldown: 1.05, amount: 2, speed: 300, duration: 1.25, pierceAll: true,
+      { damage: 22, cooldown: 1.05, amount: 2, speed: 300, duration: 1.25, pierceAll: true,
         hitRadius: 7, knockback: 40 },
-      { damage: 32, cooldown: 0.95, amount: 3, speed: 320, duration: 1.3, pierceAll: true,
+      { damage: 27, cooldown: 0.95, amount: 3, speed: 320, duration: 1.3, pierceAll: true,
         hitRadius: 8, knockback: 45 },
     ],
   },
@@ -216,14 +216,14 @@ export const WEAPONS = {
     // Один быстрый болт с большим уроном в ближайшего врага; с L4 два.
     icon: 'icon_crossbow', sprite: 'proj_bolt', behavior: 'projectile', dmgType: 'steel', maxLevel: 5,
     levels: [
-      { damage: 28, cooldown: 1.4, amount: 1, speed: 440, duration: 0.9, pierce: 0, knockback: 70 },
-      { damage: 34, cooldown: 1.35, amount: 1, speed: 440, duration: 0.9, pierce: 1,
+      { damage: 65, cooldown: 1.4, amount: 1, speed: 440, duration: 0.9, pierce: 0, knockback: 70 },
+      { damage: 79, cooldown: 1.35, amount: 1, speed: 440, duration: 0.9, pierce: 1,
         knockback: 70 },
-      { damage: 46, cooldown: 1.25, amount: 1, speed: 460, duration: 1.0, pierce: 1,
+      { damage: 108, cooldown: 1.25, amount: 1, speed: 460, duration: 1.0, pierce: 1,
         knockback: 80 },
-      { damage: 62, cooldown: 1.15, amount: 2, speed: 480, duration: 1.0, pierce: 1,
+      { damage: 146, cooldown: 1.15, amount: 2, speed: 480, duration: 1.0, pierce: 1,
         knockback: 90 },
-      { damage: 76, cooldown: 1.05, amount: 2, speed: 500, duration: 1.0, pierce: 2,
+      { damage: 178, cooldown: 1.05, amount: 2, speed: 500, duration: 1.0, pierce: 2,
         knockback: 100 },
     ],
   },
@@ -231,15 +231,15 @@ export const WEAPONS = {
     // Мины вокруг героя ждут врага до duration с; взрыв без огня.
     icon: 'icon_mines', sprite: 'proj_mine', behavior: 'area_drop', dmgType: 'steel', maxLevel: 5,
     levels: [
-      { damage: 30, cooldown: 2.2, amount: 1, area: 40, duration: 8, mine: true, trigger: 14,
+      { damage: 25, cooldown: 2.2, amount: 1, area: 40, duration: 8, mine: true, trigger: 14,
         spread: 90, knockback: 80 },
-      { damage: 34, cooldown: 2.1, amount: 2, area: 42, duration: 8, mine: true, trigger: 14,
+      { damage: 29, cooldown: 2.1, amount: 2, area: 42, duration: 8, mine: true, trigger: 14,
         spread: 95, knockback: 80 },
-      { damage: 44, cooldown: 2.0, amount: 2, area: 46, duration: 9, mine: true, trigger: 15,
+      { damage: 37, cooldown: 2.0, amount: 2, area: 46, duration: 9, mine: true, trigger: 15,
         spread: 100, knockback: 90 },
-      { damage: 58, cooldown: 1.9, amount: 3, area: 50, duration: 9, mine: true, trigger: 16,
+      { damage: 48, cooldown: 1.9, amount: 3, area: 50, duration: 9, mine: true, trigger: 16,
         spread: 105, knockback: 100 },
-      { damage: 72, cooldown: 1.8, amount: 3, area: 54, duration: 10, mine: true, trigger: 16,
+      { damage: 60, cooldown: 1.8, amount: 3, area: 54, duration: 10, mine: true, trigger: 16,
         spread: 110, knockback: 110 },
     ],
   },
@@ -247,19 +247,19 @@ export const WEAPONS = {
     // Ледяные шары на орбите: урон ниже щитов, зато задетые враги замедляются. Снаряды не ловят.
     icon: 'icon_frost_orb', sprite: 'proj_frost', behavior: 'orbit', dmgType: 'magic', maxLevel: 5,
     levels: [
-      { damage: 12, cooldown: 2.5, amount: 2, area: onRing(2, FROST_R), hitRadius: 14,
+      { damage: 21, cooldown: 2.5, amount: 2, area: onRing(2, FROST_R), hitRadius: 14,
         speed: 2.4, duration: 4.0,
         knockback: 10, slow: 0.6, slowTime: 1.0, blocks: false },
-      { damage: 15, cooldown: 2.4, amount: 2, area: onRing(2, FROST_R), hitRadius: 15,
+      { damage: 25, cooldown: 2.4, amount: 2, area: onRing(2, FROST_R), hitRadius: 15,
         speed: 2.5, duration: 4.5,
         knockback: 10, slow: 0.6, slowTime: 1.0, blocks: false },
-      { damage: 20, cooldown: 2.2, amount: 3, area: onRing(3, FROST_R), hitRadius: 16,
+      { damage: 34, cooldown: 2.2, amount: 3, area: onRing(3, FROST_R), hitRadius: 16,
         speed: 2.6, duration: 5.0,
         knockback: 10, slow: 0.55, slowTime: 1.1, blocks: false },
-      { damage: 28, cooldown: 2.0, amount: 3, area: onRing(3, FROST_R), hitRadius: 17,
+      { damage: 48, cooldown: 2.0, amount: 3, area: onRing(3, FROST_R), hitRadius: 17,
         speed: 2.7, duration: 5.0,
         knockback: 15, slow: 0.5, slowTime: 1.1, blocks: false },
-      { damage: 34, cooldown: 1.8, amount: 4, area: onRing(4, FROST_R), hitRadius: 18,
+      { damage: 59, cooldown: 1.8, amount: 4, area: onRing(4, FROST_R), hitRadius: 18,
         speed: 2.8, duration: 5.5,
         knockback: 15, slow: 0.45, slowTime: 1.2, blocks: false },
     ],
@@ -268,26 +268,26 @@ export const WEAPONS = {
     // Облако вокруг героя: частые тики яда (cooldown — период тика), без отбрасывания: враги остаются в облаке.
     icon: 'icon_poison_cloud', sprite: 'proj_poison_cloud', behavior: 'aura', dmgType: 'magic', maxLevel: 5, tint: 0x9be04a,
     levels: [
-      { damage: 4, cooldown: 0.4, area: RINGS[1], knockback: 0 },
-      { damage: 5, cooldown: 0.4, area: RINGS[2], knockback: 0 },
-      { damage: 7, cooldown: 0.36, area: RINGS[3], knockback: 0 },
-      { damage: 9, cooldown: 0.34, area: RINGS[5], knockback: 0 },
-      { damage: 11, cooldown: 0.32, area: RINGS[6], knockback: 0 },
+      { damage: 7, cooldown: 0.4, area: RINGS[1], knockback: 0 },
+      { damage: 10, cooldown: 0.4, area: RINGS[2], knockback: 0 },
+      { damage: 12, cooldown: 0.36, area: RINGS[3], knockback: 0 },
+      { damage: 17, cooldown: 0.34, area: RINGS[5], knockback: 0 },
+      { damage: 19, cooldown: 0.32, area: RINGS[6], knockback: 0 },
     ],
   },
   beam: {
     // Луч вперёд по ходу: горит duration, бьёт всех на линии каждые tick с; с L2 второй луч назад.
     icon: 'icon_beam', sprite: 'proj_beam', behavior: 'beam', dmgType: 'magic', maxLevel: 5,
     levels: [
-      { damage: 9, cooldown: 1.2, duration: 2.0, tick: 0.2, area: 120, width: 6, amount: 1,
+      { damage: 25, cooldown: 1.2, duration: 2.0, tick: 0.2, area: 120, width: 10, amount: 1,
         knockback: 0 },
-      { damage: 9, cooldown: 1.2, duration: 2.0, tick: 0.2, area: 125, width: 6, amount: 2,
+      { damage: 25, cooldown: 1.2, duration: 2.0, tick: 0.2, area: 125, width: 10, amount: 2,
         knockback: 0 },
-      { damage: 11, cooldown: 1.1, duration: 2.2, tick: 0.2, area: 135, width: 7, amount: 2,
+      { damage: 32, cooldown: 1.1, duration: 2.2, tick: 0.2, area: 135, width: 11, amount: 2,
         knockback: 0 },
-      { damage: 14, cooldown: 1.0, duration: 2.4, tick: 0.2, area: 145, width: 7, amount: 2,
+      { damage: 40, cooldown: 1.0, duration: 2.4, tick: 0.2, area: 145, width: 11, amount: 2,
         knockback: 0 },
-      { damage: 18, cooldown: 0.9, duration: 2.6, tick: 0.2, area: 155, width: 8, amount: 2,
+      { damage: 52, cooldown: 0.9, duration: 2.6, tick: 0.2, area: 155, width: 12, amount: 2,
         knockback: 0 },
     ],
   },
@@ -295,23 +295,23 @@ export const WEAPONS = {
     // Огоньки летают за героем и сами стреляют в ближайшего к себе врага.
     icon: 'icon_wisp', sprite: 'proj_wisp', shot: 'proj_wisp_shot', behavior: 'summon', dmgType: 'magic', maxLevel: 5,
     levels: [
-      { damage: 14, cooldown: 0.9, amount: 1, speed: 240, duration: 1.2, pierce: 0, knockback: 20 },
-      { damage: 15, cooldown: 0.9, amount: 2, speed: 250, duration: 1.2, pierce: 0, knockback: 20 },
-      { damage: 17, cooldown: 0.9, amount: 2, speed: 260, duration: 1.2, pierce: 1, knockback: 25 },
-      { damage: 22, cooldown: 0.85, amount: 3, speed: 270, duration: 1.3, pierce: 1,
+      { damage: 29, cooldown: 0.9, amount: 1, speed: 240, duration: 1.2, pierce: 0, knockback: 20 },
+      { damage: 31, cooldown: 0.9, amount: 2, speed: 250, duration: 1.2, pierce: 0, knockback: 20 },
+      { damage: 35, cooldown: 0.9, amount: 2, speed: 260, duration: 1.2, pierce: 1, knockback: 25 },
+      { damage: 44, cooldown: 0.85, amount: 3, speed: 270, duration: 1.3, pierce: 1,
         knockback: 25 },
-      { damage: 28, cooldown: 0.8, amount: 4, speed: 280, duration: 1.3, pierce: 2, knockback: 30 },
+      { damage: 58, cooldown: 0.8, amount: 4, speed: 280, duration: 1.3, pierce: 2, knockback: 30 },
     ],
   },
   meteor: {
     // Долгое падение (delay) с кругом-предупреждением и большой урон по площади; огня нет.
     icon: 'icon_meteor', sprite: 'proj_meteor', behavior: 'area_drop', dmgType: 'magic', maxLevel: 5,
     levels: [
-      { damage: 40, cooldown: 3.5, amount: 1, area: 44, delay: 1.2, fall: 160, knockback: 120 },
-      { damage: 48, cooldown: 3.4, amount: 1, area: 48, delay: 1.2, fall: 160, knockback: 120 },
-      { damage: 64, cooldown: 3.2, amount: 2, area: 52, delay: 1.15, fall: 170, knockback: 130 },
-      { damage: 84, cooldown: 3.0, amount: 2, area: 58, delay: 1.1, fall: 180, knockback: 140 },
-      { damage: 110, cooldown: 2.8, amount: 3, area: 64, delay: 1.1, fall: 190, knockback: 150 },
+      { damage: 48, cooldown: 3.5, amount: 1, area: 44, delay: 1.2, fall: 160, knockback: 120 },
+      { damage: 58, cooldown: 3.4, amount: 1, area: 48, delay: 1.2, fall: 160, knockback: 120 },
+      { damage: 77, cooldown: 3.2, amount: 2, area: 52, delay: 1.15, fall: 170, knockback: 130 },
+      { damage: 101, cooldown: 3.0, amount: 2, area: 58, delay: 1.1, fall: 180, knockback: 140 },
+      { damage: 132, cooldown: 2.8, amount: 3, area: 64, delay: 1.1, fall: 190, knockback: 150 },
     ],
   },
 
@@ -320,7 +320,7 @@ export const WEAPONS = {
   crimson_arc: {
     icon: 'icon_crimson_arc', sprite: 'proj_blade_arc', behavior: 'melee_arc', dmgType: 'steel', maxLevel: 1, evolved: true, tint: 0xff5050,
     levels: [
-      { damage: 15, cooldown: 1.0, amount: 3, area: RINGS[7], knockback: 150 },
+      { damage: 52, cooldown: 1.0, amount: 3, area: RINGS[7], knockback: 150 },
     ],
   },
   // throwing_daggers + haste
@@ -335,7 +335,7 @@ export const WEAPONS = {
   aegis_bastion: {
     icon: 'icon_aegis_bastion', sprite: 'proj_shield', behavior: 'orbit', dmgType: 'steel', maxLevel: 1, evolved: true, tint: 0xa0c8ff,
     levels: [
-      { damage: 22, cooldown: 0, amount: 6, area: onRing(0, SHIELD_R * 1.4), speed: 4.4,
+      { damage: 211, cooldown: 0, amount: 6, area: onRing(0, SHIELD_R * 1.4), speed: 4.4,
         duration: 1e9, knockback: 160, size: 1.4, hitRadius: 14 },
     ],
   },
@@ -350,7 +350,7 @@ export const WEAPONS = {
   death_spiral: {
     icon: 'icon_death_spiral', sprite: 'proj_axe', behavior: 'boomerang', dmgType: 'steel', maxLevel: 1, evolved: true, tint: 0xd0a0ff,
     levels: [
-      { damage: 30, cooldown: 1.6, amount: 5, area: 210, speed: 300, duration: 4, knockback: 110 },
+      { damage: 34, cooldown: 1.6, amount: 5, area: 210, speed: 300, duration: 4, knockback: 110 },
     ],
   },
   // storm_chain + luck
@@ -364,7 +364,7 @@ export const WEAPONS = {
   napalm_rain: {
     icon: 'icon_napalm_rain', sprite: 'proj_firebomb', behavior: 'area_drop', dmgType: 'magic', maxLevel: 1, evolved: true,
     levels: [
-      { damage: 32, cooldown: 2.0, amount: 5, area: 72,
+      { damage: 12, cooldown: 2.0, amount: 5, area: 72,
         duration: 3.8, fireDamage: 0.5, knockback: 80 },
     ],
   },
@@ -372,7 +372,7 @@ export const WEAPONS = {
   dragon_lance: {
     icon: 'icon_dragon_lance', sprite: 'proj_spear', behavior: 'projectile', dmgType: 'steel', maxLevel: 1, evolved: true, tint: 0xffb040,
     levels: [
-      { damage: 60, cooldown: 0.8, amount: 4, speed: 360, duration: 1.4, pierceAll: true,
+      { damage: 22, cooldown: 0.8, amount: 4, speed: 360, duration: 1.4, pierceAll: true,
         hitRadius: 10, knockback: 50 },
     ],
   },
@@ -380,14 +380,14 @@ export const WEAPONS = {
   titan_maul: {
     icon: 'icon_titan_maul', sprite: 'proj_blade_arc', behavior: 'melee_arc', dmgType: 'steel', maxLevel: 1, evolved: true, tint: 0xffd060,
     levels: [
-      { damage: 130, cooldown: 1.2, amount: 3, area: RINGS[8], knockback: 320 },
+      { damage: 70, cooldown: 1.2, amount: 3, area: RINGS[8], knockback: 320 },
     ],
   },
   // crossbow + dodge
   ballista: {
     icon: 'icon_ballista', sprite: 'proj_bolt', behavior: 'projectile', dmgType: 'steel', maxLevel: 1, evolved: true, tint: 0xa0e0ff,
     levels: [
-      { damage: 90, cooldown: 0.9, amount: 3, speed: 560, duration: 1.1, pierce: 4,
+      { damage: 113, cooldown: 0.9, amount: 3, speed: 560, duration: 1.1, pierce: 4,
         knockback: 110 },
     ],
   },
@@ -395,7 +395,7 @@ export const WEAPONS = {
   minefield: {
     icon: 'icon_minefield', sprite: 'proj_mine', behavior: 'area_drop', dmgType: 'steel', maxLevel: 1, evolved: true, tint: 0xff6060,
     levels: [
-      { damage: 80, cooldown: 1.5, amount: 5, area: 64, duration: 14, mine: true, trigger: 18,
+      { damage: 38, cooldown: 1.5, amount: 5, area: 64, duration: 14, mine: true, trigger: 18,
         spread: 130, knockback: 120 },
     ],
   },
@@ -403,7 +403,7 @@ export const WEAPONS = {
   blizzard: {
     icon: 'icon_blizzard', sprite: 'proj_frost', behavior: 'orbit', dmgType: 'magic', maxLevel: 1, evolved: true, tint: 0xc0f0ff,
     levels: [
-      { damage: 40, cooldown: 0, amount: 5, area: onRing(3, FROST_R * 1.3), size: 1.3,
+      { damage: 71, cooldown: 0, amount: 5, area: onRing(3, FROST_R * 1.3), size: 1.3,
         hitRadius: 22, speed: 3.0,
         duration: 1e9, knockback: 20, slow: 0.35, slowTime: 1.5, blocks: false },
     ],
@@ -412,14 +412,14 @@ export const WEAPONS = {
   miasma: {
     icon: 'icon_miasma', sprite: 'proj_poison_cloud', behavior: 'aura', dmgType: 'magic', maxLevel: 1, evolved: true, tint: 0xb060ff,
     levels: [
-      { damage: 12, cooldown: 0.25, area: RINGS[8], knockback: 0 },
+      { damage: 11, cooldown: 0.25, area: RINGS[8], knockback: 0 },
     ],
   },
   // beam + speed
   prism_ray: {
     icon: 'icon_prism_ray', sprite: 'proj_beam', behavior: 'beam', dmgType: 'magic', maxLevel: 1, evolved: true, tint: 0xff80ff,
     levels: [
-      { damage: 18, cooldown: 0.3, duration: 4, tick: 0.15, area: 190, width: 10, amount: 4,
+      { damage: 19, cooldown: 0.3, duration: 4, tick: 0.15, area: 190, width: 10, amount: 4,
         knockback: 0 },
     ],
   },
@@ -428,14 +428,14 @@ export const WEAPONS = {
     icon: 'icon_spirit_choir', sprite: 'proj_wisp', shot: 'proj_wisp_shot', behavior: 'summon', dmgType: 'magic', maxLevel: 1,
     evolved: true, tint: 0x80ffd0,
     levels: [
-      { damage: 34, cooldown: 0.6, amount: 5, speed: 300, duration: 1.3, pierce: 2, knockback: 30 },
+      { damage: 41, cooldown: 0.6, amount: 5, speed: 300, duration: 1.3, pierce: 2, knockback: 30 },
     ],
   },
   // meteor + thorns
   starfall: {
     icon: 'icon_starfall', sprite: 'proj_meteor', behavior: 'area_drop', dmgType: 'magic', maxLevel: 1, evolved: true, tint: 0xfff080,
     levels: [
-      { damage: 120, cooldown: 2.4, amount: 5, area: 76, delay: 1.0, fall: 200, knockback: 160 },
+      { damage: 84, cooldown: 2.4, amount: 5, area: 76, delay: 1.0, fall: 200, knockback: 160 },
     ],
   },
 };

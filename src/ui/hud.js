@@ -8,6 +8,12 @@ import { getSetting } from './settings.js';
 import { computeScore } from '../services/leaderboard.js';
 
 const D = 1e6; // HUD поверх мира
+// Баннеры событий Жницы: ключ строки и цвет. Каждый показывается один раз за забег (круг раз в 20 с, телепорт по кулдауну).
+const REAPER_BANNERS = {
+  holyCircle: ['reaper.holy', '#ffe27a'],
+  reaperSummon: ['reaper.summon', '#d8a0ff'],
+  reaperTeleport: ['reaper.teleport', '#d8a0ff'],
+};
 
 export function formatTime(sec) {
   const s = Math.max(0, Math.floor(sec));
@@ -75,6 +81,7 @@ export class Hud {
     this.banner = add(scene.add.text(GAME_WIDTH / 2, 110, t('boss.warning'), textStyle(24, '#ff3030', { stroke: '#000000', strokeThickness: 5 })).setOrigin(0.5)).setVisible(false);
     this.bannerSub = add(scene.add.text(GAME_WIDTH / 2, 134, '', textStyle(12, '#ffffff', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5)).setVisible(false);
     this.bannerUntil = -1;
+    this.reaperSeen = new Set(); // показанные баннеры Жницы
     this.bannerStart = 0;
 
     this.slots = [];
@@ -105,15 +112,28 @@ export class Hud {
         this.bannerUntil = this.sim.time + HUD.bossBannerTime;
         const ot = ev.type === 'overtime';
         this.banner.setText(t(ot ? 'hud.overtime' : 'boss.warning')).setColor(ot ? '#ffd84a' : '#ff3030');
-        this.bannerSub.setText(ot ? t('hud.overtime_hint') : '');
+        const reaper = ev.boss === 'reaper';
+        const sub = ot ? 'hud.overtime_hint' :
+            reaper ? (this.sim.hasBible ? 'reaper.hint_bible' : 'reaper.hint') : '';
+        this.bannerSub.setText(sub ? t(sub) : '');
         if (ot) this.timeText.setColor('#ffd84a');
+      } else if (REAPER_BANNERS[ev.type] && !this.reaperSeen.has(ev.type)) {
+        this.reaperSeen.add(ev.type);
+        // Жница: круг, призыв, телепорт (src/core/reaper.js)
+        const [key, color] = REAPER_BANNERS[ev.type];
+        this.bannerStart = this.sim.time;
+        this.bannerUntil = this.sim.time + HUD.bossBannerTime;
+        this.banner.setText(t(key)).setColor(color);
+        this.bannerSub.setText(ev.type === 'holyCircle' ? t('reaper.holy_hint') : '');
       }
     }
   }
 
   _updateBoss() {
     const b = this.sim.boss;
-    const alive = !!b && b.hp > 0 && !b.dead && !b.def.invulnerable; // у неуязвимой жницы полосы нет
+    // у неуязвимой жницы полосы нет; с Библией она смертна и полоса есть
+    const mortal = !!b && (!b.def.invulnerable || (this.sim.hasBible && !!b.def.holy));
+    const alive = mortal && b.hp > 0 && !b.dead;
     const key = alive ? b.type : '';
     if (key !== this.bossShown) {
       this.bossShown = key;

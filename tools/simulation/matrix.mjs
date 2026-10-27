@@ -3,7 +3,7 @@ import { availableParallelism } from 'node:os';
 import { PROFILES, recipeProfiles } from './profiles.mjs';
 
 export function matrix({ n = 20, split = 'tuning', noEvolution = false, immortal = false,
-  until = 1080, experiment = null, recipes = false } = {}) {
+  until = 1080, experiment = null, recipes = false, bag = null } = {}) {
   const base = { tuning: 10000, validation: 200000, qualification: 4000000 }[split];
   if (!base || !Number.isInteger(n) || n < 1) throw new Error('Invalid matrix specification');
   const counts = PROFILES.map((p) => Math.floor(p.weight * n));
@@ -30,7 +30,7 @@ export function matrix({ n = 20, split = 'tuning', noEvolution = false, immortal
       profiles: [cohort[i], cohort[(i + Math.floor(n / 3)) % n]],
       heroes: i % 2 ? ['mage', 'heroine'] : ['heroine', 'mage'],
       noEvolution: noEvolution ? [true, true] : [], immortal: immortal ? [true, true] : [],
-      experiment, split });}
+      experiment, split, ...(bag ? { bag } : {}) });}
   }}
   return jobs;
 }

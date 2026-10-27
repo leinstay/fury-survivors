@@ -67,6 +67,9 @@ export function hashParts(sim) {
     ex += e.x; ey += e.y; eh += e.hp;
   }
   out.push(['enemyX', r(ex)], ['enemyY', r(ey)], ['enemyHp', r(eh)]);
+  // Жница с Библией: освящённые круги и песочные часы
+  out.push(['holy', sim.holy.map((c) => `${r(c.x)},${r(c.y)}`).join(' ')],
+      ['hourglasses', sim.hourglasses.map((h) => `${h.uid}@${r(h.x)},${r(h.y)}`).join(' ')]);
   return out;
 }
 

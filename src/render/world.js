@@ -7,6 +7,8 @@ import { Decor } from './decor.js';
 import { Roads } from './roads.js';
 import { spriteScale } from './density.js';
 import { Zones } from './zones.js';
+import { ReaperFx } from './reaper.js';
+import { isSlowed } from '../behaviors/status.js';
 import { lowQuality, getSetting } from '../ui/settings.js';
 
 // Позиции и камера округляются в пиксели экрана (1 / RENDER_ZOOM пикселя мира) одним способом: тогда разница
@@ -19,6 +21,8 @@ const PICKUP_DEPTH = -100000;
 const PROJ_DEPTH = 200000;
 const GROUND_DEPTH = -150000; // зоны на земле: над цветами и травой, под предметами и персонажами
 const TELEGRAPH_DEPTH = GROUND_DEPTH + 1e4; // предупреждения об ударах босса
+const REAPER_DEPTH = GROUND_DEPTH + 5e3;    // круги и часы Жницы: под предупреждениями
+const SLOW_TINT = 0xa8dcff;                 // замедленный враг (behaviors/status.js): светло-голубой
 
 // Параметры свечения элит; цвет можно задать врагу в data (elite.glow).
 const ELITE_GLOW = {
@@ -100,6 +104,7 @@ class Pool {
         s.setVisible(false).setActive(false);
         s.clearTint();
         s.tintState = 0;
+        s.tintBase = 0;
         if (s.eliteGlow) dropGlow(s);
         this.free.push(s);
       }
@@ -160,6 +165,7 @@ export class World {
     this.shadowN = 0;
     this.telegraphGfx = scene.add.graphics().setDepth(TELEGRAPH_DEPTH);
     this.zones = new Zones(scene, GROUND_DEPTH);
+    this.reaperFx = new ReaperFx(scene, REAPER_DEPTH);
     if (!scene.textures.exists('fx_halo')) makeHalo(scene);
     this.shake = { x: 0, y: 0 }; // смещение камеры от fx (тряска)
     this.predict = null;         // { i, x, y, face, moving } — свой герой по своему вводу (Game._predict)
@@ -369,7 +375,7 @@ export class World {
       s.setFlipX(e.facing < 0);
       s.setDepth(ey);
       s.setAlpha(e.alpha == null ? 1 : e.alpha);
-      this._tint(s, e.hitFlash > 0, e.elite);
+      this._tint(s, e.hitFlash > 0, e.elite, isSlowed(e, sim) ? SLOW_TINT : 0);
       if (e.elite) this._glow(s, e, time);
       else if (s.eliteGlow) dropGlow(s);
     });
@@ -388,6 +394,7 @@ export class World {
       s.setDepth(e.y - 1);
     });
 
+    this.reaperFx.update(sim, time);
     // предупреждения об ударах босса: заливка растёт от центра до края за delay
     const g = this.telegraphGfx;
     g.clear();

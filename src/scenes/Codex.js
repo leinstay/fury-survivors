@@ -50,8 +50,10 @@ const STAT_LINE = 12;
 const DARK = 0x000000;
 const MOVING = { moving: true };
 // Параметры оружия в таблице (порядок строк); показываются только те, что есть у оружия.
-const PARAMS = ['damage', 'cooldown', 'amount', 'area', 'speed', 'duration', 'pierce', 'jumps', 'range',
-  'fireDamage', 'knockback', 'size', 'hitRadius'];
+// pierce: строка есть и у pierceAll (копьё), там «All».
+const PARAMS = ['damage', 'cooldown', 'amount', 'area', 'speed', 'duration', 'tick', 'width', 'delay', 'trigger',
+  'pierce', 'jumps', 'range', 'slow', 'slowTime', 'fireDamage', 'knockback', 'size', 'hitRadius'];
+const SEC_PARAMS = new Set(['cooldown', 'duration', 'tick', 'delay', 'slowTime']);
 // Масштабы показа HD-спрайтов: дроби, чтобы пиксели ложились ровно.
 const SCALES = [1, 1 / 2, 1 / 3, 1 / 4, 1 / 5, 1 / 6, 1 / 8];
 const STATUS_COLOR = { victory: '#ffd84a', dead: '#ff8080', disconnected: '#ffb060', quit: COLORS.dim };
@@ -80,7 +82,8 @@ function fmtDate(ms) {
 
 function fmtParam(k, v) {
   if (v === undefined) return '-';
-  if (k === 'cooldown' || k === 'duration') return v >= 1e6 ? t('codex.always') : t('codex.sec_unit', { v: round2(v) });
+  if (SEC_PARAMS.has(k)) return v >= 1e6 ? t('codex.always') : t('codex.sec_unit', { v: round2(v) });
+  if (k === 'slow') return `-${Math.round((1 - v) * 100)}%`; // скорость врага × slow
   if (k === 'fireDamage') return `${Math.round(v * 100)}%`;
   if (k === 'size') return `x${round2(v)}`;
   return String(round2(v));
@@ -489,9 +492,11 @@ export class CodexScene extends Phaser.Scene {
       if (k === 'cooldown' && def.behavior === 'orbit') return 'rest_time';
       return k;
     };
-    const rows = PARAMS.filter((k) => cols.some((c) => c[k] !== undefined))
+    const has = (c, k) => c[k] !== undefined || (k === 'pierce' && c.pierceAll);
+    const cell = (c, k) => (k === 'pierce' && c.pierceAll ? t('codex.p.pierce_all') : fmtParam(k, c[k]));
+    const rows = PARAMS.filter((k) => cols.some((c) => has(c, k)))
         .map((k) => ({ label: t(`codex.p.${label(k)}`),
-          cells: cols.map((c) => fmtParam(k, c[k])) }));
+          cells: cols.map((c) => cell(c, k)) }));
     this.table(L, y, heads, rows);
   }
 

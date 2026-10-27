@@ -24,6 +24,7 @@ import { bagBonus, rollChest, rollHearts, bossDrop } from './items.js';
 import {
   normalizeLoadout, loadoutUnique, loadoutExtra, applyUniqueRules, DICE_STATS,
 } from './loadout.js';
+import { initReaper, updateReaper, groundMul } from './reaper.js';
 
 const STAGES = { forest };
 const EMPTY = {};
@@ -110,6 +111,10 @@ class Sim {
     this.enemies = [];
     this.projectiles = [];
     this.telegraphs = [];   // предупреждения об ударах по земле { uid, x, y, radius, delay, t, dmg }
+    // Жница (src/core/reaper.js): таймеры, освящённые круги, песочные часы
+    this.reaper = null;
+    this.holy = [];
+    this.hourglasses = [];
     this.pickups = [];
     this.props = [];
     this.uid = 0;
@@ -303,6 +308,7 @@ class Sim {
     this._updateChunks();
     this.director.update(this, dt);
     this._updateEnemies(dt);
+    updateReaper(this, dt);
     this._buildGrid();
     this._separate();
     if (this.coop) this._updateCoffins(dt); // после сетки: индексы врагов прошлого шага устарели
@@ -335,7 +341,7 @@ class Sim {
     if (len > 1) { ix /= len; iy /= len; }
     pl.moving = len > 0.05;
     if (pl.moving) {
-      const sp = pl.stats.speed;
+      const sp = pl.stats.speed * (this.hourglasses.length ? groundMul(this, pl) : 1);
       pl.x += ix * sp * dt;
       pl.y += iy * sp * dt;
       pl.dist += Math.min(1, len) * sp * dt; // пройдено, px (кодекс)
@@ -439,7 +445,7 @@ class Sim {
         uid: 0, type: '', sprite: '', x: 0, y: 0, hp: 0, maxHp: 0, size: 0, facing: 1, elite: false, boss: false,
         hitFlash: 0, moving: false, pose: 'idle', rage: false, alpha: 1,
         vx: 0, vy: 0, kx: 0, ky: 0, speed: 0, damage: 0, xp: 0, st: 0, a: 0, b: 0, t: 0, mark: 0,
-        dead: false, def: null, params: EMPTY, beh: null, resist: 0, transient: false,
+        dead: false, def: null, params: EMPTY, beh: null, resist: 0, transient: false, vuln: false,
         hitAt: new Float64Array(SLOT_COUNT),
       };
     }
@@ -474,6 +480,7 @@ class Sim {
     e.pose = 'idle'; e.alpha = 1; e.rage = false; e.st = 0; e.a = 0; e.b = 0; e.t = this.rng.next() * 6.2832; e.mark = 0;
     e.dead = false;
     e.transient = false;
+    e.vuln = false;         // Жница в освящённом круге (src/core/reaper.js)
     e.def = def;
     e.params = def.params || EMPTY;
     e.resist = def.knockbackResist || 0;
@@ -495,6 +502,7 @@ class Sim {
       e.hp = e.maxHp;
     }
     if (e) {
+      initReaper(this, e);
       this.boss = e;
       this.events.push({ type: 'bossSpawn', boss: id });
     }
@@ -671,7 +679,8 @@ class Sim {
 
   // Урон врагу. (sx, sy) — источник для направления отбрасывания; by — игрок-владелец оружия (крит по его статам).
   damageEnemy(e, dmg, wid, kb, sx, sy, by = this.player, component = '') {
-    if (e.dead || e.def.invulnerable) return; // жница: урон не проходит, чисел урона нет
+    // жница: урон не проходит (чисел урона нет), кроме как в освящённом круге при Библии (e.vuln)
+    if (e.dead || (e.def.invulnerable && !e.vuln)) return;
     if (by.uqDmg) dmg *= this._uniqueDmg(by, e);
     const crit = this.rng.next() < this.critChance(by);
     e.lastBy = by.id;
@@ -732,6 +741,8 @@ class Sim {
         }
       } else {
         this.events.push({ type: 'bossDown', boss: e.type });
+        // Жница: победа, овертайм кончается
+        if (e.def.victory) { this.won = true; this._win(); }
       }
       return;
     }
@@ -773,23 +784,41 @@ class Sim {
     }
   }
 
+  // Касание: первый задевший враг бьёт (если нет i-frames). Жница (oneShot) убивает всегда, поэтому, пока
+  // она на поле, обход идёт дальше первого касания.
   _contactDamage() {
     const en = this.enemies;
+    const reaper = !!this.reaper;
     for (const pl of this.players) {
-      if (pl.dead || pl.iframes > 0) continue;
+      if (pl.dead || (pl.iframes > 0 && !reaper)) continue;
       const cnt = this.grid.query(pl.x, pl.y, pl.radius + this.maxSize, this.qbuf);
+      let hit = false;
       for (let c = 0; c < cnt; c++) {
         const e = en[this.qbuf[c]];
         if (e.dead) continue;
         const dx = e.x - pl.x;
         const dy = e.y - pl.y;
         const r = e.size * 0.8 + pl.radius;
-        if (dx * dx + dy * dy <= r * r) {
+        if (dx * dx + dy * dy > r * r) continue;
+        if (e.def.oneShot) { this._oneShot(pl, e.type); break; }
+        if (!hit && pl.iframes <= 0) {
+          hit = true;
           this.hurtPlayer(e.damage, pl, e.type);
-          break;
+          if (pl.dead || this.state !== 'running') break;
         }
+        if (hit && !reaper) break;
       }
     }
+  }
+
+  // Смерть от касания Жницы: мимо брони, уклонения, i-frames и last_chance.
+  _oneShot(pl, src) {
+    if (pl.dead || this.state !== 'running') return;
+    const amount = Math.max(1, Math.ceil(pl.hp));
+    pl.hp = 0;
+    pl.hurtFlash = PLAYER.hurtFlash;
+    this.events.push({ type: 'playerHurt', amount, player: pl.id, src, oneShot: true });
+    this._down(pl);
   }
 
   // Урон игроку (по умолчанию первому). В коопе смерть превращает игрока в гроб (оживёт по таймеру),
@@ -812,6 +841,11 @@ class Sim {
     if (pl.stats.thorns > 0) this._thorns(pl);
     if (pl.hp <= 0 && this._cheatDeath(pl)) return;
     if (pl.hp > 0) return;
+    this._down(pl);
+  }
+
+  // HP кончилось: в коопе гроб (забег кончается, когда мертвы все), в соло конец забега (после финала — победа).
+  _down(pl) {
     pl.hp = 0;
     if (this.coop) {
       pl.dead = true;
@@ -1642,8 +1676,11 @@ class Sim {
   }
 
   // Сундук с босса номер bossKills (BOSS_DROPS): каждому игроку свой (rollChest + сердца хаоса).
+  // У Жницы номер задан (lootIndex): её сундук всегда T4, сколько бы боссов ни пало до неё.
   _bossLoot(e) {
-    const index = this.bossKills++;
+    const fixed = e.def && e.def.lootIndex;
+    const index = fixed !== undefined ? fixed : this.bossKills;
+    this.bossKills++;
     const tier = bossDrop(index).tier;
     for (const pl of this.players) {
       const entries = rollChest(this.lootRng, tier);

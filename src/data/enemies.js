@@ -58,12 +58,12 @@ export const ENEMIES = {
     elite: elite(),
   },
   bunnygirl: {
-    sprite: 'bunnygirl', behavior: 'chase', hp: 60, speed: 63, damage: 10, xp: 4, size: 8, knockbackResist: 0,
+    sprite: 'bunnygirl', behavior: 'chase', hp: 100, speed: 63, damage: 10, xp: 4, size: 8, knockbackResist: 0,
     params: {},
     elite: elite(),
   },
   lamia: {
-    sprite: 'lamia', behavior: 'chase', hp: 400, speed: 48, damage: 14, xp: 12, size: 11, knockbackResist: 0.6,
+    sprite: 'lamia', behavior: 'chase', hp: 700, speed: 48, damage: 14, xp: 12, size: 11, knockbackResist: 0.6,
     params: {},
     elite: elite(),
   },

@@ -11,11 +11,13 @@ export const ITEM_STATS = [...ITEM_PERCENT_STATS, ...ITEM_FLAT_STATS];
 
 // Ориентир силы: сколько стата даёт вкачанная пассивка (уровень 5). Для старых пассивок
 // это их числа (attack L5 = +0.5 → steel/magic 0.5), для новых статов — оценка.
-// База аффикса на единицу бюджета = ref × ITEM_POWER.scale.
+// Защита (maxHp, armor, regen, dodge) и speed на предметах намеренно слабее пассивки (0.3 от max_hp L5,
+// 0.4 от armor L5...): боты с полной сумкой T2 выживали почти всегда, проверка ботами —
+// docs/BALANCE_AUDIT.md, раздел 11. База аффикса на единицу бюджета = ref × ITEM_POWER.scale.
 export const STAT_REF = {
-  maxHp: 1.0, steel: 0.5, magic: 0.5, speed: 0.4, critDmg: 0.75, area: 0.5, duration: 0.5,
+  maxHp: 0.3, steel: 0.5, magic: 0.5, speed: 0.25, critDmg: 0.75, area: 0.5, duration: 0.5,
   pickup: 1.25, haste: 0.4, luck: 0.5, xpGain: 0.5,
-  crit: 0.25, dodge: 0.15, armor: 5, regen: 1.0, thorns: 20,
+  crit: 0.25, dodge: 0.08, armor: 2, regen: 0.35, thorns: 20,
 };
 
 export const ITEM_POWER = {

@@ -244,7 +244,7 @@ test('sim: final boss death starts overtime, death in overtime is a victory', ()
   assert.ok(sim.events.some((e) => e.type === 'victory'));
 });
 
-test('sim: the reaper arrives in overtime, is invulnerable and faster than the heroine', () => {
+test('sim: the reaper arrives in overtime, is invulnerable without the Bible and slower than the heroine', () => {
   const sim = createSim({ seed: 16 });
   const boss = sim.spawnBoss('dryad_queen');
   sim.damageEnemy(boss, 1e9, 'blade_arc', 0, 0, 0);
@@ -259,7 +259,7 @@ test('sim: the reaper arrives in overtime, is invulnerable and faster than the h
   const reaper = sim.enemies.find((e) => e.type === 'reaper');
   assert.ok(reaper && reaper.boss, 'reaper spawned');
   assert.ok(warned, 'warning before the reaper');
-  assert.ok(reaper.speed > sim.player.stats.speed);
+  assert.ok(reaper.speed < sim.player.stats.speed);
   const hp = reaper.hp;
   sim.damageEnemy(reaper, 1e9, 'blade_arc', 0, 0, 0);
   assert.equal(reaper.hp, hp);

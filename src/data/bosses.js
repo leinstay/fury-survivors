@@ -22,7 +22,9 @@
 //   rage: { hpFraction, cooldownMul, speedMul? },  // ниже этой доли HP кулдауны атак умножаются на cooldownMul
 //   final: true,         // убийство этого босса завершает забег победой; у остальных падает только дроп
 //   drop: 'chest',
-//   invulnerable: true,  // урон не проходит, полосы HP нет (жница овертайма, stage.overtime.reaper); attacks могут быть пустыми
+//   invulnerable: true,  // урон не проходит, полосы HP нет (жница овертайма, stage.overtime.reaper); attacks могут быть пустыми.
+//                        // У Жницы с holy урон проходит, пока она в освящённом круге (Библия, src/core/reaper.js)
+//   oneShot, lootIndex, victory, holy, hourglass, summon, teleport — только Жница, см. её запись
 // }
 // Урон босса растёт с этапом так же, как у врагов (stage.scaling.damagePerMinute), поэтому damage задан
 // для минуты появления, делённый на этот множитель (касание ~20 при появлении, как у боссов VS).
@@ -52,7 +54,7 @@ export const BOSSES = {
     drop: 'chest',
   },
   harpy_queen: {
-    sprite: 'harpy_queen', behavior: 'boss', hp: 22000, hpPerLevel: 440, speed: 62, damage: 15, xp: 0, size: 36, knockbackResist: 1,
+    sprite: 'harpy_queen', behavior: 'boss', hp: 22000, hpPerLevel: 400, speed: 62, damage: 15, xp: 0, size: 36, knockbackResist: 1,
     attacks: [
       { type: 'dash', cooldown: 4.5, windup: 0.55, speed: 340, time: 0.55 },
       { type: 'ring', cooldown: 7, count: 14, volleys: 5, interval: 0.28, spin: 0.22, speed: 100, damage: 15, life: 4.5 },
@@ -62,22 +64,52 @@ export const BOSSES = {
     drop: 'chest',
   },
   dryad_queen: {
-    sprite: 'dryad_queen', behavior: 'boss', hp: 60000, hpPerLevel: 900, speed: 34, damage: 14, xp: 0, size: 38, knockbackResist: 1,
+    sprite: 'dryad_queen', behavior: 'boss', hp: 60000, hpPerLevel: 1200, speed: 34, damage: 18, xp: 0, size: 38, knockbackResist: 1,
     attacks: [
       { type: 'dash', cooldown: 5, windup: 0.8, speed: 260, time: 0.6 },
-      { type: 'summon', cooldown: 8, enemy: 'catgirl', count: 6, radius: 90 },
-      { type: 'slam', cooldown: 6.5, count: 4, radius: 36, delay: 0.9, interval: 0.55, damage: 34 },
-      { type: 'ring', cooldown: 7, count: 12, volleys: 3, interval: 0.6, spin: 0.26, speed: 90, damage: 18, life: 4.5, rageOnly: true },
+      { type: 'summon', cooldown: 6, enemy: 'catgirl', count: 10, radius: 90 },
+      { type: 'summon', cooldown: 10, enemy: 'lamia', count: 3, radius: 110 },
+      { type: 'slam', cooldown: 6.5, count: 4, radius: 36, delay: 0.9, interval: 0.55, damage: 40 },
+      { type: 'ring', cooldown: 8, count: 12, volleys: 3, interval: 0.6, spin: 0.26, speed: 90, damage: 18, life: 4.5 },
     ],
     rage: { hpFraction: 0.5, cooldownMul: 0.7, speedMul: 1.25 },
     final: true,
     drop: 'chest',
   },
-  // Банши-жница: Смерть овертайма (как Death в VS), картинкой ростом с босса (кадр 256). Приходит через stage.overtime.reaperAt секунд овертайма,
-  // неуязвима, летит быстрее героини (90) и не отстаёт, коса снимает damage за касание (растёт с этапом и овертаймом:
-  // на 20:00 это ~100 HP). Уйти нельзя, можно только протянуть секунды ради очков.
+  // Банши-жница: Смерть овертайма (как Death в VS), картинкой ростом с босса (кадр 256). Приходит через
+  // stage.overtime.reaperAt секунд овертайма (docs/META.md, 4). Логика: src/core/reaper.js.
+  // Касание убивает всегда (oneShot: мимо брони, уклонения, i-frames и last_chance). Медленнее героини (95), от неё
+  // можно уйти. Без Библии неуязвима (invulnerable). С Библией у любого игрока раз в holy.every с у игроков
+  // появляется освящённый круг, и только пока Жница в нём, она получает урон; HP тогда holy.hpPerLevel × уровень.
+  // Песочные часы: раз в hourglass.every с падают на пути игроков; в радиусе игроки ходят × slow, она нет;
+  // наступить на центр (breakRadius) — разбить. Фазы (только с Библией): summon на 50% HP один раз,
+  // teleport ниже 25% HP — метка за спиной ближайшего игрока, через telegraph с она там; повтор раз в cooldown с.
+  // Смерть: сундук лута тира BOSS_DROPS[lootIndex] (T4) и победа (victory: овертайм кончается).
+  //
+  // HP: сильная сборка T3 к 20:00 ~1500-2500 DPS по одной цели; круг живёт 15 из 20 с, Жница в нём примерно
+  // половину времени при хорошем кайтинге — 60-90 с боя дают ~35-45 с урона. Уровень к 20:00 ~60-70:
+  // 1300 × 65 ≈ 85k.
   reaper: {
-    sprite: 'reaper', behavior: 'chase', hp: 1, speed: 112, damage: 18, xp: 0, size: 45, knockbackResist: 1,
-    attacks: [], invulnerable: true,
+    sprite: 'reaper', behavior: 'chase', hp: 1, speed: 70, damage: 18, xp: 0, size: 45, knockbackResist: 1,
+    attacks: [], invulnerable: true, oneShot: true, lootIndex: 3, victory: true,
+    holy: {
+      hpPerLevel: 1300,      // HP Жницы при Библии: × уровень игрока при появлении (кооп × COOP.bossHpMul)
+      first: 4,              // с после появления до первого круга
+      every: 20, life: 15,   // с: раз в every новый круг, живёт life (вместе с проявлением)
+      warn: 1.5,             // с проявления: круг виден, но ещё не действует
+      radius: 56,            // px мира
+      distance: 80, jitter: 40, // центр: от середины между игроками на distance ± jitter px
+      minFromReaper: 120,    // px: не ближе к Жнице (не под ней)
+      tries: 8,              // попыток найти место; иначе круг по другую сторону от игроков
+    },
+    hourglass: {
+      first: 8, every: 11, life: 25, max: 3, // с; max — сколько часов лежит одновременно
+      radius: 60, slow: 0.5,  // px; скорость игроков в радиусе × slow
+      breakRadius: 9,         // px от центра до игрока: наступил — разбил
+      ahead: 110, jitter: 50, // px вперёд по ходу игрока ± разброс
+      minFromReaper: 170, tries: 8,
+    },
+    summon: { hpFraction: 0.5, enemy: 'ghost', count: 14, radius: 110 },
+    teleport: { hpFraction: 0.25, telegraph: 1, distance: 60, cooldown: 7, fade: 0.65 },
   },
 };

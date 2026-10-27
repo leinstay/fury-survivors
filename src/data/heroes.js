@@ -34,7 +34,7 @@ export const HEROES = {
     menu: { art: 'mage_menu', side: 'left' },
     startWeapon: 'storm_chain',
     stats: {
-      maxHp: 80, steel: 0.85, magic: 1.25, speed: 95, crit: 0.15, critDmg: 0, area: 1, duration: 1,
+      maxHp: 80, steel: 0.85, magic: 1.4, speed: 95, crit: 0.15, critDmg: 0, area: 1, duration: 1,
       pickup: 1, haste: 1, luck: 1, armor: 0, regen: 0.25, xpGain: 1, dodge: 0, thorns: 0,
     },
   },

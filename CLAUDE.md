@@ -1,7 +1,7 @@
 # Fury Survivors: карта проекта
 
 Игра в жанре Vampire Survivors / HoloCure. JavaScript (без TypeScript и без сборки), Phaser 3.90, деплой на GitHub Pages.
-Видение: `VISION.md`. Как добавлять контент: `docs/CONTENT.md`. Ассеты и пайплайн картинок: `docs/ASSETS.md`.
+Видение: `VISION.md`. Мета (предметы, крафт, ачивки, ребаланс, Жница): `docs/META.md`. Как добавлять контент: `docs/CONTENT.md`. Ассеты и пайплайн картинок: `docs/ASSETS.md`.
 
 ## Где что лежит
 
@@ -20,10 +20,13 @@ src/
     leaderboard.js         таблица: лимиты ника, пара ников, кулдаун
     codex.js               кодекс: история (maxRuns), px на метр, радиус «увидел», минимум для quit
     telemetry.js           телеметрия для баланса: коллекция fury_runs, шаг срезов, лимиты
+    stats.js               статы героя: процентные (increased/more) и плоские, капы
+    items.js               предметы: типы и формы, аффиксы, редкости, таблицы сундуков, уникалки, крафт, сумка, стеш
+    achievements.js        ачивки: условия, награды (валюта, столбцы и ряд сумки), хранение
     heroes.js              герои: статы, стартовое оружие, спрайт (heroine мечница, mage магесса); выбор в меню и лобби
-    weapons.js             оружие: behavior + уровни (урон, кулдаун, количество, area...)
+    weapons.js             оружие: behavior, dmgType (steel/magic), 5 уровней (урон, кулдаун, количество, area...)
     passives.js            пассивки и статы по уровням
-    combos.js              супероружие: { from: [a, b], result }
+    combos.js              эволюции: { from: [оружие, пассивка], result }, 16 штук, коллабов нет
     enemies.js             враги: behavior, hp, speed, damage, xp, size, sprite, elite-варианты
     bosses.js              боссы
     pickups.js             опыт, еда, магнит, монеты, сундук
@@ -31,10 +34,16 @@ src/
   core/                    ЧИСТАЯ ЛОГИКА БЕЗ PHASER (запускается в Node для тестов)
     sim.js                 шаг симуляции: игрок, враги, снаряды, урон, опыт, уровни
     grid.js                пространственная сетка для коллизий
-    stats.js               подсчёт итоговых статов из базовых + пассивок
+    stats.js               итоговые статы: база × (1 + Σ increased) × Π more, плоские суммой, капы, statReport
     upgrades.js            генерация карточек улучшений, reroll/skip/banish
     director.js            спавн волн по таймлайну этапа
     rng.js                 сидируемый RNG
+    items.js               предметы: генерация, имена, сумка (поворот, открытая зона), бонусы сумки, стеш, крафт
+    loadout.js             сумка в забеге: проверка, статы с сумкой, правила уникалок, слепок для телеметрии
+    inventory.js           перенос сумка/стеш, пресеты, сортировка, взятие лута после забега
+    achievements.js        проверка ачивок по итогу забега и по стешу/крафту
+    run-summary.js         трекер итога забега для ачивок (как трекер кодекса)
+    reaper.js              Жница с Библией: освящённые круги, песочные часы, фазы
     lockstep.js            сетевой кооп: ввод с задержкой по тикам, команды экранов, хеш состояния
     actions.js             действия экранов (карточка, сундук, пауза) одним интерфейсом для соло и коопа
     nick.js                проверка ника и пары ников
@@ -43,17 +52,18 @@ src/
     codex.js               кодекс: трекер забега (события, кадры), mergeRun, normalizeCodex
     telemetry.js           телеметрия забега: срезы раз в минуту (уровень, урон и замах по оружию), выборы карточек (sim.pickLog), уровни, боссы, причина смерти
   behaviors/
-    weapons/<type>.js      melee_arc, projectile, orbit, aura, boomerang, chain, area_drop, combo
+    weapons/<type>.js      melee_arc, projectile, orbit, aura, boomerang, chain, area_drop, beam, summon
+    status.js              статусы врагов (замедление)
     enemies/<type>.js      chase, dash, ranged, swarm, phase, boss, drift (стена и пролёт: прямой курс, исчезает за краем)
-  render/                  Phaser-слой: синхронизирует спрайты с sim, анимация, эффекты; decor.js декор с логикой расстановки, roads.js песок дорог по чанкам
+  render/                  Phaser-слой: синхронизирует спрайты с sim, анимация, эффекты; decor.js декор с логикой расстановки, roads.js песок дорог по чанкам; reaper.js круги и часы Жницы
     anim.js                процедурная ходьба/покачивание/наклон/вспышка/смерть
     fx.js                  частицы, числа урона, тряска, хитстоп
-  scenes/                  Boot, Menu (выбор героя, вид Co-op), Lobby (код, герои, сложность, старт), Game, LevelUp, Chest, Pause, GameOver, Victory, Leaderboard, Codex (Armory, Bestiary, Bosses, Chronicle; из меню и паузы)
-  services/                leaderboard.js (таблицы соло и коопа, ip), net.js (WebRTC + сигналинг через Firestore rooms, логи `[fury-net]` в консоль), codex.js (кодекс в localStorage + копия в Firestore fury_codex/{id}, восстановление по id), telemetry.js (забег в Firestore fury_runs), firebase.js, nick-store.js
-  ui/                      фокус-навигация (focus.js) (клава/мышь/геймпад), HUD (счёт, DPS, миникарта), экранный джойстик; settings.js настройки (свечение снарядов, свечение своего героя, миникарта, DPS, последний герой и сложность); hero-picker.js карточки выбора героя (сетка от 3 героев); dom-input.js текстовое поле (ник, код) поверх холста; clipboard.js копирование в буфер (код лобби по тапу); text-align.js центрует текст по пикселям; fullscreen.js полный экран на телефоне (кнопка Play и настройка, не любое касание)
+  scenes/                  Boot, Menu (выбор героя, вид Co-op), Lobby (код, герои, сложность, старт), Game, LevelUp, Chest, Pause, GameOver, Victory, Leaderboard, Codex (Armory, Bestiary, Bosses, Chronicle; из меню и паузы), Inventory (сумка, стеш, пресеты, крафт), Achievements
+  services/                leaderboard.js (таблицы соло и коопа, ip), net.js (WebRTC + сигналинг через Firestore rooms, логи `[fury-net]` в консоль), codex.js (кодекс в localStorage + копия в Firestore fury_codex/{id}, восстановление по id), telemetry.js (забег в Firestore fury_runs), inventory.js (стеш и сумка: localStorage + fury_inventory), achievements.js (localStorage + fury_achievements), firebase.js, nick-store.js
+  ui/                      фокус-навигация (focus.js) (клава/мышь/геймпад), HUD (счёт, DPS, миникарта), экранный джойстик; settings.js настройки (свечение снарядов, свечение своего героя, миникарта, DPS, последний герой и сложность); hero-picker.js карточки выбора героя (сетка от 3 героев); dom-input.js текстовое поле (ник, код) поверх холста; clipboard.js копирование в буфер (код лобби по тапу); text-align.js центрует текст по пикселям; fullscreen.js полный экран на телефоне (кнопка Play и настройка, не любое касание); items.js картинка предмета, подсказка, сетка сумки, панель статов; loot.js экран лута после забега; toast.js плашки ачивок
   audio/sfx.js             воспроизведение звуков, рандом тона, лимит одновременных
   debug.js                 window.__game.debug(), запись ошибок в localStorage
-  i18n/                    en.js + index.js (t('key')). Все строки UI только через t()
+  i18n/                    en.js, en-items.js, en-achievements.js + index.js (t('key')). Все строки UI только через t()
 assets/
   sprites/manifest.js      ключ спрайта -> файл, размер кадра, точка опоры; персонажи кадр 128 (CHAR), боссы 256 (BOSS), число кадров по ширине PNG (Boot.js)
   sprites/*.png            спрайты (заглушки и настоящие с тем же именем и кадром)
@@ -85,6 +95,7 @@ tools/                     локальные скрипты Node, в игру �
   firestore-cleanup.mjs    чистка Firestore (Spark без TTL): отчёт по месту, --apply архивирует старые забеги и удаляет их и брошенные лобби (docs/FIRESTORE.md)
   telemetry/               export (выгрузка fury_runs), audit (сессии, остаток сборки по минутам), holdout, weapons, movement, food, audit-chart
   simulation/audit-bots.mjs когорта ботов с телеметрией той же схемы; результаты аудита: docs/BALANCE_AUDIT.md
+  simulation/bags.mjs, targets.mjs  генератор сумки T2 для ботов; доли убийств боссов, окно смертей, урон по оружию (цели META 1.1)
   gen-ledger.json          учёт трат на генерацию
 tests/
   unit/                    node --test: grid, stats, upgrades, data-валидация
