@@ -233,4 +233,4 @@ function main() {
   if (out) writeFileSync(out, JSON.stringify(json, null, 1));
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) main();
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();

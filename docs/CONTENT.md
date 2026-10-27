@@ -10,9 +10,10 @@
 
 ## Оружие с существующим behavior
 
-Behavior: `melee_arc`, `projectile`, `orbit`, `aura`, `boomerang`, `chain`, `area_drop`, `beam`, `summon`, `cloud`, `slam`, `impale`, `ice_orb`. Смысл полей уровня по behavior расписан в шапке `src/data/weapons.js`. Кратко о последних переделках:
+Behavior: `slash`, `melee_arc`, `projectile`, `orbit`, `aura`, `boomerang`, `chain`, `area_drop`, `beam`, `summon`, `cloud`, `slam`, `impale`, `ice_orb`. Смысл полей уровня по behavior расписан в шапке `src/data/weapons.js`. Кратко о последних переделках:
 
-- `slam` (Hammer, Titan Maul): удар по земле кругом радиусом `area`, а не конус. Серия из `amount` ударов: первый под героем со сдвигом к ближайшей цели (`WEAPON_BEHAVIOR.slam.offset` × `area`), каждый следующий дальше по той же линии (`step`), с паузой `gap`. Удар бьёт один раз всех в круге и отбрасывает от центра (`knockback`). На месте удара трещина (радиус `area` × `crack`) на `duration` с: враги в ней ходят со скоростью × `slow`, ещё `slowTime` с после выхода. Сама трещина не бьёт, гаснет к концу (`fade`). Картинки: зоны `boom` и `crack` в `src/render/zones.js`, цвет `tint` оружия.
+- `slash` (Blade Arc, Crimson Arc): росчерк клинка через самую плотную группу врагов, не конус. Раз в `cooldown` серия из `amount` слэшей с паузой `WEAPON_BEHAVIOR.slash.gap`. Перед каждым: среди врагов в `searchRange` от героя (не больше `candidates` кандидатов) центр с наибольшим числом врагов в круге `clusterR`; слэш идёт через центр масс группы вдоль её главной оси (вытянутая толпа режется вдоль), круглая группа (`elongation`) режется поперёк направления от героя. Следующие слэши серии берут другие группы (дальше `apart` × `clusterR`), если их нет, крест-накрест через ту же. Врагов нет: через ближайший объект, иначе вдоль движения. Отрезок длиной `area` и шириной `width` (оба × стат `area`) проводится от начала к концу за `sweep` с и бьёт каждого задетого один раз, отбрасывая от линии; `status` (bleeding) как у прочих ударов. Без RNG. Картинка: зона `slash` в `src/render/zones.js` (шлейф, середина, белое ядро, сложение цвета, над персонажами), цвет `tint` оружия. Старый конус `melee_arc` остаётся в реестре, но оружие на нём сейчас нет.
+- `slam` (Hammer, Titan Maul): удар по земле кругом радиусом `area`, а не конус. Серия из `amount` ударов: первый под героем со сдвигом к ближайшей цели (`WEAPON_BEHAVIOR.slam.offset` × `area`), каждый следующий в следующем направлении по кругу вокруг героя (той же дистанции), с паузой `gap`: молот не бьёт дальше `area` × (`offset` + 1). Удар бьёт один раз всех в круге и отбрасывает от центра (`knockback`). На месте удара трещина (радиус `area` × `crack`) на `duration` с: враги в ней ходят со скоростью × `slow`, ещё `slowTime` с после выхода. Сама трещина не бьёт, гаснет к концу (`fade`). Картинки: зоны `boom` и `crack` в `src/render/zones.js`, цвет `tint` оружия.
 - `impale` (Spear, Dragon Lance): одно копьё (`amount` 1) в ближайшую цель, пробивает `1 + pierce` врагов и каждого пригвождает на `pin` с (замедление до 0 через `applySlow`, боссы вполсилы). Потом втыкается в землю и торчит `WEAPON_BEHAVIOR.impale.stuck` с. С `burst` воткнувшееся копьё взрывается кругом радиусом `burst` (× стат `area`): урон `damage` и пригвождение всех в круге. Луч (`beam`) от копья отличается: он случайный, бьёт всех на линии и слабо.
 - `ice_orb` (Frost Orb, Blizzard): крупный медленный шар (радиус `area`, `speed`, живёт `duration` с) в ближайшую цель, пробивает всех, бьёт каждого внутри раз в `tick` на `damage` и замораживает (скорость × `slow` ещё `slowTime` с). С `turn` (рад/с) курс закручивается спиралью, и `amount` шаров выходят во все стороны поровну. Пока что заморозка идёт через `applySlow`; потом её переведут на статус `chill`.
 
@@ -29,7 +30,7 @@ Behavior: `melee_arc`, `projectile`, `orbit`, `aura`, `boomerang`, `chain`, `are
 |---|---|---|
 | `poison` | каждый удар — свой стак со своим таймером, до `maxStacks` | урон |
 | `burning` | один, остаётся сильнейший, таймер обновляется | урон |
-| `bleeding` | как `burning`; только у `melee_arc` (проверяет тест) | урон |
+| `bleeding` | как `burning`; только у клинков `melee_arc` и `slash` (проверяет тест) | урон |
 | `chill` | сильнее и дольше из действующего и нового | замедление без урона (`slow`, `duration`) |
 
 Урон ДоТа = `share` × урон удара (после `attack`/`magic`, до крита), разложенный на `duration` тиками `DOT.tick`. Тики не критуют и идут в статистику оружия, которое наложило статус. Шанс `chance < 1` тянет RNG сима. В кодексе строка «… chance» по уровням (`codex.p.status_<type>` в i18n).
@@ -132,7 +133,7 @@ Behavior: `chase`, `dash`, `ranged`, `swarm`, `phase` (`boss` только дл�
    - `hpPerLevel`: если задано, HP босса = `hpPerLevel × уровень игрока` при появлении (правило Vampire Survivors), `hp` не используется.
    - Честность (общие числа `BOSS` в `src/data/bosses.js`, работают для всех боссов): перед веером и кольцом замах `castDelay`; веер и кольцо не начинаются, пока героиня ближе `minRange`; рывок обрывается на `dashStop` px от героини; после рывка и телепорта босс стоит `recover` с и не атакует.
    - `rage`: когда `hp <= maxHp * hpFraction`, один раз шлётся `bossRage`, кулдауны умножаются на `cooldownMul`, скорость ходьбы на необязательный `speedMul`.
-   - `final: true`: убийство этого босса даёт победу. У остальных боссов падает только `drop` (сундук), шлётся `bossDown`, забег идёт дальше.
+   - `final: true`: убийство этого босса даёт победу. У остальных боссов падает только `drop` (сундук), шлётся `bossDown`, забег идёт дальше. Каждый босс ещё даёт сундук шмоток (лут, `BOSS_DROPS` в `src/data/items.js`): экран лута открывается сразу (сцена `Loot`, docs/META.md 2.1).
    - Другой тип атаки: ветка в `src/behaviors/enemies/boss.js` и добавь тип в проверку теста `data: bosses use known behavior, attacks and summons`; тест на механику добавь в `tests/unit/boss.test.js`.
 2. manifest: 3 кадра: 0 стойка, 1 шаг, 2 каст/замах (`anim.js`: у босса позы `windup` и `cast` показывают кадр 2). Образец `dryad_queen` (128×128, обычная плотность).
 3. i18n: `boss.<id>.name`.
@@ -199,13 +200,13 @@ Behavior: `chase`, `dash`, `ranged`, `swarm`, `phase` (`boss` только дл�
 (как в Vampire Survivors), 1 к 1: `{ from: ['blade_arc', 'attack'], result: 'crimson_arc' }` — оружие на `maxLevel`
 и своя пассивка любого уровня; пассивка остаётся.
 
-Результат встаёт в слот оружия. Выпадает из сундука элиты или босса (сундук шлёт item с `evolved: true` и `from`). Порядок в `COMBOS` = приоритет, если готовы сразу несколько.
+Результат встаёт в слот оружия. Даёт его только сундук скиллов (с элит, `skillChest` в `src/core/upgrades.js`, docs/META.md 1.4): вместо +1 уровня оружию на максимуме, если его пассивка взята; карточка с `evolved: true`, `from` и `prev`. Готовы сразу несколько — выбирается случайная, выбора в сундуке нет. На карточках уровня эволюций нет.
 
 1. `src/data/weapons.js`, запись с `evolved: true`, `maxLevel: 1`, одним уровнем, тем же `dmgType`, что у оружия. Одно поведение с усиленными числами и необязательным цветом снарядов:
    ```js
    crimson_arc: {
-     icon: 'icon_crimson_arc', sprite: 'proj_blade_arc', behavior: 'melee_arc', dmgType: 'attack', maxLevel: 1, evolved: true, tint: 0xff5050,
-     levels: [ { damage: 60, cooldown: 0.8, amount: 4, area: 96, knockback: 150 } ],
+     icon: 'icon_crimson_arc', sprite: 'proj_blade_arc', behavior: 'slash', dmgType: 'attack', maxLevel: 1, evolved: true, tint: 0xff5050,
+     levels: [ { damage: 58, cooldown: 0.7, amount: 4, area: 200, width: 34, sweep: 0.1, knockback: 150 } ],
    },
    ```
 2. Запись в `src/data/combos.js`.

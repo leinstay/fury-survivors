@@ -28,7 +28,7 @@ import { getCodex, fetchCodex, replaceCodex } from '../services/codex.js';
 import { UNIQUES } from '../data/items.js';
 import { getInventory } from '../services/inventory.js';
 import { fitSections } from '../ui/grid-fit.js';
-import { BUTTON } from '../ui/menu-layout.js';
+import { BUTTON, PAGE_BOTTOM, backRect, screenTitle } from '../ui/menu-layout.js';
 import { weaponsForStat } from '../core/card-preview.js';
 
 const TABS = ['armory', 'characters', 'bestiary', 'bosses', 'chronicle'];
@@ -40,9 +40,11 @@ const PAD = 8;
 const TAB = { y: 40, h: BUTTON.tab.h,
   w: (GAME_WIDTH - 2 * M - (TABS.length - 1) * GAP) / TABS.length };
 const TOP = TAB.y + TAB.h / 2 + GAP;
-const BAR = BUTTON.back; // Back (и Restore справа) — общий размер Back (ui/menu-layout.js)
-const BOTTOM = GAME_HEIGHT - M - BAR.h - GAP;
-const BAR_Y = BOTTOM + GAP + BAR.h / 2;
+const BAR = BUTTON.back; // Back (и Restore справа) — общий Back страниц (ui/menu-layout.js)
+// Низ панелей всех вкладок — общая линия страниц над Back (PAGE_BOTTOM), подписи низа панели на FOOT_Y.
+const BOTTOM = PAGE_BOTTOM;
+const BAR_Y = backRect().y;
+const FOOT_Y = BOTTOM - PAD;
 const MID_Y = (TOP + BOTTOM) / 2;
 const AREA_H = BOTTOM - TOP;
 const LEFT = { x: M, w: 300 };
@@ -51,18 +53,20 @@ const RIGHT = { x: M + 300 + GAP, w: GAME_WIDTH - 2 * M - 300 - GAP };
 const TOTALS_W = 240;
 // Шаг строк в блоках «Stats» и «Your record» справа: 8 статов героя влезают до низа панели.
 const STAT_LINE = 12;
-// Armory: заголовок раздела с отступом до клеток, зазор между разделами, строка «Discovered» внизу.
-const ARMORY_HEAD = 13;
-const ARMORY_SEC_GAP = 5;
+// Armory: заголовок раздела с отступом до клеток, зазор клеток (между рядами тот же, ряды не склеиваются),
+// зазор между разделами, строка «Discovered» внизу. При 300 px панели: клетка 18, 16 = 8 + 8, уникалки 13 в ряд.
+const ARMORY_HEAD = 15;
+const ARMORY_GAP = 4;
+const ARMORY_SEC_GAP = 10;
 const ARMORY_FOOT = 12;
 const DARK = 0x000000;
 const MOVING = { moving: true };
 // Параметры оружия в таблице (порядок строк); показываются только те, что есть у оружия.
 // pierce: строка есть и у pierceAll (копьё), там «All».
-const PARAMS = ['damage', 'cooldown', 'amount', 'area', 'speed', 'duration', 'tick', 'width', 'delay', 'trigger',
+const PARAMS = ['damage', 'cooldown', 'amount', 'area', 'speed', 'duration', 'tick', 'width', 'sweep', 'delay', 'trigger',
   'pierce', 'jumps', 'range', 'slow', 'slowTime', 'pin', 'burst', 'turn', 'fireDamage', 'knockback', 'size',
   'hitRadius'];
-const SEC_PARAMS = new Set(['cooldown', 'duration', 'tick', 'delay', 'slowTime', 'pin']);
+const SEC_PARAMS = new Set(['cooldown', 'duration', 'tick', 'sweep', 'delay', 'slowTime', 'pin']);
 // Масштабы показа HD-спрайтов: дроби, чтобы пиксели ложились ровно.
 const SCALES = [1, 1 / 2, 1 / 3, 1 / 4, 1 / 5, 1 / 6, 1 / 8];
 const STATUS_COLOR = { victory: '#ffd84a', dead: '#ff8080', disconnected: '#ffb060', quit: COLORS.dim };
@@ -317,7 +321,7 @@ export class CodexScene extends Phaser.Scene {
     let entry = null;
     this.objs = this.capture(() => {
       const cx = GAME_WIDTH / 2;
-      this.add.text(cx, 18, t('codex.title'), textStyle(20, COLORS.accent, { stroke: '#000000', strokeThickness: 4 })).setOrigin(0.5);
+      screenTitle(this, t('codex.title'));
       TABS.forEach((id, i) => {
         this.button(`tab:${id}`, {
           x: M + TAB.w / 2 + i * (TAB.w + GAP), y: TAB.y, w: TAB.w, h: TAB.h, size: 11, label: t(`codex.tab.${id}`),
@@ -325,7 +329,7 @@ export class CodexScene extends Phaser.Scene {
         });
       });
       // Back по левому краю панелей
-      this.button('back', { x: M + BAR.w / 2, y: BAR_Y, w: BAR.w, h: BAR.h, size: 12, label: t('codex.back'), onSelect: () => this.back() });
+      this.button('back', { ...backRect(), size: 12, label: t('codex.back'), onSelect: () => this.back() });
       if (this.tab === 'armory') entry = this.buildArmory();
       else if (this.tab === 'characters') entry = this.buildHeroes();
       else if (this.tab === 'bestiary') entry = this.buildFoes('enemy');
@@ -412,7 +416,8 @@ export class CodexScene extends Phaser.Scene {
     // ряды раздела поровну (16 = 8 + 8), заголовок над рядами с отступом (ui/grid-fit.js)
     const inset = 6;
     const g = fitSections(secs.map((s) => s.items.length), LEFT.w - 2 * inset,
-        AREA_H - 2 * inset - ARMORY_FOOT, { head: ARMORY_HEAD, secGap: ARMORY_SEC_GAP });
+        FOOT_Y - ARMORY_FOOT - TOP - inset,
+        { head: ARMORY_HEAD, gap: ARMORY_GAP, secGap: ARMORY_SEC_GAP });
     const { size, step } = g;
     const pad = Math.max(inset, Math.floor((LEFT.w - g.width) / 2));
     const x0 = LEFT.x + pad + size / 2;
@@ -439,7 +444,7 @@ export class CodexScene extends Phaser.Scene {
       });
       y += g.rows[si] * step - (g.rows[si] ? step - size : 0) + ARMORY_SEC_GAP;
     });
-    this.add.text(LEFT.x + LEFT.w - pad, BOTTOM - inset, t('codex.found', { n: found, m: total }),
+    this.add.text(LEFT.x + LEFT.w - pad, FOOT_Y, t('codex.found', { n: found, m: total }),
         textStyle(9, COLORS.dim)).setOrigin(1, 1);
     return first;
   }
@@ -523,7 +528,7 @@ export class CodexScene extends Phaser.Scene {
     const heads = cols.length === 1 ? [t('codex.col.value')] : cols.map((_, i) => t('codex.col.lv', { n: i + 1 }));
     const label = (k) => {
       if (k === 'area') {
-        return ({ melee_arc: 'reach', orbit: 'orbit_radius', chain: 'jump_radius',
+        return ({ melee_arc: 'reach', slash: 'length', orbit: 'orbit_radius', chain: 'jump_radius',
           area_drop: 'blast_radius', aura: 'radius', cloud: 'radius', boomerang: 'reach',
           beam: 'length', slam: 'blast_radius', ice_orb: 'orb_radius' })[def.behavior] || k;
       }
@@ -610,12 +615,12 @@ export class CodexScene extends Phaser.Scene {
             textStyle(8, e.seen ? '#ffffff' : COLORS.dim)).setOrigin(0.5, 1);
       });
     });
-    this.add.text(LEFT.x + LEFT.w - pad, BOTTOM - pad, t('codex.found', { n: found, m: ids.length }),
+    this.add.text(LEFT.x + LEFT.w - pad, FOOT_Y, t('codex.found', { n: found, m: ids.length }),
         textStyle(9, COLORS.dim)).setOrigin(1, 1);
     // элитки у всех монстров одинаковые: одна строка на вкладку
     const el = !boss && Object.values(ENEMIES).find((d) => d.elite);
     if (el) {
-      this.add.text(LEFT.x + pad, BOTTOM - pad, t('codex.elite', { hp: el.elite.hpMul, dmg: el.elite.damageMul }),
+      this.add.text(LEFT.x + pad, FOOT_Y, t('codex.elite', { hp: el.elite.hpMul, dmg: el.elite.damageMul }),
           textStyle(9, '#ff9ab0')).setOrigin(0, 1);
     }
     return first;
@@ -648,19 +653,14 @@ export class CodexScene extends Phaser.Scene {
       y += 13;
       // Жница (oneShot): касание — Death Touch, убивает всегда
       const touch = { type: def.oneShot ? 'death_touch' : 'touch' };
-      // codexAttacks (Жница): свой список с описанием каждой строки под именем
-      const atks = def.codexAttacks ? def.codexAttacks.map((type) => ({ type, desc: true })) :
+      // codexAttacks (Жница): свой список способностей вместо attacks/касания
+      const atks = def.codexAttacks ? def.codexAttacks.map((type) => ({ type })) :
           def.attacks && def.attacks.length ? def.attacks : [touch];
       for (const a of atks) {
-        let name = t(`codex.atk.${a.type}`,
-            a.enemy ? { enemy: displayName('enemy', a.enemy), n: a.count ?? 1 } : null);
+        let name = t(`codex.atk.${a.type}`, a.enemy ? { enemies: t(`enemy.${a.enemy}.plural`) } : null);
         if (a.rageOnly) name = t('codex.atk.rage_only', { name });
         this.add.text(tx + 4, y, `- ${name}`, textStyle(9)).setOrigin(0, 0);
         y += 11;
-        if (!a.desc) continue;
-        const ad = this.add.text(tx + 12, y, t(`codex.atk.${a.type}.desc`),
-            textStyle(8, COLORS.dim, { wordWrap: { width: tw - 12 } })).setOrigin(0, 0);
-        y += ad.height + 2;
       }
     }
 

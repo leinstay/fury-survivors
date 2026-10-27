@@ -4,6 +4,7 @@
 import { RARITIES, ITEM_TYPES, STASH, BAG } from '../data/items.js';
 import {
   place, remove, canPlace, stashAdd, stashRemove, stashFull, addCurrency, createBag,
+  disassembleValue,
 } from './items.js';
 
 const RARITY_RANK = Object.fromEntries(RARITIES.map((r, i) => [r, i]));
@@ -129,6 +130,18 @@ export function takeLoot(inv, item, evictUid = null) {
   return {
     ok: true, inv: withSeen(next, item), evicted: r.evicted, crystals: r.crystals, reason: null,
   };
+}
+
+/**
+ * Разобрать предмет лута сразу, не кладя в стеш (кнопка Disassemble на экране лута): кристаллы
+ * по правилам разборки (disassembleValue, src/data/items.js DISASSEMBLE). Уникалка отмечается увиденной.
+ * Счётчик ачивки recycler прибавляет вызывающий (checkMetaAchievements({disassembled})).
+ * @return {{inv: !Object, crystals: number}}
+ */
+export function disassembleLoot(inv, item) {
+  const crystals = disassembleValue(item);
+  const next = { ...inv, wallet: addCurrency(inv.wallet, { crystals }) };
+  return { inv: withSeen(next, item), crystals };
 }
 
 /** Есть ли предмет с таким uid (лут из забега с тем же seed мог совпасть с уже взятым). */

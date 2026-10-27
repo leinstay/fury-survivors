@@ -107,3 +107,18 @@ export function weaponPreview(pl, card) {
   }
   return out;
 }
+
+/**
+ * Новое оружие или эволюция (сравнивать не с чем): параметры уровня карточки со статами игрока
+ * в порядке PREVIEW_PARAMS.
+ * @param {!Object} pl игрок sim
+ * @param {{id: string, level: number}} card
+ * @return {!Array<{key: string, value: number}>}
+ */
+export function weaponStats(pl, card) {
+  const def = WEAPONS[card.id];
+  if (!def) return [];
+  const p = weaponParams(def, Math.max(1, card.level), statsWith(pl, pl.passives), pl.uq);
+  return PREVIEW_PARAMS.filter((key) => p[key] !== undefined)
+      .map((key) => ({ key, value: p[key] }));
+}

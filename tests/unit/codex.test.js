@@ -68,8 +68,9 @@ test('codex tracker: counts only own kills, hurts and pickups in co-op', () => {
     { type: 'pickup', kind: 'coin', player: 0 },
     { type: 'pickup', kind: 'heal', player: 1 },
     { type: 'bossSpawn', boss: 'kitsune_empress' },
-    { type: 'chest', player: 1, items: [{ kind: 'weapon', id: 'thunder_loop' }, { kind: 'heal', id: 'heal' }] },
-    { type: 'chest', player: 0, items: [{ kind: 'passive', id: 'luck' }] },
+    { type: 'chest', player: 1, rolls: [
+      { player: 1, cards: [{ kind: 'weapon', id: 'thunder_loop' }, { kind: 'heal', id: 'heal' }] },
+      { player: 0, cards: [{ kind: 'passive', id: 'luck' }] }] },
   ]);
   const sim = fakeSim();
   sim.players[1].weapons = [{ id: 'storm_chain', level: 4 }];
@@ -108,7 +109,8 @@ test('codex tracker: level-up and chest cards unlock only for the picker', () =>
   sim.players[1].levelUp.cards = [{ kind: 'weapon', id: 'war_axe' }];
   tr.observe(sim);
   sim.state = 'chest';
-  sim.chest = { cards: [{ kind: 'weapon', id: 'crimson_arc' }], player: 0 };
+  sim.chest = { rolls: [{ player: 0, cards: [{ kind: 'weapon', id: 'crimson_arc' }] },
+    { player: 1, cards: [{ kind: 'weapon', id: 'war_axe' }] }], player: 0 };
   tr.observe(sim);
   const res = tr.finish(sim, { status: 'dead', at: 1, score: 1 });
   assert.ok(res.seen.weapon.firebomb && res.seen.passive.luck && res.seen.weapon.crimson_arc);

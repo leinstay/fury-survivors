@@ -32,7 +32,8 @@ function execute(options) {
   // Сумки: config.loadouts (готовые, формат сохранения) или config.bag ({tier, cells, pick}) — сгенерировать.
   const loadouts = config.loadouts || bagsFor(config);
   const sim = createSim({ seed: config.seed, players: config.players, difficulty: config.difficulty,
-    hero: config.heroes[0], heroes: config.heroes, ...(loadouts ? { loadouts } : {}) });
+    hero: config.heroes[0], heroes: config.heroes, noEvolution: config.noEvolution,
+    ...(loadouts ? { loadouts } : {}) });
   // Fixture installation is explicit and is forbidden in honest balance runs.
   if (config.fixture) {
     if (!config.immortal.some(Boolean)) throw new Error('Fixture requires diagnostic cohort');
@@ -72,7 +73,8 @@ function execute(options) {
       }
       if (step > config.until * 240 + 10000) throw new Error('tick watchdog');
       if (['chest', 'levelup'].includes(sim.state)) {
-        const who = sim.state === 'chest' ? sim.chest.player : sim.picker;
+        // сундук скиллов без выбора: каждый игрок закрывает показ (chestOk), первым — кто ещё не закрыл
+        const who = sim.state === 'chest' ? sim.chest.done.findIndex((d) => !d) : sim.picker;
         const command = policies[who].choose(observe(sim, who));
         if (!command || !applyCommand(sim, who, command)) throw new Error('illegal policy command');
         if (trace) trace.actions.push({ step, who, command });
@@ -143,7 +145,8 @@ function replayExact(trace) {
   const c = trace.config;
   const loadouts = c.loadouts || bagsFor(c);
   const sim = createSim({ seed: c.seed, players: c.players, difficulty: c.difficulty,
-    hero: c.heroes[0], heroes: c.heroes, ...(loadouts ? { loadouts } : {}) });
+    hero: c.heroes[0], heroes: c.heroes, noEvolution: c.noEvolution || [],
+    ...(loadouts ? { loadouts } : {}) });
   if (c.fixture) {
     sim.player.weapons = c.fixture.weapons.map(([id, level]) => ({ id, level }));
     sim.player.passives = (c.fixture.passives || []).map(([id, level]) => ({ id, level }));

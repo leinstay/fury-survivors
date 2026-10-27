@@ -32,8 +32,9 @@ export function observe(sim, who) {
       .map((e) => ({ x: Math.round(e.x / 27) * 27, y: Math.round(e.y / 27) * 27,
         kind: e.boss ? 'boss' : 'elite' })),
     cards: sim.state === 'levelup' && sim.picker === who ? structuredClone(lu.cards) : [],
-    chest: sim.state === 'chest' && sim.chest.player === who ?
-      structuredClone(sim.chest.cards) : [],
+    // сундук скиллов: выпавшее (уже применено), политика только закрывает показ
+    chest: sim.state === 'chest' ?
+      structuredClone(sim.chest.rolls.filter((r) => r.player === who).flatMap((r) => r.cards)) : [],
     budgets: { reroll: lu.rerolls, skip: lu.skips, banish: lu.banishes },
     banished: [...lu.banished], slots: { ...p.slots },
   };

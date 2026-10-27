@@ -8,8 +8,6 @@ import { Roads } from './roads.js';
 import { spriteScale } from './density.js';
 import { Zones } from './zones.js';
 import { ReaperFx } from './reaper.js';
-import { isSlowed } from '../behaviors/status.js';
-import { STATUS } from '../data/status.js';
 import { lowQuality, getSetting } from '../ui/settings.js';
 
 // Позиции и камера округляются в пиксели экрана (1 / RENDER_ZOOM пикселя мира) одним способом: тогда разница
@@ -23,8 +21,7 @@ const PROJ_DEPTH = 200000;
 const GROUND_DEPTH = -150000; // зоны на земле: над цветами и травой, под предметами и персонажами
 const TELEGRAPH_DEPTH = GROUND_DEPTH + 1e4; // предупреждения об ударах босса
 const REAPER_DEPTH = GROUND_DEPTH + 5e3;    // круги и часы Жницы: под предупреждениями
-const SLOW_TINT = STATUS.chill.tint;         // замедленный враг (статус chill, behaviors/status.js): голубой
-// враг под ДоТом не подкрашивается: статус виден по числам тиков (fx.js)
+// враг под статусами не подкрашивается (решение владельца): ДоТ виден по числам тиков (fx.js)
 
 // Параметры свечения элит; цвет можно задать врагу в data (elite.glow).
 const ELITE_GLOW = {
@@ -166,7 +163,8 @@ export class World {
     this.shadows = [];
     this.shadowN = 0;
     this.telegraphGfx = scene.add.graphics().setDepth(TELEGRAPH_DEPTH);
-    this.zones = new Zones(scene, GROUND_DEPTH);
+    this.launched = new Map(); // uid снаряда -> { t, a }: вылет из героя (_launchStart)
+    this.zones = new Zones(scene, GROUND_DEPTH, PROJ_DEPTH + 9e4); // слэш клинка над персонажами и снарядами
     this.reaperFx = new ReaperFx(scene, REAPER_DEPTH);
     if (!scene.textures.exists('fx_halo')) makeHalo(scene);
     this.shake = { x: 0, y: 0 }; // смещение камеры от fx (тряска)
@@ -280,6 +278,46 @@ export class World {
 
   // Позиция e между прошлым тиком и текущим (this.ix, this.iy). Созданные в последнем шаге и перенесённые
   // далеко (спавн за краем, телепорт) рисуются на месте.
+  // Снаряд вылетел из героя (FX.weaponOrigin): запомнить время и направление вылета, чтобы рисовать его с окружности
+  // вокруг тела, а не из ног. Только картинка.
+  _launchStart(e, sim) {
+    const WO = FX.weaponOrigin;
+    const w = e.ws;
+    if (e.owner !== 'player' || e.fx || !w || !w.owner || !WO.behaviors.includes(w.def.behavior)) return;
+    const dx = e.x - w.owner.x;
+    const dy = e.y - w.owner.y;
+    const v = Math.sqrt(e.vx * e.vx + e.vy * e.vy);
+    let t = sim.time;
+    if (v > 0) {
+      // за тик до показа снаряд уже пролетел немного: вылет из героя, если линия полёта идёт через него
+      const along = (dx * e.vx + dy * e.vy) / v;
+      const side = Math.abs(dx * e.vy - dy * e.vx) / v;
+      if (side > WO.near || along < -WO.near || along > WO.near + v * WO.fade * 0.5) return;
+      t -= Math.max(0, along) / v;
+    } else if (dx * dx + dy * dy > WO.near * WO.near) {
+      return;
+    }
+    const a = v > 0 ? Math.atan2(e.vy, e.vx) : e.angle || (w.owner.facing < 0 ? Math.PI : 0);
+    this.launched.set(e.uid, { t, a });
+  }
+
+  // Сдвиг вылетевшего снаряда к this.ix / this.iy: с окружности вокруг центра тела в сторону полёта, гаснет за
+  // WO.fade с.
+  _launchOffset(e, sim) {
+    const L = this.launched.get(e.uid);
+    if (!L) return;
+    const WO = FX.weaponOrigin;
+    const k = 1 - (sim.time - L.t) / WO.fade;
+    if (k <= 0) return;
+    this.ix += Math.cos(L.a) * WO.radius * k;
+    this.iy += (Math.sin(L.a) * WO.radius - WO.lift) * k;
+  }
+
+  _launchGc(sim) {
+    const fade = FX.weaponOrigin.fade;
+    for (const [uid, L] of this.launched) if (sim.time - L.t > fade) this.launched.delete(uid);
+  }
+
   _lerp(e) {
     const a = this.alpha;
     this.ix = e.x;
@@ -389,7 +427,7 @@ export class World {
       s.setFlipX(e.facing < 0);
       s.setDepth(ey);
       s.setAlpha(e.alpha == null ? 1 : e.alpha);
-      this._tint(s, blink, e.elite, isSlowed(e, sim) ? SLOW_TINT : 0);
+      this._tint(s, blink, e.elite, 0);
       if (e.elite) this._glow(s, e, time);
       else if (s.eliteGlow) dropGlow(s);
     });
@@ -419,12 +457,15 @@ export class World {
       g.lineStyle(1, 0xff6060, 0.9).strokeCircle(tg.x, tg.y, tg.radius);
     }
 
-    this.pools.projectiles.sync(sim.projectiles, (e) => e.sprite, (s, e) => {
+    this._launchGc(sim);
+    this.pools.projectiles.sync(sim.projectiles, (e) => e.sprite, (s, e, isNew) => {
       this._setKey(s, e.sprite);
+      if (isNew) this._launchStart(e, sim);
       const ang = e.angle || 0;
       const off = e.drawOff || 0;
       const lift = e.drawLift || 0;
       this._lerp(e);
+      this._launchOffset(e, sim);
       // оружие своего героя рисуется вместе с ним (он показан по вводу, впереди сима)
       const own = pr && e.ws && e.ws.owner && e.ws.owner.id === pr.i;
       const px = this.ix + (own ? pr.x : 0) + Math.cos(ang) * off;
@@ -449,6 +490,7 @@ export class World {
       const g = glow[e.sprite];
       if (isNew) s.setBlendMode(Phaser.BlendModes.ADD);
       this._lerp(e);
+      this._launchOffset(e, sim);
       const own = pr && e.ws && e.ws.owner && e.ws.owner.id === pr.i;
       s.setPosition(snap(this.ix + (own ? pr.x : 0)), snap(this.iy + (own ? pr.y : 0)));
       s.setScale((g.size * (e.scale == null ? 1 : e.scale)) / HALO_SIZE);

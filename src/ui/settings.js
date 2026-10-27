@@ -2,12 +2,14 @@
 // на AUDIO.gain в sfx.js), shake, glow, heroGlow — вкл/выкл, остальное — варианты из OPTIONS.
 // glow — свечение снарядов (выкл: без шейдеров и с меньшим числом частиц, по умолчанию выкл на таче),
 // heroGlow — белое свечение вокруг своего героя (видно себя в толпе и в коопе).
+// detailStats — строки статов и иконки оружий на карточках уровня (как «advanced tooltips»), по умолчанию вкл.
 // v2: шкала сменилась, старые сохранения не переносим.
 import { HEROES, DEFAULT_HERO } from '../data/heroes.js';
 
 const KEY = 'fury-survivors.settings.v2';
 const DEFAULTS = {
-  music: 1, sfx: 1, shake: true, glow: true, heroGlow: true, minimap: 'full', dps: 'full', difficulty: 'normal',
+  music: 1, sfx: 1, shake: true, glow: true, heroGlow: true, detailStats: true, minimap: 'full', dps: 'full',
+  difficulty: 'normal',
   hero: DEFAULT_HERO,
 };
 // Допустимые значения строковых настроек; порядок = порядок переключения кнопкой.

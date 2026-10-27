@@ -268,6 +268,13 @@ test.describe('mobile landscape', () => {
     await page.waitForFunction(() => window.__game.debug().toasts.includes('first_trophy'));
     await page.waitForTimeout(500);
     await shot(page, 'toast');
+    // тот же босс открыл экран лута: разобрать всё тапом
+    await page.waitForFunction(() => window.__game.game.scene.getScene('Loot').nav?.items?.length > 0);
+    const disAll = await page.evaluate(() => window.__game.game.scene.getScene('Loot').nav.items
+      .map((i) => i.text?.text).find((s) => s && s.startsWith('Disassemble all')));
+    await tapItem(page, 'Loot', disAll);
+    await tapItem(page, 'Loot', 'Done');
+    await page.waitForFunction(() => !window.__game.debug().scenes.includes('Loot'));
 
     // пауза тапом по кнопке в левом нижнем углу; до неё закрываем сундук и карточки уровня
     const paused = () => page.evaluate(() => window.__game.debug().scenes.includes('Pause'));
@@ -296,30 +303,27 @@ test.describe('mobile landscape', () => {
     await tapItem(page, 'Pause', 'Resume');
     await page.waitForFunction(() => !window.__game.debug().scenes.includes('Pause'));
 
-    // ---------- лут после забега ----------
+    // ---------- лут босса: экран сразу, затем итоги ----------
     await page.evaluate(() => {
       const gs = window.__game.game.scene.getScene('Game');
       const e = gs.sim.spawnBoss('kitsune_empress');
       gs.sim.damageEnemy(e, 1e12, 'test', 0, 0, 0);
+    });
+    await page.waitForFunction(() => window.__game.debug().scenes.includes('Loot'));
+    await page.waitForFunction(() => window.__game.game.scene.getScene('Loot').nav.items?.length > 0);
+    await page.waitForTimeout(300);
+    await shot(page, 'loot');
+    const all = await page.evaluate(() => window.__game.game.scene.getScene('Loot').nav.items
+      .map((i) => i.text?.text).find((s) => s === 'Take all'));
+    if (all) await tapItem(page, 'Loot', 'Take all');
+    await tapItem(page, 'Loot', 'Done');
+    await page.waitForFunction(() => !window.__game.debug().scenes.includes('Loot'));
+    await page.evaluate(() => {
+      const gs = window.__game.game.scene.getScene('Game');
       gs.scene.pause();
       gs.scene.launch('GameOver', { sim: gs.sim });
     });
     await page.waitForFunction(() => window.__game.debug().scenes.includes('GameOver'));
-    await page.waitForTimeout(400);
-    await shot(page, 'loot');
-    // по сундуку на босса: Take (если есть предметы), затем Next / Done
-    for (let guard = 0; guard < 6; guard++) {
-      const labels = await page.evaluate(() => {
-        const g = window.__game.game.scene.getScene('GameOver');
-        if (g.data0.lootDone) return null;
-        return g.nav.items.filter((i) => !i.disabled).map((i) => i.text?.text);
-      });
-      if (!labels) break;
-      if (labels.includes('Take')) await tapItem(page, 'GameOver', 'Take');
-      await tapItem(page, 'GameOver', labels.includes('Done') ? 'Done' : 'Next chest');
-      await page.waitForTimeout(300);
-    }
-    await page.waitForFunction(() => window.__game.game.scene.getScene('GameOver').data0.lootDone);
     await page.waitForTimeout(400);
     await shot(page, 'results');
 

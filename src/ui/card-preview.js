@@ -1,18 +1,27 @@
-// Предпросмотр на карточке уровня (LevelUp.js): строки «Стат: было » станет» и ряд иконок оружий игрока,
-// на которые влияет пассивка. Числа считает core/card-preview.js.
+// Предпросмотр на карточке уровня (LevelUp.js): строки «Стат: было » станет» (у нового — «Стат: значение»
+// или «Стат: +прибавка») и ряд иконок оружий игрока, на которые влияет пассивка, в зоне фиксированной высоты
+// внизу карточки. Шрифт строк на ступень мельче описания. Скрывается настройкой detailStats (Options).
+// Числа считает core/card-preview.js.
 import { t } from '../i18n/index.js';
 import { textStyle } from './style.js';
 import { addIcon, iconKeyFor } from './icons.js';
 import { statValue } from './items.js';
-import { passivePreview, weaponPreview } from '../core/card-preview.js';
+import { getSetting } from './settings.js';
+import { passivePreview, weaponPreview, weaponStats } from '../core/card-preview.js';
 
-const LINE = 12;     // шаг строк изменений
+const LINE = 11;     // шаг строк изменений
+const SIZE = 9;      // шрифт строк (описание карточки — 10)
 const ICON = 12;     // иконка оружия
 const ICON_GAP = 2;
 const MAX_LINES = 3; // строк изменений оружия на карточке не больше (порядок PREVIEW_PARAMS: урон первым)
 const SEC = new Set(['cooldown', 'duration']);
 
 const round1 = (v) => Math.round(v * 10) / 10;
+
+// Прибавка стата в том же виде, что значение (statValue): «+24» у HP, «+15%» у процентных.
+function gain(stat, d) {
+  return `${d < 0 ? '-' : '+'}${statValue(stat, Math.abs(d)).replace(/^\+/, '')}`;
+}
 
 // Значение параметра оружия: секунды с двумя знаками, остальное целым или с одним знаком.
 function paramValue(k, v) {
@@ -38,15 +47,20 @@ export function addWeaponIcons(scene, x, y, ids, size = ICON) {
   return w;
 }
 
+/** Высота зоны предпросмотра внизу карточки: MAX_LINES строк (у пассивки вторая и третья — ряд иконок). */
+export const PREVIEW_H = Math.max(MAX_LINES * LINE, LINE + 3 + ICON);
+
 /**
- * Строки изменений карточки снизу вверх от bottom (последняя строка — над ней иконки).
+ * Зона предпросмотра внизу карточки фиксированной раскладки (на всех карточках одинаково): строки изменений
+ * сверху вниз от bottom - PREVIEW_H (первая строка всегда на одном y), ряд иконок пассивки — под первой
+ * строкой (тоже на одном y). Строка не переносится: длинная сжимается по ширине.
  * @param {!Phaser.Scene} scene
  * @param {number} x центр карточки
  * @param {number} bottom нижняя граница содержимого
  * @param {number} width ширина под текст
  * @param {!Object} pl игрок sim, который выбирает
  * @param {!Object} card карточка
- * @return {number} высота нарисованного (0 — нечего показать)
+ * @return {number} высота зоны (0 — нечего показать)
  */
 export function addCardPreview(scene, x, bottom, width, pl, card) {
   const lines = [];
@@ -54,25 +68,31 @@ export function addCardPreview(scene, x, bottom, width, pl, card) {
   if (card.kind === 'passive') {
     const p = passivePreview(pl, card);
     if (!p) return 0;
-    lines.push(t('levelup.change', { name: t(`item.stat.${p.stat}`), a: statValue(p.stat, p.before),
-      b: statValue(p.stat, p.after) }));
+    const name = t(`item.stat.${p.stat}`);
+    // новая пассивка — прибавка («Attack: +15%»), следующий уровень — было » станет
+    lines.push(card.isNew ? t('levelup.value', { name, v: gain(p.stat, p.after - p.before) }) :
+      t('levelup.change', { name, a: statValue(p.stat, p.before), b: statValue(p.stat, p.after) }));
     icons = p.weapons;
+  } else if (card.kind === 'weapon' && weaponPreview(pl, card).length === 0) {
+    // новое оружие или эволюция: значения уровня («Damage: 20»)
+    for (const c of weaponStats(pl, card).slice(0, MAX_LINES)) {
+      lines.push(t('levelup.value', { name: t(`codex.p.${c.key}`), v: paramValue(c.key, c.value) }));
+    }
   } else if (card.kind === 'weapon') {
     for (const c of weaponPreview(pl, card).slice(0, MAX_LINES)) {
       lines.push(t('levelup.change', { name: t(`codex.p.${c.key}`), a: paramValue(c.key, c.before),
         b: paramValue(c.key, c.after) }));
     }
   }
-  let y = bottom;
-  if (icons.length) {
-    y -= ICON / 2;
-    addWeaponIcons(scene, x, y, icons);
-    y -= ICON / 2 + 3;
-  }
-  const style = textStyle(10, '#8cff6a', { align: 'center', wordWrap: { width } });
-  for (let i = lines.length - 1; i >= 0; i--) {
-    const o = scene.add.text(x, y, lines[i], style).setOrigin(0.5, 1);
-    y -= Math.max(LINE, o.height);
-  }
-  return bottom - y;
+  if (!getSetting('detailStats')) return 0;
+  if (!lines.length && !icons.length) return 0;
+  const top = bottom - PREVIEW_H;
+  // иконки (только у пассивки, у неё одна строка) — сразу под первой строкой, на одном y у всех карточек
+  if (icons.length) addWeaponIcons(scene, x, top + LINE + 3 + ICON / 2, icons);
+  const style = textStyle(SIZE, '#8cff6a', { align: 'center' });
+  lines.forEach((s, i) => {
+    const o = scene.add.text(x, top + i * LINE, s, style).setOrigin(0.5, 0);
+    if (o.width > width) o.setScale(width / o.width, 1);
+  });
+  return PREVIEW_H;
 }

@@ -51,9 +51,9 @@ export const enAchievements = {
   'ach.no_safety.desc': 'Win without a reroll, skip or banish.',
 
   'ach.evolutionist.name': 'Evolutionist',
-  'ach.evolutionist.desc': 'Get all {all} evolutions (over all runs).',
+  'ach.evolutionist.desc': 'Get all {all} evolutions across your runs.',
   'ach.naturalist.name': 'Naturalist',
-  'ach.naturalist.desc': 'Meet every monster of the bestiary.',
+  'ach.naturalist.desc': 'Meet every monster in the bestiary.',
   'ach.hoarder.name': 'Hoarder',
   'ach.hoarder.desc': 'Fill the stash to the brim.',
   'ach.tetris.name': 'Tetris',

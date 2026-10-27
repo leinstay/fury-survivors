@@ -256,7 +256,7 @@ test('dots: weapons apply their status in a fight; bleeding only from melee; loc
       if (!s) continue;
       assert.ok(STATUS[s.type], `${id}: status type`);
       assert.ok(s.chance > 0 && s.chance <= 1, `${id}: chance`);
-      if (STATUS[s.type].melee) assert.equal(w.behavior, 'melee_arc', `${id}: bleeding is melee only`);
+      if (STATUS[s.type].melee) assert.ok(['melee_arc', 'slash'].includes(w.behavior), `${id}: bleeding is melee only`);
     }
   }
   for (const def of Object.values(STATUS)) {
@@ -413,7 +413,7 @@ test('thorns: old saves (v1, flat damage) are rescaled to shares of enemy max HP
   assert.ok(PASSIVES.thorns.levels.every((v) => v > 0 && v < STAT_CAPS.thorns));
 });
 
-test('chill: a status with zero damage that slows (through applySlow), bosses resist', () => {
+test('chill: a status with zero damage that slows (through applySlow), bosses are immune', () => {
   const sim = setup();
   const e = dummy(sim, 200, 0);
   const before = e.hp;
@@ -431,7 +431,7 @@ test('chill: a status with zero damage that slows (through applySlow), bosses re
   near(moveMul(e, sim), STATUS.chill.slow);
   const boss = sim.spawnBoss('kitsune_empress');
   applyStatus(boss, sim, { type: 'chill', slow: 0.5 }, 10, 'frost_orb', sim.player);
-  near(moveMul(boss, sim), 1 - 0.5 * (1 - WEAPON_BEHAVIOR.slow.bossResist));
+  near(moveMul(boss, sim), 1);
 });
 
 test('targets: lightning picks a crate next to a mob as fairly as the mob, and breaks it', () => {
@@ -463,7 +463,7 @@ test('targets: lightning picks a crate next to a mob as fairly as the mob, and b
   assert.equal(sim.nearestTarget(sim.player.x, sim.player.y, 400), far);
 });
 
-test('root: own timer, moveMul 0 while rooted, independent of slow; bosses are only slowed', () => {
+test('root: own timer, moveMul 0 while rooted, independent of slow; bosses are immune', () => {
   const sim = setup();
   const e = dummy(sim, 200, 0);
   applySlow(e, sim, 0.5, 3);
@@ -482,5 +482,5 @@ test('root: own timer, moveMul 0 while rooted, independent of slow; bosses are o
   const boss = sim.spawnBoss('kitsune_empress');
   applyRoot(boss, sim, 1);
   assert.ok(!isRooted(boss, sim));
-  assert.ok(moveMul(boss, sim) > 0 && moveMul(boss, sim) < 1);
+  assert.equal(moveMul(boss, sim), 1);
 });

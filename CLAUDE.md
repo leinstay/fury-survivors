@@ -53,7 +53,8 @@ src/
     codex.js               кодекс: трекер забега (события, кадры), mergeRun, normalizeCodex
     telemetry.js           телеметрия забега: срезы раз в минуту (уровень, урон и замах по оружию), выборы карточек (sim.pickLog), уровни, боссы, причина смерти
   behaviors/
-    weapons/<type>.js      melee_arc, projectile, orbit, aura, boomerang, chain, area_drop (бомба, метеор, мины), beam (случайные лучи),
+    weapons/<type>.js      slash (меч: росчерк через самую плотную группу), melee_arc (конус, не используется), projectile, orbit, aura,
+                           boomerang, chain, area_drop (бомба, метеор, мины), beam (случайные лучи),
                            summon, cloud (облако яда), slam (молот: удар кругом и трещина), impale (копьё: пробивает и пригвождает),
                            ice_orb (ледяной шар: пробивает всех и морозит)
     status.js              статусы врагов по src/data/status.js: тики ДоТов, замедление, корень

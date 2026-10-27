@@ -143,7 +143,7 @@ test('hammer: the crack slows foes inside, fades out and is gone after duration'
   assert.equal(moveMul(e, sim), 1);
 });
 
-test('titan maul: a series of slams marching forward, each with its own crack', () => {
+test('titan maul: a series of slams around the hero, each with its own crack, all in melee reach', () => {
   const sim = setup('titan_maul', 1);
   const P = WEAPONS.titan_maul.levels[0];
   dummy(sim, 300, 0);
@@ -152,8 +152,17 @@ test('titan maul: a series of slams marching forward, each with its own crack', 
   run(sim, P.amount * WEAPON_BEHAVIOR.slam.gap + 0.2);
   const c = cracks(sim);
   assert.equal(c.length, P.amount);
-  const xs = c.map((p) => p.x - sim.player.x).sort((a, b) => a - b);
-  for (let i = 1; i < xs.length; i++) assert.ok(xs[i] > xs[i - 1] + P.area * 0.5, 'next slam further ahead');
+  const S = WEAPON_BEHAVIOR.slam;
+  const angles = c.map((p) => Math.atan2(p.y - sim.player.y, p.x - sim.player.x));
+  for (const p of c) {
+    const d = Math.hypot(p.x - sim.player.x, p.y - sim.player.y);
+    assert.ok(Math.abs(d - P.area * S.offset) < 1e-6, `slam centre stays next to the hero: ${d}`);
+  }
+  for (let i = 1; i < angles.length; i++) {
+    let da = Math.abs(angles[i] - angles[i - 1]) % (Math.PI * 2);
+    da = Math.min(da, Math.PI * 2 - da);
+    assert.ok(Math.abs(da - (Math.PI * 2) / P.amount) < 1e-6, 'next slam turns around the hero');
+  }
 });
 
 test('spear: pins hit foes in place for pin seconds, then sticks in the ground', () => {

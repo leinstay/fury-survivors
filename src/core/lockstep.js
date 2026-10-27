@@ -50,7 +50,9 @@ export function hashParts(sim) {
     ['state', sim.state], ['rng', sim.rng.state], ['uid', sim.uid], ['enemies', sim.enemies.length],
     ['projectiles', sim.projectiles.length], ['pickups', sim.pickups.length],
     ['pendingLevels', sim.pendingLevels], ['levelTurn', sim.levelTurn], ['picker', sim.picker],
-    ['overtime', r(sim.overtime)], ['lootRng', sim.lootRng.state], ['bossKills', sim.bossKills]];
+    ['overtime', r(sim.overtime)], ['lootRng', sim.lootRng.state], ['bossKills', sim.bossKills],
+    ['lootPending', sim.lootPending], ['lootDone', sim.lootDone.map((d) => (d ? 1 : 0)).join('')],
+    ['winAfterLoot', sim.winAfterLoot ? 1 : 0], ['chestDone', sim.chest.done.map((d) => (d ? 1 : 0)).join('')]];
   for (const p of sim.players) {
     const lu = p.levelUp;
     const k = `p${p.id}.`;
@@ -73,10 +75,10 @@ export function hashParts(sim) {
     if (k) dots = fnv(`${dots}|${k}`);
   }
   out.push(['enemyX', r(ex)], ['enemyY', r(ey)], ['enemyHp', r(eh)], ['dots', dots]);
-  // Жница с Библией: освящённые круги и песочные часы
+  // Жница: освящённые круги, песочные часы (таймер), оглушение; штраф скорости игроков выше (overtimeSlow)
   out.push(['holy', sim.holy.map((c) => `${r(c.x)},${r(c.y)}`).join(' ')],
       ['hourglasses', sim.hourglasses.map((h) => `${h.uid}@${r(h.x)},${r(h.y)}:${r(h.t)}`).join(' ')],
-      ['reaperSlow', sim.reaper ? r(sim.reaper.slow) : 0]);
+      ['reaperStun', sim.reaper ? r(sim.reaper.stunT) : 0]);
   return out;
 }
 
@@ -148,7 +150,7 @@ function runFingerprint() {
   const dt = 1 / 60;
   for (let i = 0; i < 900; i++) {
     if (sim.state === 'levelup') sim.chooseCard(0, sim.picker);
-    else if (sim.state === 'chest') sim.chooseChest(0);
+    else if (sim.state === 'chest') sim.chooseChest();
     const a = i / 50;
     const p0 = { x: Math.sin(a), y: Math.cos(a) };
     sim.step(dt, { players: [p0, { x: -p0.y, y: p0.x }] });
@@ -160,7 +162,8 @@ function runFingerprint() {
 
 /**
  * Применить команду экрана к симуляции. who — индекс игрока, отправившего её: карточки выбирает только тот,
- * чей ход (из своего пула), сундук — тот, кому он достался; остальные команды общие.
+ * чей ход (из своего пула), показ сундука (chestOk) и «лут готов» (lootDone) — каждый за себя;
+ * остальные команды общие.
  * @param {!Object} sim
  * @param {number} who
  * @param {{k: string, i: (number|undefined)}} cmd
@@ -178,18 +181,12 @@ export function applyCommand(sim, who, cmd) {
       return sim.skip(who);
     case 'banish':
       return sim.banish(cmd.i, who);
-    case 'chest':
-      if (sim.state !== 'chest' || sim.chest.player !== who) return false;
-      sim.chooseChest(cmd.i);
-      return true;
+    case 'chestOk':
+    case 'chest': // старые имена (боты tools/simulation): тоже «закрыл показ»
     case 'skipChest':
-      if (sim.state !== 'chest' || sim.chest.player !== who) return false;
-      sim.skipChest();
-      return true;
-    case 'revealDone':
-      if (sim.state !== 'reveal' || sim.chest.player !== who) return false;
-      sim.endReveal();
-      return true;
+      return sim.chestOk(who); // сундук скиллов: каждый за себя, мир трогается, когда закрыли оба
+    case 'lootDone':
+      return sim.lootFinish(who); // экран лута: каждый за себя, мир трогается, когда закончили оба
     case 'finish':
       sim.finishOvertime();
       return true;

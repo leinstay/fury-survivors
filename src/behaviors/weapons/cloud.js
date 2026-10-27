@@ -3,7 +3,8 @@
 // таймер cooldown, первые разнесены на cooldown / amount, поэтому облака выходят по очереди, а не пачкой.
 // Врагов в propRange нет, а разрушаемый объект есть — облако ложится на объект (как первая бомба area_drop).
 // Облака одного оружия делят таймер повторного удара (e.hitAt[slot]): в двух облаках сразу враг бьётся раз в tick.
-// Картинка — спрайт w.def.sprite на размер облака, проявляется и гаснет (WEAPON_BEHAVIOR.cloud).
+// Картинка — зона 'aura' (render/zones.js) цветом tint оружия, как святая земля; проявляется и гаснет
+// по p.alpha (WEAPON_BEHAVIOR.cloud).
 import { WEAPON_BEHAVIOR } from '../../data/weapons.js';
 
 const C = WEAPON_BEHAVIOR.cloud;
@@ -19,6 +20,7 @@ function drop(w, sim) {
   p.life = p.life0 = P.duration;
   p.radius = P.area;
   p.scale = (P.area * 2) / C.spriteWorld;
+  p.fx = 'aura';
   p.alpha = 0;
   p.dmg = P.damage;
   p.rehit = P.tick;

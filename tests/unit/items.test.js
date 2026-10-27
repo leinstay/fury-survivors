@@ -197,9 +197,10 @@ test('bag: one unique at most, diversity bonus, unique more', () => {
   bag = place(bag, ring, 3, 0);
   const b = bagBonus(bag);
   assert.equal(b.types, 2);
-  assert.ok(Math.abs(b.diversity - 1.04) < 1e-9);
-  assert.ok(Math.abs(b.flat.crit - 0.01 * 1.1 * 1.04) < 1e-9);
-  assert.ok(Math.abs(b.inc.attack - 0.02 * 1.1 * 1.04) < 1e-9);
+  const div = 1 + BAG.diversityPerType; // два типа: бонус за один сверх первого
+  assert.ok(Math.abs(b.diversity - div) < 1e-9);
+  assert.ok(Math.abs(b.flat.crit - 0.01 * 1.1 * div) < 1e-9);
+  assert.ok(Math.abs(b.inc.attack - 0.02 * 1.1 * div) < 1e-9);
   assert.deepEqual(b.more, { attack: 1, magic: 1 });
   assert.deepEqual(b.uniques, ['glass_cannon']);
 });

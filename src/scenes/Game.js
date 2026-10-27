@@ -49,7 +49,7 @@ export class GameScene extends Phaser.Scene {
     if (co) {
       this.sim = createSim({
         stage: 'forest', seed: co.seed, difficulty: co.difficulty, players: 2, heroes: co.heroes,
-        loadouts: co.loadouts || [],
+        loadouts: co.loadouts || [], lootScreen: true, // лут босса сразу (state 'loot', сцена Loot)
       });
       this.sim.local = co.local;
       this.sim.players.forEach((p, i) => { p.name = (co.names && co.names[i]) || ''; });
@@ -74,6 +74,7 @@ export class GameScene extends Phaser.Scene {
           globalThis.__furyTestSeed : Date.now(), difficulty: this.difficulty,
         // надетая сумка (меняется только в меню) и бонусы полученных ачивок
         loadouts: [withAchievements(getInventory().bag)],
+        lootScreen: true, // лут босса сразу (state 'loot', сцена Loot)
       });
       this.ls = null;
     }
@@ -119,7 +120,6 @@ export class GameScene extends Phaser.Scene {
       touch: this.gameInput.touch, onPause: () => this.openPause(),
     });
     this.ended = false;
-    this.pendingChest = null;
     const pad = readPad();
     this.padStart = !!(pad && pad.start);
 
@@ -220,13 +220,8 @@ export class GameScene extends Phaser.Scene {
     if (this.summary) this.summary.onEvents(events, this.sim);
     this.fx.onEvents(events);
     this.hud.onEvents(events);
-    // два сундука за кадр: sim уже выдал оба, показываем всё вместе
-    // choice: экран выбора откроется по sim.state === 'chest'; applied: выбор уже показан на этом экране
-    for (const ev of events) {
-      if (ev.type !== 'chest' || ev.choice || ev.applied) continue;
-      if (this.ls) continue; // кооп: показ сундука обоим ведёт сим (state 'reveal')
-      this.pendingChest = (this.pendingChest || []).concat(ev.items || []);
-    }
+    // босс убит: экран лута сразу остановит мир, поэтому ачивки (First Trophy) проверяются в этом же кадре
+    if (events.some((ev) => ev.type === 'kill' && ev.boss)) this.achCheckAt = 0;
     handleSimEvents(this, events);
     if (this.ls) return; // кооп: хитстоп остановил бы тики только у одного клиента
     const h = FX.hitstop;
@@ -358,19 +353,15 @@ export class GameScene extends Phaser.Scene {
     this.hud.update();
 
     if (this.overlay && !this.scene.isActive(this.overlay)) this.overlay = null;
-    const chest = this.pendingChest;
-    this.pendingChest = null;
     const busy = this.overlay !== null;
-    if (chest && !busy) {
-      // сундук первым; LevelUp (sim.state === 'levelup') откроется в следующем кадре после resume
-      this._open('Chest', { sim, act: this.act, items: chest });
-    } else if (sim.state === 'reveal' && !busy) {
-      // кооп: выпавшее из сундука видят оба, мир стоит (sim), экран закроется по смене sim.state
-      this._open('Chest', { sim, act: this.act, items: sim.chest.shown });
-    } else if (sim.state === 'chest' && !busy) {
-      this._open('Chest', { sim, act: this.act, choices: sim.chest.cards });
+    if (sim.state === 'chest' && !busy) {
+      // сундук скиллов: выпавшее уже применено, мир стоит, пока все не нажмут Ok (sim.chestOk)
+      this._open('Chest', { sim, act: this.act });
     } else if (sim.state === 'levelup' && !busy) {
       this._open('LevelUp', { sim, act: this.act });
+    } else if (sim.state === 'loot' && !busy) {
+      // лут босса сразу (после сундука, если он был): мир стоит, пока все не решат по своим предметам
+      this._open('Loot', { sim, act: this.act });
     } else if (this.ls && this.ls.paused && !busy && sim.state === 'running') {
       this._open('Pause', { sim, act: this.act });
     } else if ((sim.state === 'gameover' || sim.state === 'victory' || this.lost) && !this.ended) {

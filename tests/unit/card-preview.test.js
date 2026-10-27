@@ -4,7 +4,7 @@ import { createSim } from '../../src/core/sim.js';
 import { WEAPONS } from '../../src/data/weapons.js';
 import { PASSIVES } from '../../src/data/passives.js';
 import { STATS } from '../../src/data/stats.js';
-import { passivePreview, weaponPreview, weaponsForStat, statAffectsWeapon } from
+import { passivePreview, weaponPreview, weaponsForStat, statAffectsWeapon, weaponStats } from
   '../../src/core/card-preview.js';
 import { fitSections } from '../../src/ui/grid-fit.js';
 
@@ -65,4 +65,17 @@ test('grid fit: sections with headers fit the codex panel, rows balanced', () =>
   }
   const g = fitSections([16, 16, 16, 13], 288, 244, { head: 13, secGap: 5 });
   assert.deepEqual(g.cols.slice(0, 3), [8, 8, 8]);
+});
+
+test('card preview: new weapon shows its level-1 values with the owner stats', () => {
+  const sim = createSim({ hero: 'heroine', seed: 1 });
+  const pl = sim.players[0];
+  const id = Object.keys(WEAPONS)
+      .find((w) => !WEAPONS[w].evolved && !pl.weapons.some((x) => x.id === w));
+  const card = { kind: 'weapon', id, level: 1, isNew: true };
+  assert.deepEqual(weaponPreview(pl, card), []);
+  const rows = weaponStats(pl, card);
+  const dmg = rows.find((r) => r.key === 'damage');
+  assert.equal(rows[0].key, 'damage');
+  assert.ok(near(dmg.value, WEAPONS[id].levels[0].damage * (pl.stats[WEAPONS[id].dmgType] ?? 1)));
 });

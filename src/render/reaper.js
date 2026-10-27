@@ -1,7 +1,8 @@
 // Жница на земле (src/core/reaper.js): освящённые круги, песочные часы, метка телепорта. Заглушка графикой:
 // круги со свечением, пока нет спрайтов. Только читает sim.holy, sim.hourglasses и sim.reaper.tp.
 // Над часами таймер: секунды до пропуска числом и дуга вокруг; последние HOUR_ENDING с мигают красным.
-// Пропуск (часы исчезли по таймеру) — красное кольцо расходится на месте часов.
+// Пропуск (часы исчезли по таймеру) — красное кольцо расходится на месте часов. Оглушение (sim.reaper.stunT) —
+// звёзды кружат над головой Жницы (заглушка иконки).
 import { textStyle } from '../ui/style.js';
 
 const HOLY = 0xffe27a;      // золотой свет круга
@@ -11,6 +12,7 @@ const SAND_EDGE = 0xf0d8a0;
 const MISS = 0xff4040;      // пропуск
 const HOUR_ENDING = 3;      // с до пропуска: таймер мигает
 const MISS_LIFE = 0.5;      // с кольца пропуска
+const STUN = 0xfff070;      // звёзды оглушения
 const TIMERS = 4;           // текстов таймера (кооп: часы перед каждым игроком)
 const GLASS = 0xbfe8ff;
 const BLINK = 0xb050ff;     // метка телепорта
@@ -22,7 +24,7 @@ export class ReaperFx {
     this.glow = scene.add.graphics().setDepth(depth + 1).setBlendMode(Phaser.BlendModes.ADD);
     this.timers = [];
     for (let i = 0; i < TIMERS; i++) {
-      this.timers.push(scene.add.text(0, 0, '', textStyle(8, '#f0d8a0', { stroke: '#1a1426', strokeThickness: 2 }))
+      this.timers.push(scene.add.text(0, 0, '', textStyle(10, '#f0d8a0', { stroke: '#1a1426', strokeThickness: 2 }))
           .setOrigin(0.5, 1).setDepth(depth + 2).setVisible(false));
     }
     this.seen = new Map(); // uid часов -> { x, y, left } прошлого кадра: пропуск, если исчезли с left ≈ 0
@@ -50,6 +52,8 @@ export class ReaperFx {
     this._misses(g, time);
     const tp = sim.reaper && sim.reaper.tp;
     if (tp) this._blink(g, tp);
+    const r = sim.reaper;
+    if (r && r.stunT > 0) this._stun(l, r.e, time);
   }
 
   // Проявление (t < warn) как предупреждение босса: заливка растёт от центра к краю. Потом свет пульсирует;
@@ -111,6 +115,18 @@ export class ReaperFx {
       const k = (time - m.at) / MISS_LIFE;
       if (k >= 1 || k < 0) { this.misses.splice(i, 1); continue; }
       g.lineStyle(2, MISS, 1 - k).strokeCircle(m.x, m.y - 8, 8 + 24 * k);
+    }
+  }
+
+  // Оглушение: три звезды кружат над головой (e.size — радиус тела, фигура выше него).
+  _stun(l, e, time) {
+    const cx = e.x;
+    const cy = e.y - e.size * 2.4;
+    for (let i = 0; i < 3; i++) {
+      const a = time * 5 + (i * Math.PI * 2) / 3;
+      const x = cx + Math.cos(a) * 12;
+      const y = cy + Math.sin(a) * 4;
+      l.fillStyle(STUN, 0.95).fillRect(x - 2, y - 0.5, 4, 1).fillRect(x - 0.5, y - 2, 1, 4);
     }
   }
 

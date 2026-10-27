@@ -142,7 +142,7 @@ export const BAG = {
     evolutionist: { rows: 1 },
   },
   maxUniques: 1,
-  diversityPerType: 0.02, // +2% ко всем аффиксам за каждый разный тип в сумке
+  diversityPerType: 0.03, // +3% ко всем аффиксам за каждый разный тип в сумке сверх первого (1 тип = 0)
   presets: 3,
 };
 

@@ -9,6 +9,7 @@ import { WEAPON_BEHAVIOR } from '../../data/weapons.js';
 import { applySlow } from '../status.js';
 
 const S = WEAPON_BEHAVIOR.slam;
+const TAU = Math.PI * 2;
 const buf = new Int32Array(4096);
 
 // Направление серии: на ближайшего врага, иначе на объект, иначе куда смотрит герой.
@@ -23,10 +24,13 @@ function strike(w, sim) {
   const P = w.params;
   const pl = w.owner;
   if (w.n === 0) w.base = aim(w, sim);
-  const d = P.area * (S.offset + w.n * S.step);
+  // серия ударов идёт вокруг героя (amount направлений по кругу), не уходит вперёд: молот — ближний бой,
+  // дальше area × (offset + 1) от героя не бьёт
+  const d = P.area * S.offset;
+  const a = w.base + (w.n * TAU) / Math.max(1, P.amount);
   w.n++;
-  const x = pl.x + Math.cos(w.base) * d;
-  const y = pl.y + Math.sin(w.base) * d;
+  const x = pl.x + Math.cos(a) * d;
+  const y = pl.y + Math.sin(a) * d;
   const tint = w.def.tint || S.tint;
   // ударная волна: бьёт один раз всех в радиусе
   const p = sim.addProjectile('player', w.def.sprite);

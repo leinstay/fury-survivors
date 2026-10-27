@@ -163,20 +163,7 @@ export class Hud {
     g.clear();
     top.clear();
     g.fillStyle(m.bg, m.alpha).fillCircle(cx, cy, m.radius);
-    // дороги: выборка через road.step px карты, точка там, где до дороги меньше полуширины и полшага
-    const roads = this.sim.roads;
-    if (roads) {
-      const st = m.road.step;
-      const near = roads.cfg.width / 2 + st / k / 2;
-      g.fillStyle(m.road.color, m.road.alpha);
-      for (let y = -m.radius; y <= m.radius; y += st) {
-        for (let x = -m.radius; x <= m.radius; x += st) {
-          if (x * x + y * y > (m.radius - 1) * (m.radius - 1)) continue;
-          if (roads.distance(p.x + x / k, p.y + y / k) >= near) continue;
-          g.fillRect(cx + x - st / 2, cy + y - st / 2, st, st);
-        }
-      }
-    }
+    // дороги на миникарте не рисуются (решение владельца)
     g.lineStyle(1, m.rim, 0.8).strokeCircle(cx, cy, m.radius);
     const r2 = (m.radius - 2) * (m.radius - 2);
     // точка на карте или null, если вне круга

@@ -14,16 +14,16 @@ import { getAchievements, markAchievementsSeen, checkMetaAchievements } from '..
 import { getInventory } from '../services/inventory.js';
 import { getCodex } from '../services/codex.js';
 import { bonusText } from '../ui/items.js';
-import { backRect } from '../ui/menu-layout.js';
+import { backRect, screenTitle, PAGE_BOTTOM, CONTENT_TOP } from '../ui/menu-layout.js';
 
 // Раскладка: два столбца по perCol карточек одной высоты от TOP до кнопки «Назад» (12 × 25 = 300 px из 360).
 // Карточка в две строки: [имя, бонус … награда] и [описание … прогресс или Done]. Тексты стоят по центру
 // полосы заглавных (originY 0.5, src/ui/text-align.js), центры строк LINE1 и LINE2 от верха карточки
 // подобраны так, что от рамки до заглавных сверху и снизу ≈ 4 px.
 const M = 8;
-const TOP = 29;
+const TOP = CONTENT_TOP; // верх карточек не выше этого (под заголовком)
 const CARD_H = 23;
-const GAP = 2;
+const GAP = 1;
 const PAD = 6;          // отступ текста от левого и правого края карточки
 const SEP = 6;          // зазор между соседними текстами в строке
 const LINE1 = 7;
@@ -79,17 +79,18 @@ export class AchievementsScene extends Phaser.Scene {
     const ctx = { stash: inv.stash, bag: inv.bag, codex: getCodex() };
     const ids = Object.keys(ACHIEVEMENTS);
     const cx = GAME_WIDTH / 2;
-    this.add.text(cx, 14, t('ach.title'), textStyle(18, COLORS.accent, { stroke: '#000000', strokeThickness: 4 }))
-        .setOrigin(0.5);
+    screenTitle(this, t('ach.title'));
     this.add.text(GAME_WIDTH - M, 10, `${achievedIds(state).length}/${ids.length}`, textStyle(10, '#ffd84a'))
         .setOrigin(1, 0);
     const perCol = Math.ceil(ids.length / 2);
     const colW = (GAME_WIDTH - 3 * M) / 2;
+    // низ столбцов — общая линия страниц над Back (PAGE_BOTTOM), верх — не выше TOP
+    const top0 = Math.max(TOP, PAGE_BOTTOM - perCol * CARD_H - (perCol - 1) * GAP);
     ids.forEach((id, i) => {
       const def = ACHIEVEMENTS[id];
       const col = Math.floor(i / perCol);
       const L = M + col * (colW + M);
-      const top = TOP + (i % perCol) * (CARD_H + GAP);
+      const top = top0 + (i % perCol) * (CARD_H + GAP);
       const y1 = top + LINE1;
       const y2 = top + LINE2;
       const done = isDone(state, id);

@@ -132,7 +132,7 @@ test('slow: frost orb slows touched enemies for the chill duration, deterministi
   const boss = dummy(s2, 'lamia', 0, 300);
   boss.boss = true;
   applySlow(boss, s2, 0.5, 10);
-  assert.ok(Math.abs(moveMul(boss, s2) - (1 - 0.5 * (1 - WEAPON_BEHAVIOR.slow.bossResist))) < 1e-9);
+  assert.equal(moveMul(boss, s2), 1, 'bosses are immune to slow');
   // объект врага из пула с новым uid не наследует замедление
   a.uid += 1000;
   assert.equal(moveMul(a, s2), 1);

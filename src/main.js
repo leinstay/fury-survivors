@@ -13,6 +13,7 @@ import { PauseScene } from './scenes/Pause.js';
 import { GameOverScene } from './scenes/GameOver.js';
 import { VictoryScene } from './scenes/Victory.js';
 import { ChestScene } from './scenes/Chest.js';
+import { LootScene } from './scenes/Loot.js';
 import { LeaderboardScene } from './scenes/Leaderboard.js';
 import { LobbyScene } from './scenes/Lobby.js';
 import { CodexScene } from './scenes/Codex.js';
@@ -49,7 +50,7 @@ const game = new Phaser.Game({
   input: { gamepad: true },
   scene: [
     BootScene, MenuScene, GameScene, LevelUpScene, PauseScene,
-    GameOverScene, VictoryScene, ChestScene, LeaderboardScene, LobbyScene, CodexScene,
+    GameOverScene, VictoryScene, ChestScene, LootScene, LeaderboardScene, LobbyScene, CodexScene,
     InventoryScene, AchievementsScene, ToastScene,
   ].map(zoomed),
 });

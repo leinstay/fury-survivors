@@ -106,12 +106,11 @@ export const HUD = {
     colors: [0xc41e3a, 0xff7c0a, 0xa330c9, 0x3fc7eb, 0xaad372, 0xfff468, 0xf48cba, 0x0070dd],
   },
   transparentAlpha: 0.45,  // прозрачность миникарты и DPS в режиме transparent (миникарта не выключается)
-  // Миникарта: круг в правом верхнем углу под XP-баром. Дороги (road: цвет, шаг выборки в px карты), герои
+  // Миникарта: круг в правом верхнем углу под XP-баром. Герои
   // стрелкой по направлению движения (arrow: длина и полуширина, свой и напарник), предметы своими спрайтами
   // (icons: размер в px), боссы и элиты черепом (элиты красным; обычных врагов нет).
   minimap: {
     radius: 34, margin: 8, top: 18, range: 900, fps: 12, alpha: 0.6, bg: 0x000000, rim: 0xb0a0d0,
-    road: { color: 0xc8a868, alpha: 0.75, step: 2 },
     arrow: { len: 5, half: 3.5, self: 0xffffff, ally: 0x9ad0ff },
     icons: { chest: 9, food: 7, magnet: 7, coin: 5 },
     dots: { coffin: 0x9a8a7a, elite: 0xff3d6e, skull: 0xf2ead8 },
@@ -147,12 +146,6 @@ export const DROPS = {
 };
 
 export const SLOTS = { weapons: 6, passives: 6 };
-
-// Сундук с несколькими готовыми супероружиями: показывает не больше maxChoices случайных (src/core/upgrades.js).
-export const CHEST = {
-  maxChoices: 3,
-  revealTime: 2.5,         // кооп: с показа содержимого сундука обоим, мир стоит (хозяин может закрыть раньше)
-};
 
 export const LEVEL_UP = {
   cards: 4,
@@ -199,13 +192,24 @@ export const FX = {
   hitSquash: { x: 1, y: 1 }, // было 1.18 × 0.82
   // Белая вспышка при попадании (src/render/world.js): горит show с, потом gap с не загорается, даже если
   // попадания идут подряд (иначе под аурой или у босса спрайт белый всё время). Время в с.
-  hitBlink: { mob: { show: 0.08, gap: 0.1 }, boss: { show: 0.05, gap: 0.3 } },
+  hitBlink: { mob: { show: 0.04, gap: 0.35 }, boss: { show: 0.05, gap: 0.3 } },
   // Ходьба (src/render/anim.js): fps — кадров ходьбы в секунду у спрайтов с кадрами; однокадровые подпрыгивают
   // на hop целых px мира, steps шагов в секунду; летуны парят на hoverHeight px, качаясь на ±hover px.
   walk: { fps: 8, steps: 2.4, hop: 0, hover: 0, hoverHeight: 6, hoverSpeed: 4 }, // было hop 1, hover 2
   // Поза босса: при замахе приседает на windupDrop px, при касте подпрыгивает на castLift px.
   bossPose: { windupDrop: 0, castLift: 0 }, // было 2 и 3
   shadow: { alpha: 0.3, widthK: 0.5, height: 0.3, yOffset: -1, depth: -50000 },
+  // Откуда видно оружие героя: не из тела, а с окружности вокруг него. Центр — середина видимой фигуры, lift px над
+  // точкой ног; radius — радиус окружности, в которую вписана самая крупная героиня. Посчитано по непрозрачным
+  // пикселям (alpha > 16) всех кадров лент heroine и mage (manifest, кадр 128, density 2 → ×0.5 в мире):
+  // heroine — фигура 33×54 px мира, центр 27 над ногами, дальний пиксель 27.97 от центра; mage — 44.5×56.5, центр
+  // 28.25, дальний пиксель 31.92 (шляпа и посох). Берём mage: lift 28, radius = ceil(31.92) = 32.
+  // Каждое оружие начинается на этой окружности в сторону полёта или цели. Только картинка (сим и попадания по земле
+  // не меняются): у снарядов behaviors, вылетевших из героя (линия полёта не дальше near px от его точки), сдвиг
+  // гаснет за первые fade с полёта (render/world.js); первое звено молнии — с окружности (render/zones.js);
+  // луч (behaviors/weapons/beam.js) — с окружности; огоньки (summon) кружат снаружи (WEAPON_BEHAVIOR.summon).
+  weaponOrigin: { lift: 28, radius: 32, fade: 0.2, near: 8,
+    behaviors: ['projectile', 'impale', 'boomerang', 'ice_orb', 'area_drop'] },
   // Зоны на земле (src/render/zones.js): прозрачности слоёв, дыхание и волны ауры (wavesPerHit — волна на столько ударов).
   zones: {
     aura: {

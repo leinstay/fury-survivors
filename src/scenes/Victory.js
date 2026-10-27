@@ -1,8 +1,9 @@
 import { buildResults } from '../ui/results.js';
-import { buildLoot, hasPendingLoot } from '../ui/loot.js';
+import { claimPendingLoot } from '../ui/loot.js';
 import { showAchievementToasts } from '../ui/toast.js';
 
-// Сначала лут с боссов (ui/loot.js), затем итоги. data.unlocked — ачивки забега (Game) и стеша (лут).
+// Итоги забега. Лут с боссов решается в забеге (сцена Loot); что осталось без решения, берётся в стеш само
+// (claimPendingLoot). data.unlocked — ачивки забега (Game).
 export class VictoryScene extends Phaser.Scene {
   constructor() {
     super('Victory');
@@ -15,14 +16,9 @@ export class VictoryScene extends Phaser.Scene {
 
   create() {
     const d = this.data0;
-    if (!d.lootDone && hasPendingLoot(this.sim)) {
-      this.nav = buildLoot(this, this.sim, (ids) => {
-        this.scene.restart({ ...d, lootDone: true, unlocked: [...(d.unlocked || []), ...ids] });
-      });
-      return;
-    }
+    const loot = this.sim ? claimPendingLoot(this.sim) : [];
     this.nav = buildResults(this, this.sim, { titleKey: 'victory.title', titleColor: '#ffd84a', confetti: true, victory: true });
-    showAchievementToasts(this, d.unlocked);
+    showAchievementToasts(this, [...(d.unlocked || []), ...loot]);
   }
 
   update(time) {

@@ -365,7 +365,8 @@ export function bagTypes(bag) {
  */
 export function bagBonus(bag) {
   const types = bagTypes(bag);
-  const diversity = 1 + BAG.diversityPerType * types;
+  // разнообразие: один тип ничего не даёт, каждый следующий разный тип прибавляет diversityPerType
+  const diversity = 1 + BAG.diversityPerType * Math.max(0, types - 1);
   const inc = {};
   const flat = {};
   const more = {};

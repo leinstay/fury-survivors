@@ -1,7 +1,7 @@
 import { t } from '../i18n/index.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
 import { FocusNav, addButton } from '../ui/focus.js';
-import { addVolumeSliders } from '../ui/volume.js';
+import { addVolumeSliders, optionRows } from '../ui/volume.js';
 import { textStyle, COLORS } from '../ui/style.js';
 import { stopMusic } from '../audio/sfx.js';
 import { spriteScale } from '../render/density.js';
@@ -19,7 +19,7 @@ import { HEROES } from '../data/heroes.js';
 import { validHero } from '../core/heroes.js';
 import { addHeroPicker } from '../ui/hero-picker.js';
 import { versionTag } from '../core/lockstep.js';
-import { MENU_COLUMN, OPTIONS, BUTTON, menuRow } from '../ui/menu-layout.js';
+import { OPTIONS, CONTENT_MID, menuRow, subRow, columnTop, backRect, screenTitle } from '../ui/menu-layout.js';
 
 // Картинки героев по бокам меню (HEROES[id].menu): справа как есть, слева отражённые; внутренний край первой
 // на каждой стороне на MENU_ART_GAP от центра, следующие на той же стороне дальше через MENU_ART_STEP,
@@ -27,6 +27,13 @@ import { MENU_COLUMN, OPTIONS, BUTTON, menuRow } from '../ui/menu-layout.js';
 const MENU_ART_GAP = 135;
 const MENU_ART_STEP = 6;
 const MENU_ART_Y = 318;
+// Высота карточек выбора героя (по центру катка под заголовком).
+const HERO_PICK_H = 150;
+// Название игры (логотип) только на главном и на Play; на остальных подэкранах — заголовок экрана.
+const LOGO_VIEWS = new Set(['main', 'play']);
+// Заголовок каждого подэкрана меню (ui/menu-layout.js screenTitle).
+const TITLES = { difficulty: 'difficulty.title', hero: 'hero.title',
+  coop: 'coop.title', settings: 'settings.title' };
 
 export class MenuScene extends Phaser.Scene {
   constructor() {
@@ -108,11 +115,21 @@ export class MenuScene extends Phaser.Scene {
     const before = new Set(this.children.list);
     const cx = GAME_WIDTH / 2;
 
-    this.add.text(cx, 62, t('game.title'), textStyle(32, COLORS.accent, { stroke: '#000000', strokeThickness: 6 })).setOrigin(0.5);
+    if (LOGO_VIEWS.has(view)) {
+      this.add.text(cx, 62, t('game.title'), textStyle(32, COLORS.accent, { stroke: '#000000', strokeThickness: 6 })).setOrigin(0.5);
+    }
 
     let focus = 0;
     const row = (i, label, onSelect, color) =>
       addButton(this, this.nav, { ...menuRow(i), label, onSelect, color });
+    // Подэкраны: заголовок экрана на TITLE_Y, столбик (160×24, шаг меню) по центру катка (subRow), Back — общий
+    // Back страниц (внизу слева), героини по бокам те же, что в главном (кроме настроек: строки шире промежутка).
+    const sub = (i, n, label, onSelect, color) =>
+      addButton(this, this.nav, { ...subRow(i, n), label, onSelect, color });
+    const back = (to) => addButton(this, this.nav, { ...backRect(), size: 12, label: t('settings.back'),
+      onSelect: () => this.show(to) });
+    // экран Play как корневой: логотип и столбик главного меню, без заголовка экрана
+    if (!LOGO_VIEWS.has(view)) screenTitle(this, t(TITLES[view]));
     if (view === 'main') {
       // шесть кнопок одного размера столбцом (ui/menu-layout.js, та же раскладка у паузы)
       this.menuArt();
@@ -133,42 +150,41 @@ export class MenuScene extends Phaser.Scene {
       this.menuArt();
       row(0, t('menu.solo'), () => this.show('difficulty'));
       row(1, t('menu.coop'), () => this.show('coop'));
-      row(2, t('settings.back'), () => this.show('main'));
+      back('main');
       focus = this.from === 'coop' ? 1 : 0;
     } else if (view === 'difficulty') {
-      // Сложность соло; последний выбор запоминается и стоит в фокусе. Подпись на месте первой строки.
+      // Сложность соло; последний выбор запоминается и стоит в фокусе.
       this.menuArt();
-      this.add.text(cx, menuRow(0).y, t('difficulty.title'), textStyle(14, '#ffffff',
-          { stroke: '#000000', strokeThickness: 4 })).setOrigin(0.5);
       const ids = Object.keys(DIFFICULTIES);
       ids.forEach((id, i) => {
         const cursed = id !== DEFAULT_DIFFICULTY;
-        row(i + 1, t(`difficulty.${id}.name`), () => { setSetting('difficulty', id); this.show('hero'); },
+        sub(i, ids.length, t(`difficulty.${id}.name`), () => { setSetting('difficulty', id); this.show('hero'); },
             cursed ? COLORS.cursed : '#ffffff');
       });
-      row(ids.length + 1, t('settings.back'), () => this.show('play'));
+      back('play');
       focus = Math.max(0, ids.indexOf(this.difficulty()));
     } else if (view === 'hero') {
       // Выбор героя последним шагом: выбор сразу запускает забег. Последний выбор стоит в фокусе.
-      this.add.text(cx, 100, t('hero.title'), textStyle(16)).setOrigin(0.5);
+      // Карточки по центру катка, ряд не шире промежутка между героинями фона.
+      this.menuArt();
       const ids = Object.keys(HEROES);
       addHeroPicker(this, this.nav, {
-        x: cx, y: 196, selected: this.hero(),
+        x: cx, y: CONTENT_MID, h: HERO_PICK_H,
+        maxWidth: 2 * MENU_ART_GAP - 10, selected: this.hero(),
         onPick: (id) => { setSetting('hero', id); this.play(this.difficulty()); },
       });
-      addButton(this, this.nav, { x: cx, y: 298, w: MENU_COLUMN.w, h: MENU_COLUMN.h, label: t('settings.back'),
-        onSelect: () => this.show('difficulty') });
+      back('difficulty');
       focus = Math.max(0, ids.indexOf(this.hero()));
     } else if (view === 'coop') {
+      this.menuArt();
       this.showCoop(cx, before);
       return;
     } else {
-      // столбец настроек как Options паузы (ui/menu-layout.js OPTIONS)
-      this.add.text(cx, OPTIONS.title, t('settings.title'), textStyle(16)).setOrigin(0.5);
+      // столбец настроек как Options паузы (ui/menu-layout.js OPTIONS), по центру катка
       const O = OPTIONS;
-      const rows = addVolumeSliders(this, this.nav, { x: cx, y: O.y, w: O.w, gap: O.step });
-      addButton(this, this.nav, { x: cx, y: O.y + rows * O.step, w: O.w, h: O.h, size: 12,
-        label: t('settings.back'), onSelect: () => this.show('main') });
+      const y = columnTop(optionRows(), O.step);
+      addVolumeSliders(this, this.nav, { x: cx, y, w: O.w, gap: O.step });
+      back('main');
     }
     this.objs = this.children.list.filter((o) => !before.has(o) && o.type !== 'Zone');
     this.nav.focus(focus);
@@ -182,20 +198,15 @@ export class MenuScene extends Phaser.Scene {
 
   // Сетевой кооп: ник, «Создать лобби» (хост) или код и «Подключиться» (гость). Оба уходят в сцену Lobby.
   showCoop(cx, before) {
-    this.add.text(cx, 96, t('coop.title'), textStyle(16)).setOrigin(0.5);
-    this.add.text(cx, 114, t('coop.note'), textStyle(9, '#dddddd', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5);
-    const status = this.add.text(cx, 300, '', textStyle(10, '#ff8080')).setOrigin(0.5);
+    // Строки столбика меню (subRow, 160×24, по центру катка): хост — ник и Create lobby, между группами
+    // подсказка, гость — код и Connect; под ними строка ошибок. Стрелки ходят сверху вниз, Back — внизу слева.
+    const rows = { name: 0, create: 1, note: 2, code: 3, connect: 4, status: 5 };
+    const r = (k) => subRow(rows[k], 5);
+    this.add.text(cx, r('note').y, t('coop.note'), textStyle(9, '#dddddd', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5);
+    const status = this.add.text(cx, r('status').y, '', textStyle(10, '#ff8080', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5);
     const say = (key) => status.setText(key ? t(key) : '');
 
-    // поля и кнопки в одном столбце: стрелки фокуса ходят сверху вниз (Name → Create → Code → Back).
-    // Все строки одной ширины и высоты, подписи в плейсхолдерах; группы хоста и гостя разделены шире.
-    const W = BUTTON.wide.w;
-    const H = BUTTON.wide.h;
-    const GAP = 6;
-    const left = cx - W / 2;
-    const half = (W - GAP) / 2;
-    const rows = { name: 146, create: 180, code: 224, back: 268 };
-    const nameRect = { x: cx, y: rows.name, w: W, h: H };
+    const nameRect = r('name');
     const namePanel = addPanel(this, nameRect.x, nameRect.y, nameRect.w, nameRect.h);
     const name = createTextInput(this, nameRect, { maxLength: NICK.max, placeholder: t('result.nick_hint') });
     name.el.value = readNick();
@@ -211,11 +222,11 @@ export class MenuScene extends Phaser.Scene {
     };
 
     addButton(this, this.nav, {
-      x: cx, y: rows.create, w: W, h: H, size: 12, label: t('coop.create'),
+      ...r('create'), label: t('coop.create'),
       onSelect: () => { const n = nick(); if (n) this.lobby({ role: 'host', nick: n }); },
     });
 
-    const codeRect = { x: left + half / 2, y: rows.code, w: half, h: H };
+    const codeRect = r('code');
     const codePanel = addPanel(this, codeRect.x, codeRect.y, codeRect.w, codeRect.h);
     const code = createTextInput(this, codeRect, { maxLength: ROOMS.codeLength, placeholder: t('coop.code_hint') });
     this.nav.add({
@@ -229,11 +240,11 @@ export class MenuScene extends Phaser.Scene {
       if (!c) { say('coop.need_code'); code.el.focus(); return; }
       this.lobby({ role: 'guest', nick: n, code: c });
     };
-    addButton(this, this.nav, { x: left + W - half / 2, y: rows.code, w: half, h: H, size: 12, label: t('coop.connect'), onSelect: connect });
+    addButton(this, this.nav, { ...r('connect'), label: t('coop.connect'), onSelect: connect });
     code.el.addEventListener('nick-enter', connect);
     name.el.addEventListener('nick-enter', () => code.el.focus());
 
-    addButton(this, this.nav, { x: cx, y: rows.back, w: W, h: H, size: 12, label: t('settings.back'), onSelect: () => this.show('play') });
+    addButton(this, this.nav, { ...backRect(), size: 12, label: t('settings.back'), onSelect: () => this.show('play') });
     this.inputs = [name, code];
     this.events.once('shutdown', () => this._dropInputs());
     this.objs = this.children.list.filter((o) => !before.has(o) && o.type !== 'Zone');

@@ -37,12 +37,14 @@ function drawBadge(g, cx, cy, r) {
 }
 
 /**
- * Нарисовать плашку ачивки в сцене (контейнер с центром по x, верх по y = 0).
+ * Нарисовать плашку в сцене (контейнер с центром по x, верх по y = 0): id ачивки или свой текст
+ * ({ head, name, bonus }, например лут босса).
  * @param {!Phaser.Scene} scene
- * @param {string} id
+ * @param {string|{head: string, name: string, bonus: string}} id
  * @return {!Phaser.GameObjects.Container}
  */
 export function drawAchievementToast(scene, id) {
+  const custom = typeof id === 'object' && id ? id : null;
   const { w, h } = TOAST;
   const c = scene.add.container(GAME_WIDTH / 2, 0);
   const g = scene.add.graphics();
@@ -52,10 +54,12 @@ export function drawAchievementToast(scene, id) {
   g.fillStyle(FILL, 1).fillRoundedRect(L + 1, 1, w - 2, h - 2, 7);
   drawBadge(g, L + h / 2 + 1, h / 2, h / 2 - 4);
   const tx = L + h + 4;
-  const head = scene.add.text(tx, 4, t('ach.unlocked'), textStyle(7, '#bdc1c6')).setOrigin(0, 0);
-  const name = scene.add.text(tx, 13, t(`ach.${id}.name`), textStyle(10, '#ffffff')).setOrigin(0, 0);
-  const def = ACHIEVEMENTS[id];
-  const bonus = def && def.bonus ? bonusText(def.bonus) : '';
+  const head = scene.add.text(tx, 4, custom ? custom.head : t('ach.unlocked'), textStyle(7, '#bdc1c6'))
+      .setOrigin(0, 0);
+  const name = scene.add.text(tx, 13, custom ? custom.name : t(`ach.${id}.name`), textStyle(10, '#ffffff'))
+      .setOrigin(0, 0);
+  const def = custom ? null : ACHIEVEMENTS[id];
+  const bonus = custom ? custom.bonus || '' : def && def.bonus ? bonusText(def.bonus) : '';
   const right = w / 2 - 8;
   const b = scene.add.text(right, 15, bonus, textStyle(8, '#8cff6a')).setOrigin(1, 0);
   // длинное название: бонус уходит в строку заголовка справа
@@ -81,6 +85,20 @@ export function takeToast() {
 export function showAchievementToasts(scene, ids) {
   if (!ids || !ids.length) return;
   for (const id of ids) if (ACHIEVEMENTS[id]) queue.push(id);
+  wake(scene);
+}
+
+/**
+ * Плашка со своим текстом (лут босса: предметы закреплены, выбор после забега).
+ * @param {!Phaser.Scene} scene
+ * @param {{head: string, name: string, bonus: string}} toast
+ */
+export function showToast(scene, toast) {
+  queue.push(toast);
+  wake(scene);
+}
+
+function wake(scene) {
   const mgr = scene.sys.game.scene;
   if (!mgr.getScene('Toast')) return;
   if (!mgr.isActive('Toast')) mgr.start('Toast');

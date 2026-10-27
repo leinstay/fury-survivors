@@ -2,8 +2,52 @@
 // Ошибки: копятся в errors, последняя пишется в localStorage (LAST_ERROR_KEY, с состоянием игры) и показывается
 // красной строкой поверх игры, чтобы игрок мог прислать скриншот: Phaser останавливает цикл кадров на
 // необработанном исключении, и без этого зависание выглядит как «просто повисло».
+import { CODEX_KINDS } from './core/codex.js';
+import { getCodex, saveCodex } from './services/codex.js';
+import { getInventory, setInventory } from './services/inventory.js';
+import { WEAPONS } from './data/weapons.js';
+import { PASSIVES } from './data/passives.js';
+import { ENEMIES } from './data/enemies.js';
+import { BOSSES } from './data/bosses.js';
+import { UNIQUES } from './data/items.js';
+
 const errors = [];
 const LAST_ERROR_KEY = 'fury-survivors.lastError';
+// Открытые записи кодекса до unlockCodex(): lockCodex() возвращает их (без копии — сброс к пустому).
+const CODEX_BACKUP_KEY = 'fury-survivors.codexSeenBackup';
+const CODEX_DEFS = { weapon: WEAPONS, passive: PASSIVES, enemy: ENEMIES, boss: BOSSES };
+const allSeen = (defs) => Object.fromEntries(Object.keys(defs).map((id) => [id, 1]));
+
+// Только для просмотра кодекса владельцем: все записи кодекса (оружие и эволюции, пассивки, враги, боссы)
+// и уникалки (inventory.seen) отмечаются увиденными и сохраняются. Герои и элиты в кодексе открыты всегда.
+function unlockCodex() {
+  const c = getCodex();
+  const inv = getInventory();
+  try {
+    if (!localStorage.getItem(CODEX_BACKUP_KEY)) {
+      const prev = { seen: c.seen, uniques: inv.seen || {} };
+      localStorage.setItem(CODEX_BACKUP_KEY, JSON.stringify(prev));
+    }
+  } catch { /* localStorage недоступен: откат будет к пустому */ }
+  for (const kind of CODEX_KINDS) c.seen[kind] = allSeen(CODEX_DEFS[kind]);
+  saveCodex();
+  setInventory({ ...inv, seen: allSeen(UNIQUES) });
+  return 'codex unlocked: reopen the Codex screen';
+}
+
+// Откат unlockCodex(): открытые записи как были до него (или пусто, если копии нет).
+function lockCodex() {
+  const c = getCodex();
+  const inv = getInventory();
+  let backup = null;
+  try { backup = JSON.parse(localStorage.getItem(CODEX_BACKUP_KEY)); } catch { backup = null; }
+  const was = (backup && backup.seen) || {};
+  for (const kind of CODEX_KINDS) c.seen[kind] = { ...(was[kind] || {}) };
+  saveCodex();
+  setInventory({ ...inv, seen: { ...((backup && backup.uniques) || {}) } });
+  try { localStorage.removeItem(CODEX_BACKUP_KEY); } catch { /* нет localStorage */ }
+  return backup ? 'codex locked: restored to the state before unlockCodex()' : 'codex locked: reset to empty';
+}
 let banner = null;
 
 function showError(text) {
@@ -83,6 +127,8 @@ export function installDebug(game) {
         errors: errors.slice(),
       };
     },
+    unlockCodex,
+    lockCodex,
     // Последняя записанная ошибка (localStorage) или null.
     lastError() {
       try { return JSON.parse(localStorage.getItem(LAST_ERROR_KEY)); } catch { return null; }

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createSim } from '../../src/core/sim.js';
-import { applyCard, chestItems, evolutionCard, findEvolution } from '../../src/core/upgrades.js';
+import { applyCard, skillChest, evolutionCard, findEvolution } from '../../src/core/upgrades.js';
 import { createRng } from '../../src/core/rng.js';
 import { WEAPONS } from '../../src/data/weapons.js';
 import { PASSIVES } from '../../src/data/passives.js';
@@ -33,7 +33,7 @@ test('combo: evolution takes the slot of the first part, second part is removed'
       passives: [],
     };
     build(p.weapons, p.passives, b);
-    const card = chestItems(p, createRng(1))[0];
+    const card = evolutionCard(findEvolution(p));
     assert.equal(card.id, combo.result);
     applyCard(p, card);
     assert.deepEqual(p.weapons.map((w) => w.id), [fill[0], combo.result, fill[1]]);
@@ -46,17 +46,16 @@ test('combo: evolution takes the slot of the first part, second part is removed'
   }
 });
 
-test('combo: chest without evolution gives upgrade, passive upgrade or heal', () => {
+test('combo: skill chest without evolution gives passive and weapon upgrades, or heal', () => {
   const p = { weapons: [maxed('blade_arc')], passives: [{ id: 'resistance', level: 1 }] };
-  const it = chestItems(p, createRng(2))[0];
-  assert.equal(it.kind, 'passive');
-  assert.equal(it.level, 2);
+  const it = skillChest(p, createRng(2));
+  assert.deepEqual(it.map((c) => [c.kind, c.level, c.prev]), [['passive', 2, 1]]);
   assert.equal(findEvolution(p), null);
   const q = { weapons: [maxed('blade_arc')], passives: [] };
-  assert.equal(chestItems(q, createRng(2))[0].kind, 'heal');
+  assert.deepEqual(skillChest(q, createRng(2)).map((c) => c.kind), ['heal']);
   const r = { weapons: [maxed('blade_arc'), { id: 'guardian_shields', level: 3 }], passives: [] };
-  const ri = chestItems(r, createRng(2))[0];
-  assert.deepEqual([ri.kind, ri.id, ri.level], ['weapon', 'guardian_shields', 4]);
+  const ri = skillChest(r, createRng(2));
+  assert.deepEqual(ri.map((c) => [c.kind, c.id, c.level, c.prev]), [['weapon', 'guardian_shields', 4, 3]]);
 });
 
 for (const combo of COMBOS) {
@@ -69,11 +68,11 @@ for (const combo of COMBOS) {
     sim._syncBuild();
     sim.dropPickup('chest', sim.player.x, sim.player.y);
     sim.step(DT, idle);
-    assert.equal(sim.state, 'chest', 'chest waits for the choice');
-    sim.chooseChest(0);
-    const ev = sim.events.find((e) => e.type === 'chest' && e.applied);
+    assert.equal(sim.state, 'chest', 'chest shows what fell out');
+    const ev = sim.events.find((e) => e.type === 'chest');
     assert.ok(ev, 'chest event');
-    const it = ev.items[0];
+    const it = ev.rolls[0].cards.find((c) => c.kind === 'weapon');
+    sim.chooseChest();
     assert.equal(it.id, combo.result);
     assert.equal(it.evolved, true);
     assert.deepEqual(it.from, combo.from);
@@ -88,7 +87,7 @@ test('chest: every item has kind, id, level, isNew; evolution has both parts in 
   const sim = createSim({ seed: 32 });
   sim.dropPickup('chest', sim.player.x, sim.player.y);
   sim.step(DT, idle);
-  for (const it of sim.events.find((e) => e.type === 'chest').items) {
+  for (const it of sim.events.find((e) => e.type === 'chest').rolls[0].cards) {
     for (const k of ['kind', 'id', 'level', 'isNew', 'icon']) assert.ok(k in it, k);
   }
   for (const combo of COMBOS) {
@@ -98,7 +97,7 @@ test('chest: every item has kind, id, level, isNew; evolution has both parts in 
   }
 });
 
-test('chest: elite always drops a chest, boss drops one too', () => {
+test('chest: elite always drops a skill chest, boss drops none (item loot instead)', () => {
   for (const type of ['harpy', 'slime', 'catgirl', 'ghost', 'foxgirl', 'succubus']) {
     for (let seed = 1; seed <= 3; seed++) {
       const sim = createSim({ seed });
@@ -111,7 +110,8 @@ test('chest: elite always drops a chest, boss drops one too', () => {
   const sim = createSim({ seed: 4 });
   const boss = sim.spawnBoss('dryad_queen');
   sim.damageEnemy(boss, 1e9, 'blade_arc', 0, 0, 0);
-  assert.equal(sim.pickups.filter((p) => p.kind === 'chest').length, 1);
+  assert.equal(sim.pickups.filter((p) => p.kind === 'chest').length, 0);
+  assert.ok(sim.player.loot.length >= 1, 'boss gives item loot');
 });
 
 test('props: break from weapons, push propBreak, drop by table', () => {

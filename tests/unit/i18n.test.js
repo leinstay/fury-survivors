@@ -98,6 +98,35 @@ test('i18n: codex labels for weapon params, statuses and boss attacks', () => {
   assert.ok(has('codex.unique_locked_desc'));
 });
 
+test('i18n: summoned enemies have a plural name for the codex', () => {
+  const summoned = new Set();
+  for (const b of Object.values(BOSSES)) {
+    for (const a of b.attacks || []) if (a.type === 'summon') summoned.add(a.enemy);
+    if (b.summon && b.summon.enemy) summoned.add(b.summon.enemy);
+  }
+  assert.ok(summoned.size > 0);
+  assert.deepEqual(missing([...summoned].map((id) => `enemy.${id}.plural`)), []);
+  const s = t('codex.atk.summon', { enemies: t('enemy.harpy.plural') });
+  assert.doesNotMatch(s, /\{[a-z]+\}/, s);
+  assert.match(s, /harpies/);
+});
+
+test('i18n: enemy and boss descriptions are flavor, not mechanics', () => {
+  const bad = /\b(wall|walls|marches|screen|chases? (you )?directly|behavior|after the (first|second) boss)\b/i;
+  const keys = [...Object.keys(ENEMIES).map((id) => `enemy.${id}.desc`),
+    ...Object.keys(BOSSES).filter((id) => id !== 'reaper').map((id) => `boss.${id}.desc`)];
+  for (const k of keys) assert.doesNotMatch(dict[k], bad, k);
+});
+
+test('i18n: boss attack names use sentence case', () => {
+  // Death Touch и прочие строки Жницы ведёт её агент
+  const atk = Object.keys(dict).filter((k) => /^codex\.atk\.[a-z_]+$/.test(k) && k !== 'codex.atk.death_touch');
+  for (const k of atk) {
+    const words = dict[k].replace(/\{[a-z]+\}/g, '').trim().split(/\s+/).slice(1);
+    assert.ok(words.every((w) => !/^[A-Z]/.test(w)), `${k}: ${dict[k]}`);
+  }
+});
+
 test('i18n: achievement descriptions have every placeholder filled', () => {
   for (const id of Object.keys(ACHIEVEMENTS)) {
     const s = t(`ach.${id}.desc`, achievementParams(id));
@@ -112,6 +141,27 @@ test('i18n: content descriptions have no placeholders', () => {
     ...nameDesc('unique', Object.keys(UNIQUES)), ...nameDesc('hero', Object.keys(HEROES)),
   ];
   for (const k of ids) assert.doesNotMatch(dict[k], /\{[a-z]+\}/, k);
+});
+
+// Описания (desc и подсказки крафта) без тире и надутых слов, у оружий без ящиков: ящики бьют все оружия.
+const descKeys = Object.keys(dict).filter((k) => /\.desc$/.test(k) || /^craft\.hint\./.test(k));
+const INFLATED = ['crucial', 'pivotal', 'robust', 'vibrant', 'showcases?', 'delve', 'enhances?', 'key',
+  'landscape', 'testament', 'meticulous', 'seamless(ly)?', 'powerful', 'devastating', 'unleash(es)?',
+  'dominates?', 'master', 'stunning', 'breathtaking', 'renowned', 'incredible', 'ultimate', 'serves as',
+  'features', 'boasts'];
+
+test('i18n: descriptions have no dashes and no inflated words', () => {
+  const inflated = new RegExp(`\\b(${INFLATED.join('|')})\\b`, 'i');
+  assert.ok(descKeys.length > 50);
+  for (const k of descKeys) {
+    assert.doesNotMatch(dict[k], /[—–]/, k);
+    assert.doesNotMatch(dict[k], inflated, k);
+  }
+});
+
+test('i18n: weapon descriptions do not mention crates', () => {
+  const keys = Object.keys(WEAPONS).map((id) => `weapon.${id}.desc`);
+  for (const k of keys) assert.doesNotMatch(dict[k], /\b(crates?|box|boxes)\b/i, k);
 });
 
 test('i18n: no outdated words (Armor, Steel) in any string', () => {

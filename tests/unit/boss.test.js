@@ -110,7 +110,7 @@ test('boss attack: rageOnly attacks wait for the rage phase', () => {
   assert.equal(enemyProj(sim).length, 1);
 });
 
-test('boss: killing a non-final boss drops a chest and the run continues', () => {
+test('boss: killing a non-final boss gives item loot, no skill chest, and the run continues', () => {
   const first = forest.timeline.find((e) => e.type === 'boss').boss;
   const sim = createSim({ seed: 6 });
   god(sim);
@@ -118,7 +118,8 @@ test('boss: killing a non-final boss drops a chest and the run continues', () =>
   sim.damageEnemy(boss, 1e12, 'blade_arc', 0, 0, 0);
   assert.equal(sim.state, 'running');
   assert.ok(sim.events.some((e) => e.type === 'bossDown' && e.boss === first));
-  assert.equal(sim.pickups.filter((p) => p.kind === 'chest').length, 1);
+  assert.equal(sim.pickups.filter((p) => p.kind === 'chest').length, 0, 'skill chests come from elites only');
+  assert.ok(sim.player.loot.length >= 1, 'item loot is rolled');
   const last = sim.spawnBoss('dryad_queen');
   sim.damageEnemy(last, 1e12, 'blade_arc', 0, 0, 0);
   assert.ok(sim.won);

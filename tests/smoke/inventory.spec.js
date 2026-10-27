@@ -111,30 +111,67 @@ test('achievements view opens from the menu', async ({ page }) => {
   expect(errors.get()).toEqual([]);
 });
 
-test('loot screen after the run: take and skip, then results', async ({ page }) => {
+test('boss loot opens right away: take, disassemble for crystals, world waits', async ({ page }) => {
   const errors = collectConsoleErrors(page);
   await page.goto('/');
   await startGame(page);
   const before = await page.evaluate(async () => {
     const S = await import('/src/services/inventory.js');
+    const A = await import('/src/services/achievements.js');
     const gs = window.__game.game.scene.getScene('Game');
     const e = gs.sim.spawnBoss('kitsune_empress');
     gs.sim.damageEnemy(e, 1e12, 'test', 0, 0, 0);
+    const inv = S.getInventory();
+    return { stash: inv.stash.length, crystals: inv.wallet.crystals || 0,
+      dis: A.getAchievements().counters.disassembled || 0 };
+  });
+  // сундук шмоток открывается сам: анимация, затем карточки
+  await page.waitForFunction(() => window.__game.debug().scenes.includes('Loot'));
+  expect(await page.evaluate(() => window.__game.game.scene.getScene('Game').sim.state)).toBe('loot');
+  await page.waitForFunction(() => window.__game.game.scene.getScene('Loot').nav.items?.length > 0);
+  await page.waitForTimeout(200);
+  await page.screenshot({ path: 'tools/out/shots/loot-screen.png' });
+  const entries = await page.evaluate(() =>
+    window.__game.game.scene.getScene('Game').sim.player.loot[0].entries.map((e) =>
+      (e.item ? { kind: e.kind, uid: e.item.uid } : { kind: e.kind })));
+  const items = entries.filter((e) => e.kind !== 'scroll');
+  // Esc не закрывает экран
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(100);
+  expect(await page.evaluate(() => window.__game.debug().scenes.includes('Loot'))).toBe(true);
+  const t0 = await page.evaluate(() => window.__game.game.scene.getScene('Game').sim.time);
+  let want = 0;
+  if (items.length) {
+    await clickSceneText(page, 'Loot', 'Take'); // первый предмет в стеш
+    if (items.length > 1) {
+      const label = await page.evaluate(() => window.__game.game.scene.getScene('Loot').nav.items
+        .map((i) => i.text?.text).find((s) => s && s.startsWith('Disassemble all')));
+      want = Number(label.match(/\+(\d+)/)[1]);
+      await clickSceneText(page, 'Loot', label);
+    }
+  }
+  await clickSceneText(page, 'Loot', 'Done');
+  await page.waitForFunction(() => !window.__game.debug().scenes.includes('Loot'));
+  await page.waitForFunction((t) => window.__game.game.scene.getScene('Game').sim.time > t, t0);
+  const after = await page.evaluate(async () => {
+    const S = await import('/src/services/inventory.js');
+    const A = await import('/src/services/achievements.js');
+    const inv = S.getInventory();
+    return { stash: inv.stash.length, crystals: inv.wallet.crystals || 0,
+      dis: A.getAchievements().counters.disassembled || 0 };
+  });
+  expect(after.stash).toBe(before.stash + (items.length ? 1 : 0));
+  expect(after.crystals).toBeGreaterThanOrEqual(before.crystals + want);
+  expect(after.dis).toBe(before.dis + Math.max(0, items.length - 1));
+  // экрана лута после забега нет
+  await page.evaluate(() => {
+    const gs = window.__game.game.scene.getScene('Game');
     gs.scene.pause();
     gs.scene.launch('GameOver', { sim: gs.sim });
-    return S.getInventory().stash.length;
   });
   await page.waitForFunction(() => window.__game.debug().scenes.includes('GameOver'));
-  const kinds = await page.evaluate(() =>
-    window.__game.game.scene.getScene('Game').sim.player.loot[0].entries.map((e) => e.kind));
-  const items = kinds.filter((k) => k !== 'scroll').length;
-  // первая карточка: Take (или Next/Done, если в сундуке одни свитки)
-  if (items) await clickSceneText(page, 'GameOver', 'Take');
-  await clickSceneText(page, 'GameOver', 'Done');
-  await page.waitForFunction(() => window.__game.game.scene.getScene('GameOver').data0.lootDone);
-  const after = await page.evaluate(async () =>
-    (await import('/src/services/inventory.js')).getInventory().stash.length);
-  expect(after).toBe(before + (items ? 1 : 0));
+  expect(await page.evaluate(() => window.__game.game.scene.getScene('GameOver').nav.items
+    .some((i) => i.text?.text === 'Take'))).toBe(false);
   expect(await page.evaluate(() => window.__game.debug().errors)).toEqual([]);
   expect(errors.get()).toEqual([]);
 });

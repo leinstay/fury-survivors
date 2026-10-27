@@ -1,7 +1,7 @@
 // Симуляция игры. Чистая логика: без Phaser, без DOM, без Math.random.
 // Контракт полей и методов описан в docs/ARCHITECTURE.md.
 import {
-  SIM, PLAYER, COMBAT, XP, DROPS, LEVEL_UP, HUD, SLOTS, GAME_WIDTH, GAME_HEIGHT, CHEST,
+  SIM, PLAYER, COMBAT, XP, DROPS, LEVEL_UP, HUD, SLOTS, GAME_WIDTH, GAME_HEIGHT,
 } from '../data/constants.js';
 import { COOP } from '../data/coop.js';
 import { HEROES } from '../data/heroes.js';
@@ -122,14 +122,23 @@ class Sim {
     this.stamp = 0;
     this.frame = 0;
     this.pendingLevels = 0;
-    // выбор супероружия из сундука (state 'chest'), см. chooseChest; кооп: показ выпавшего обоим (state 'reveal',
-    // shown — что выпало, revealT — сколько ещё показывать)
-    this.chest = { cards: [], shown: [], revealT: 0 };
+    // сундук скиллов (state 'chest'): rolls — [{player, cards}] выпавшее (уже применено), done[i] — игрок i
+    // закрыл показ (chestOk); player — кто подобрал
+    this.chest = { rolls: [], done: [], player: 0 };
     // Лоадауты (сумки) по игрокам: o.loadouts[i] (соло — [0]). Лут с боссов (pl.loot) катится своим RNG от
     // seed: ход забега от него не зависит, а у обоих клиентов коопа он одинаковый.
     this.loadouts = Array.isArray(o.loadouts) ? o.loadouts : [];
     this.lootRng = createRng(hashSeed(this.seed, 11, 13));
     this.bossKills = 0;     // убито боссов (номер следующего сундука с лутом, BOSS_DROPS)
+    // Экран лута сразу после босса (o.lootScreen, игра ставит у обоих клиентов): state 'loot', мир стоит,
+    // пока каждый игрок не решит по своим предметам (lootDone). Решения (стеш, кристаллы) вне сима, в сим
+    // приходит только «закончил». Без опции (боты, инструменты) лут лишь копится в pl.loot.
+    this.lootScreen = !!o.lootScreen;
+    // без эволюций из сундука по игрокам (лаборатория баланса tools/simulation): o.noEvolution[i]
+    this.noEvolution = Array.isArray(o.noEvolution) ? o.noEvolution : [];
+    this.lootPending = 0;   // сундуков лута, ждущих экрана (открывается, когда state снова 'running')
+    this.lootDone = [];     // state 'loot': закончил ли игрок i
+    this.winAfterLoot = false; // финал или Жница убиты: победа после экрана лута
 
     this.grid = new Grid(SIM.gridCellSize, 7, 1024);
     this.pgrid = new Grid(XP.mergeRadius * 2, 7, 2048);
@@ -160,7 +169,6 @@ class Sim {
     this.levelTurn = 0;     // чей ход выбирать карточку (по очереди, индекс растёт с каждым уровнем)
     this.picker = 0;        // индекс игрока, который выбирает сейчас (state 'levelup')
     this.resumeT = 0;       // сколько ещё стоит мир после выбора (state 'resume')
-    this.chest.player = 0;
     this._syncBuild();
     this._updateChunks();
   }
@@ -206,7 +214,9 @@ class Sim {
       dynMore: null,     // множители, что меняются в забеге: кости, last_chance
       dice: null, diceNext: 0, // кости: {up, down} текущей минуты, время следующего броска
       cheatUsed: false, cheatT: 0, // last_chance: сработал ли, сколько ещё неуязвимости до штрафа HP
-      loot: [],          // сундуки с боссов: [{tier, boss, entries (rollChest), hearts}], разбор после забега
+      // сундуки с боссов: [{tier, boss, entries (rollChest), hearts}]; решения по ним — экран лута (state
+      // 'loot', src/ui/loot.js), что не решено — после забега
+      loot: [],
     };
     if (uq && uq.passiveSlotsAdd) pl.slots.passives += uq.passiveSlotsAdd;
     if (uq && uq.noNewWeapons) pl.slots.weapons = pl.weapons.length;
@@ -277,13 +287,9 @@ class Sim {
       }
       return;
     }
-    if (this.state === 'reveal') {
-      // кооп: показ сундука, мир стоит у обоих; время показа идёт по тикам, поэтому одинаково
-      if (dt > 0) this.chest.revealT -= dt;
-      if (this.chest.revealT <= 0) this.endReveal();
-      return;
-    }
     if (this.state !== 'running') return;
+    // лут, отложенный сундуком или карточками, открывается, как только они закрылись
+    if (this.lootPending > 0) { this._openLoot(); return; }
     if (!(dt > 0)) return;
     if (dt > 0.1) dt = 0.1;
     this._telemetry('input', input);
@@ -323,6 +329,7 @@ class Sim {
     this._sweepProps();
     this._sweepEnemies();
     this._checkLevel();
+    if (this.lootPending > 0 && this.state === 'running') this._openLoot();
     this._telemetry('afterStep');
   }
 
@@ -784,12 +791,12 @@ class Sim {
           this.overtime = this.time;
           this.events.push({ type: 'overtime' });
         } else {
-          this._win();
+          this._winAfterLoot();
         }
       } else {
         this.events.push({ type: 'bossDown', boss: e.type });
         // Жница: победа, овертайм кончается
-        if (e.def.victory) { this.won = true; this._win(); }
+        if (e.def.victory) { this.won = true; this._winAfterLoot(); }
       }
       return;
     }
@@ -937,7 +944,14 @@ class Sim {
     this.events.push({ type: 'thorns', player: pl.id, x: pl.x, y: pl.y });
   }
 
+  // Победа от убийства босса: с экраном лута — после него (lootFinish), иначе сразу.
+  _winAfterLoot() {
+    if (this.lootScreen && this.lootPending > 0) this.winAfterLoot = true;
+    else this._win();
+  }
+
   _win() {
+    this.winAfterLoot = false;
     this.state = 'victory';
     this.events.push({ type: 'victory' });
   }
@@ -1377,43 +1391,60 @@ class Sim {
     this.events.push({ type: 'pickup', kind: pk.kind, player: pl.id });
   }
 
-  // Сундук достаётся тому, кто его подобрал (pl): его супероружия, его апгрейды.
+  // Сундук скиллов (с элит): без выбора, UP.skillChest — +1 пассивке и +1 оружию (или эволюция), иначе
+  // лечение. Соло — тому, кто подобрал; кооп — каждому свой бросок. Карточки применяются сразу, мир стоит
+  // (state 'chest'), пока каждый не нажмёт Ok на показе (chestOk). Второй сундук за кадр добавляется к показу.
   _openChest(pl = this.player) {
-    // Несколько готовых супероружий: игрок выбирает сам (state 'chest', рендер открывает экран сундука с выбором).
-    const choices = UP.chestChoices(pl, this.rng,
-        CHEST.maxChoices + ((pl.uq && pl.uq.evoChoicesAdd) || 0));
-    if (choices.length && this.state === 'running') {
-      this.state = 'chest';
-      this.chest.cards = choices;
-      this.chest.player = pl.id;
-      this._telemetry('offer', pl.id, 'chest', choices);
-      this.events.push({ type: 'chest', items: [], choice: true, player: pl.id });
-      return;
+    const who = this.coop ? this.players : [pl];
+    const rolls = [];
+    for (const p of who) {
+      const cards = UP.skillChest(p, this.rng, !this.noEvolution[p.id]);
+      for (const c of cards) this._applyCard(c, p);
+      rolls.push({ player: p.id, cards });
+      this._logPick({ act: 'chest', player: p.id, card: null, offered: cards });
     }
-    const items = UP.chestItems(pl, this.rng);
-    for (const it of items) this._applyCard(it, pl);
     this._syncBuild();
-    this.events.push({ type: 'chest', items, player: pl.id });
-    this._logPick({ act: 'chest', player: pl.id, card: null, offered: items });
-    if (this.coop) this._reveal(items, pl);
-  }
-
-  // Кооп: выпавшее из сундука видят оба, мир стоит CHEST.revealTime (или пока хозяин не закроет, endReveal).
-  _reveal(items, pl) {
-    if (this.state === 'reveal') this.chest.shown = this.chest.shown.concat(items);
-    else this.chest.shown = items.slice();
+    if (this.state !== 'chest') this.chest.rolls = [];
+    this.chest.rolls.push(...rolls);
+    this.chest.done = this.players.map(() => false);
     this.chest.player = pl.id;
-    this.chest.revealT = CHEST.revealTime;
-    this.state = 'reveal';
+    this.state = 'chest';
+    this.events.push({ type: 'chest', player: pl.id, rolls });
   }
 
-  /** Конец показа сундука (таймер или хозяин сундука): игра идёт дальше, затем отложенные уровни. */
-  endReveal() {
-    if (this.state !== 'reveal') return;
-    this.state = 'running';
-    this.chest.shown = [];
-    this._checkLevel();
-    this.resumeDelay();
+  /**
+   * Игрок who закрыл показ сундука скиллов. Когда закрыли все, игра идёт дальше (SIM.resumeDelay), затем
+   * отложенные уровни и лут.
+   * @param {number=} who
+   * @return {boolean} принято ли
+   */
+  chestOk(who = 0) {
+    if (this.state !== 'chest' || !this.players[who] || this.chest.done[who]) return false;
+    this.chest.done[who] = true;
+    if (this.chest.done.every(Boolean)) {
+      this.chest.rolls = [];
+      this.chest.done = [];
+      this.state = 'running';
+      this._checkLevel();
+      this.resumeDelay();
+    }
+    return true;
+  }
+
+  /**
+   * Закрыть показ сундука за всех (боты и инструменты; выбора в сундуке больше нет).
+   * @return {!Array<!Object>} применённые карточки
+   */
+  chooseChest() {
+    if (this.state !== 'chest') return [];
+    const cards = this.chest.rolls.flatMap((r) => r.cards);
+    for (let i = 0; i < this.players.length; i++) this.chestOk(i);
+    return cards;
+  }
+
+  /** То же, что chooseChest (старое имя для ботов). */
+  skipChest() {
+    return this.chooseChest();
   }
 
   // Игра после выбора и паузы идёт не сразу, а через SIM.resumeDelay (state 'resume'): экран выбора успевает
@@ -1422,37 +1453,6 @@ class Sim {
     if (this.state !== 'running') return;
     this.state = 'resume';
     this.resumeT = SIM.resumeDelay;
-  }
-
-  // Выбор супероружия из сундука (state 'chest'); потом отложенные уровни.
-  chooseChest(i) {
-    if (this.state !== 'chest') return;
-    const card = this.chest.cards[i];
-    if (!card) return;
-    this._logPick({ act: 'evo', player: this.chest.player, card, offered: this.chest.cards });
-    this._closeChest([card]);
-  }
-
-  // Пропустить супероружие: обычное содержимое сундука, как будто готовых супероружий не было.
-  // @return {!Array<!Object>} применённые карточки (рендер показывает их)
-  skipChest() {
-    if (this.state !== 'chest') return [];
-    const items = UP.chestItems(this.players[this.chest.player], this.rng, true);
-    this._logPick({ act: 'evoSkip', player: this.chest.player, card: null, offered: this.chest.cards });
-    this._closeChest(items);
-    return items;
-  }
-
-  _closeChest(items) {
-    const pl = this.players[this.chest.player];
-    for (const it of items) this._applyCard(it, pl);
-    this._syncBuild();
-    this.chest.cards = [];
-    this.state = 'running';
-    this.events.push({ type: 'chest', items, applied: true, player: pl.id });
-    this._logPick({ act: 'chest', player: pl.id, card: null, offered: items });
-    if (this.coop) { this._reveal(items, pl); return; } // уровни — после показа
-    this._checkLevel();
   }
 
   // Слияние далёких кристаллов опыта, когда их слишком много.
@@ -1748,7 +1748,35 @@ class Sim {
       const hearts = rollHearts(this.lootRng, index);
       pl.loot.push({ tier, boss: e.type, entries, hearts });
     }
+    if (this.lootScreen) this.lootPending++;
     this.events.push({ type: 'loot', boss: e.type, tier, index });
+  }
+
+  // Экран лута (state 'loot'): мир стоит у всех, пока каждый не закончит (lootDone). Убитый в коопе тоже решает.
+  _openLoot() {
+    this.lootPending = 0;
+    this.lootDone = this.players.map(() => false);
+    this.state = 'loot';
+    this.events.push({ type: 'lootOpen' });
+  }
+
+  /**
+   * Игрок who закончил с лутом (взял или разобрал все предметы; сами решения — вне сима). Когда закончили все,
+   * игра идёт дальше (через SIM.resumeDelay), затем отложенные уровни.
+   * @param {number=} who
+   * @return {boolean} принято ли
+   */
+  lootFinish(who = 0) {
+    if (this.state !== 'loot' || !this.players[who] || this.lootDone[who]) return false;
+    this.lootDone[who] = true;
+    if (this.lootDone.every(Boolean)) {
+      this.lootDone = [];
+      if (this.winAfterLoot) { this._win(); return true; }
+      this.state = 'running';
+      this._checkLevel();
+      this.resumeDelay();
+    }
+    return true;
   }
 
   // Свободный слот таймеров повторного попадания среди оружия всех игроков.

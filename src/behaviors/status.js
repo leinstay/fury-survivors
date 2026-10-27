@@ -2,17 +2,15 @@
 // src/data/status.js).
 // Детерминировано: только время сима, его RNG и поля врага. Объекты врагов переиспользуются из пула, поэтому
 // эффект привязан к uid: у нового врага в том же объекте uid другой, и эффектов на нём нет.
-import { WEAPON_BEHAVIOR } from '../data/weapons.js';
 import { STATUS, STATUS_ORDER, DOT } from '../data/status.js';
 
-const SLOW = WEAPON_BEHAVIOR.slow;
 const EPS = 1e-9;
 
 // Замедлить врага: скорость × mul на time секунд. Сильнее и дольше из действующего и нового.
-// Босс поддаётся слабее: доля замедления × (1 - SLOW.bossResist).
+// Боссы иммунны ко всем эффектам (замедление, корень, ДоТы, отталкивание): решение владельца.
 export function applySlow(e, sim, mul, time) {
-  if (e.dead || !(mul < 1) || !(time > 0)) return;
-  const m = e.boss ? 1 - (1 - mul) * (1 - SLOW.bossResist) : mul;
+  if (e.dead || e.boss || !(mul < 1) || !(time > 0)) return;
+  const m = mul;
   const end = sim.time + time;
   if (e.slowUid === e.uid && e.slowEnd > sim.time) {
     if (m < e.slowMul) e.slowMul = m;
@@ -26,10 +24,10 @@ export function applySlow(e, sim, mul, time) {
 
 // Пригвоздить врага (копьё, impale): стоит на месте time секунд, свой таймер, отдельно от замедления (не
 // склеивается с ним: после корня враг снова под своим замедлением, если оно ещё идёт). Продлевается, если дольше.
-// Босс не пригвождается: вместо корня замедление applySlow(0) (доля × (1 - bossResist)).
+// Босс не пригвождается и не замедляется.
 export function applyRoot(e, sim, time) {
   if (e.dead || !(time > 0)) return;
-  if (e.boss) { applySlow(e, sim, 0, time); return; }
+  if (e.boss) return;
   const end = sim.time + time;
   if (e.rootUid === e.uid && e.rootEnd > end) return;
   e.rootUid = e.uid;
@@ -94,7 +92,7 @@ export function dotTicks(def, hit, share) {
  * @return {boolean} наложен ли
  */
 export function applyStatus(e, sim, status, hit, wid, by) {
-  if (!status || e.dead) return false;
+  if (!status || e.dead || e.boss) return false;
   const def = STATUS[status.type];
   if (!def) return false;
   const slow = def.stacking === 'slow';

@@ -136,20 +136,22 @@ test('coop: after a choice the world waits SIM.resumeDelay before it moves again
   assert.ok(Math.abs(n * DT - SIM.resumeDelay) < 2 * DT, `${n} ticks`);
 });
 
-test('coop: a chest is shown to both with the world stopped, the owner can end the show', () => {
+test('coop: a skill chest rolls for each player, the world stands until both press Ok', () => {
   const sim = coop(14);
   const b = sim.players[1];
+  const lv = sim.players.map((p) => p.weapons[0].level);
   sim._openChest(b);
-  assert.ok(sim.state === 'reveal' || sim.state === 'chest', sim.state);
-  if (sim.state === 'chest') sim.chooseChest(0);
-  assert.equal(sim.state, 'reveal');
+  assert.equal(sim.state, 'chest');
   assert.equal(sim.chest.player, 1);
-  assert.ok(sim.chest.shown.length > 0);
+  assert.deepEqual(sim.chest.rolls.map((r) => r.player), [0, 1]);
+  assert.deepEqual(sim.players.map((p) => p.weapons[0].level), lv.map((l) => l + 1), 'each got own upgrade');
   const t0 = sim.time;
+  assert.equal(sim.chestOk(1), true);
+  assert.equal(sim.chestOk(1), false);
   for (let i = 0; i < 30; i++) sim.step(DT, { players: [idle, idle] });
   assert.equal(sim.time, t0);
-  assert.equal(sim.state, 'reveal');
-  sim.endReveal();
+  assert.equal(sim.state, 'chest');
+  assert.equal(sim.chestOk(0), true);
   assert.equal(sim.state, 'resume');
   settle(sim);
 });

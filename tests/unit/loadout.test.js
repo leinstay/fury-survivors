@@ -6,13 +6,11 @@ import { hashParts, hashSim, simFingerprint } from '../../src/core/lockstep.js';
 import { createRng } from '../../src/core/rng.js';
 import { createBag, place, rollItem, makeUnique } from '../../src/core/items.js';
 import { loadoutStats, normalizeLoadout, bagSnapshot } from '../../src/core/loadout.js';
-import { findEvolutions } from '../../src/core/upgrades.js';
 import { createTelemetry } from '../../src/core/telemetry.js';
 import { HEROES } from '../../src/data/heroes.js';
 import { WEAPONS } from '../../src/data/weapons.js';
 import { PASSIVES } from '../../src/data/passives.js';
 import { UNIQUES, BOSS_DROPS, CHEST_SIZE } from '../../src/data/items.js';
-import { CHEST } from '../../src/data/constants.js';
 
 const near = (a, b, eps = 1e-6) => assert.ok(Math.abs(a - b) < eps, `${a} ≈ ${b}`);
 
@@ -94,29 +92,12 @@ test('unique kaom_heart: ×2 regen only while standing', () => {
   near(pl.hp, h + pl.stats.regen);
 });
 
-test('unique greed: food does not heal, one more evolution choice', () => {
+// Плюс greed («+1 вариант в сундуке эволюции») пропал вместе с выбором в сундуке: см. отчёт, нужен новый плюс.
+test('unique greed: food does not heal', () => {
   const { pl, sim } = solo('greed');
   pl.hp = 10;
   sim._collect({ kind: 'heal', value: 30 }, pl);
   near(pl.hp, 10);
-  // все оружия и пассивки вкачаны: эволюций готово больше, чем показывает сундук
-  const setup = (p) => {
-    p.weapons = Object.keys(WEAPONS).filter((id) => !WEAPONS[id].evolved)
-        .map((id) => ({ id, level: WEAPONS[id].maxLevel }));
-    p.passives = Object.keys(PASSIVES).map((id) => ({ id, level: PASSIVES[id].levels.length }));
-  };
-  setup(pl);
-  sim._syncBuild();
-  const ready = findEvolutions(pl).length;
-  sim._openChest(pl);
-  assert.equal(sim.chest.cards.length,
-      Math.min(ready, CHEST.maxChoices + UNIQUES.greed.evoChoicesAdd));
-  const other = createSim({ seed: 3 });
-  setup(other.player);
-  other._syncBuild();
-  other._openChest(other.player);
-  assert.equal(other.chest.cards.length, Math.min(ready, CHEST.maxChoices));
-  if (ready > CHEST.maxChoices) assert.ok(sim.chest.cards.length > other.chest.cards.length);
 });
 
 test('unique sprinter: damage scales with speed, −50% standing', () => {

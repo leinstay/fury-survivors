@@ -18,11 +18,11 @@
 // Ориентир VS: Spinach +10% урона за уровень, Armor +1 (у нас процент), Hollow Heart +20% HP, Pummarola +0.2 HP/с, Empty Tome −8% кулдауна.
 export const PASSIVES = {
   max_hp:   { icon: 'icon_max_hp', stat: 'maxHp', levels: [0.20, 0.40, 0.60, 0.80, 1.00] },
-  attack:    { icon: 'icon_attack', stat: 'attack', levels: [0.15, 0.30, 0.45, 0.60, 0.75] },
-  magic:    { icon: 'icon_magic', stat: 'magic', levels: [0.15, 0.30, 0.45, 0.60, 0.75] },
+  attack:    { icon: 'icon_attack', stat: 'attack', levels: [0.20, 0.40, 0.60, 0.80, 1.00] },
+  magic:    { icon: 'icon_magic', stat: 'magic', levels: [0.20, 0.40, 0.60, 0.80, 1.00] },
   speed:    { icon: 'icon_speed', stat: 'speed', levels: [0.08, 0.16, 0.24, 0.32, 0.40] },
-  crit:     { icon: 'icon_crit', stat: 'crit', levels: [0.05, 0.10, 0.15, 0.20, 0.25] },
-  crit_dmg: { icon: 'icon_crit_dmg', stat: 'critDmg', levels: [0.20, 0.40, 0.60, 0.80, 1.00], minLevel: 8 },
+  crit:     { icon: 'icon_crit', stat: 'crit', levels: [0.08, 0.16, 0.24, 0.32, 0.40] },
+  crit_dmg: { icon: 'icon_crit_dmg', stat: 'critDmg', levels: [0.40, 0.80, 1.20, 1.60, 2.00], minLevel: 8 },
   area:     { icon: 'icon_area', stat: 'area', levels: [0.08, 0.16, 0.24, 0.32, 0.40] },
   duration: { icon: 'icon_duration', stat: 'duration', levels: [0.10, 0.20, 0.30, 0.40, 0.50] },
   pickup:   { icon: 'icon_pickup', stat: 'pickup', levels: [0.25, 0.50, 0.75, 1.00, 1.25] },

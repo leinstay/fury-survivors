@@ -30,7 +30,7 @@ import { copyText } from '../ui/clipboard.js';
 import { normalizeLoadout } from '../core/loadout.js';
 import { getInventory } from '../services/inventory.js';
 import { withAchievements } from '../services/achievements.js';
-import { BUTTON } from '../ui/menu-layout.js';
+import { BUTTON, screenTitle } from '../ui/menu-layout.js';
 
 // Колонки лобби: кнопки сложности, Start/Cancel и карточки героев одной ширины, центры на cx ± BTN_DX.
 const BTN_W = BUTTON.action.w; // кнопки в ряд — размер action (ui/menu-layout.js)
@@ -76,7 +76,7 @@ export class LobbyScene extends Phaser.Scene {
     stopMusic();
     const cx = GAME_WIDTH / 2;
     this.nav = new FocusNav(this, { onBack: () => this.leave() });
-    this.add.text(cx, 20, t('lobby.title'), textStyle(20, COLORS.accent, { stroke: '#000000', strokeThickness: 4 })).setOrigin(0.5);
+    screenTitle(this, t('lobby.title'));
     addPanel(this, cx, 190, 420, 298);
     this.codeLabel = this.add.text(cx, 56, '', textStyle(10, '#aaaaaa')).setOrigin(0.5);
     this.codeText = this.add.text(cx, 78, '', textStyle(26, '#ffd84a', { stroke: '#000000', strokeThickness: 5 })).setOrigin(0.5);

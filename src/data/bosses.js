@@ -21,11 +21,12 @@
 //     любая атака может иметь rageOnly: true — работает только в фазе ярости
 //   rage: { hpFraction, cooldownMul, speedMul? },  // ниже этой доли HP кулдауны атак умножаются на cooldownMul
 //   final: true,         // убийство этого босса завершает забег победой; у остальных падает только дроп
-//   drop: 'chest',
+//   drop: 'chest',       // необязательно: пикап с босса; сундука скиллов с боссов нет (их лут — предметы,
+//                        // sim._bossLoot), сундуки скиллов только с элит по таймеру (stages/forest.js)       // (у боссов не задан: сундуки скиллов только с элит, боссы дают лут предметами)
 //   invulnerable: true,  // урон не проходит, полосы HP нет (жница овертайма, stage.overtime.reaper); attacks могут быть пустыми.
 //                        // У Жницы с holy урон проходит, пока она в освящённом круге (Библия, src/core/reaper.js)
 //   oneShot, lootIndex, victory, holy, hourglass, summon, teleport — только Жница, см. её запись
-//   codexAttacks: [id] — список Attacks в кодексе вместо attacks/касания (строки codex.atk.<id> и .desc);
+//   codexAttacks: [id] — список Attacks в кодексе вместо attacks/касания (строки codex.atk.<id>);
 //                        только для показа, boss.js их не исполняет (Жница: механики src/core/reaper.js)
 // }
 // Урон босса растёт с этапом так же, как у врагов (stage.scaling.damagePerMinute), поэтому damage задан
@@ -53,7 +54,6 @@ export const BOSSES = {
       { type: 'summon', cooldown: 12, enemy: 'foxgirl', count: 3, radius: 80 },
     ],
     rage: { hpFraction: 0.4, cooldownMul: 0.75 },
-    drop: 'chest',
   },
   harpy_queen: {
     sprite: 'harpy_queen', behavior: 'boss', hp: 22000, hpPerLevel: 500, speed: 62, damage: 15, xp: 0, size: 36, knockbackResist: 1,
@@ -63,7 +63,6 @@ export const BOSSES = {
       { type: 'summon', cooldown: 11, enemy: 'harpy', count: 12, radius: 110 },
     ],
     rage: { hpFraction: 0.5, cooldownMul: 0.7, speedMul: 1.2 },
-    drop: 'chest',
   },
   dryad_queen: {
     sprite: 'dryad_queen', behavior: 'boss', hp: 60000, hpPerLevel: 1000, speed: 34, damage: 18, xp: 0, size: 38, knockbackResist: 1,
@@ -76,20 +75,19 @@ export const BOSSES = {
     ],
     rage: { hpFraction: 0.5, cooldownMul: 0.7, speedMul: 1.25 },
     final: true,
-    drop: 'chest',
   },
   // Банши-жница: Смерть овертайма (как Death в VS), картинкой ростом с босса (кадр 256). Приходит через
   // stage.overtime.reaperAt секунд овертайма (docs/META.md, 4). Логика: src/core/reaper.js.
   // Death Touch: касание убивает всегда (oneShot: мимо сопротивления, уклонения, i-frames и last_chance; в коопе —
   // гроб, как обычная смерть), урона как числа нет (damage 0, в кодексе ∞).
-  // Скорость и часы (гонка со временем, как Zarokh, the Temporal в PoE2): база speed чуть ниже героя (100),
-  // постоянная. Раз в hourglass.every с впереди игрока падают песочные часы с таймером life с. Наступил
-  // (breakRadius) — разбил: Жница теряет pickSpeed скорости до конца овертайма (не ниже minReaperSpeed).
-  // Не успел — пропуск: все живые игроки теряют missSpeed (не ниже minPlayerSpeed; поверх статов, pl.overtimeSlow).
+  // Скорость и часы (Borrowed time в кодексе; гонка со временем, как Zarokh, the Temporal в PoE2): скорость speed постоянная, чуть ниже
+  // героя (100), без разгона: от неё можно уйти и водить её по святым кругам. Раз в hourglass.every с вокруг
+  // игрока падают песочные часы с таймером life с. Наступил (breakRadius) — разбил: Жница оглушена на stun с
+  // (стоит, касание смертельно; можно выждать и оглушить её в круге). Не успел — пропуск: все живые игроки
+  // теряют missSpeed до конца овертайма (не ниже minPlayerSpeed; поверх статов, pl.overtimeSlow).
   // Числа (герой 100, бегуны: bunnygirl 63, catgirl 60, рывок foxgirl 240): 2 пропуска — герой 84 против её 85,
   // в поле она почти не догоняет, от толпы он ещё уходит; 5 подряд — герой 60 против 85, медленнее бегунов,
-  // смерть. Каждые разбитые часы отыгрывают один пропуск (−8 ей). Кооп: часы перед каждым игроком
-  // (COOP.hourglassPerPlayer), пропуск бьёт по обоим, разбить может любой.
+  // смерть. Кооп: часы перед каждым игроком (COOP.hourglassPerPlayer), пропуск бьёт по обоим, оглушает любой.
   // Без Библии неуязвима (invulnerable). С Библией у любого игрока раз в holy.every с у игроков
   // появляется освящённый круг, и только пока Жница в нём, она получает урон; HP тогда holy.hpPerLevel × уровень.
   // Фазы (только с Библией): summon на 50% HP один раз,
@@ -101,7 +99,7 @@ export const BOSSES = {
   // 750 × 65 ≈ 49k (меньше, чем у Дриады за уровень: бьёшь её не всё время, только в круге; число задал владелец).
   reaper: {
     sprite: 'reaper', behavior: 'chase', hp: 1, speed: 85, damage: 0, xp: 0, size: 45, knockbackResist: 1,
-    attacks: [], codexAttacks: ['death_touch', 'clock_ticking', 'borrowed_time'],
+    attacks: [], codexAttacks: ['death_touch', 'borrowed_time'],
     invulnerable: true, oneShot: true, lootIndex: 3, victory: true,
     holy: {
       hpPerLevel: 750,       // HP Жницы при Библии: × уровень игрока при появлении (кооп × COOP.bossHpMul)
@@ -118,13 +116,11 @@ export const BOSSES = {
       life: 10,               // с: таймер над часами; не разбили — пропуск
       max: 2,                 // часов лежит одновременно (кооп × COOP.hourglassMaxMul)
       breakRadius: 9,         // px от центра до игрока: наступил — разбил
-      ahead: 110, jitter: 50, // px вперёд по ходу игрока ± разброс
-      spread: 1.2,            // рад: разброс направления вокруг хода игрока
+      near: 70, far: 170,     // px от игрока: случайная точка в кольце (полэкрана), не под героем
       minFromReaper: 170, tries: 8,
       missSpeed: 8,           // px/с: пропуск снимает всем живым игрокам (стек на весь овертайм)
       minPlayerSpeed: 40,     // px/с: ниже не опускает (как слизь)
-      pickSpeed: 8,           // px/с: разбитые часы снимают Жнице (стек)
-      minReaperSpeed: 45,     // px/с
+      stun: 2,                // с: разбитые часы оглушают Жницу (не складывается, продлевается до stun)
     },
     summon: { hpFraction: 0.5, enemy: 'ghost', count: 14, radius: 110 },
     teleport: { hpFraction: 0.25, telegraph: 1, distance: 60, cooldown: 7, fade: 0.65 },

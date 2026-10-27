@@ -15,3 +15,11 @@ export const PICKUPS = {
   coin:      { sprite: 'coin',      kind: 'coin', value: 1 },
   chest:     { sprite: 'chest',     kind: 'chest' },
 };
+
+// Два вида сундуков: сундук скиллов (с элит, лежит на земле, спрайт chest как есть) и сундук шмоток (лут
+// босса, открывается сам на экране лута, тот же спрайт в своём цвете; один вид на все тиры).
+// tint — 0xRRGGBB или null (без перекраски).
+export const CHEST_LOOK = {
+  skill: { tint: null },
+  loot: { tint: 0xb48cff },
+};

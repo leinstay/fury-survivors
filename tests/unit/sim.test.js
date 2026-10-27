@@ -284,7 +284,7 @@ test('sim: overtime keeps spawning and can be finished early', () => {
   assert.ok(sim.events.some((e) => e.type === 'victory'));
 });
 
-test('sim: elite drops a chest, chest gives a weapon upgrade', () => {
+test('sim: elite drops a skill chest: +1 weapon level, no passive yet, world stands until Ok', () => {
   const sim = createSim({ seed: 15 });
   const e = sim.spawnEnemy('slime', 500, 500, true);
   sim.damageEnemy(e, 1e9, 'blade_arc', 0, 0, 0);
@@ -293,11 +293,18 @@ test('sim: elite drops a chest, chest gives a weapon upgrade', () => {
   chest.x = sim.player.x; chest.y = sim.player.y;
   sim.step(DT, idle);
   const ev = sim.events.find((x) => x.type === 'chest');
-  assert.ok(ev && ev.items.length === 1);
+  assert.ok(ev && ev.rolls.length === 1);
+  assert.deepEqual(ev.rolls[0].cards.map((c) => [c.kind, c.prev, c.level]), [['weapon', 1, 2]]);
   assert.equal(sim.player.weapons[0].level, 2);
+  assert.equal(sim.state, 'chest');
+  const t0 = sim.time;
+  run(sim, 1);
+  assert.equal(sim.time, t0);
+  assert.equal(sim.chestOk(0), true);
+  assert.equal(sim.state, 'resume');
 });
 
-test('sim: evolution from chest when the weapon is maxed and its passive is taken', () => {
+test('sim: skill chest evolves a maxed weapon whose passive is taken, and levels the passive', () => {
   const sim = createSim({ seed: 16 });
   sim.player.weapons = [{ id: 'guardian_shields', level: WEAPONS.guardian_shields.maxLevel }];
   sim.player.passives = [{ id: 'resistance', level: 1 }];
@@ -305,13 +312,28 @@ test('sim: evolution from chest when the weapon is maxed and its passive is take
   sim.dropPickup('chest', sim.player.x, sim.player.y);
   sim.step(DT, idle);
   assert.equal(sim.state, 'chest');
-  assert.deepEqual(sim.chest.cards.map((c) => c.id), ['aegis_bastion']);
-  sim.chooseChest(0);
+  const cards = sim.chest.rolls[0].cards;
+  assert.deepEqual(cards.map((c) => c.id), ['resistance', 'aegis_bastion']);
+  assert.equal(cards[1].prev, WEAPONS.guardian_shields.maxLevel);
   assert.deepEqual(sim.player.weapons.map((w) => w.id), ['aegis_bastion']);
-  assert.deepEqual(sim.player.passives.map((p) => p.id), ['resistance'], 'the passive stays');
-  assert.ok(sim.events.some((e) => e.type === 'chest' && e.applied && e.items[0].id === 'aegis_bastion'));
+  assert.deepEqual(sim.player.passives.map((p) => [p.id, p.level]), [['resistance', 2]], 'the passive stays');
+  sim.chooseChest();
   run(sim, 5);
   assert.ok(sim.projectiles.some((p) => p.wid === 'aegis_bastion'), 'evolved shields orbit');
+});
+
+test('sim: skill chest heals when nothing can be raised; noEvolution keeps the maxed weapon', () => {
+  const sim = createSim({ seed: 17, noEvolution: [true] });
+  const pl = sim.player;
+  pl.weapons = [{ id: 'guardian_shields', level: WEAPONS.guardian_shields.maxLevel }];
+  pl.passives = [{ id: 'resistance', level: PASSIVES.resistance.levels.length }];
+  sim._syncBuild();
+  pl.hp = 1;
+  sim.dropPickup('chest', pl.x, pl.y);
+  sim.step(DT, idle);
+  assert.deepEqual(sim.chest.rolls[0].cards.map((c) => c.kind), ['heal']);
+  assert.ok(pl.hp > 1);
+  assert.deepEqual(pl.weapons.map((w) => w.id), ['guardian_shields']);
 });
 
 test('sim: every weapon fires and deals damage in a crowd', () => {
@@ -365,7 +387,7 @@ test('sim: lightning breaks props on its path to an enemy', () => {
 });
 
 
-test('sim: chest with several ready evolutions waits for the choice', () => {
+test('sim: skill chest with several ready evolutions applies one of them, no choice', () => {
   const sim = createSim({ seed: 21 });
   const pl = sim.player;
   pl.weapons = [{ id: 'blade_arc', level: 5 }, { id: 'war_axe', level: 5 }];
@@ -374,31 +396,13 @@ test('sim: chest with several ready evolutions waits for the choice', () => {
   sim.dropPickup('chest', pl.x, pl.y);
   sim.step(1 / 60, { x: 0, y: 0 });
   assert.equal(sim.state, 'chest');
-  assert.equal(sim.chest.cards.length, 2);
-  assert.ok(sim.events.some((e) => e.type === 'chest' && e.choice));
-  const want = sim.chest.cards[1].id;
-  sim.chooseChest(1);
-  assert.equal(sim.state, 'running');
-  assert.ok(sim.player.weapons.some((w) => w.id === want));
-  assert.equal(sim.chest.cards.length, 0);
-});
-
-test('sim: skipping the evolution gives an ordinary chest item instead', () => {
-  const sim = createSim({ seed: 22 });
-  const pl = sim.player;
-  pl.weapons = [{ id: 'blade_arc', level: 5 }, { id: 'war_axe', level: 3 }];
-  pl.passives = [{ id: 'attack', level: 1 }];
-  sim._syncBuild();
-  sim.dropPickup('chest', pl.x, pl.y);
-  sim.step(DT, idle);
-  assert.equal(sim.state, 'chest');
-  const items = sim.skipChest();
-  assert.equal(sim.state, 'running');
-  assert.equal(items.length, 1);
-  assert.ok(!items[0].evolved);
-  assert.deepEqual(pl.weapons.map((w) => w.id), ['blade_arc', 'war_axe']);
-  assert.equal(pl.weapons[1].level, 4); // единственное оружие не на максимуме
-  assert.ok(sim.events.some((e) => e.type === 'chest' && e.applied));
+  const cards = sim.chest.rolls[0].cards;
+  assert.equal(cards.length, 2);
+  assert.equal(cards[0].kind, 'passive');
+  assert.ok(cards[1].evolved);
+  assert.equal(pl.weapons.filter((w) => WEAPONS[w.id].evolved).length, 1);
+  assert.deepEqual(sim.chooseChest().map((c) => c.id), cards.map((c) => c.id));
+  assert.equal(sim.chest.rolls.length, 0);
 });
 
 test('director: wall and flyby cross the screen on a straight course and vanish, horde rings the elite chest', () => {
@@ -428,14 +432,12 @@ test('director: wall and flyby cross the screen on a straight course and vanish,
   for (let i = 0; i < 40 * 60; i++) { sim._updateEnemies(1 / 60); sim._sweepEnemies(); }
   assert.equal(sim.enemies.filter((e) => e.transient).length, 0);
 
-  // орда: убийство элиты окружает сундук врагами её типа
+  // орда вокруг сундука элиты выключена (forest.chestHorde нет): убийство элиты не плодит врагов
   const elite = sim.spawnEnemy('catgirl', 200, 200, true);
+  const before = sim.enemies.filter((e) => e.type === 'catgirl' && !e.dead).length;
   sim.damageEnemy(elite, 1e9, 'blade_arc', 0, 0, 0);
-  const horde = sim.enemies.filter((e) => e.type === 'catgirl' && !e.dead);
-  assert.equal(horde.length, forest.chestHorde.count);
-  assert.ok(horde.every((e) =>
-    Math.abs(Math.hypot(e.x - 200, e.y - 200) - forest.chestHorde.radius) < 1));
-  assert.ok(sim.events.some((e) => e.type === 'horde'));
+  assert.equal(sim.enemies.filter((e) => e.type === 'catgirl' && !e.dead).length, before - 1);
+  assert.ok(!sim.events.some((e) => e.type === 'horde'));
 });
 
 test('difficulty: cursed spawns more, xp per enemy unchanged', () => {

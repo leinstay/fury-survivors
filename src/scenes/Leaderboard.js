@@ -5,7 +5,7 @@ import { BOARD } from '../data/leaderboard.js';
 import { FocusNav, addButton } from '../ui/focus.js';
 import { textStyle, COLORS } from '../ui/style.js';
 import { addPanel } from '../ui/panel.js';
-import { BUTTON, backRect } from '../ui/menu-layout.js';
+import { BUTTON, PAGE_BOTTOM, backRect, screenTitle } from '../ui/menu-layout.js';
 import { formatTime } from '../ui/hud.js';
 import { fetchTop10 } from '../services/leaderboard.js';
 import { DEFAULT_DIFFICULTY } from '../data/difficulty.js';
@@ -17,6 +17,7 @@ const COL = { place: 110, name: 140, hero: 206, score: 318, time: 392, kills: 46
 const HEAD_Y = 76;
 const ROW0 = 92;
 const ROW_H = 18;
+const PANEL_TOP = 70;
 
 export class LeaderboardScene extends Phaser.Scene {
   constructor() {
@@ -30,7 +31,7 @@ export class LeaderboardScene extends Phaser.Scene {
     this.nav = new FocusNav(this, { onBack: () => this.back() });
     this.events.once('shutdown', () => { this.alive = false; });
 
-    this.add.text(cx, 24, t('lb.title'), textStyle(22, COLORS.accent, { stroke: '#000000', strokeThickness: 4 })).setOrigin(0.5);
+    screenTitle(this, t('lb.title'));
     // Вкладки: соло и кооп (своя коллекция, имя — пара ников)
     this.mode = 'solo';
     this.tabs = {};
@@ -40,7 +41,8 @@ export class LeaderboardScene extends Phaser.Scene {
         onSelect: () => this.setMode(m),
       });
     }
-    addPanel(this, cx, 186, 460, 232);
+    // панель от строки заголовков до общей линии низа страниц (над Back)
+    addPanel(this, cx, (PANEL_TOP + PAGE_BOTTOM) / 2, 460, PAGE_BOTTOM - PANEL_TOP);
     const head = textStyle(10, COLORS.dim);
     this.add.text(COL.place, HEAD_Y, '#', head);
     this.add.text(COL.name, HEAD_Y, t('lb.col.name'), head);
@@ -51,7 +53,7 @@ export class LeaderboardScene extends Phaser.Scene {
     this.add.text(COL.mode, HEAD_Y, t('lb.col.mode'), head).setOrigin(1, 0);
 
     this.rowObjs = [];
-    this.status = this.add.text(cx, 186, '', textStyle(14, COLORS.dim)).setOrigin(0.5);
+    this.status = this.add.text(cx, (PANEL_TOP + PAGE_BOTTOM) / 2, '', textStyle(14, COLORS.dim)).setOrigin(0.5);
 
     // Back внизу слева (как на всех страницах), Refresh — тем же размером справа
     const back = backRect();

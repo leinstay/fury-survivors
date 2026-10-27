@@ -52,8 +52,8 @@ export async function waitChestReady(page) {
   await page.waitForFunction(() => {
     const game = window.__game.game;
     const chest = game.scene.getScene('Chest');
-    return game.scene.isActive('Chest') && chest.revealed &&
-      chest.time.now - chest.revealAt > 260 && !chest.closed;
+    return game.scene.isActive('Chest') && chest.okBtn && !chest.okBtn.disabled &&
+      chest.time.now - chest.openedAt > 260 && !chest.closed;
   });
 }
 
@@ -104,17 +104,9 @@ export async function driveGame(page, until = 12, onProgress = async () => {}) {
         await page.waitForFunction((n) => window.__game.game.scene.getScene('Game')
           .telemetry.picks.length > n, r.pickCount);
       } else if (r.scene === 'Chest') {
+        // сундук скиллов без выбора: выпавшее уже применено, Ok закрывает (в коопе — когда оба)
         await release(); await waitChestReady(page);
-        if (r.command?.k === 'chest') {
-          await clickSceneItem(page, 'Chest', r.command.i);
-          const confirm = await page.evaluate(() => {
-            const b = window.__game.game.scene.getScene('Chest').confirmBtn;
-            return { x: b.x, y: b.y };
-          });
-          const box = await page.locator('canvas').boundingBox();
-          await page.mouse.click(box.x + confirm.x * box.width / 640,
-              box.y + confirm.y * box.height / 360);
-        } else await page.keyboard.press('Enter');
+        await page.keyboard.press('Enter');
         await page.waitForFunction(() => !window.__game.debug().scenes.includes('Chest'));
       } else {
         const desired = new Set();

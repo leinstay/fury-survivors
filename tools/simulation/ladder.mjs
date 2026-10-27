@@ -15,12 +15,13 @@
 // node tools/simulation/ladder.mjs --lab [--n 8] [--until 600] [--from 2] [--to 9] [--workers 30] [--out x.json]
 //   лаборатория: бессмертная мечница (attack = magic = 1) с одним оружием на макс. уровне, один слот оружия,
 //   пассивки только защитные и сбор (не меняют урон), сундуки пропускает. Меряется сила клира power = 1 / жизнь
-//   моба в рамке (по умолчанию, --metric power) и урон за секунду (dps — снятый HP, упирается в приток мобов,
+//   моба в рамке (по умолчанию, --metric power; --level 1 — уровень оружия вместо максимального) и урон за секунду (dps — снятый HP, упирается в приток мобов,
 //   если оружие успевает; rawDps — с оверкиллом; baseDps — без стата). Окно минут --from..--to.
 // node tools/simulation/ladder.mjs --bots tools/out/targets/x.json [--key normal/1/mid] [--window late]
 //   то же по обычным ботам targets.mjs (оружие на макс. уровне в окне; сборка и статы смешаны).
 // node tools/simulation/ladder.mjs --tune [--iters 3] [--n 8] [--experiment base.json] [--out tuned.json]
 //   подбор урона (или кулдауна) каждого оружия под цель по лаборатории; пишет experiment для experiment.mjs.
+// --anchor-power — якорь = LADDER.anchorPower (абсолютный), иначе текущий меч.
 // [--experiment x.json] — правки данных (experiment.mjs), [--json] — таблица JSON в stdout.
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
@@ -29,11 +30,16 @@ import { pathToFileURL } from 'node:url';
 import { WEAPONS, WEAPON_BEHAVIOR } from '../../src/data/weapons.js';
 import { PASSIVES } from '../../src/data/passives.js';
 import { COMBOS } from '../../src/data/combos.js';
+import { forest } from '../../src/data/stages/forest.js';
 
 // Параметры лестницы (инструмент, не игра; числа игры — в src/data).
 export const LADDER = {
   k: 0.6,                  // крутизна f: R = 3 × r0 → f ≈ 0.6, R = 4 × r0 → 0.55
   anchor: 'blade_arc', anchorEvo: 'crimson_arc',
+  // Абсолютная сила якоря в лаборатории (1 / жизнь в рамке, 2:00–9:59): Blade Arc L5 и Crimson Arc до переделки
+  // в slash (27.10). Цели остальных считаются от неё, а не от текущего меча: правка меча не сдвигает лестницу,
+  // а сам меч сверяется с ней же (--anchor-power).
+  anchorPower: { base: 0.16, evo: 0.19 },
   // q каждого квирка. Положительный — свойство, за которое платят уроном; отрицательный — недостаток.
   quirks: {
     knockbackRanged: 0.10,  // отталкивание у оружия дальше ближнего боя (молния, ножи): держит толпу на расстоянии
@@ -54,8 +60,11 @@ export const LADDER = {
   // Решения владельца поверх формулы (цель относительно якоря): молния не сильнее ножей, луч слабый.
   owner: { storm_chain: 0.46, thunder_loop: 0.46, beam: 0.45, prism_ray: 0.45 },
   // Чем подбирать силу в --tune: урон (по умолчанию) или кулдаун — у оружия, где урон уходит в оверкилл
-  // (один сильный удар: копьё, арбалет, баллиста) и у мин (урон за удар задан: почти ваншот).
-  cooldownKnob: ['spear', 'crossbow', 'mines', 'ballista', 'dragon_lance', 'minefield'],
+  // (один сильный удар: копьё, арбалет, баллиста), у луча (добивает всех на линии при любом уроне) и у мин (урон за удар задан: почти ваншот).
+  cooldownKnob: ['spear', 'crossbow', 'mines', 'ballista', 'dragon_lance', 'minefield', 'beam',
+    'prism_ray'],
+  // ближний бой: отталкивание — защита, а не квирк дальнего оружия
+  melee: ['melee_arc', 'slash', 'slam', 'aura', 'cloud', 'orbit'],
   heavyKnockback: 200, knockbackMin: 20, pierceCap: 4, delayedMin: 0.9, meleeRange: 130,
 };
 
@@ -70,6 +79,8 @@ const maxLv = (id) => WEAPONS[id].levels[WEAPONS[id].levels.length - 1];
 export function reach(def, lv) {
   switch (def.behavior) {
     case 'melee_arc': return lv.area;
+    // росчерк (Blade Arc): полоса длиной area через группу в searchRange от героя; дальность — длина полосы
+    case 'slash': return Math.min(lv.area, B.slash?.searchRange || lv.area);
     // молот: первый удар по кругу радиусом area, центр сдвинут к цели на area × offset
     case 'slam': return lv.area * (1 + (B.slam?.offset || 0));
     // копьё: как снаряд, своя дальность цели
@@ -99,10 +110,11 @@ export function quirks(def, lv) {
   const add = (id, mul = 1, label = id) => out.push({ id: label, q: Q[id] * mul });
   const R = reach(def, lv);
   const kb = lv.knockback || 0;
-  if (kb >= LADDER.knockbackMin && R > LADDER.meleeRange && def.behavior !== 'area_drop') {
+  const melee = LADDER.melee.includes(def.behavior);
+  if (kb >= LADDER.knockbackMin && !melee && R > LADDER.meleeRange && def.behavior !== 'area_drop') {
     add('knockbackRanged');
   }
-  if (kb >= LADDER.heavyKnockback && R <= LADDER.meleeRange + 10) add('heavyKnockback');
+  if (kb >= LADDER.heavyKnockback && melee) add('heavyKnockback');
   const status = lv.status || def.status;
   const chill = status && ['chill', 'freeze', 'slow'].includes(status.type);
   if (lv.slow || chill) add('slow', 1, chill ? status.type : 'slow'); // замедление, трещина, заморозка
@@ -144,6 +156,7 @@ export function paperDps(def, lv) {
       return lv.damage * (1 + fire) / cd;
     }
     case 'melee_arc': return lv.damage * Math.ceil(n / 2) / cd; // взмахи чередуют стороны
+    case 'slash': return lv.damage * n / cd;               // каждый слэш серии может задеть цель
     case 'ice_orb': {
       // цель внутри шара 2 × area / speed с (не дольше жизни шара), тик раз в tick
       const inside = Math.min(lv.duration, 2 * lv.area / lv.speed);
@@ -181,17 +194,20 @@ const LAB_ALLOW = ['max_hp', 'resistance', 'regen', 'dodge', 'speed', 'pickup', 
 const LAB_PROFILE = { id: 'lab', intent: 'evolution', collection: 'opportunistic', reaction: 0.28,
   courage: 0.8, temperature: 0.7, allow: LAB_ALLOW };
 
-export async function lab({ n, until, from, to, workers, experiment, ids }) {
+export async function lab({ n, until, from, to, workers, experiment, ids, level = 0 }) {
+  const lvOf = (id) => (level ? Math.min(level, WEAPONS[id].maxLevel) : WEAPONS[id].maxLevel);
   const { runMatrix } = await import('./matrix.mjs');
   const exp = { ...(experiment || {}), heroSet: { ...(experiment?.heroSet || {}),
     heroine: { attack: 1, magic: 1, ...(experiment?.heroSet?.heroine || {}) } } };
+  // без элиток: сундук скиллов (+1 случайной пассивке и оружию) испортил бы замер одного оружия
+  exp.timeline = (experiment?.timeline || forest.timeline).filter((x) => x.type !== 'elite');
   const jobs = [];
   for (const id of ids) {
     for (let i = 0; i < n; i++) {
       jobs.push({ seed: 10000 + i * 1009, behaviorSeed: 10037 + i * 1031, difficulty: 'normal',
         players: 1, until, heroes: ['heroine'], profiles: [LAB_PROFILE], immortal: [true],
         noEvolution: [], clear: true, experiment: exp, split: 'tuning', weapon: id,
-        fixture: { weapons: [[id, WEAPONS[id].maxLevel]], weaponSlots: 1 } });
+        fixture: { weapons: [[id, lvOf(id)]], weaponSlots: 1 } });
     }
   }
   const t0 = Date.now();
@@ -210,7 +226,7 @@ export async function lab({ n, until, from, to, workers, experiment, ids }) {
       for (let m = from; m <= to; m++) {
         const x = r.clear?.minutes[m];
         if (!x) continue;
-        const w = x.weapons[`${id}@${WEAPONS[id].maxLevel}`];
+        const w = x.weapons[`${id}@${lvOf(id)}`];
         if (w) {
           for (const k of ['dealt', 'raw', 'base', 'held', 'hits', 'kills', 'dist']) {
             acc[k] += w[k];
@@ -229,10 +245,11 @@ export async function lab({ n, until, from, to, workers, experiment, ids }) {
   return out;
 }
 
-function compare(rows, measured, key) {
+function compare(rows, measured, key, fixed = false) {
   for (const group of [BASE, EVOS]) {
     const anchor = group === BASE ? LADDER.anchor : LADDER.anchorEvo;
-    const a = measured[anchor]?.[key];
+    const a = fixed && key === 'power' ? LADDER.anchorPower[group === BASE ? 'base' : 'evo'] :
+      measured[anchor]?.[key];
     const at = rows.find((x) => x.id === anchor)?.target || 1;
     for (const r of rows.filter((x) => group.includes(x.id))) {
       const m = measured[r.id];
@@ -267,7 +284,8 @@ export function spearman(xs, ys) {
  * относительно якоря не станет целью (owner или f × Q). Якоря не трогаются: общий уровень — отдельно (targets.mjs).
  * Возвращает experiment (experiment.mjs) с полными числами уровней.
  */
-export async function tune({ iters = 3, gamma = 0.8, base = null, ...opts }) {
+export async function tune({ iters = 3, gamma = 0.8, base = null, skip = [], fixed = false,
+  ...opts }) {
   const ids = [...BASE, ...EVOS];
   const rows = ids.map(ladderRow);
   const mul = Object.fromEntries(ids.map((id) => [id, 1]));
@@ -290,13 +308,14 @@ export async function tune({ iters = 3, gamma = 0.8, base = null, ...opts }) {
   for (let it = 0; it <= iters; it++) {
     const experiment = build();
     measured = await lab({ ...opts, experiment, ids });
-    compare(rows, measured, 'power');
+    compare(rows, measured, 'power', fixed);
     console.error(`итерация ${it}: ` + rows.map((r) => `${r.id} ${r.nowRel}/${r.goalRel}`).join(', '));
     if (it === iters) return { experiment, rows, measured, mul };
     for (const r of rows) {
-      if ([LADDER.anchor, LADDER.anchorEvo].includes(r.id) || !r.now) continue;
+      if ((!fixed && [LADDER.anchor, LADDER.anchorEvo].includes(r.id)) || skip.includes(r.id) ||
+        !r.now) continue;
       const step = Math.min(1.8, Math.max(0.55, (r.goalRel / r.nowRel) ** gamma));
-      mul[r.id] = Math.min(4, Math.max(0.25, mul[r.id] * step));
+      mul[r.id] = Math.min(4, Math.max(0.1, mul[r.id] * step));
     }
   }
   return null;
@@ -318,6 +337,7 @@ async function main() {
   let key = 'baseDps';
   if (args.includes('--tune')) {
     const res = await tune({ iters: Number(opt('iters', 3)), base: experiment,
+      skip: opt('skip', '') ? opt('skip').split(',') : [], fixed: args.includes('--anchor-power'),
       n: Number(opt('n', 8)), from: Number(opt('from', 2)), to: Number(opt('to', 9)),
       until: (Number(opt('to', 9)) + 1) * 60 + 5,
       workers: Number(opt('workers', Math.max(1, availableParallelism() - 2))) });
@@ -334,7 +354,8 @@ async function main() {
     key = opt('metric', 'power');
     measured = await lab({ n: Number(opt('n', 8)), until: Number(opt('until', (to + 1) * 60 + 5)),
       from, to, workers: Number(opt('workers', Math.max(1, availableParallelism() - 2))),
-      experiment, ids: (opt('ids', '') ? opt('ids').split(',') : [...BASE, ...EVOS]) });
+      experiment, ids: (opt('ids', '') ? opt('ids').split(',') : [...BASE, ...EVOS]),
+      level: Number(opt('level', 0)) });
   } else if (opt('bots', '')) {
     const file = JSON.parse(await readFile(opt('bots'), 'utf8'));
     const rep = file.report[opt('key', 'normal/1/mid')];
@@ -346,7 +367,7 @@ async function main() {
     }
     key = opt('metric', 'baseDps');
   }
-  if (measured) compare(rows, measured, key);
+  if (measured) compare(rows, measured, key, args.includes('--anchor-power'));
   if (args.includes('--json')) { console.log(JSON.stringify({ LADDER, rows, measured }, null, 1)); return; }
   const cols = [['оружие', 'id'], ['behavior', 'behavior'], ['R', 'R'], ['f(R)', 'f'],
     ['квирки', 'quirks'], ['Q', 'Q'], ['цель', 'target'], ['бумага DPS/цель', 'paper']];
@@ -373,4 +394,4 @@ async function main() {
   }
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) await main();
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) await main();

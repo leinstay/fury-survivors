@@ -34,19 +34,22 @@ import {
   BagView, ItemTooltip, drawItemBox, addStatsPanel, itemTitle, affixText, RARITY_CSS,
 } from '../ui/items.js';
 import { showAchievementToasts } from '../ui/toast.js';
-import { BUTTON, backRect } from '../ui/menu-layout.js';
+import { BUTTON, TITLE_Y, backRect, screenTitle } from '../ui/menu-layout.js';
 
 const BAGV = { x: 10, y: 52, cell: 22 };
 const ST = { x: 218, y: 52, cell: 20, cols: 10 };
-// Кнопки под сумкой (Wear, Save, действия): три ряда по три на ширину сумки, низ последнего ряда — по низу
-// сетки стеша (верх сумки и стеша тоже на одной линии).
+// Кнопки под сумкой (Wear, Save, действия): три ряда по три на ширину сумки между низом сетки сумки
+// (с зазором BAG_BTN_TOP) и низом сетки стеша; зазор рядов — что остаётся (при сумке 9×6: 5 px).
 const BTN_H = BUTTON.tab.h; // мелкие кнопки инструментов — высота вкладок (ui/menu-layout.js)
-const BTN_GAP = 4;
+const BAG_BTN_H = 18;       // кнопки под сумкой ниже: три ряда влезают под сумку 9×6
+const BAG_BTN_TOP = 4;
 const BTN_COLS = 3;
 const BAG_W = BAG.w * BAGV.cell;
 const STASH_BOTTOM = ST.y + Math.ceil(STASH.size / ST.cols) * ST.cell;
 const BTN_W = Math.floor((BAG_W - (BTN_COLS - 1) * 6) / BTN_COLS);
-const BTN_ROW_Y = (r) => STASH_BOTTOM - BTN_H / 2 - (2 - r) * (BTN_H + BTN_GAP); // центр ряда r (0..2)
+const BTN_TOP = BAGV.y + BAG.h * BAGV.cell + BAG_BTN_TOP;
+const BTN_GAP = Math.floor((STASH_BOTTOM - BTN_TOP - 3 * BAG_BTN_H) / 2);
+const BTN_ROW_Y = (r) => STASH_BOTTOM - BAG_BTN_H / 2 - (2 - r) * (BAG_BTN_H + BTN_GAP); // центр ряда r (0..2)
 // Строка заголовков (Bag, Stash, валюты справа; на крафте — Select и валюты) на HEAD_Y, сетки и правая
 // панель начинаются с одного y (BAGV.y = ST.y); три блока через одинаковый зазор BLOCK_GAP.
 const HEAD_Y = 40;
@@ -55,6 +58,8 @@ const RIGHT_EDGE = GAME_WIDTH - 8;
 const STATS_X = ST.x + ST.cols * ST.cell + BLOCK_GAP;
 // панель статов до низа экрана (низ — по низу кнопки Back)
 const STATS_BOX = { x: STATS_X, y: BAGV.y, w: RIGHT_EDGE - STATS_X, h: GAME_HEIGHT - 8 - BAGV.y };
+// Та же раскладка у вкладки инвентаря паузы (Pause.js): строка заголовков, сумка, панель статов.
+export const INV_LAYOUT = { headY: HEAD_Y, bag: BAGV, stats: STATS_BOX };
 const CR = { x: 10, y: 52, cell: 16, cols: 12 };
 // панель крафта до низа экрана, как панель статов; внизу подсказка операции и строка сообщений
 const DET = { x: 214, y: BAGV.y, w: RIGHT_EDGE - 214, h: GAME_HEIGHT - 8 - BAGV.y };
@@ -121,12 +126,12 @@ export class InventoryScene extends Phaser.Scene {
     for (const o of this.objs) o.destroy();
     this.tip.hide();
     const before = new Set(this.children.list);
-    this.add.text(10, 6, t('inv.title'), textStyle(16, COLORS.accent, { stroke: '#000000', strokeThickness: 4 }))
-        .setOrigin(0, 0);
+    screenTitle(this, t('inv.title'));
     // валюты в строке заголовков, по правому краю правой панели (статы или крафт)
     this.add.text(RIGHT_EDGE, HEAD_Y, this.walletText(), textStyle(9, '#ffd84a')).setOrigin(1, 0);
     ['bag', 'craft'].forEach((tab, i) => {
-      this.button({ key: `tab:${tab}`, x: 270 + i * 100, y: 18, w: 92, h: BUTTON.tab.h,
+      // вкладки слева в строке заголовка экрана (по центру — заголовок)
+      this.button({ key: `tab:${tab}`, x: BAGV.x + 46 + i * 100, y: TITLE_Y, w: 92, h: BUTTON.tab.h,
         label: t(`inv.tab.${tab}`), selected: this.tab === tab,
         onSelect: () => this.switchTab(tab) });
     });
@@ -257,9 +262,9 @@ export class InventoryScene extends Phaser.Scene {
     const bx = (i) => BAGV.x + bw / 2 + i * (BAG_W - bw) / (BTN_COLS - 1);
     for (let i = 0; i < BAG.presets; i++) {
       const has = !!(inv.presets && inv.presets[i]);
-      this.button({ key: `load:${i}`, x: bx(i), y: BTN_ROW_Y(0), w: bw, h: BTN_H,
+      this.button({ key: `load:${i}`, x: bx(i), y: BTN_ROW_Y(0), w: bw, h: BAG_BTN_H,
         label: t('inv.preset.load', { n: i + 1 }), disabled: !has, onSelect: () => this.loadPreset(i) });
-      this.button({ key: `save:${i}`, x: bx(i), y: BTN_ROW_Y(1), w: bw, h: BTN_H,
+      this.button({ key: `save:${i}`, x: bx(i), y: BTN_ROW_Y(1), w: bw, h: BAG_BTN_H,
         label: t('inv.preset.save', { n: i + 1 }), onSelect: () => this.savePreset(i) });
     }
     const sel = this.sel && findItem(inv, this.sel);
@@ -270,7 +275,7 @@ export class InventoryScene extends Phaser.Scene {
         t('craft.disassemble'), () => this.disassemble(), !sel || sel.item.locked],
     ];
     acts.forEach(([k, label, fn, dis], i) => {
-      this.button({ key: `act:${k}`, x: bx(i), y: BTN_ROW_Y(2), w: bw, h: BTN_H, label,
+      this.button({ key: `act:${k}`, x: bx(i), y: BTN_ROW_Y(2), w: bw, h: BAG_BTN_H, label,
         disabled: dis, onSelect: fn });
     });
     if (sel) {

@@ -186,7 +186,7 @@ export const enItems = {
   'craft.hint.upgradeRarity': 'Raises rarity and adds an affix. Costs crystals and chaos hearts. On failure the item is lost.',
   'craft.hint.enchant': 'Each plus strengthens every affix. Safe up to +3; past that a failure breaks the item into crystals.',
   'craft.hint.merge': 'Two items of one type become one: rarity, tier and shape of one of them, affixes from both.',
-  'craft.hint.scroll': 'A protection scroll saves the item when a risky craft fails. It is spent only on failure.',
+  'craft.hint.scroll': 'Saves the item when a risky craft fails. Spent only then.',
   'craft.hint.disassemble': 'Breaks the item into crystals. Better rarity and tier give more.',
 
   // инвентарь (src/scenes/Inventory.js)
@@ -229,13 +229,16 @@ export const enItems = {
   'inv.readonly': 'Equipment can only be changed in the menu.',
   'pause.inventory': 'Inventory',
 
-  // лут после забега (src/ui/loot.js)
+  // лут босса: сразу после босса и после забега (src/ui/loot.js, сцена Loot)
   'loot.title': 'Boss loot',
   'loot.chest': 'Chest {i}/{n} · {boss} · T{tier}',
   'loot.take': 'Take',
-  'loot.skip': 'Skip',
+  'loot.disassemble': 'Disassemble (+{n})',
+  'loot.take_all': 'Take all',
+  'loot.disassemble_all': 'Disassemble all (+{n})',
   'loot.taken': 'Taken',
-  'loot.skipped': 'Skipped',
+  'loot.disassembled': 'Disassembled: +{n} crystals',
+  'loot.waiting': 'Waiting for your partner...',
   'loot.evict': 'Replaces: {name}',
   'loot.evict_none': 'Stash full, everything is locked',
   'loot.scroll': 'Protection Scroll',
