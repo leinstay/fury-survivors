@@ -56,7 +56,7 @@ export const enAchievements = {
   'ach.naturalist.desc': 'Meet every monster in the bestiary.',
   'ach.hoarder.name': 'Hoarder',
   'ach.hoarder.desc': 'Fill the stash to the brim.',
-  'ach.tetris.name': 'Tetris',
+  'ach.tetris.name': 'Tetoris',
   'ach.tetris.desc': 'Fill every open cell of the bag.',
   'ach.collector.name': 'Collector',
   'ach.collector.desc': 'Own {n} different uniques.',
