@@ -494,10 +494,11 @@ function cloud() {
   writeStrip('proj_poison_cloud', [p]);
 }
 
-// meteor отложен владельцем: без аргумента не запускается (node tools/make-weapon-art.mjs meteor — вручную)
+// meteor, frost и shot теперь рисует tools/make-ragged-balls.mjs: без аргумента здесь не запускаются
 const JOBS = { wisp, shot, meteor, spear, bolt, mine, frost, beam, cloud };
+const MANUAL = ['meteor', 'frost', 'shot'];
 const args = process.argv.slice(2);
-const names = args.length ? args : Object.keys(JOBS).filter((n) => n !== 'meteor');
+const names = args.length ? args : Object.keys(JOBS).filter((n) => !MANUAL.includes(n));
 for (const n of names) {
   if (!JOBS[n]) throw new Error(`unknown job ${n}; known: ${Object.keys(JOBS).join(', ')}`);
   await JOBS[n]();

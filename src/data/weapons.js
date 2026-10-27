@@ -48,9 +48,10 @@ const WO = FX.weaponOrigin;
 //   cloud      : облако ложится в точку героя и стоит duration с, бьёт каждого врага внутри раз в tick на damage;
 //                area — радиус; amount — облаков, у каждого свой таймер cooldown, первые идут со сдвигом
 //                cooldown / amount (одно облако — раз в cooldown); облака одного оружия бьют врага не чаще tick
-//   beam       : раз в cooldown amount лучей из героя в случайные стороны (RNG сима, по сектору 360/amount на луч),
-//                не целятся и не следуют за героем: стоят там, где их выпустили, duration с; каждые tick с бьют всех
-//                врагов на отрезке длиной area и полушириной width на damage
+//   beam       : «змейка»: раз в cooldown amount лучей с окружности выхода оружия в случайные стороны (RNG сима,
+//                по сектору 360/amount на луч); голова летит со speed, тело растёт до length px (не area: стат area
+//                не влияет) и ползёт за головой. Бьёт только голова: враг или объект — damage, поворот на 90°
+//                в случайную сторону, урон × bounceDamageMul, длина вдвое; bounces — отскоков, после них луч гаснет
 //   summon     : amount — огоньков за героем, каждый стреляет раз в cooldown: damage, speed, duration — полёт, pierce;
 //                снаряд выстрела — спрайт shot записи оружия
 //   slam       : удар по земле (молот): серия из amount ударов, первый со сдвигом к ближайшему врагу, следующие дальше
@@ -91,10 +92,19 @@ export const WEAPON_BEHAVIOR = {
   area_drop: { targetRange: 300, flight: 0.5, fireTick: 0.5, fallSlant: 0.4,
     markTint: 0xff7040, lead: 0.8, leadMax: 0.6, mineArm: 0.5,
     meteorGap: 2, meteorTries: 6 },
-  // segment — длина звена картинки луча, px мира; alpha — прозрачность звеньев; first — первый каст. Картинка луча
-  // начинается на окружности выхода оружия (FX.weaponOrigin: radius от центра тела, lift над ногами); удар считается
-  // по земле от ног, как у врагов.
-  beam: { segment: 14, alpha: 0.9, first: 0.3 },
+  // Луч-змейка (behaviors/weapons/beam.js): first — первый каст; hitRadius — радиус головы; bounceDamageMul —
+  // урон × столько за отскок; maxTravel — путь головы, px, после которого луч гаснет (не живёт вечно); fade —
+  // угасание в конце, с (хвост догоняет голову); shrink — px/с, с которыми хвост догоняет вдвое укороченную длину.
+  // Луч выходит с окружности выхода оружия (FX.weaponOrigin), удар считается по земле от ног, картинка поднята
+  // на lift. Картинка (render/zones.js, fx 'snake') как у Victory Sword: halfWidth — полуширина у головы, px;
+  // mid / core — доля полуширины середины и ядра (ядро не тоньше coreMin), их alpha; taper — сужение к хвосту
+  // (степень); color / midColor / coreColor — шлейф, середина (без tint), ядро сложением цвета.
+  // maxAlive — больше змеек одного оружия на экране не бывает (залп добирает до него), решение владельца.
+  beam: { first: 0.3, hitRadius: 5, maxAlive: 6, bounceDamageMul: 0.75, maxTravel: 420, fade: 0.22,
+    shrink: 260,
+    lift: WO.lift, halfWidth: 4, mid: 0.45, core: 0.2, coreMin: 0.75,
+    trailAlpha: 0.35, midAlpha: 0.75, coreAlpha: 1, taper: 0.8,
+    color: 0xdcecff, midColor: 0xf0f7ff, coreColor: 0xffffff },
   // Облако: first — первое облако после взятия; spriteWorld — ширина кадра спрайта в мире при scale 1;
   // alpha — прозрачность, fadeIn / fadeOut — появление и угасание, с; propRange — врагов ближе нет, объект
   // ближе есть: облако ложится на объект, а не под героя.
@@ -106,8 +116,8 @@ export const WEAPON_BEHAVIOR = {
   // density 2 → 7 px) + 1, круг не сжат (иначе сверху и снизу огонёк заходит в тело).
   // Огоньки не кружат: у каждого своё место на окружности (угол по номеру, первый сверху-справа) и он медленно
   // блуждает вокруг него (wander px, wanderSpeed — рад/с, три синуса с разными частотами на огонёк).
-  summon: { targetRange: 260, hitRadius: 4, orbitR: WO.radius + 8, flatten: 1, lift: WO.lift,
-    slotAngle: -0.7, wander: 7, wanderSpeed: 1.3, follow: 6, retry: 0.15 },
+  summon: { targetRange: 260, hitRadius: 5, shotTurn: 10, orbitR: WO.radius + 8, flatten: 1,
+    lift: WO.lift, slotAngle: -0.7, wander: 7, wanderSpeed: 1.3, follow: 6, retry: 0.15 },
   // Замедление (orbit slow) задаётся статусом chill; боссы к нему иммунны.
   slow: {},  // боссы иммунны к замедлению (behaviors/status.js)
   // Молния: каждый прыжок — снаряд-картинка (fx 'bolt', render/zones.js), живёт visualLife с и гаснет. Рваная
@@ -204,17 +214,18 @@ export const WEAPONS = {
   },
   guardian_shields: {
     // VS King Bible: L1 10 урона, 1 книга, 3 с вращения, пауза 3 с; L8 30 × 4, 4 с.
+    // Защитное оружие (ловит снаряды): самое слабое по урону, решение владельца.
     icon: 'icon_guardian_shields', sprite: 'proj_shield', behavior: 'orbit', dmgType: 'attack', targets: 'aoe', maxLevel: 5,
     levels: [
-      { damage: 6, cooldown: 2.0, amount: 2, area: onRing(1, SHIELD_R), hitRadius: 22,
+      { damage: 3, cooldown: 2.0, amount: 2, area: onRing(1, SHIELD_R), hitRadius: 22,
         speed: 3.2, duration: 4.0, knockback: 40 },
-      { damage: 8, cooldown: 2.0, amount: 3, area: onRing(1, SHIELD_R), hitRadius: 26,
+      { damage: 4, cooldown: 2.0, amount: 3, area: onRing(1, SHIELD_R), hitRadius: 26,
         speed: 3.3, duration: 4.0, knockback: 40 },
-      { damage: 14, cooldown: 1.9, amount: 4, area: onRing(1, SHIELD_R), hitRadius: 29,
+      { damage: 7, cooldown: 1.9, amount: 4, area: onRing(1, SHIELD_R), hitRadius: 29,
         speed: 3.7, duration: 4.0, knockback: 45 },
-      { damage: 19, cooldown: 1.7, amount: 5, area: onRing(1, SHIELD_R), hitRadius: 36,
+      { damage: 10, cooldown: 1.7, amount: 5, area: onRing(1, SHIELD_R), hitRadius: 36,
         speed: 4.1, duration: 4.0, knockback: 50 },
-      { damage: 24, cooldown: 1.6, amount: 6, area: onRing(1, SHIELD_R), hitRadius: 40,
+      { damage: 12, cooldown: 1.6, amount: 6, area: onRing(1, SHIELD_R), hitRadius: 40,
         speed: 4.4, duration: 4.0, knockback: 55 },
     ],
   },
@@ -373,20 +384,16 @@ export const WEAPONS = {
     ],
   },
   beam: {
-    // Неуправляемый луч: раз в cooldown amount лучей в случайные стороны из точки героя, стоят на месте duration с.
-    // Урон за тик высокий — плата за то, что направление не выбрать.
+    // Луч-змейка: amount лучей в случайные стороны, голова отскакивает от врагов и объектов bounces раз
+    // (урон × 0.75 и длина вдвое за отскок). Каждый уровень растёт часть из урона, числа лучей, отскоков, длины;
+    // по экрану (tools/simulation/dps.mjs) на каждом уровне чуть сильнее молнии (storm_chain), решение владельца.
     icon: 'icon_beam', sprite: 'proj_beam', behavior: 'beam', dmgType: 'magic', bloom: 'late', targets: 'cleave', maxLevel: 5,
     levels: [
-      { damage: 16, cooldown: 5.99, duration: 1.0, tick: 0.25, area: 150, width: 9, amount: 1,
-        knockback: 0 },
-      { damage: 16, cooldown: 5.79, duration: 1.0, tick: 0.25, area: 160, width: 9, amount: 2,
-        knockback: 0 },
-      { damage: 22, cooldown: 5.56, duration: 1.1, tick: 0.25, area: 170, width: 10, amount: 2,
-        knockback: 0 },
-      { damage: 28, cooldown: 5.14, duration: 1.2, tick: 0.25, area: 185, width: 10, amount: 3,
-        knockback: 0 },
-      { damage: 36, cooldown: 4.71, duration: 1.2, tick: 0.25, area: 200, width: 11, amount: 4,
-        knockback: 0 },
+      { damage: 26, cooldown: 1.6, amount: 1, bounces: 1, length: 60, speed: 220 },
+      { damage: 26, cooldown: 1.6, amount: 1, bounces: 2, length: 70, speed: 220 },
+      { damage: 38, cooldown: 1.35, amount: 2, bounces: 2, length: 80, speed: 220 },
+      { damage: 38, cooldown: 1.25, amount: 3, bounces: 3, length: 90, speed: 220 },
+      { damage: 38, cooldown: 1.25, amount: 4, bounces: 4, length: 100, speed: 220 },
     ],
   },
   wisp: {
@@ -437,7 +444,7 @@ export const WEAPONS = {
   aegis_bastion: {
     icon: 'icon_aegis_bastion', sprite: 'proj_shield', behavior: 'orbit', dmgType: 'attack', targets: 'aoe', maxLevel: 1, evolved: true, tint: 0xa0c8ff,
     levels: [
-      { damage: 9, cooldown: 0, amount: 6, area: onRing(2, SHIELD_R * 1.4), speed: 4.4,
+      { damage: 5, cooldown: 0, amount: 6, area: onRing(2, SHIELD_R * 1.4), speed: 4.4,
         duration: 1e9, knockback: 0, size: 1.4, hitRadius: 54},
     ],
   },
@@ -528,8 +535,7 @@ export const WEAPONS = {
   prism_ray: {
     icon: 'icon_prism_ray', sprite: 'proj_beam', behavior: 'beam', dmgType: 'magic', targets: 'cleave', maxLevel: 1, evolved: true, tint: 0xff80ff,
     levels: [
-      { damage: 17, cooldown: 6.39, duration: 1.4, tick: 0.2, area: 230, width: 11, amount: 8,
-        knockback: 0 },
+      { damage: 58, cooldown: 2.9, amount: 6, bounces: 5, length: 120, speed: 250 },
     ],
   },
   // wisp + xp_gain

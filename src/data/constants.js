@@ -218,7 +218,7 @@ export const FX = {
   // Каждое оружие начинается на этой окружности в сторону полёта или цели. Только картинка (сим и попадания по земле
   // не меняются): у снарядов behaviors, вылетевших из героя (линия полёта не дальше near px от его точки), сдвиг
   // гаснет за первые fade с полёта (render/world.js); первое звено молнии — с окружности (render/zones.js);
-  // луч (behaviors/weapons/beam.js) — с окружности; огоньки (summon) кружат снаружи (WEAPON_BEHAVIOR.summon).
+  // змейка луча (behaviors/weapons/beam.js) — с окружности; огоньки (summon) кружат снаружи (WEAPON_BEHAVIOR.summon).
   weaponOrigin: { lift: 28, radius: 32, fade: 0.2, near: 8,
     behaviors: ['projectile', 'impale', 'boomerang', 'ice_orb', 'area_drop'] },
   // Зоны на земле (src/render/zones.js): прозрачности слоёв, дыхание и волны ауры (wavesPerHit — волна на столько ударов).
@@ -228,11 +228,15 @@ export const FX = {
       wave: 0.45, waveWidth: 1.5, wavesPerHit: 2, rimWidth: 1.5, rim: 0.55,
     },
     boom: { color: 0xff8030, core: 0xfff0b0, alpha: 0.5 },
-    // кольца внутри падающего метеора (sprite): radius — радиус шара в px мира при scale 1 (proj_meteor 56 px
-    // текстуры при density 2, шар r ≈ 28 px текстуры → 14 px мира), start — с какой доли радиуса кольцо
-    // появляется (без точки в центре), count колец, period с на кольцо
-    meteorPulse: { sprite: 'proj_meteor', color: 0xffc070, radius: 13, start: 0.4, count: 2, period: 0.45, width: 1.2,
-      alpha: 0.8 },
+    // кольца внутри шара по ключу спрайта (метеор, ледяной шар): radius — радиус шара в px мира при scale 1
+    // (текстура при density 2: proj_meteor 56 px → 14, proj_frost 44 px → 11), start — с какой доли радиуса
+    // кольцо появляется (без точки в центре), count колец, period с на кольцо
+    pulse: {
+      proj_meteor: { color: 0xffc070, radius: 13, start: 0.4, count: 2, period: 0.45, width: 1.2,
+        alpha: 0.8 },
+      proj_frost: { color: 0x7fc8ff, radius: 10, start: 0.4, count: 2, period: 0.6, width: 1.2,
+        alpha: 0.8 },
+    },
     fire: { color: 0xff6a20, core: 0xffc040, fill: 0.13, rim: 0.45, flicker: 0.08, fadeOut: 0.5 },
     // трещина молота (slam): тёмное пятно, rays лучей-изломов по joints звеньев, светлая кромка цвета tint
     crack: { dark: 0x2a1c10, fill: 0.22, line: 0.85, width: 2, edge: 0.5, rays: 7, joints: 3,

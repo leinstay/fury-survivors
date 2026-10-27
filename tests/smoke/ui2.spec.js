@@ -1,7 +1,7 @@
 import { test, expect, devices } from '@playwright/test';
 import { collectConsoleErrors, startGame, clickSceneText } from './helpers.js';
 
-// Меню (столбец кнопок, Play → Solo / Co-op → сложность → герой), пауза в той же раскладке с ачивками,
+// Меню (столбец кнопок, Play → сложность → герой, Co-op под Play), пауза в той же раскладке с ачивками,
 // кодекс (Armory без наезда заголовков, карточки героев как у боссов), карточки уровня с изменением
 // статов. Десктоп и телефон; скриншоты tools/out/shots/ui2-<вид>-<экран>.png.
 const SHOTS = 'tools/out/shots';
@@ -23,24 +23,19 @@ async function pass(page, tag) {
   await page.waitForTimeout(300);
   await shot('menu');
   const main = await rects(page, 'Menu');
-  expect(main.map((r) => r.label)).toEqual(['Play', 'Inventory', 'Codex', 'Achievements', 'Leaderboard',
+  expect(main.map((r) => r.label)).toEqual(['Play', 'Co-op', 'Inventory', 'Codex', 'Achievements', 'Leaderboard',
     'Settings']);
   expect(new Set(main.map((r) => `${r.w}x${r.h}`)).size).toBe(1);
 
-  // Play → Solo / Co-op; Esc назад по шагам
-  await page.keyboard.press('Enter');
-  await menuView(page, 'play');
-  await shot('play');
+  // Play → сложность, Co-op; Esc назад в главное
   await page.keyboard.press('Enter');
   await menuView(page, 'difficulty');
   await shot('difficulty');
   await page.keyboard.press('Escape');
-  await menuView(page, 'play');
+  await menuView(page, 'main');
   await page.keyboard.press('ArrowDown');
   await page.keyboard.press('Enter');
   await menuView(page, 'coop');
-  await page.keyboard.press('Escape');
-  await menuView(page, 'play');
   await page.keyboard.press('Escape');
   await menuView(page, 'main');
 

@@ -59,7 +59,10 @@ test('new weapons: data, i18n, sprites and one evolution each', () => {
   for (const [id, w] of Object.entries(WEAPONS)) {
     if (w.shot) assert.ok(SPRITES[w.shot], `${id}: shot sprite`);
     for (const lv of w.levels) {
-      if (w.behavior === 'beam') assert.ok(lv.tick > 0 && lv.width > 0 && lv.area > 0 && lv.amount >= 1, `${id}: beam level`);
+      if (w.behavior === 'beam') {
+        assert.ok(lv.length > 0 && lv.speed > 0 && lv.amount >= 1 && lv.bounces >= 1, `${id}: beam level`);
+        assert.ok(lv.area === undefined && lv.width === undefined, `${id}: beam has no area stat`);
+      }
       if (w.behavior === 'summon') assert.ok(w.shot && lv.amount >= 1 && lv.speed > 0 && lv.duration > 0, `${id}: summon level`);
       if (lv.mine) assert.ok(lv.trigger > 0 && lv.spread > 0 && lv.duration > 0 && !lv.fireDamage, `${id}: mine level`);
       if (lv.slow !== undefined) assert.ok(lv.slow > 0 && lv.slow < 1 && lv.slowTime > 0, `${id}: slow`);
@@ -82,7 +85,8 @@ test('beam: deterministic (same seed, same hits), not tied to the movement direc
   const d = setup('beam', 1, 9);
   runHits(c, 0.4, 'beam', { x: 0, y: 1 });
   runHits(d, 0.4, 'beam', { x: -1, y: 0 });
-  assert.equal(c.player.weapons[0].beams[0].a, d.player.weapons[0].beams[0].a);
+  const ray = (s) => s.projectiles.find((p) => p.wid === 'beam' && p.fx === 'snake');
+  assert.equal(ray(c).angle, ray(d).angle);
 });
 
 test('summon: wisps follow the hero and shoot the nearest enemy', () => {

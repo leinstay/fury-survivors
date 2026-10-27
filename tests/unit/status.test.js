@@ -1,9 +1,8 @@
 // Сопротивление (процент, кап, миграция armor), ДоТы на врагах (src/behaviors/status.js), облако (cloud)
-// и неуправляемый луч (beam).
+// (луч-змейка beam — tests/unit/weapons-beam.test.js).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createSim } from '../../src/core/sim.js';
-import { createRng } from '../../src/core/rng.js';
 import { computeStats, statReport } from '../../src/core/stats.js';
 import { hashParts } from '../../src/core/lockstep.js';
 import { normalizeItem, normalizeInventory, affixMax } from '../../src/core/items.js';
@@ -334,69 +333,6 @@ test('cloud: amount N drops N clouds staggered, each on its own cooldown; poison
     const h = WEAPONS.holy_ground.levels[i];
     assert.ok(l.damage / l.tick < h.damage / h.cooldown, `L${i + 1}`);
   });
-});
-
-// ---------- луч ----------
-
-test('beam: random angles from the sim RNG, one per sector, amount beams per cast', () => {
-  const sim = setup([['prism_ray', 1]]);
-  const w = sim.player.weapons[0];
-  const P = WEAPONS.prism_ray.levels[0];
-  const r = createRng(sim.rng.state);
-  w.timer = 0;
-  w.beh.update(w, sim, DT);
-  assert.equal(w.beams.length, P.amount);
-  const tau = Math.PI * 2;
-  for (let i = 0; i < P.amount; i++) {
-    near(w.beams[i].a, ((i + r.next()) * tau) / P.amount, 1e-12);
-  }
-  assert.ok(WEAPONS.prism_ray.levels[0].amount > WEAPONS.beam.levels[4].amount);
-  // другой сид — другие углы
-  const s2 = setup([['beam', 1]], 99);
-  const s3 = setup([['beam', 1]], 5);
-  run(s2, 0.4);
-  run(s3, 0.4);
-  assert.notEqual(s2.player.weapons[0].beams[0]?.a, s3.player.weapons[0].beams[0]?.a);
-});
-
-test('beam: stays where it was cast when the hero moves, ticks every tick for duration', () => {
-  const sim = setup([['beam', 1]]);
-  const w = sim.player.weapons[0];
-  const P = WEAPONS.beam.levels[0];
-  w.timer = 0;
-  w.beh.update(w, sim, DT);
-  const b = w.beams[0];
-  const e = dummy(sim, Math.cos(b.a) * 60, Math.sin(b.a) * 60);
-  const segs = sim.projectiles.filter((p) => p.wid === 'beam').map((p) => [p.x, p.y]);
-  assert.ok(segs.length > 0);
-  const hits = [];
-  // герой уходит поперёк луча
-  run(sim, P.duration + 0.1, { x: -Math.sin(b.a), y: Math.cos(b.a) }, (s) => {
-    for (const ev of s.events) if (ev.type === 'hit' && ev.weapon === 'beam') hits.push(s.time);
-    const now = s.projectiles.filter((p) => p.wid === 'beam' && p.life > 0);
-    if (now.length === segs.length) {
-      now.forEach((p, i) => { near(p.x, segs[i][0]); near(p.y, segs[i][1]); });
-    }
-  });
-  assert.ok(Math.hypot(sim.player.x - b.x, sim.player.y - b.y) > 40, 'hero moved away');
-  const want = Math.round(P.duration / P.tick);
-  assert.ok(Math.abs(hits.length - want) <= 1, `hits ${hits.length} vs ${want}`);
-  assert.ok(e.hp < e.maxHp);
-  // объект на линии луча ломается
-  const s2 = setup([['beam', 1]]);
-  const w2 = s2.player.weapons[0];
-  w2.timer = 0;
-  const r = createRng(s2.rng.state);
-  const a = r.next() * Math.PI * 2;
-  const pl2 = s2.player;
-  s2.props = [{ uid: 1e6, x: pl2.x + Math.cos(a) * 50, y: pl2.y + Math.sin(a) * 50, radius: 6,
-    hp: 1, dead: false, mark: 0, hitAt: new Float64Array(64) }];
-  let broke = false;
-  s2._damageProp = (o) => { o.dead = true; broke = true; };
-  w2.beh.update(w2, s2, DT);
-  assert.ok(broke, 'prop on the beam line breaks');
-  // урон высокий: за тик больше, чем у святой земли и облака
-  assert.ok(P.damage > WEAPONS.holy_ground.levels[0].damage * 2);
 });
 
 test('thorns: old saves (v1, flat damage) are rescaled to shares of enemy max HP', () => {

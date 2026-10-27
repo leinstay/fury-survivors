@@ -8,11 +8,12 @@ import { createActions } from '../core/actions.js';
 import { fadeOutAndStop, resetFade } from '../ui/fade.js';
 import { statReport } from '../core/stats.js';
 import { loadoutReport, loadoutUnique } from '../core/loadout.js';
-import { BagView, ItemTooltip, addStatsPanel, RARITY_CSS } from '../ui/items.js';
+import { BagView, ItemTooltip, addStatsPanel, addStatsLegend, RARITY_CSS } from '../ui/items.js';
 import { PANEL } from '../ui/panel.js';
 import { BAG } from '../data/items.js';
 import {
   EDGE, LABEL_ROW, menuRow, backRect, screenTitle, overlayTitle, menuBackdrop, SUBMENU_Y,
+  PAUSE_TITLE_Y,
   OPTIONS as OPT,
 } from '../ui/menu-layout.js';
 
@@ -57,6 +58,7 @@ export class PauseScene extends Phaser.Scene {
     for (const o of this.objs) o.destroy();
     this.tip.hide();
     this.bagView = null;
+    this.cursor = null;
     const before = new Set(this.children.list);
     if (view === 'options') this.showOptions();
     else if (view === 'inventory') this.showInventory();
@@ -89,7 +91,11 @@ export class PauseScene extends Phaser.Scene {
           x: cx, y: cy, w: C, h: C, onPointer: () => {},
           setFocus: (f) => {
             g.clear();
-            if (!f) return;
+            if (!f) {
+              // клетка без фокуса не держит подсказку (иначе при входе всплывал первый предмет)
+              if (this.cursor && this.cursor.x === cx && this.cursor.y === cy) this.cursor = null;
+              return;
+            }
             g.lineStyle(1, PANEL.borderFocus, 1)
                 .strokeRect(cx - C / 2 + 0.5, cy - C / 2 + 0.5, C - 1, C - 1);
             this.cursor = { x: cx, y: cy };
@@ -110,9 +116,10 @@ export class PauseScene extends Phaser.Scene {
     const base = me.heroDef.stats;
     addStatsPanel(this, rx, by, rw, INV.bottom - by, loadoutReport(base, me.passives, me.bag),
         statReport(base, me.passives), '', { legend: false });
-    // подсказка в нижнем левом углу панели статов
+    // подсказка в нижнем левом углу панели статов, легенда цветов вкладов на её линии справа
+    const legendW = addStatsLegend(this, rx + rw - 6, INV.bottom - 6, textStyle, 1);
     this.add.text(rx + 6, INV.bottom - 6, t('inv.readonly'),
-        textStyle(9, '#aaaaaa', { wordWrap: { width: rw - 12 } })).setOrigin(0, 1);
+        textStyle(9, '#aaaaaa', { wordWrap: { width: rw - 12 - legendW - 8 } })).setOrigin(0, 1);
     addButton(this, this.nav, {
       ...backRect(), size: 12, label: t('settings.back'),
       onSelect: () => { this.focusMain = 2; this.show('main'); },
@@ -145,7 +152,7 @@ export class PauseScene extends Phaser.Scene {
   // Achievements, Quit (в овертайме ещё Finish). Статы — во вкладке инвентаря, билд в забеге под полосой HP.
   showMain() {
     // «Paused» только на корне паузы; подэкраны — заголовком экрана (screenTitle), как в меню
-    overlayTitle(this, t('pause.title'));
+    overlayTitle(this, t('pause.title'), undefined, PAUSE_TITLE_Y);
     const rows = [
       [t('pause.resume'), () => this.resume()],
       [t('pause.options'), () => this.show('options')],

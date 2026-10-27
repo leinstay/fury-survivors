@@ -44,7 +44,7 @@ test('button sizes: one size per role on every screen', async ({ page }) => {
         .find((c) => c.type === 'Text' && c.text === t(k));
     return o ? { y: Math.round(o.y), size: o.style.fontSize } : null;
   }, [scene, key]);
-  const TITLES = { play: 'Choose mode', difficulty: 'Choose difficulty', hero: 'Choose class',
+  const TITLES = { difficulty: 'Choose difficulty', hero: 'Choose class',
     coop: 'Online co-op', settings: 'Settings' };
   const title = (scene, label) => page.evaluate(([n, l]) => {
     const o = window.__game.game.scene.getScene(n).children.list
@@ -52,7 +52,7 @@ test('button sizes: one size per role on every screen', async ({ page }) => {
     if (!o) return null;
     return { x: Math.round(o.x), y: Math.round(o.y), size: o.style.fontSize, color: o.style.color };
   }, [scene, label]);
-  for (const v of ['main', 'play', 'difficulty', 'hero', 'coop', 'settings']) {
+  for (const v of ['main', 'difficulty', 'hero', 'coop', 'settings']) {
     await menuView(page, v);
     await grab(`Menu/${v}`, 'Menu');
     if (TITLES[v]) titles[`Menu/${v}`] = await title('Menu', TITLES[v]);
@@ -139,19 +139,19 @@ test('button sizes: one size per role on every screen', async ({ page }) => {
   expect(new Set(column.map(size))).toEqual(new Set(['160x24']));
   const rect = (b) => [b.x, b.y, b.w, b.h];
   table.Pause.forEach((b, i) => expect(rect(b)).toEqual(rect(column[i])));
-  // подменю: столбик той же ширины и с тем же шагом, что главное меню, с одного y (Solo там же, где Normal)
+  // подменю Play и Co-op: столбик на месте столбика главного меню (Normal там же, где Play)
   const step = column[1].y - column[0].y;
   const tops = [];
-  for (const v of ['play', 'difficulty', 'coop']) {
+  for (const v of ['difficulty', 'coop']) {
     const col = table[`Menu/${v}`].filter((b) => b.label !== 'Back');
     expect(new Set(col.map(size))).toEqual(new Set(['160x24']));
     expect(new Set(col.map((b) => b.x))).toEqual(new Set([column[0].x]));
     // кооп: в nav-кнопках нет поля ника (первая строка, на шаг выше Create lobby)
     tops.push(v === 'coop' ? col[0].y - step : col[0].y);
   }
-  expect(new Set(tops).size).toBe(1);
+  expect([...new Set(tops)]).toEqual([column[0].y]);
   // настройки: первые две строки — слайдеры (в таблице кнопок их нет), шаг строк настроек 27
-  expect(table['Menu/settings'][0].y).toBe(tops[0] + 2 * 27);
+  expect(table['Menu/settings'][0].y).toBe(70 + 2 * 27);
   // фон: арт меню везде, героини только у корня главного меню
   for (const [s, b] of Object.entries(backdrops)) {
     expect([s, b]).toEqual([s, { art: true, heroines: s === 'Menu/main' }]);
@@ -163,7 +163,7 @@ test('button sizes: one size per role on every screen', async ({ page }) => {
   for (const [s, v] of Object.entries(titles)) expect([s, !!v]).toEqual([s, true]);
   expect(new Set(Object.values(titles).map((v) => `${v.x}/${v.y}/${v.size}/${v.color}`)).size).toBe(1);
   // Back: одна точка и один размер на всех страницах и подэкранах меню
-  const backScreens = ['Menu/play', 'Menu/difficulty', 'Menu/hero', 'Menu/coop', 'Menu/settings', 'Codex',
+  const backScreens = ['Menu/difficulty', 'Menu/hero', 'Menu/coop', 'Menu/settings', 'Codex',
     'Inventory', 'Inventory/craft', 'Achievements', 'Leaderboard', 'Pause/options', 'Pause/inventory'];
   for (const s of backScreens) {
     const b = table[s].find((x) => x.label === 'Back');
@@ -174,9 +174,12 @@ test('button sizes: one size per role on every screen', async ({ page }) => {
   const refresh = table.Leaderboard.find((b) => b.label === 'Refresh');
   expect([refresh.x, refresh.y, refresh.w, refresh.h]).toEqual([640 - 68, 340, 120, 24]);
   expect(pauseInv).toEqual({ bag: pauseInv.stats, stats: pauseInv.stats, hint: true,
-    legend: false });
-  // заголовки поверх забега: один y и один размер
-  for (const [s, v] of Object.entries(overlays)) expect([s, v]).toEqual([s, overlays.LevelUp]);
+    legend: true });
+  // заголовки поверх забега: один y и один размер; Paused — ниже таймера (PAUSE_TITLE_Y), размер тот же
+  for (const [s, v] of Object.entries(overlays)) {
+    const want = s === 'Pause' ? { ...overlays.LevelUp, y: 52 } : overlays.LevelUp;
+    expect([s, v]).toEqual([s, want]);
+  }
   expect(overlays.LevelUp && overlays.LevelUp.y).toBe(26);
   // кнопки в ряд под содержимым — action
   for (const s of ['LevelUp', 'Chest']) expect(new Set(table[s].map(size))).toEqual(new Set(['120x24']));

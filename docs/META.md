@@ -91,7 +91,7 @@
 | firebomb | magic | area_drop | pickup | napalm_rain | aoe / aoe | — |
 | frost_orb | magic | новый `ice_orb` (крупный медленный шар, пробивает всех, морозит; эволюция спиралью) | area | — новая | aoe / aoe | — |
 | poison_cloud | magic | новый `cloud` (облако на месте героя, amount облаков со своим кд, яд) | magic | miasma | aoe / aoe | — |
-| beam | magic | новый `beam` (лучи в случайные стороны, стоят на месте, урон высокий) | speed | prism_ray | cleave / cleave | late |
+| beam | magic | новый `beam` (змейка в случайную сторону, рикошет на 90° с потерей урона и длины, `bounces` до 4) | speed | prism_ray | cleave / cleave | late |
 | wisp | magic | новый `summon` (летает за героем, стреляет сам) | xp_gain | — новая | single / single | early |
 | meteor | magic | area_drop (долгий замах, большой урон) | thorns | — новая | aoe / aoe | — |
 

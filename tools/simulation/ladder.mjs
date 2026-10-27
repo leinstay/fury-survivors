@@ -102,7 +102,7 @@ export function reach(def, lv) {
     case 'orbit': return lv.area + (lv.hitRadius || B.orbit.hitRadius);
     case 'boomerang': return Math.min(B.boomerang.targetRange, lv.area);
     case 'chain': return lv.range;
-    case 'beam': return lv.area;
+    case 'beam': return B.beam.maxTravel;
     case 'summon': return Math.min(B.summon.targetRange, lv.speed * lv.duration) + B.summon.orbitR;
     case 'projectile': return Math.min(B.projectile.targetRange, lv.speed * lv.duration);
     case 'area_drop':
@@ -126,7 +126,7 @@ export function quirks(def, lv) {
   const status = lv.status || def.status;
   const chill = status && ['chill', 'freeze', 'slow'].includes(status.type);
   if (lv.slow || chill) add('slow', 1, chill ? status.type : 'slow'); // замедление, трещина, заморозка
-  if (lv.pierceAll || ['beam', 'ice_orb'].includes(def.behavior)) add('pierceAll');
+  if (lv.pierceAll || def.behavior === 'ice_orb') add('pierceAll');
   else if (lv.pierce > 0) add('pierce', Math.min(lv.pierce, LADDER.pierceCap));
   if (lv.pin > 0) add('root');
   if (lv.fireDamage > 0) add('dot', 1, 'fire');
@@ -155,10 +155,7 @@ export function paperDps(def, lv) {
     case 'cloud': return lv.damage * n * Math.min(1, lv.duration * n / cd) / lv.tick / n;
     case 'boomerang': return lv.damage * 2 / cd; // туда и обратно, одна цель
     case 'chain': return lv.damage / cd;          // цепь бьёт цель раз за молнию
-    case 'beam': {
-      const ticks = lv.duration / lv.tick;
-      return lv.damage * ticks / (lv.duration + cd);
-    }
+    case 'beam': return lv.damage / cd; // голова змейки бьёт цель раз за отрезок
     case 'area_drop': {
       const fire = lv.fireDamage ? lv.fireDamage * lv.duration / B.area_drop.fireTick : 0;
       return lv.damage * (1 + fire) / cd;

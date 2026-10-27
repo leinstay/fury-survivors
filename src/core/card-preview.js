@@ -15,7 +15,8 @@ const LEVEL_FIELD = new Set(['area', 'duration']);
 const DMG_TYPES = new Set(Object.values(WEAPONS).map((w) => w.dmgType).filter(Boolean));
 
 // Параметры уровня оружия в предпросмотре (в этом порядке), уже со статами владельца.
-export const PREVIEW_PARAMS = ['damage', 'cooldown', 'amount', 'area', 'duration', 'pierce', 'speed'];
+export const PREVIEW_PARAMS = ['damage', 'cooldown', 'amount', 'bounces', 'area', 'duration', 'pierce',
+  'speed'];
 
 /**
  * Меняет ли стат оружие с таким id.

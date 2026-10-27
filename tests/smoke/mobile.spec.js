@@ -205,11 +205,7 @@ test.describe('mobile landscape', () => {
     await tapItem(page, 'Codex', 'Back');
     await page.waitForFunction(() => window.__game.debug().scene === 'Menu');
 
-    // ---------- кооп: Play → Co-op, лобби ----------
-    await tapItem(page, 'Menu', 'Play');
-    await page.waitForFunction(() => window.__game.game.scene.getScene('Menu').view === 'play');
-    await page.waitForTimeout(200);
-    await shot(page, 'play');
+    // ---------- кооп: Co-op, лобби ----------
     await tapItem(page, 'Menu', 'Co-op');
     await page.waitForFunction(() => window.__game.game.scene.getScene('Menu').view === 'coop');
     await page.waitForTimeout(200);
@@ -225,11 +221,9 @@ test.describe('mobile landscape', () => {
     await page.evaluate(() => window.__game.game.scene.getScene('Lobby').scene.start('Menu'));
     await page.waitForFunction(() => window.__game.debug().scene === 'Menu');
 
-    // ---------- забег: Play → Solo → сложность → герой тапом, джойстик ----------
+    // ---------- забег: Play → сложность → герой тапом, джойстик ----------
     await page.evaluate(() => { window.__furyTestSeed = 1111; });
     await tapItem(page, 'Menu', 'Play');
-    await page.waitForFunction(() => window.__game.game.scene.getScene('Menu').view === 'play');
-    await tapItem(page, 'Menu', 'Solo');
     await page.waitForFunction(() => window.__game.game.scene.getScene('Menu').view === 'difficulty');
     await page.waitForTimeout(200);
     await shot(page, 'difficulty');

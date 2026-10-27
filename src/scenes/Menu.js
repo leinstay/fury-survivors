@@ -19,15 +19,15 @@ import { validHero } from '../core/heroes.js';
 import { addHeroPicker } from '../ui/hero-picker.js';
 import { versionTag } from '../core/lockstep.js';
 import {
-  OPTIONS, SUBMENU_Y, MENU_COLUMN, MENU_ART, menuRow, subRow, backRect, screenTitle, menuBackdrop,
+  OPTIONS, SUBMENU_Y, MENU_COLUMN, MENU_ART, menuRow, backRect, screenTitle, menuBackdrop,
   menuHeroines, menuVeil,
 } from '../ui/menu-layout.js';
 
-// Высота карточек выбора героя (верх — по верху столбика подменю).
+// Высота карточек выбора героя (верх — по верху столбика главного меню).
 const HERO_PICK_H = 150;
 // Заголовок каждого подменю (ui/menu-layout.js screenTitle); логотип игры — только у корня.
-const TITLES = { play: 'menu.mode_title', difficulty: 'difficulty.title', hero: 'hero.title',
-  coop: 'coop.title', settings: 'settings.title' };
+const TITLES = { difficulty: 'difficulty.title', hero: 'hero.title', coop: 'coop.title',
+  settings: 'settings.title' };
 
 export class MenuScene extends Phaser.Scene {
   constructor() {
@@ -94,10 +94,9 @@ export class MenuScene extends Phaser.Scene {
     let focus = 0;
     const row = (i, label, onSelect, color) =>
       addButton(this, this.nav, { ...menuRow(i), label, onSelect, color });
-    // Подменю: арт меню без героинь, заголовок экрана на TITLE_Y, столбик (160×24, шаг меню) с общего
-    // SUBMENU_Y (subRow), Back — общий Back страниц (внизу слева).
-    const sub = (i, label, onSelect, color) =>
-      addButton(this, this.nav, { ...subRow(i), label, onSelect, color });
+    // Подменю Play и Co-op: арт меню без героинь, заголовок экрана на TITLE_Y, столбик на месте столбика
+    // главного меню (menuRow), Back — общий Back страниц (внизу слева).
+    const sub = row;
     const back = (to) => addButton(this, this.nav, { ...backRect(), size: 12, label: t('settings.back'),
       onSelect: () => this.show(to) });
     if (view !== 'main') {
@@ -105,26 +104,22 @@ export class MenuScene extends Phaser.Scene {
       screenTitle(this, t(TITLES[view]));
     }
     if (view === 'main') {
-      // шесть кнопок одного размера столбцом (ui/menu-layout.js, та же раскладка у паузы); героини по бокам
+      // семь кнопок одного размера столбцом (ui/menu-layout.js, та же раскладка у паузы); героини по бокам
       menuHeroines(this);
       const rows = [
-        ['play', t('menu.play'), () => this.show('play')],
+        ['play', t('menu.play'), () => this.show('difficulty')],
+        ['coop', t('menu.coop'), () => this.show('coop')],
         ['inventory', t('menu.inventory'), () => this.scene.start('Inventory')],
         ['codex', t('menu.codex'), () => this.scene.start('Codex', { from: 'Menu' })],
-        ['achievements', t('menu.achievements'), () => this.scene.start('Achievements')],
+        ['achievements', t('menu.achievements'), () => this.scene.start('Achievements', { from: 'Menu' })],
         ['leaderboard', t('menu.leaderboard'), () => this.scene.start('Leaderboard')],
         ['settings', t('menu.settings'), () => this.show('settings')],
       ];
       rows.forEach(([, label, fn], i) => row(i, label, fn));
-      focus = Math.max(0, rows.findIndex((r) => r[0] === this.from));
+      const was = this.from === 'hero' || this.from === 'difficulty' ? 'play' : this.from;
+      focus = Math.max(0, rows.findIndex((r) => r[0] === was));
       // подсказка про клавиши: на телефоне клавиатуры нет
       if (!isMobile()) this.add.text(cx, GAME_HEIGHT - 14, t('menu.hint'), textStyle(10, '#dddddd', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5);
-    } else if (view === 'play') {
-      // Play: соло (сложность, затем герой) или кооп (ник и лобби)
-      sub(0, t('menu.solo'), () => this.show('difficulty'));
-      sub(1, t('menu.coop'), () => this.show('coop'));
-      back('main');
-      focus = this.from === 'coop' ? 1 : 0;
     } else if (view === 'difficulty') {
       // Сложность соло; последний выбор запоминается и стоит в фокусе.
       const ids = Object.keys(DIFFICULTIES);
@@ -133,14 +128,14 @@ export class MenuScene extends Phaser.Scene {
         sub(i, t(`difficulty.${id}.name`), () => { setSetting('difficulty', id); this.show('hero'); },
             cursed ? COLORS.cursed : '#ffffff');
       });
-      back('play');
+      back('main');
       focus = Math.max(0, ids.indexOf(this.difficulty()));
     } else if (view === 'hero') {
       // Выбор героя последним шагом: выбор сразу запускает забег. Последний выбор стоит в фокусе.
       // Карточки от верха столбика подменю, ряд не шире промежутка между героинями главного меню.
       const ids = Object.keys(HEROES);
       addHeroPicker(this, this.nav, {
-        x: cx, y: SUBMENU_Y - MENU_COLUMN.h / 2 + HERO_PICK_H / 2, h: HERO_PICK_H,
+        x: cx, y: MENU_COLUMN.y - MENU_COLUMN.h / 2 + HERO_PICK_H / 2, h: HERO_PICK_H,
         maxWidth: 2 * MENU_ART.gap - 10, selected: this.hero(),
         onPick: (id) => { setSetting('hero', id); this.play(this.difficulty()); },
       });
@@ -159,18 +154,18 @@ export class MenuScene extends Phaser.Scene {
     this.nav.focus(focus);
   }
 
-  // Шаг назад (Esc / B): герой → сложность → Play → главное; кооп → Play; настройки → главное.
+  // Шаг назад (Esc / B): герой → сложность → главное; кооп и настройки → главное.
   back() {
-    const prev = { play: 'main', difficulty: 'play', hero: 'difficulty', coop: 'play', settings: 'main' };
+    const prev = { difficulty: 'main', hero: 'difficulty', coop: 'main', settings: 'main' };
     if (prev[this.view]) this.show(prev[this.view]);
   }
 
   // Сетевой кооп: ник, «Создать лобби» (хост) или код и «Подключиться» (гость). Оба уходят в сцену Lobby.
   showCoop(cx, before) {
-    // Строки столбика подменю (subRow, 160×24): хост — ник и Create lobby, через пустую строку гость — код
+    // Строки столбика главного меню (menuRow, 160×24): хост — ник и Create lobby, через пустую строку гость — код
     // и Connect; под ними строка ошибок. Стрелки ходят сверху вниз, Back — внизу слева.
     const rows = { name: 0, create: 1, code: 3, connect: 4, status: 5 };
-    const r = (k) => subRow(rows[k]);
+    const r = (k) => menuRow(rows[k]);
     const status = this.add.text(cx, r('status').y, '', textStyle(10, '#ff8080', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5);
     const say = (key) => status.setText(key ? t(key) : '');
 
@@ -212,7 +207,7 @@ export class MenuScene extends Phaser.Scene {
     code.el.addEventListener('nick-enter', connect);
     name.el.addEventListener('nick-enter', () => code.el.focus());
 
-    addButton(this, this.nav, { ...backRect(), size: 12, label: t('settings.back'), onSelect: () => this.show('play') });
+    addButton(this, this.nav, { ...backRect(), size: 12, label: t('settings.back'), onSelect: () => this.show('main') });
     this.inputs = [name, code];
     this.events.once('shutdown', () => this._dropInputs());
     this.objs = this.children.list.filter((o) => !before.has(o) && o.type !== 'Zone');

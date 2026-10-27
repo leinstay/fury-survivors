@@ -2,6 +2,8 @@
 // слегка блуждая вокруг него (wander), догоняют с силой follow, и
 // каждый сам стреляет в ближайшего к себе врага (или объект, если врагов нет) раз в cooldown секунд.
 // Выстрел — снаряд w.def.shot: speed, duration (время полёта), pierce, knockback. У самих огоньков урона нет.
+// Выстрел доворачивает на свою цель (shotTurn рад/с), пока не долетит до неё, затем летит прямо; бьёт любого
+// врага на пути (общие попадания снарядов sim._projectileHits), не только цель.
 // p.c у огонька — таймер до его выстрела; огоньки разнесены по фазе, чтобы не стрелять залпом.
 import { WEAPON_BEHAVIOR } from '../../data/weapons.js';
 
@@ -40,8 +42,38 @@ function shoot(p, w, sim) {
   s.pierce = P.pierce || 0;
   s.wid = w.id;
   s.slot = w.slot;
+  s.tgt = t;
+  s.b = t.uid; // объект цели из пула мог смениться: доворот только пока uid тот же
+  s.bk = shot;
   return true;
 }
+
+// Полёт выстрела: доворот к живой цели не больше shotTurn·dt за тик, у цели — дальше прямо.
+const shot = {
+  moveProjectile(p, w, sim, dt) {
+    const t = p.tgt;
+    if (t && !t.dead && t.uid === p.b) {
+      const dx = t.x - p.x;
+      const dy = t.y - p.y;
+      const r = p.radius + (t.size || t.radius || 0);
+      if (dx * dx + dy * dy <= r * r) {
+        p.tgt = null;
+      } else {
+        let d = Math.atan2(dy, dx) - p.angle;
+        d = Math.atan2(Math.sin(d), Math.cos(d));
+        const m = S.shotTurn * dt;
+        p.angle += d > m ? m : d < -m ? -m : d;
+        const v = Math.hypot(p.vx, p.vy);
+        p.vx = Math.cos(p.angle) * v;
+        p.vy = Math.sin(p.angle) * v;
+      }
+    } else {
+      p.tgt = null;
+    }
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+  },
+};
 
 export const summon = {
   init(w) { w.wisps = []; w.t = 0; },

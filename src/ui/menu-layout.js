@@ -44,6 +44,8 @@ export const CONTENT_TOP = TITLE_Y + 16;
 // полосу опыта сверху.
 export const OVERLAY_TITLE_Y = 26;
 export const OVERLAY_TITLE = { size: 24, color: '#ffd84a', stroke: '#000000', strokeThickness: 4 };
+// Paused (корень паузы) — ниже таймера HUD, над столбиком меню.
+export const PAUSE_TITLE_Y = 52;
 
 // Столбец настроек (Menu → Settings и Pause → Options): шаг строк, ширина; первая строка на SUBMENU_Y,
 // Back — общий Back страниц (backRect).
@@ -166,9 +168,9 @@ export function menuHeroines(scene) {
  * @param {string=} color
  * @return {!Phaser.GameObjects.Text}
  */
-export function overlayTitle(scene, text, color = OVERLAY_TITLE.color) {
+export function overlayTitle(scene, text, color = OVERLAY_TITLE.color, y = OVERLAY_TITLE_Y) {
   const o = OVERLAY_TITLE;
-  return scene.add.text(GAME_WIDTH / 2, OVERLAY_TITLE_Y, text,
+  return scene.add.text(GAME_WIDTH / 2, y, text,
       textStyle(o.size, color, { stroke: o.stroke, strokeThickness: o.strokeThickness }))
       .setOrigin(0.5);
 }

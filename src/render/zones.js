@@ -7,13 +7,21 @@
 //   slash — росчерк клинка (behaviors/weapons/slash.js): слегка изогнутая линза от хвоста до головы полосы, три
 //           слоя (узкий полупрозрачный шлейф, тонкая середина, белое ядро 1–2 px сложением цвета); рисуется над
 //           персонажами (свой слой top), голова идёт за сим (p.b), хвост догоняет её, полоса гаснет по p.alpha.
+//   snake — луч-змейка (behaviors/weapons/beam.js): те же три слоя, что у слэша, вдоль ломаной p.pts (хвост →
+//           голова), почти белый с голубым оттенком, сужается к хвосту, голова чуть заострена; над персонажами,
+//           поднят на WEAPON_BEHAVIOR.beam.lift (окружность выхода оружия), гаснет по p.alpha.
 // Цвет — tint снаряда (супероружие) или цвет зоны по умолчанию из FX.zones.
 import { FX } from '../data/constants.js';
 import { WEAPON_BEHAVIOR } from '../data/weapons.js';
 
 const SL = WEAPON_BEHAVIOR.slash;
 const CH = WEAPON_BEHAVIOR.chain;
+const BM = WEAPON_BEHAVIOR.beam;
 const SLASH_STEPS = 14; // точек на сторону линзы
+const SNAKE_STEP = 3;   // px ломаной на точку ленты змейки
+const SNAKE_MAX = 48;   // точек ленты не больше
+// лента змейки: точки вдоль ломаной (x, y, нормаль nx, ny, доля s от хвоста), переиспользуются между кадрами
+const snakeBuf = new Float64Array(SNAKE_MAX * 5);
 
 // Псевдослучайное число 0..1 от целых a, b: форма трещины одна и та же на всех кадрах (не RNG сима).
 function hash01(a, b) {
@@ -90,6 +98,81 @@ function drawSlash(g, glow, p) {
   slashLayer(g, p, s0, s1, hw * SL.trail, c, SL.trailAlpha * a);
   slashLayer(g, p, s0, s1, hw * SL.mid, p.tint || SL.midColor, SL.midAlpha * a);
   slashLayer(glow, p, s0, s1, Math.max(SL.coreMin, hw * SL.core), SL.coreColor, SL.coreAlpha * a);
+}
+
+// Точки ленты змейки: ломаная p.pts, разбитая поровну по длине; нормаль по соседним точкам (углы отскоков
+// скругляются). Возвращает число точек (0 — рисовать нечего).
+function snakeSamples(p) {
+  const pts = p.pts;
+  if (!pts || pts.length < 4) return 0;
+  let total = 0;
+  for (let i = 2; i < pts.length; i += 2) {
+    total += Math.hypot(pts[i] - pts[i - 2], pts[i + 1] - pts[i - 1]);
+  }
+  if (total < 0.5) return 0;
+  const n = Math.max(2, Math.min(SNAKE_MAX, Math.ceil(total / SNAKE_STEP) + 1));
+  const b = snakeBuf;
+  let seg = 2;
+  let segStart = 0;
+  let segLen = Math.hypot(pts[2] - pts[0], pts[3] - pts[1]);
+  for (let i = 0; i < n; i++) {
+    const at = (total * i) / (n - 1);
+    while (at > segStart + segLen && seg + 2 < pts.length) {
+      segStart += segLen;
+      seg += 2;
+      segLen = Math.hypot(pts[seg] - pts[seg - 2], pts[seg + 1] - pts[seg - 1]);
+    }
+    const k = segLen > 1e-6 ? Math.min(1, (at - segStart) / segLen) : 1;
+    b[i * 5] = pts[seg - 2] + (pts[seg] - pts[seg - 2]) * k;
+    b[i * 5 + 1] = pts[seg - 1] + (pts[seg + 1] - pts[seg - 1]) * k;
+    b[i * 5 + 4] = i / (n - 1);
+  }
+  for (let i = 0; i < n; i++) {
+    const i0 = Math.max(0, i - 1);
+    const i1 = Math.min(n - 1, i + 1);
+    const dx = b[i1 * 5] - b[i0 * 5];
+    const dy = b[i1 * 5 + 1] - b[i0 * 5 + 1];
+    const l = Math.hypot(dx, dy) || 1;
+    b[i * 5 + 2] = -dy / l;
+    b[i * 5 + 3] = dx / l;
+  }
+  return n;
+}
+
+// Один слой ленты: полуширина hw у головы, к хвосту сужается (s^taper), голова заострена.
+function snakeLayer(g, n, hw, color, alpha) {
+  if (alpha <= 0 || n < 2) return;
+  const b = snakeBuf;
+  const lift = BM.lift;
+  const off = (i) => {
+    const s = b[i * 5 + 4];
+    return hw * Math.pow(s, BM.taper) * Math.min(1, (1 - s) / 0.12 + 0.35);
+  };
+  // точка i на стороне side (±1)
+  const to = (i, side, first) => {
+    const o = side * off(i);
+    const x = b[i * 5] + b[i * 5 + 2] * o;
+    const y = b[i * 5 + 1] + b[i * 5 + 3] * o - lift;
+    if (first) g.moveTo(x, y);
+    else g.lineTo(x, y);
+  };
+  g.fillStyle(color, alpha);
+  g.beginPath();
+  for (let i = 0; i < n; i++) to(i, 1, i === 0);
+  for (let i = n - 1; i >= 0; i--) to(i, -1, false);
+  g.closePath();
+  g.fillPath();
+}
+
+function drawSnake(g, glow, p) {
+  const a = p.alpha == null ? 1 : p.alpha;
+  if (a <= 0) return;
+  const n = snakeSamples(p);
+  if (!n) return;
+  const hw = BM.halfWidth;
+  snakeLayer(g, n, hw, p.tint || BM.color, BM.trailAlpha * a);
+  snakeLayer(g, n, hw * BM.mid, p.tint || BM.midColor, BM.midAlpha * a);
+  snakeLayer(glow, n, Math.max(BM.coreMin, hw * BM.core), BM.coreColor, BM.coreAlpha * a);
 }
 
 // Молния (chain): рваная ломаная от (p.x, p.y) до (p.a, p.b), изломы попеременно в стороны, форма меняется
@@ -170,11 +253,13 @@ export class Zones {
     this.glow.clear();
     for (const p of projectiles) {
       if (!p.fx) {
-        // падающий метеор: внутри шара бегут кольца от центра к краю, как волны святой земли
-        if (p.sprite === Z.meteorPulse.sprite) drawPulse(this.top, p, time, Z.meteorPulse);
+        // метеор и ледяной шар: внутри шара бегут кольца от центра к краю, как волны святой земли
+        const P = Z.pulse[p.sprite];
+        if (P) drawPulse(this.top, p, time, P);
         continue;
       }
       if (p.fx === 'slash') { drawSlash(this.top, this.glow, p); continue; }
+      if (p.fx === 'snake') { drawSnake(this.top, this.glow, p); continue; }
       if (p.fx === 'bolt') { drawBolt(this.glow, p); continue; }
       const x = Math.round(p.x);
       const y = Math.round(p.y);

@@ -34,7 +34,8 @@ export function hitSize(def, lv) {
     case 'aura': case 'cloud': case 'slam': case 'ice_orb': case 'area_drop': return lv.area;
     case 'orbit': return lv.hitRadius || B.orbit.hitRadius;
     case 'chain': return lv.area;                          // радиус прыжка
-    case 'beam': case 'slash': return lv.width;            // полуширина полосы длиной area
+    case 'beam': return B.beam.hitRadius;                  // бьёт только голова змейки
+    case 'slash': return lv.width;                         // полуширина полосы длиной area
     case 'impale': return lv.burst || lv.hitRadius || B.impale?.hitRadius;
     case 'summon': return B.summon.hitRadius;
     default: return lv.hitRadius || B.projectile.hitRadius;

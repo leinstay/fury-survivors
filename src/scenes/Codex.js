@@ -54,19 +54,21 @@ const RIGHT = { x: M + 300 + GAP, w: GAME_WIDTH - 2 * M - 300 - GAP };
 const TOTALS_W = 240;
 // Шаг строк в блоках «Stats» и «Your record» справа: 8 статов героя влезают до низа панели.
 const STAT_LINE = 12;
-// Armory: каждый раздел — один ряд клеток на всю ширину панели (клетка по самому длинному разделу: 16 в ряд
-// при 300 px панели — клетка 16, зазор 2; уникалки 13 в ряд той же клеткой), заголовок раздела с отступом
-// до клеток, оставшаяся высота — поровну в зазоры между разделами (не больше ARMORY_SEC_MAX), строка
-// «Discovered» внизу.
-const ARMORY_HEAD = 15;
-const ARMORY_GAP = 2;
+// Armory: заголовок раздела над его клетками, клеток в ряд сколько влезает в панель, лишние — на новый ряд.
+// Иконка ARMORY_ICON — ровно половина исходника 96 px (целое уменьшение), клетка того же размера, клетки
+// вплотную (ARMORY_GAP); ARMORY_INSET от рамки панели; оставшаяся высота — поровну в зазоры между разделами
+// (не больше ARMORY_SEC_MAX).
+// «Discovered» — внизу справа, рядом с неполным последним рядом.
+const ARMORY_ICON = 24;
+const ARMORY_HEAD = 13;
+const ARMORY_INSET = 4;
+const ARMORY_GAP = 0;
 const ARMORY_SEC_MAX = 40;
-const ARMORY_FOOT = 12;
 const DARK = 0x000000;
 const MOVING = { moving: true };
 // Параметры оружия в таблице (порядок строк); показываются только те, что есть у оружия.
 // pierce: строка есть и у pierceAll (копьё), там «All».
-const PARAMS = ['damage', 'cooldown', 'amount', 'area', 'speed', 'duration', 'tick', 'width', 'sweep', 'delay', 'trigger',
+const PARAMS = ['damage', 'cooldown', 'amount', 'bounces', 'area', 'length', 'speed', 'duration', 'tick', 'width', 'sweep', 'delay', 'trigger',
   'pierce', 'jumps', 'range', 'slow', 'slowTime', 'pin', 'burst', 'turn', 'fireDamage', 'knockback', 'size',
   'hitRadius'];
 const SEC_PARAMS = new Set(['cooldown', 'duration', 'tick', 'sweep', 'delay', 'slowTime', 'pin']);
@@ -409,15 +411,14 @@ export class CodexScene extends Phaser.Scene {
   buildArmory() {
     addPanel(this, LEFT.x + LEFT.w / 2, MID_Y, LEFT.w, AREA_H);
     const secs = armoryEntries();
-    // один ряд на раздел: клетка по самому длинному разделу на всю ширину панели
-    const inset = 6;
-    const most = Math.max(...secs.map((s) => s.items.length));
-    const step = Math.floor((LEFT.w - 2 * inset + ARMORY_GAP) / most);
-    const size = step - ARMORY_GAP;
-    const width = most * step - ARMORY_GAP;
-    const pad = Math.max(inset, Math.floor((LEFT.w - width) / 2));
-    const avail = FOOT_Y - ARMORY_FOOT - TOP - inset;
-    const used = secs.length * (ARMORY_HEAD + size);
+    const inset = ARMORY_INSET;
+    const size = ARMORY_ICON;
+    const step = size + ARMORY_GAP;
+    const perRow = Math.floor((LEFT.w - 2 * inset + ARMORY_GAP) / step);
+    const rowsOf = (sec) => Math.ceil(sec.items.length / perRow);
+    const pad = Math.floor((LEFT.w - perRow * step + ARMORY_GAP) / 2);
+    const avail = AREA_H - 2 * inset;
+    const used = secs.reduce((a, sec) => a + ARMORY_HEAD + rowsOf(sec) * step - ARMORY_GAP, 0);
     const secGap = Math.min(ARMORY_SEC_MAX,
         Math.floor((avail - used) / Math.max(1, secs.length - 1)));
     const x0 = LEFT.x + pad + size / 2;
@@ -429,19 +430,20 @@ export class CodexScene extends Phaser.Scene {
       this.add.text(LEFT.x + pad, y, t(`codex.sec.${sec.sec}`), textStyle(9, '#ffd84a')).setOrigin(0, 0);
       y += ARMORY_HEAD;
       sec.items.forEach((it, i) => {
-        const x = x0 + i * step;
-        const cy = y + size / 2;
+        const x = x0 + (i % perRow) * step;
+        const cy = y + Math.floor(i / perRow) * step + size / 2;
         it.key = `${it.type}:${it.id}`;
         it.seen = armorySeen(this.codex, it);
         total++;
         if (it.seen) found++;
         if (!first || this.sel.armory === it.key) first = it;
         this.cell(it.key, x, cy, size, size, it, () => {
-          const icon = addIcon(this, x, cy, iconKeyFor(it.kind, it.id), size - 2, it.kind, it.id);
+          const key = iconKeyFor(it.kind, it.id);
+          const icon = addIcon(this, x, cy, key, ARMORY_ICON, it.kind, it.id);
           if (!it.seen) darken(icon);
         });
       });
-      y += size + secGap;
+      y += rowsOf(sec) * step - ARMORY_GAP + secGap;
     });
     this.add.text(LEFT.x + LEFT.w - pad, FOOT_Y, t('codex.found', { n: found, m: total }),
         textStyle(9, COLORS.dim)).setOrigin(1, 1);
@@ -529,7 +531,7 @@ export class CodexScene extends Phaser.Scene {
       if (k === 'area') {
         return ({ melee_arc: 'reach', slash: 'length', orbit: 'orbit_radius', chain: 'jump_radius',
           area_drop: 'blast_radius', aura: 'radius', cloud: 'radius', boomerang: 'reach',
-          beam: 'length', slam: 'blast_radius', ice_orb: 'orb_radius' })[def.behavior] || k;
+          slam: 'blast_radius', ice_orb: 'orb_radius' })[def.behavior] || k;
       }
       if (k === 'duration' && def.behavior === 'slam') return 'crack_time';
       if (k === 'speed') return def.behavior === 'orbit' ? 'orbit_speed' : 'shot_speed';

@@ -71,7 +71,7 @@ test('spacing: no text touches or crosses frames and other texts', async ({ page
   const all = [];
   const run = async (screen, scene) => all.push(...await check(page, screen, scene));
 
-  for (const v of ['main', 'play', 'difficulty', 'hero', 'coop', 'settings']) {
+  for (const v of ['main', 'difficulty', 'hero', 'coop', 'settings']) {
     await page.evaluate((x) => window.__game.game.scene.getScene('Menu').show(x), v);
     await page.waitForTimeout(100);
     await run(`Menu/${v}`, 'Menu');

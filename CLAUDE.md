@@ -54,7 +54,7 @@ src/
     telemetry.js           телеметрия забега: срезы раз в минуту (уровень, урон и замах по оружию), выборы карточек (sim.pickLog), уровни, боссы, причина смерти
   behaviors/
     weapons/<type>.js      slash (меч: росчерк через самую плотную группу), melee_arc (конус, не используется), projectile, orbit, aura,
-                           boomerang, chain, area_drop (бомба, метеор, мины), beam (случайные лучи),
+                           boomerang, chain, area_drop (бомба, метеор, мины), beam (змейка: растёт, рикошетит на 90°),
                            summon, cloud (облако яда), slam (молот: удар кругом и трещина), impale (копьё: пробивает и пригвождает),
                            ice_orb (ледяной шар: пробивает всех и морозит)
     status.js              статусы врагов по src/data/status.js: тики ДоТов, замедление, корень
@@ -89,6 +89,7 @@ tools/                     локальные скрипты Node, в игру �
   turn-worker.js           Cloudflare Worker: временные учётные данные TURN для коопа (docs/COOP.md)
   make-grass.mjs           процедурный тайл травы
   make-slash.mjs           процедурный взмах клинка (гладкий полумесяц, proj_blade_arc)
+  make-ragged-balls.mjs    неровные шары одним цветом без обводки: метеор, ледяной шар, пуля виспа (кольца внутри — FX.zones.pulse)
   sprite-table.mjs         таблица спрайтов в docs/ASSETS.md из manifest и sheets.json
   make-music.mjs           процедурный чиптюн-луп (запасной, пишет theme.wav; игра грузит theme.mp3)
   palette.json             общая палитра всех спрайтов

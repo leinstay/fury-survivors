@@ -121,11 +121,11 @@ export const SPRITES = Object.fromEntries([
   art('proj_spear', 48, 16, { density: HD, color: '#c8c8d8' }),
   art('proj_bolt', 36, 12, { density: HD, color: '#a08060' }),
   art('proj_mine', 28, 28, { density: HD, frames: null, layer: 'ground', color: '#606870', shape: 'round' }),
-  art('proj_frost', 44, 44, { density: HD, frames: null, color: '#a0e0ff', shape: 'round' }),
+  art('proj_frost', 44, 44, { density: HD, frames: null, color: '#e8f6ff', shape: 'round' }), // кривой шар цвета снега, кольца FX.zones.pulse
   art('proj_poison_cloud', 128, 128, { density: HD, layer: 'ground', color: '#9be04a', shape: 'round' }),
   art('proj_beam', 28, 12, { density: HD, frames: null, color: '#ffe0ff' }),
   art('proj_wisp', 28, 28, { density: HD, frames: null, color: '#9ff0ff', shape: 'round' }),
-  art('proj_wisp_shot', 20, 20, { density: HD, color: '#d0ffff', shape: 'round' }), // proj_enemy в голубом
+  art('proj_wisp_shot', 20, 20, { density: HD, color: '#d0ffff', shape: 'round' }), // кривое пятно без обводки (tools/make-ragged-balls.mjs)
   // Метеор крупный: density 1 (1 px текстуры = 1 px мира), шар r 36 → диаметр 72 px мира при scale 1
   // (WEAPON_BEHAVIOR.area_drop.meteorBall); при area 44–76 растяжение 0.9–1.6×, а не ×7.
   art('proj_meteor', 56, 56, { density: HD, color: '#c84e14', shape: 'round' }),  // тёмно-оранжевый круг без обводки, свечение FX.projGlow

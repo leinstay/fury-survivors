@@ -267,13 +267,14 @@ export function bonusText(bonus) {
 export const PART_CSS = { passives: '#7fb8ff', items: '#d29bff', ach: '#ffd84a' };
 const PARTS = ['passives', 'items', 'ach'];
 
-/** Легенда вкладов (passives items achiev.) правым краем в точке (right, y): над панелью статов. */
-export function addStatsLegend(scene, right, y, style = textStyle) {
+/** Легенда вкладов (passives items achiev.) правым краем в точке (right, y), oy — origin по y; вернёт ширину. */
+export function addStatsLegend(scene, right, y, style = textStyle, oy = 0) {
   let lx = right;
   for (const part of [...PARTS].reverse()) {
-    const o = scene.add.text(lx, y, t(`inv.part.${part}`), style(7, PART_CSS[part])).setOrigin(1, 0);
+    const o = scene.add.text(lx, y, t(`inv.part.${part}`), style(7, PART_CSS[part])).setOrigin(1, oy);
     lx -= o.width + 4;
   }
+  return right - lx - 4;
 }
 
 /**

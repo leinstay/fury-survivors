@@ -13,12 +13,10 @@ export function collectConsoleErrors(page) {
 const menuView = (page, view) => page.waitForFunction(
     (v) => window.__game.game.scene.getScene('Menu').view === v, view);
 
-// Из меню в забег: Play → Solo → сложность → герой; Enter берёт то, что в фокусе (последний выбор).
+// Из меню в забег: Play → сложность → герой; Enter берёт то, что в фокусе (последний выбор).
 export async function startGame(page, seed = 1111) {
   await page.waitForFunction(() => window.__game?.debug().scene === 'Menu');
   await page.evaluate((s) => { window.__furyTestSeed = s; }, seed);
-  await page.keyboard.press('Enter');
-  await menuView(page, 'play');
   await page.keyboard.press('Enter');
   await menuView(page, 'difficulty');
   await page.keyboard.press('Enter');
@@ -27,11 +25,9 @@ export async function startGame(page, seed = 1111) {
   await page.waitForFunction(() => window.__game.debug().scene === 'Game');
 }
 
-// Из меню в вид коопа: Play → Co-op (клавишами).
+// Из меню в вид коопа: Co-op под Play (клавишами).
 export async function openCoop(page) {
   await page.waitForFunction(() => window.__game?.debug().scene === 'Menu');
-  await page.keyboard.press('Enter');
-  await menuView(page, 'play');
   await page.keyboard.press('ArrowDown');
   await page.keyboard.press('Enter');
   await menuView(page, 'coop');
