@@ -601,21 +601,25 @@ function risky(rng, item, cost, chance, wallet, scroll, refundOnBreak, apply) {
 }
 
 /**
- * Поднять редкость (+1 аффикс). Провал ломает предмет; opts.scroll — свиток спасает.
+ * Поднять редкость: +1 аффикс, старые аффиксы не меняются (их границы от редкости не зависят).
+ * Провал не ломает предмет: цена уплачена, редкость та же (failed). Свиток здесь не нужен.
  * @return {!Object} как rerollAll
  */
-export function upgradeRarity(rng, item, wallet = null, opts = {}) {
+export function upgradeRarity(rng, item, wallet = null) {
   const cost = craftCost('upgradeRarity', item);
   const chance = cost ? craftChance('upgradeRarity', item) : 0;
-  return risky(rng, item, cost, chance, wallet, !!opts.scroll, CRAFT.upgradeRarity.breakRefund,
-      () => {
-        const rarity = RARITIES[RARITIES.indexOf(item.rarity) + 1];
-        const used = new Set(item.affixes.map((a) => a.stat));
-        const affixes = item.affixes.slice();
-        const stat = pickStat(rng, ITEM_STATS, used);
-        if (stat) affixes.push(rollAffix(rng, stat, item.shape, item.tier, false));
-        return { ...item, rarity, affixes };
-      });
+  const bad = precheck(item, cost, wallet, false);
+  if (bad) return bad;
+  if (rng.next() >= chance) {
+    return res(true, { item, failed: true, cost, wallet: pay(wallet, cost) });
+  }
+  const rarity = RARITIES[RARITIES.indexOf(item.rarity) + 1];
+  const used = new Set(item.affixes.map((a) => a.stat));
+  const affixes = item.affixes.slice();
+  const stat = pickStat(rng, ITEM_STATS, used);
+  if (stat) affixes.push(rollAffix(rng, stat, item.shape, item.tier, false));
+  const up = { ...item, rarity, affixes };
+  return res(true, { success: true, item: up, cost, wallet: pay(wallet, cost) });
 }
 
 /**
@@ -631,10 +635,17 @@ export function enchant(rng, item, wallet = null, opts = {}) {
       () => ({ ...item, enchant: (item.enchant || 0) + 1 }));
 }
 
+// Насколько бросок аффикса близок к идеалу: значение к максимуму этого стата у его предмета (форма, тир).
+function rollQuality(affix, item) {
+  const max = affixMax(affix.stat, item.shape, item.tier);
+  return max > 0 ? affix.value / max : 0;
+}
+
 /**
- * Соединить два предмета одного типа. Редкость итога — одного из двух; форма, тир и
- * обязательный — от одного из двух; остальные аффиксы случайно из обоих (значения те же,
- * недостающие докатываются); заточка — меньшая. Новый uid. Залоченные не соединяются.
+ * Соединить два предмета одного типа. Редкость итога — одного из двух. Форма, тир и обязательный —
+ * от предмета, чей обязательный ближе к идеалу; остальные аффиксы — лучшие по близости к идеалу
+ * из обоих, без повторов стата (значения те же, недостающие докатываются); заточка — меньшая.
+ * Новый uid. Залоченные не соединяются.
  * Вызывающий убирает a и b из стеша и кладёт item.
  * @return {!Object} как rerollAll
  */
@@ -644,17 +655,17 @@ export function merge(rng, a, b, wallet = null) {
   const rarity = rng.next() < 0.5 ? a.rarity : b.rarity;
   const cost = mergeCost(a, b, rarity);
   if (wallet && !canAfford(wallet, cost)) return res(false, { item: a, wallet, reason: 'funds' });
-  const donor = rng.next() < 0.5 ? a : b;
+  const donor = rollQuality(b.affixes[0], b) > rollQuality(a.affixes[0], a) ? b : a;
   const count = RARITY_AFFIXES[rarity];
   const affixes = [{ ...donor.affixes[0] }];
   const used = new Set([affixes[0].stat]);
-  const pool = [...a.affixes.slice(1), ...b.affixes.slice(1)];
-  while (affixes.length < count && pool.length) {
-    const cand = pool.filter((x) => !used.has(x.stat));
-    if (!cand.length) break;
-    const pick = rng.pick(cand);
-    used.add(pick.stat);
-    affixes.push({ ...pick });
+  const pool = [...a.affixes.slice(1).map((x) => [x, rollQuality(x, a)]),
+    ...b.affixes.slice(1).map((x) => [x, rollQuality(x, b)])].sort((p, q) => q[1] - p[1]);
+  for (const [x] of pool) {
+    if (affixes.length >= count) break;
+    if (used.has(x.stat)) continue;
+    used.add(x.stat);
+    affixes.push({ ...x });
   }
   while (affixes.length < count) {
     const stat = pickStat(rng, ITEM_STATS, used);

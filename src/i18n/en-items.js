@@ -165,6 +165,7 @@ export const enItems = {
   'craft.success': 'Success!',
   'craft.broken': 'The item broke.',
   'craft.saved': 'Failed. The scroll saved the item.',
+  'craft.failed': 'Failed. The rarity stays the same.',
   'craft.funds': 'Not enough currency',
   'craft.select': 'Items (equipped first)',
   'craft.none': 'Select an item on the left.',
@@ -180,7 +181,7 @@ export const enItems = {
   // подсказки операций крафта (что делает, чем платить, что ломается); цены и шанс рядом показывает costText
   'craft.hint.rerollAll': 'New affixes and values. Rarity, tier and shape stay. Costs crystals, never fails.',
   'craft.hint.rerollValue': 'Rerolls the value of one affix. The stat stays. Costs crystals, never fails.',
-  'craft.hint.upgradeRarity': 'Raises rarity and adds an affix. Costs crystals and chaos hearts. On failure the item is lost.',
+  'craft.hint.upgradeRarity': 'Raises rarity and adds an affix, old affixes stay. Costs crystals and chaos hearts. A failure keeps the item as it was.',
   'craft.hint.enchant': 'Each plus strengthens every affix. Safe up to +3; past that a failure breaks the item into crystals.',
   'craft.hint.merge': 'Two items of one type become one: rarity, tier and shape of one of them, affixes from both.',
   'craft.hint.scroll': 'Saves the item when a risky craft fails. Spent only then.',

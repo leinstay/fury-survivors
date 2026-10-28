@@ -701,12 +701,12 @@ export class InventoryScene extends Phaser.Scene {
     if (!f) return;
     const it = f.item;
     const w = this.inv.wallet;
-    const risky = op === 'upgradeRarity' || op === 'enchant';
-    const scroll = risky && this.scroll && w.scrolls > 0 && craftChance(op, it) < 1;
+    // свиток спасает только заточку: провал повышения редкости предмет не ломает
+    const scroll = op === 'enchant' && this.scroll && w.scrolls > 0 && craftChance(op, it) < 1;
     let res;
     if (op === 'rerollAll') res = rerollAll(this.rng, it, w);
     else if (op === 'rerollValue') res = rerollValue(this.rng, it, this.affix, w);
-    else if (op === 'upgradeRarity') res = upgradeRarity(this.rng, it, w, { scroll });
+    else if (op === 'upgradeRarity') res = upgradeRarity(this.rng, it, w);
     else res = enchant(this.rng, it, w, { scroll });
     if (!res.ok) { this.say(res.reason === 'funds' ? 'craft.funds' : 'craft.na', null, '#ff8080'); return; }
     let inv = { ...this.inv, wallet: res.wallet };
@@ -719,6 +719,8 @@ export class InventoryScene extends Phaser.Scene {
       this.say(res.refund ? 'craft.broken_refund' : 'craft.broken', { n: res.refund }, '#ff8080');
     } else if (res.saved) {
       this.say('craft.saved', null, '#ffb060');
+    } else if (res.failed) {
+      this.say('craft.failed', null, '#ffb060');
     } else {
       inv = replaceItem(inv, it.uid, res.item);
       if (op === 'enchant') delta.enchantMax = res.item.enchant;

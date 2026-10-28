@@ -85,11 +85,12 @@ export const CHEST_TABLES = {
 export const CHEST_SIZE = 3;
 
 // Боссы по порядку убийства в забеге: тир сундука и сердца хаоса (chance — шанс, n — сколько).
+// Сердце редкое: только с финального босса (T3) и Жницы.
 export const BOSS_DROPS = [
-  { boss: 'kitsune_empress', tier: 1, hearts: { chance: 0.3, n: 1 } },
-  { boss: 'harpy_queen', tier: 2, hearts: { chance: 1, n: 1 } },
-  { boss: 'dryad_queen', tier: 3, hearts: { chance: 1, n: 1 } },
-  { boss: 'reaper', tier: 4, hearts: { chance: 1, n: 2 } },
+  { boss: 'kitsune_empress', tier: 1, hearts: { chance: 0, n: 1 } },
+  { boss: 'harpy_queen', tier: 2, hearts: { chance: 0, n: 1 } },
+  { boss: 'dryad_queen', tier: 3, hearts: { chance: 0.25, n: 1 } },
+  { boss: 'reaper', tier: 4, hearts: { chance: 0.5, n: 1 } },
 ];
 // С какого сундука (номер в BOSS_DROPS, с 0) на экране лута есть кнопка End run: 3-й и 4-й (финал, Жница).
 export const BOSS_END_RUN = 2;
@@ -165,8 +166,7 @@ export const CRAFT = {
   upgradeRarity: {
     crystals: 40,
     hearts: { rare: 1, epic: 3 }, // сердца по целевой редкости
-    chance: { rare: 0.7, epic: 0.5 },
-    breakRefund: false, // провал без свитка: предмет пропадает без кристаллов
+    chance: { rare: 0.7, epic: 0.5 }, // провал не ломает предмет: цена уплачена, редкость та же
   },
   merge: {
     crystals: 20,
