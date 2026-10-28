@@ -4,7 +4,7 @@
 
 A small game in the spirit of Vampire Survivors and HoloCure, built on Phaser 3 with no build step. The whole project was assembled by Claude Code from a single brief in two five-hour Claude Code sessions. Opus 5.5 ran the session, planned the work, wrote most of the code and reviewed it, while Sonnet 5.5 subagents took separate coding tasks in parallel. The art was drawn by GPT 2.5 Flare and animated in PixelLab.
 
-Two more five-hour sessions added a second heroine, two-player online co-op, new difficulty, overtime with new reaper boss, roads and new scenery, a minimap and a DPS meter. osses drop item chests, items go into a bag you pack like Tetris, and a stash, crafting and achievements carry progress from run to run. A codex keeps every weapon, enemy and past run. The game runs in the browser at https://leinstay.github.io/fury-survivors/.
+Two more five-hour sessions added a second heroine, two-player online co-op, new difficulty, overtime with new reaper boss, roads and new scenery, a minimap and a DPS meter. Bosses drop item chests, items go into a bag you pack like Tetris, and a stash, crafting and achievements carry progress from run to run. A codex keeps every weapon, enemy and past run. The game runs in the browser at https://leinstay.github.io/fury-survivors/.
 
 ## Features
 
