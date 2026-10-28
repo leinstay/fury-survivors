@@ -39,6 +39,9 @@
 //     hpRamp, damageRamp,        // HP и урон врагов × (1 + ramp × секунды овертайма), поверх scaling
 //     reaper, reaperAt,          // Жница (bosses.js) через reaperAt секунд овертайма, предупреждение за bossWarning;
 //                                // без Библии неуязвима, с ней убиваема в круге, убийство — победа
+//     reaperEscort: { enemy, max, rate, group },  // с появлением Жницы поле очищается (враги исчезают без дропа),
+//                                // волны, кольца и элиты стоят; дальше только enemy группами по group, rate групп/с,
+//                                // живых этого вида не больше max
 //   },
 // }
 export const forest = {
@@ -143,5 +146,6 @@ export const forest = {
     eliteEvery: 15,
     hpRamp: 0.015, damageRamp: 0.008,
     reaper: 'reaper', reaperAt: 300,
+    reaperEscort: { enemy: 'succubus', max: 20, rate: 1.5, group: 2 },
   },
 };

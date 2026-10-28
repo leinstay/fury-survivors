@@ -132,6 +132,7 @@ export function createDirector(stage, rng) {
   function overtime(sim, dt) {
     const s = sim.time - sim.overtime;
     const o = otState;
+    if (o.reaper && ot.reaperEscort) { escort(sim, dt, ot.reaperEscort); return; }
     o.acc += (ot.rate + ot.rateRamp * s) * sim.spawnMul * dt;
     while (o.acc >= 1) {
       o.acc -= 1;
@@ -155,8 +156,33 @@ export function createDirector(stage, rng) {
       }
       if (s >= ot.reaperAt) {
         o.reaper = true;
+        if (ot.reaperEscort) { clearField(sim); o.acc = 0; }
         sim.spawnBoss(ot.reaper);
       }
+    }
+  }
+
+  // Поле перед Жницей: все враги, кроме боссов, исчезают без дропа и без счёта убийств.
+  function clearField(sim) {
+    for (const e of sim.enemies) {
+      if (e.dead || e.boss) continue;
+      e.dead = true;
+      sim.deadN++;
+    }
+  }
+
+  // При Жнице: только cfg.enemy группами по cfg.group, cfg.rate групп в секунду, живых не больше cfg.max.
+  function escort(sim, dt, cfg) {
+    const o = otState;
+    let alive = 0;
+    for (const e of sim.enemies) if (!e.dead && e.type === cfg.enemy) alive++;
+    o.acc += cfg.rate * dt;
+    while (o.acc >= 1) {
+      o.acc -= 1;
+      const n = Math.min(cfg.group, cfg.max - alive);
+      if (n <= 0) { o.acc = 0; break; }
+      group(sim, cfg.enemy, n);
+      alive += n;
     }
   }
 

@@ -101,6 +101,9 @@ export const BOSSES = {
     sprite: 'reaper', behavior: 'chase', hp: 1, speed: 85, damage: 0, xp: 0, size: 45, knockbackResist: 1,
     attacks: [], codexAttacks: ['death_touch', 'borrowed_time'],
     invulnerable: true, oneShot: true, lootIndex: 3, victory: true,
+    // Без Библии часов нет: Жница просто идёт убивать и разгоняется на accel px/с каждую секунду без потолка
+    // (85 → 100 за 10 с, ~130 за 30 с, ~175 за минуту).
+    chase: { accel: 1.5 },
     holy: {
       hpPerLevel: 750,       // HP Жницы при Библии: × уровень игрока при появлении (кооп × COOP.bossHpMul)
       first: 4,              // с после появления до первого круга
@@ -111,7 +114,7 @@ export const BOSSES = {
       minFromReaper: 120,    // px: не ближе к Жнице (не под ней)
       tries: 8,              // попыток найти место; иначе круг по другую сторону от игроков
     },
-    hourglass: {
+    hourglass: {             // только при Библии
       first: 8, every: 11,    // с: первые часы через first после появления, потом раз в every
       life: 10,               // с: таймер над часами; не разбили — пропуск
       max: 2,                 // часов лежит одновременно (кооп × COOP.hourglassMaxMul)

@@ -96,7 +96,7 @@ export class ReaperFx {
     }
     const bob = Math.round(Math.sin(time * 4 + h.uid) * 1);
     const x = h.x;
-    const y = h.y - 9 + bob;
+    const y = h.y - 8 + bob; // по центру кольца таймера
     g.fillStyle(0x000000, 0.3).fillEllipse(h.x, h.y + 1, 12, 4);
     g.fillStyle(GLASS, 0.85);
     g.fillTriangle(x - 4, y - 6, x + 4, y - 6, x, y);

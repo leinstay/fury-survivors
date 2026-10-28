@@ -28,6 +28,7 @@ export function initReaper(sim, e) {
     tpT: 0,
     tp: null,
     stunT: 0, // с оглушения: разбитые часы (hourglass.stun), стоит на месте; фазы и телепорт ждут
+    age: 0,   // с с появления: без Библии от него растёт скорость (chase.accel)
   };
   e.speed = d.speed;
 }
@@ -74,6 +75,7 @@ export function updateReaper(sim, dt) {
     return;
   }
   const d = e.def;
+  r.age += dt;
   age(sim.holy, dt);
   if (sim.hasBible && d.holy) {
     r.holyT -= dt;
@@ -82,7 +84,7 @@ export function updateReaper(sim, dt) {
       spawnHoly(sim, e, d.holy);
     }
   }
-  if (d.hourglass) {
+  if (d.hourglass && sim.hasBible) {
     r.hourT -= dt;
     if (r.hourT <= 0) {
       r.hourT += d.hourglass.every;
@@ -100,7 +102,7 @@ export function updateReaper(sim, dt) {
     if (r.stunT > 0) return;
     r.stunT = 0;
   }
-  if (!r.tp) e.speed = d.speed;
+  if (!r.tp) e.speed = sim.hasBible || !d.chase ? d.speed : d.speed + d.chase.accel * r.age;
   if (sim.hasBible) phases(sim, r, e, d, dt);
 }
 
