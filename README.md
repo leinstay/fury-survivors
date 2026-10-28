@@ -2,9 +2,9 @@
 
 <p align="center"><img src=".github/assets/gameplay-loop.webp" width="100%" alt="The Mage walks down a forest road at 13:00 on Cursed while a ring of ghosts and a crowd of monster girls close in and die"></p>
 
-A small game in the spirit of Vampire Survivors and HoloCure, built on Phaser 3 with no build step. The whole project was assembled by Claude Code from a single brief, [VISION.md](VISION.md), in two five-hour Claude Code sessions. Opus 5.5 ran the session, planned the work, wrote most of the code and reviewed it, while Sonnet 5.5 subagents took separate coding tasks in parallel (see [.claude/agents/coder.md](.claude/agents/coder.md)). The art was drawn by GPT 2.5 Flare and animated in PixelLab.
+A small game in the spirit of Vampire Survivors and HoloCure, built on Phaser 3 with no build step. The whole project was assembled by Claude Code from a single brief in two five-hour Claude Code sessions. Opus 5.5 ran the session, planned the work, wrote most of the code and reviewed it, while Sonnet 5.5 subagents took separate coding tasks in parallel. The art was drawn by GPT 2.5 Flare and animated in PixelLab.
 
-Two more five-hour sessions added a second heroine, two-player online co-op, the Cursed difficulty, overtime with the Reaper, roads and new scenery, a minimap and a DPS meter. The sessions after that rebuilt the weapon roster around evolutions and added the meta layer. Bosses drop item chests, items go into a bag you pack like Tetris, and a stash, crafting and achievements carry progress from run to run. A codex keeps every weapon, enemy and past run. The game runs in the browser at https://leinstay.github.io/fury-survivors/.
+Two more five-hour sessions added a second heroine, two-player online co-op, new difficulty, overtime with new reaper boss, roads and new scenery, a minimap and a DPS meter. osses drop item chests, items go into a bag you pack like Tetris, and a stash, crafting and achievements carry progress from run to run. A codex keeps every weapon, enemy and past run. The game runs in the browser at https://leinstay.github.io/fury-survivors/.
 
 ## Features
 
