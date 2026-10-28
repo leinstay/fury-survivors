@@ -1338,17 +1338,9 @@ class Sim {
   dropPickup(id, x, y, value) {
     const def = PICKUPS[id];
     if (!def) return null;
-    // кристаллов на земле больше XP.maxGems: опыт в кристалл переполнения, новый спрайт не появляется
-    if (def.kind === 'xp' && this.xpCount >= XP.maxGems) {
-      const o = this.xpOverflow;
-      if (o && !o.gone && !o.taken) {
-        o.value += value === undefined ? (def.value || 0) : value;
-        const tier = xpTierFor(o.value);
-        o.type = tier;
-        o.sprite = PICKUPS[tier].sprite;
-        return o;
-      }
-    }
+    // Кристаллов на земле больше XP.maxGems: новый кристалл падает как обычно (игрок видит опыт с убийств),
+    // а самый дальний от игрока уходит в кристалл переполнения. Опыт не теряется, спрайтов не больше потолка.
+    if (def.kind === 'xp' && this.xpCount >= XP.maxGems) this._absorbFarXp();
     const pk = {
       uid: ++this.uid, type: id, sprite: def.sprite, x, y, kind: def.kind,
       value: value === undefined ? (def.value || 0) : value,
@@ -1356,8 +1348,33 @@ class Sim {
       tint: def.tint || 0, boss: '',
     };
     this.pickups.push(pk);
-    if (def.kind === 'xp' && this.xpCount >= XP.maxGems) this.xpOverflow = pk;
+    if (def.kind === 'xp') this.xpCount++; // счётчик живёт и между шагами: много убийств за один шаг
     return pk;
+  }
+
+  // Самый дальний от игрока лежащий кристалл отдаёт опыт кристаллу переполнения (сам становится им, если
+  // переполнения нет). Убранный помечен gone, из массива его вынимает _updatePickups.
+  _absorbFarXp() {
+    const v = this.view;
+    let o = this.xpOverflow;
+    if (o && (o.gone || o.taken)) o = this.xpOverflow = null;
+    let far = null;
+    let best = -1;
+    for (const p of this.pickups) {
+      if (p.kind !== 'xp' || p.gone || p.pulled || p === o) continue;
+      const dx = p.x - v.x;
+      const dy = p.y - v.y;
+      const d2 = dx * dx + dy * dy;
+      if (d2 > best) { best = d2; far = p; }
+    }
+    if (!far) return;
+    if (!o) { this.xpOverflow = far; return; }
+    o.value += far.value;
+    far.gone = true;
+    this.xpCount--;
+    const tier = xpTierFor(o.value);
+    o.type = tier;
+    o.sprite = PICKUPS[tier].sprite;
   }
 
   // Предметы: кристаллы и монеты тянутся к игроку, в чей радиус подбора попали (pk.to), остальное по касанию.
@@ -1369,6 +1386,7 @@ class Sim {
     let xpCount = 0;
     for (let i = arr.length - 1; i >= 0; i--) {
       const pk = arr[i];
+      if (pk.gone) { arr[i] = arr[arr.length - 1]; arr.pop(); continue; } // поглощён переполнением
       const pullable = pk.kind === 'xp' || pk.kind === 'coin';
       let take = null;
       if (pk.pulled) {
