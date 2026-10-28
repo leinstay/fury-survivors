@@ -1,8 +1,0 @@
-Subject: forest map objects for a top-down-ish (three-quarter view from the front) survivor game. Use EXACTLY the same pixel size and the same pixel grid as the attached character sheet: one art pixel here must be as big as one art pixel of those characters (very fine pixels, the image is about 320 art pixels wide). Size every object relative to the small regular characters in the bottom-right of the attached sheet (call them "a girl").
-
-Layout: 8 separate objects with wide empty gaps between them, nothing touching or overlapping, each object complete and fully inside the image, no characters:
-LEFT: 1. a round leafy deciduous tree with a short brown trunk, twice as tall as a girl, filling almost the full image height.
-NEXT TO IT: 2. a tall dark green pine tree, twice as tall as a girl, filling almost the full image height.
-RIGHT HALF, two rows of small objects:
-Row 1 (left to right): 3. a grey mossy boulder, half as tall as a girl; 4. a round green leafy bush, half as tall as a girl; 5. a small wooden barrel with iron bands, half as tall as a girl.
-Row 2 (left to right): 6. a small yellow wildflower cluster, a quarter as tall as a girl; 7. a small pink wildflower cluster, a quarter as tall as a girl; 8. a wooden post lantern with a warm glowing light, as tall as a girl.

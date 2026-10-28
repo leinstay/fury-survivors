@@ -1,4 +1,0 @@
-Return EXACTLY the same image as the attached one: same figure, same pose, same pixel grid, same colors, same scythe, same hooded cloak, same face and hair on the head. Change only two things:
-1. Remove the loose strands of hair floating in the air to the LEFT of the hood (the separate wavy locks outside the silhouette). Keep only the hair that lies inside the hood and over her shoulder and chest.
-2. At the bottom, remove the wispy ghost tail and the bare leg: instead the long black dress continues straight down to the bottom of the figure and ends in a ragged torn hem. No leg, no skin and no mist below the waist, just the dark dress and cloak with the same gold ornaments.
-Everything else stays pixel for pixel identical. Background: fully transparent.

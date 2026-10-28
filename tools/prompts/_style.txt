@@ -1,2 +1,0 @@
-Pixel art game sprite sheet in the exact style of the attached reference image: chibi proportions (big head), crisp hard-edged pixels on a coarse grid, no anti-aliasing, no gradients, no blur, dark brown 1-pixel outline, soft muted palette with flat cel shading (one light and one shadow tone per color).
-Background: fully transparent (if transparency is impossible, solid flat pure magenta #FF00FF). No floor, no ground shadow, no text, no border, no frame, no decorations.

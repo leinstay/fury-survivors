@@ -8,3 +8,17 @@ tools/.gen.lock
 tools/out/
 .trash/
 .claude/worktrees/
+
+# Только сама игра в репозитории; инструменты, тесты, доки и исходники ассетов живут локально
+CLAUDE.md
+VISION.md
+docs/
+tools/
+tests/
+.claude/
+assets/raw/
+eslint.config.js
+playwright.config.js
+package.json
+package-lock.json
+firestore.rules

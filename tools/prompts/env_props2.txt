@@ -1,7 +1,0 @@
-Subject: more forest map objects for a top-down-ish (three-quarter view from the front) survivor game, matching the attached object sheet exactly: same pixel size, same pixel grid, same palette and outline style (one art pixel here must be as big as one art pixel of the attached objects). Size every object relative to the small regular characters in the attached character sheet (call them "a girl").
-
-Layout: 4 separate objects in one row with wide empty gaps between them, nothing touching or overlapping, each object complete and fully inside the image, no characters:
-1. an old wooden mine cart on four small iron wheels, seen from the front-left three-quarter view, with iron bands and a heap of grey ore and a few gold nuggets inside, as tall as a girl and about one and a half times as wide as it is tall.
-2. a wooden signpost: a single post with two weathered plank arrows pointing left and right, as tall as a girl.
-3. a cut tree stump with visible rings and a bit of moss, half as tall as a girl.
-4. a short piece of old wooden rail fence with two horizontal rails and two posts, half as tall as a girl and twice as wide as it is tall.
