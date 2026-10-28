@@ -1,126 +1,85 @@
-# Телеметрия для моделирования игроков
+# Telemetry for simulating players
 
-Версия 2 сохраняет данные в прежнюю коллекцию `fury_runs`, один документ на игрока за
-забег. Внешние поля документа совместимы с текущим `firestore.rules`; новые поля находятся
-в JSON `data`. Изменять правила для v2 не требуется. Старые `picks`, `snaps`, `end`,
-`levels`, `hurt`, `bosses` и итоговые поля сохранены.
+Version 2 saves data to the same `fury_runs` collection, one document per player per run. External document fields are compatible with current `firestore.rules`. New fields are in JSON `data`. Changing rules for v2 is not needed. Old `picks`, `snaps`, `end`,
+`levels`, `hurt`, `bosses` and summary fields are kept.
 
-## Что собирать в новых сессиях
+## What to collect in new sessions
 
-- `sessionId`: случайный идентификатор партии; хост передаёт его гостю. `local` отличает
-  двух участников. Считать дуо-матчи по sessionId, не по числу документов.
-- `seed`, `fingerprint`: исходный seed и полный 32-битный simFingerprint (данные и
-  контрольный прогон), а не Git SHA. Сохранять исходники той версии, на которой играли.
-- `initial`: начальный билд, HP, XP, бюджеты выбора. `tickRate` — частота сима.
-- `offers`: предложения уровня/сундука, время и номер активного тика, контекст до выбора.
-- `decisions`: действие и фактические варианты, привязка к offerId, контекст до действия,
-  бюджеты до их расходования, время решения `decisionMs` по локальным часам. Оно включает
-  показ/анимацию UI и ожидание: это не чистая скорость реакции. У `chest` контекст после
-  применения награды, `phase: after`; это уведомление, не ещё один выбор.
-- `applications`: каждая выданная карточка, компоненты эволюции/коллаба, билд и накопленный
-  урон непосредственно до выдачи. `heal` может применяться автоматически. В дуо лечение
-  мёртвому выбирающему по правилам игры перенаправляется живому напарнику.
-- `inputs`: изменения фактически применённого ввода: `[activeTick, x0, y0, x1, y1]`;
-  в solo только первая пара. Значения без округления, первый тик = 1. Между записями ввод
-  остаётся прежним. Это активные тики сима, не сетевые тики lockstep.
-- `movement`: примерно раз в игровую секунду координаты, HP, XP/уровень, ближайшие враг,
-  вражеский снаряд, XP, еда, сундук, до восьми телеграфов и положение/состояние напарника.
-  Ближайший объект: `[type, dx, dy, vx, vy]`. Это диагностическое окружение, не готовый
-  разрешённый observation бота: будущая policy должна ограничивать его видимостью игрока.
-- `snaps[].damage`, `end.damage`: `[weaponId, dealt, raw, hits, kills]` для всех оружий,
-  включая исчезнувшие после эволюции. Старое `w` описывает текущие слоты. Дельты damage
-  дают вклад за интервал, applications отмечают границы превращений.
-- `events`: повреждения, падения в дуо, оживления, боссы, победа/поражение, овертайм,
-  предметы кроме многочисленных кристаллов XP. `won`, `overtime`, `revives`, `distance`
-  позволяют отделить победу над финальным боссом от дальнейшего выживания.
+- `sessionId`: random match identifier. Host sends it to guest. `local` distinguishes the two participants. Count duo matches by sessionId, not by document count.
+- `seed`, `fingerprint`: initial seed and full 32-bit simFingerprint (data and control run), not Git SHA. Keep source code of the version you played.
+- `initial`: starting build, HP, XP, choice budgets. `tickRate` is sim frequency.
+- `offers`: upgrade/chest offers, time and active tick number, context before choice.
+- `decisions`: action and actual options, tied to offerId, context before action,
+  budgets before spending, decision time `decisionMs` by local clock. Includes UI show/animation and wait, not pure reaction time. For `chest` context is after reward applied, `phase: after`. Notification, not another choice.
+- `applications`: each dealt card, evolution/collab components, build and cumulative damage right before deal. `heal` can apply automatically. In duo healing redirects to live partner by game rules from the picker.
+- `inputs`: changes to actually applied input: `[activeTick, x0, y0, x1, y1]`.
+  Solo only first pair. Values unrounded, first tick = 1. Input between records stays the same. Sim active ticks, not lockstep network ticks.
+- `movement`: roughly once per game second. Position, HP, XP/level, nearest enemy,
+  enemy projectile, XP, food, chest, up to eight telegraphs, partner position and state.
+  Nearest object: `[type, dx, dy, vx, vy]`. Diagnostic environment, not ready bot observation. Future policy should limit to player visibility.
+- `snaps[].damage`, `end.damage`: `[weaponId, dealt, raw, hits, kills]` for all weapons,
+  including ones gone after evolution. Old `w` describes current slots. Damage deltas give interval contribution. Applications mark evolution boundaries.
+- `events`: damage taken, falls in duo, revivals, bosses, win/loss, overtime,
+  items besides many XP crystals. `won`, `overtime`, `revives`, `distance` let you separate final boss win from later survival.
 
-Два наблюдателя одного сима получают свои события независимо. Выборы записываются в
-момент выполнения, даже если между ними не было игрового тика. Сборщик не меняет RNG.
+Two observers of one sim get independent events. Choices recorded at execution, even with no game tick between. Collector doesn't touch RNG.
 
-## Полнота и доставка
+## Completeness and delivery
 
-Подробные потоки decisions/offers/applications/inputs/movement/events хранятся
-без потерь в `detail: { encoding: "gzip-base64", data }`. Скрипт runs-report раскрывает
-их обратно в массивы при выгрузке JSON. Старые picks/snaps/end остаются обычным JSON.
+Detailed streams (decisions/offers/applications/inputs/movement/events) stored lossless in `detail: { encoding: "gzip-base64", data }`. Script runs-report unpacks them back to arrays on JSON export. Old picks/snaps/end stay normal JSON.
 
-Лимиты памяти находятся в `src/data/telemetry.js`. Перед отправкой проверяется размер
-UTF-8, строго меньше 200000 байт. Если даже сжатая запись не помещается (или браузер не поддерживает CompressionStream),
-используется несжатая форма с сокращением хвостов потоков в порядке:
+Memory limits in `src/data/telemetry.js`. Before sending, UTF-8 size checked, strictly under 200000 bytes. If even compressed doesn't fit (or browser lacks CompressionStream),
+uncompressed form with stream tail shortening is used in order:
 `offers`, `movement`, `inputs`, `events`, `applications`, `decisions`, `snaps`, `picks`,
-`levels`. Предложения также есть в decisions/picks. Итог и end сохраняются.
+`levels`. Offers also in decisions/picks. Summary and end kept.
 
-`capture.total`, `stored`, `dropped` содержат количества исходных/сохранённых/потерянных
-записей. Потери учитывают и ограничения памяти, и упаковку перед отправкой.
-`inputComplete` говорит, полностью ли сохранён ввод; `inputThroughTick` — последняя
-запись изменения ввода, а не обязательно последний тик забега. При неполном потоке
-нельзя продолжать последний вектор до конца забега. При отборе данных проверять
-полноту каждого нужного потока; поздние минуты после усечения не считать нулевыми.
+`capture.total`, `stored`, `dropped` hold original/saved/lost record counts. Losses include memory limits and pre-send packing.
+`inputComplete` says if input is fully saved. `inputThroughTick` is the last input change record, not necessarily last run tick. Can't continue last vector to end with incomplete stream. When picking data, check completeness of each stream you need. Don't count later minutes after truncation as zero.
 
-`exactReplay` пока всегда false: не записан полный сетевой timeline пауз/команд,
-нет гарантии сохранения всех потоков. Эти данные предназначены для обучения и
-калибровки, а не для обещания побитового воспроизведения сетевого матча.
+`exactReplay` always false now: full network timeline of pauses/commands not recorded, no guarantee all streams saved. Data for training and calibration, not bit-for-bit network match replay.
 
-Перед отправкой запись сохраняется в localStorage `fury.telemetry.outbox.v2`.
-После ошибки/таймаута повтор выполняется при следующем запуске забега или следующей
-отправке. ID документа = sessionId + local; повтор не создаёт второй забег. Если ответ
-о создании потерялся, клиент сверяет уже существующий документ. Очистка данных сайта
-удалит очередь. При недоступном/переполненном localStorage остаётся только память
-текущей страницы. Закрытие вкладки посреди незаконченного забега пока не сохраняет его.
+Before sending, record saved to localStorage `fury.telemetry.outbox.v2`.
+After error/timeout, retry on next run start or next submit. Document ID = sessionId + local. Retry doesn't create second run. If creation response lost, client validates existing document. Site data cleanup clears the queue. With unavailable/full localStorage, just current page memory stays. Closing tab mid-run doesn't save it.
 
-Автоматизированный браузер (`navigator.webdriver`) не отправляет и не очищает очередь
-через production. Готовые debug-sim не собирают телеметрию. Ников и IP в записи нет.
+Automated browser (`navigator.webdriver`) doesn't submit or clear queue via production. Finished debug-sims don't collect telemetry. No nicks or IPs in records.
 
-## Выгрузка
+## Export
 
-`node tools/runs-report.mjs --json tools/out/runs.json` читает старые и новые записи.
-Команда падает при HTTP-ошибке и предупреждает о сокращённых потоках. Старый текстовый
-отчёт по `w` остаётся приблизительным для минуты эволюции; новый анализатор из плана
-должен использовать `damage` и `applications` и учитывать длительность интервала.
+`node tools/runs-report.mjs --json tools/out/runs.json` reads old and new records.
+Command fails on HTTP error and warns of shortened streams. Old text report by `w` stays approximate for evolution minute. New analyzer from plan should use `damage` and `applications` and account for interval length.
 
-Для новых данных полезны normal/cursed, solo/duo, разные герои, rush одной пушки,
-коллабы и weapon+passive эволюции, неудачные сборки и отказы от эволюции. Играть обычно;
-смерти и плохие предложения важны так же, как победы.
+For new data, useful: normal/cursed, solo/duo, different heroes, one-weapon rush,
+collabs and weapon+passive evolutions, failed builds and evolution refusals. Play normally. Deaths and bad offers matter like wins.
 
-## Взаимодействия оружия
+## Weapon interactions
 
-В snaps/end дополнительно есть `combat[weapon]`: hits, firstHits, finishes, dealt, raw,
-bossDamage, knockbacks, distanceHits (границы в capture.distanceBins) и finishesAfter.
-Последнее — число добиваний целей, которые ранее били другие источники `player:weapon`.
-Это ассоциация по одной цели, а не доказанная причинная синергия; сумма может превышать
-число убийств, если цель били несколько оружий. firstHits относится к первому удару
-по цели среди обоих игроков. После переиспользования объекта врага UID сбрасывает историю.
+In snaps/end additionally: `combat[weapon]`: hits, firstHits, finishes, dealt, raw,
+bossDamage, knockbacks, distanceHits (edges in capture.distanceBins) and finishesAfter.
+Last is number of finishes on targets others hit earlier from `player:weapon`.
+Association by one target, not proven synergy. Sum can exceed kills if multiple weapons hit one target. firstHits means first hit on target across both players. After enemy object reuse, UID resets history.
 
-`blocks[weapon]` содержит count и interceptedRaw. Щиты сейчас уничтожают снаряды,
-а не отражают их. Сумма сырого урона перехваченных снарядов не равна предотвращённому
-урону игроку: часть снарядов могла пройти мимо. Эти данные нужны для учёта защитной
-полезности при сравнении оружий.
+`blocks[weapon]` has count and interceptedRaw. Shields destroy projectiles, not reflect.
+Sum of intercepted projectile raw damage doesn't equal prevented player damage. Some projectiles may have passed by. Data needed for defense usefulness in weapon comparison.
 
+## Experience on ground and magnets
 
-## Опыт на земле и магниты
+`snaps/end.economy` has `generatedXP` (base reward from kills by this player),
+`pickedXP` (actual crystal value picked) and `groundXP` (party total on ground).
+In summary `economy` first two are cumulative. Generated/picked rewards don't match: difficulty/duo multipliers apply on drop, XP from objects, and in duo kill and pickup can be different players. `groundXP` in two duo documents can't be summed.
 
-`snaps/end.economy` содержит `generatedXP` (базовая награда убитых этим игроком врагов),
-`pickedXP` (реально поднятая стоимость кристаллов) и `groundXP` (общий запас партии на земле).
-В итоговом `economy` первые два счётчика накопительные. Награды generated/picked не обязаны
-совпадать: множители сложности/дуо применяются при выпадении, есть опыт из объектов,
-а в дуо убить и собрать могут разные участники. `groundXP` в двух документах дуо нельзя суммировать.
+`magnets` fixes tick/time, shared level and XP reserve before pull. Magnet doesn't award XP itself. `pickedXP` gain appears when crystals land. With input, movement, and levels, this lets you tell crystal avoidance from collecting saved XP.
+Stream compressed with the rest, subject to explicit capture limits.
 
-`magnets` фиксирует tick/time, общий level и запас XP до притягивания. Магнит сам не
-начисляет опыт: прирост `pickedXP` появляется, когда кристаллы долетают. Вместе с input,
-movement и levels это позволяет отличать обход кристаллов от возврата за накопленным XP.
-Поток сжимается вместе с остальными detail и подчиняется явным лимитам capture.
+`source` is SHA-256 of all runtime module contents, not the manifest file itself.
+Before publishing run `npm run build:manifest`, check `node tools/build-manifest.mjs --check`.
+Replay of human session still not claimed. Input recording is limited.
 
-`source` — SHA-256 содержимого всех runtime-модулей, без самого файла manifest.
-Перед публикацией выполнять `npm run build:manifest`, проверять `node tools/build-manifest.mjs --check`.
-Воспроизведение человеческой сессии всё ещё не заявляется: запись input ограничена.
+Main verified export now `npm run telemetry:export -- --from ...Z --to ...Z --out tools/out/telemetry`.
+Normalizer `tools/telemetry/data.mjs` marks incomplete v1 intervals, doesn't write zero damage.
 
-Основная проверяемая выгрузка теперь `npm run telemetry:export -- --from ...Z --to ...Z --out tools/out/telemetry`.
-Нормализатор `tools/telemetry/data.mjs` отмечает неполные v1 интервалы, а не дописывает нулевой урон.
+## Co-op stall diagnosis
 
-## Диагностика остановки дуо
-
-Итоговый `terminal` сохраняет state/picker/pendingLevels/resumeT в момент окончания
-записи. При завершении из Game также передаётся `terminal.diagnostics`: сетевой tick,
-paused/local, waitT/silence, имя overlay и active/closed/alpha/input/keyboard его сцены.
-Снимок копируется до отправки; он не влияет на игровой RNG. Так disconnect на 6:11
-можно отличить от обычного выхода, незавершённого выбора и невидимого экрана.
-Старые записи без terminal остаются читаемыми; отсутствие поля не считается running.
+Final `terminal` saves state/picker/pendingLevels/resumeT at record end moment. On Game completion also sends `terminal.diagnostics`: network tick,
+paused/local, waitT/silence, overlay name and active/closed/alpha/input/keyboard of its scene.
+Snapshot taken before send, doesn't touch game RNG. Disconnect at 6:11 this way is told from normal exit, unfinished choice, and invisible screen.
+Old records without terminal stay readable. Missing field doesn't mean running.

@@ -1,129 +1,129 @@
-# Fury Survivors: карта проекта
+# Fury Survivors: Project Map
 
-Игра в жанре Vampire Survivors / HoloCure. JavaScript (без TypeScript и без сборки), Phaser 3.90, деплой на GitHub Pages.
-Видение: `VISION.md`. Мета (предметы, крафт, ачивки, ребаланс, Жница): `docs/META.md`. Как добавлять контент: `docs/CONTENT.md`. Ассеты и пайплайн картинок: `docs/ASSETS.md`.
+A Vampire Survivors / HoloCure-style game. JavaScript (no TypeScript, no build step), Phaser 3.90, deployed to GitHub Pages.
+Vision: `VISION.md`. Meta (items, crafting, achievements, rebalancing, Reaper): `docs/META.md`. How to add content: `docs/CONTENT.md`. Assets and image pipeline: `docs/ASSETS.md`.
 
-## Где что лежит
+## Where everything is
 
 ```
-index.html                 точка входа, грузит vendor/phaser.min.js и src/main.js (ES-модули), регистрирует sw.js
-sw.js                      service worker: каждый запрос перепроверяется на сервере (ETag), кэш только для офлайна
-eslint.config.js           правила стиля (npm run lint)
-vendor/phaser.min.js       Phaser 3.90.0, лежит в репо, не CDN
+index.html                 entry point, loads vendor/phaser.min.js and src/main.js (ES modules), registers sw.js
+sw.js                      service worker: each request validated against the server (ETag), cache for offline only
+eslint.config.js           style rules (npm run lint)
+vendor/phaser.min.js       Phaser 3.90.0, in the repo, not CDN
 src/
-  main.js                  конфиг Phaser (холст 1280x720, мир 640x360 через zoom 2), список сцен
-  data/                    ВЕСЬ БАЛАНС И КОНТЕНТ. Логику тут не пишем
-    constants.js           глобальные числа: лимиты врагов, i-frames, магнит, кривая опыта, SIM (тик), NET (lockstep), CLEAR (рамка метрики клира)
-    difficulty.js          сложности: normal, cursed (spawnMul)
-    coop.js                кооп: множители спавна и HP врагов, слоты, оживание
-    net.js                 сеть: комнаты Firestore (код, таймауты), STUN
-    leaderboard.js         таблица: лимиты ника, пара ников, кулдаун
-    codex.js               кодекс: история (maxRuns), px на метр, радиус «увидел», минимум для quit
-    telemetry.js           телеметрия для баланса: коллекция fury_runs, шаг срезов, лимиты
-    stats.js               статы героя: процентные (increased/more) и плоские, капы (resistance процентом)
-    status.js              статусы врагов: poison (стаки), burning, bleeding (доля удара за время), chill (замедление без урона)
-    items.js               предметы: типы и формы, аффиксы, редкости, таблицы сундуков, уникалки, крафт, сумка, стеш
-    achievements.js        ачивки: условия, награды (валюта, столбцы и ряд сумки), постоянный бонус к стату, хранение
-    heroes.js              герои: статы, стартовое оружие, спрайт (heroine мечница, mage магесса); выбор в меню и лобби
-    weapons.js             оружие: behavior, dmgType (steel/magic), 5 уровней (урон, кулдаун, количество, area...)
-    passives.js            пассивки и статы по уровням
-    combos.js              эволюции: { from: [оружие, пассивка], result }, 16 штук, коллабов нет
-    enemies.js             враги: behavior, hp, speed, damage, xp, size, sprite, elite-варианты
-    bosses.js              боссы
-    pickups.js             опыт, еда, магнит, монеты, сундук
-    stages/forest.js       карта: тайлы, объекты, таймлайн волн и событий, босс
-  core/                    ЧИСТАЯ ЛОГИКА БЕЗ PHASER (запускается в Node для тестов)
-    sim.js                 шаг симуляции: игрок, враги, снаряды, урон, опыт, уровни
-    grid.js                пространственная сетка для коллизий
-    stats.js               итоговые статы: база × (1 + Σ increased) × Π more, плоские суммой, капы, statReport
-    upgrades.js            генерация карточек улучшений, reroll/skip/banish
-    director.js            спавн волн по таймлайну этапа
-    rng.js                 сидируемый RNG
-    items.js               предметы: генерация, имена, сумка (поворот, открытая зона), бонусы сумки, стеш, крафт
-    loadout.js             сумка в забеге: проверка, статы с сумкой, правила уникалок, слепок для телеметрии
-    inventory.js           перенос сумка/стеш, пресеты, сортировка, взятие лута после забега
-    achievements.js        проверка ачивок по итогу забега и по стешу/крафту
-    run-summary.js         трекер итога забега для ачивок (как трекер кодекса)
-    reaper.js              Жница с Библией: освящённые круги, песочные часы, фазы
-    lockstep.js            сетевой кооп: ввод с задержкой по тикам, команды экранов, хеш состояния
-    actions.js             действия экранов (карточка, сундук, пауза) одним интерфейсом для соло и коопа
-    nick.js                проверка ника и пары ников
-    roads.js               дороги: детерминированная сетка по чанкам
-    heroes.js              выбор героя: validHero, freeHero, distinctHeroes (в коопе герои разные)
-    codex.js               кодекс: трекер забега (события, кадры), mergeRun, normalizeCodex
-    telemetry.js           телеметрия забега: срезы раз в минуту (уровень, урон и замах по оружию), выборы карточек (sim.pickLog), уровни, боссы, причина смерти
+  main.js                  Phaser config (canvas 1280x720, world 640x360 via zoom 2), scene list
+  data/                    ALL BALANCE AND CONTENT. Logic does not go here
+    constants.js           global numbers: enemy limits, i-frames, magnet, experience curve, SIM (tick), NET (lockstep), CLEAR (clear metric frame)
+    difficulty.js          difficulties: normal, cursed (spawnMul)
+    coop.js                co-op: spawn and HP multipliers for enemies, slots, revival
+    net.js                 network: Firestore rooms (code, timeouts), STUN
+    leaderboard.js         leaderboard: nick limits, pair, cooldown
+    codex.js               codex: history (maxRuns), px per meter, sight radius, minimum for quit
+    telemetry.js           telemetry for balance: fury_runs collection, snapshot interval, limits
+    stats.js               hero stats: percentage (increased/more) and flat, caps (resistance as percent)
+    status.js              enemy statuses: poison (stacks), burning, bleeding (fraction per time), chill (slowdown without damage)
+    items.js               items: types and shapes, affixes, rarity, chest tables, uniques, crafting, bag, stash
+    achievements.js        achievements: conditions, rewards (currency, bag columns and rows), permanent stat bonus, storage
+    heroes.js              heroes: stats, starting weapon, sprite (Hero is blade user, Mage is caster); choice in menu and lobby
+    weapons.js             weapons: behavior, dmgType (steel/magic), 5 levels (damage, cooldown, count, area...)
+    passives.js            passives and stats per level
+    combos.js              evolutions: { from: [weapon, passive], result }, 16 total, no collabs
+    enemies.js             enemies: behavior, hp, speed, damage, xp, size, sprite, elite variants
+    bosses.js              bosses
+    pickups.js             experience, food, magnet, coins, chest
+    stages/forest.js       map: tiles, objects, wave and event timeline, boss
+  core/                    PURE LOGIC WITHOUT PHASER (runs in Node for tests)
+    sim.js                 simulation tick: player, enemies, projectiles, damage, experience, levels
+    grid.js                spatial grid for collision
+    stats.js               final stats: base × (1 + Σ increased) × Π more, flat by sum, caps, statReport
+    upgrades.js            upgrade card generation, reroll/skip/banish
+    director.js            wave spawning by stage timeline
+    rng.js                 seeded RNG
+    items.js               items: generation, names, bag (rotation, open zone), bag bonuses, stash, crafting
+    loadout.js             bag in a run: verification, stats with bag, unique rules, telemetry snapshot
+    inventory.js           bag/stash transfer, presets, sorting, loot collection after run
+    achievements.js        achievement checking at run end and in stash/crafting
+    run-summary.js         run end tracker for achievements (like codex tracker)
+    reaper.js              Reaper with Bible: holy circles, hourglasses, phases
+    lockstep.js            network co-op: input with tick-based delay, screen commands, state hash
+    actions.js             screen actions (card, chest, pause) through single interface for solo and co-op
+    nick.js                nick and pair nick validation
+    roads.js               roads: deterministic grid by chunks
+    heroes.js              hero choice: validHero, freeHero, distinctHeroes (different heroes in co-op)
+    codex.js               codex: run tracker (events, frames), mergeRun, normalizeCodex
+    telemetry.js           run telemetry: snapshots once per minute (level, damage and swing per weapon), card choices (sim.pickLog), levels, bosses, cause of death
   behaviors/
-    weapons/<type>.js      slash (меч: росчерк через самую плотную группу), melee_arc (конус, не используется), projectile, orbit, aura,
-                           boomerang, chain, area_drop (бомба, метеор, мины), beam (змейка: растёт, рикошетит на 90°),
-                           summon, cloud (облако яда), slam (молот: удар кругом и трещина), impale (копьё: пробивает и пригвождает),
-                           ice_orb (ледяной шар: пробивает всех и морозит)
-    status.js              статусы врагов по src/data/status.js: тики ДоТов, замедление, корень
-    enemies/<type>.js      chase, dash, ranged, swarm, phase, boss, drift (стена и пролёт: прямой курс, исчезает за краем)
-  render/                  Phaser-слой: синхронизирует спрайты с sim, анимация, эффекты; decor.js декор с логикой расстановки, roads.js песок дорог по чанкам; reaper.js круги и часы Жницы
-    anim.js                процедурная ходьба/покачивание/наклон/вспышка/смерть
-    fx.js                  частицы, числа урона (BitmapText на шрифте цифр digits.js), тряска, хитстоп
-  scenes/                  Boot, Menu (выбор героя, вид Co-op), Lobby (код, герои, сложность, старт), Game, LevelUp, Chest, Pause, GameOver, Victory, Leaderboard, Codex (Armory, Bestiary, Bosses, Chronicle; из меню и паузы), Inventory (сумка, стеш, пресеты, крафт), Achievements, Toast (плашки ачивок поверх всех сцен)
-  services/                leaderboard.js (таблицы соло и коопа, ip), net.js (WebRTC + сигналинг через Firestore rooms, логи `[fury-net]` в консоль), codex.js (кодекс в localStorage + копия в Firestore fury_codex/{id}, восстановление по id), telemetry.js (забег в Firestore fury_runs), inventory.js (стеш и сумка: localStorage + fury_inventory), achievements.js (localStorage + fury_achievements), firebase.js, nick-store.js
-  ui/                      фокус-навигация (focus.js) (клава/мышь/геймпад), HUD (счёт, DPS, миникарта), экранный джойстик; settings.js настройки (свечение снарядов, свечение своего героя, миникарта, DPS, последний герой и сложность); hero-picker.js карточки выбора героя (сетка от 3 героев); dom-input.js текстовое поле (ник, код) поверх холста; clipboard.js копирование в буфер (код лобби по тапу); text-align.js центрует текст по пикселям; fullscreen.js полный экран на телефоне (кнопка Play и настройка, не любое касание); items.js картинка предмета, подсказка, сетка сумки, панель статов; loot.js экран лута после забега; toast.js плашки ачивок
-  audio/sfx.js             воспроизведение звуков, рандом тона, лимит одновременных
-  debug.js                 window.__game.debug(), запись ошибок в localStorage
-  i18n/                    en.js, en-items.js, en-achievements.js + index.js (t('key')). Все строки UI только через t()
+    weapons/<type>.js      slash (blade: arc through densest group), melee_arc (cone, unused), projectile, orbit, aura,
+                           boomerang, chain, area_drop (bomb, meteor, mines), beam (snake: grows, bounces at 90 degrees),
+                           summon, cloud (poison cloud), slam (hammer: circular hit and crack), impale (spear: pierces and pins),
+                           ice_orb (ice ball: pierces all and freezes)
+    status.js              enemy statuses per src/data/status.js: DoT ticks, slowdown, root
+    enemies/<type>.js      chase, dash, ranged, swarm, phase, boss, drift (wall and gap: straight course, disappears off edge)
+  render/                  Phaser layer: syncs sprites with sim, animation, effects; decor.js decorator with placement logic, roads.js sand roads by chunks, reaper.js Reaper circles and hourglasses
+    anim.js                procedural walk/sway/tilt/flash/death
+    fx.js                  particles, damage numbers (BitmapText on digit font digits.js), shake, hitstop
+  scenes/                  Boot, Menu (hero choice, Co-op view), Lobby (code, heroes, difficulty, start), Game, LevelUp, Chest, Pause, GameOver, Victory, Leaderboard, Codex (Armory, Bestiary, Bosses, Chronicle; from menu and pause), Inventory (bag, stash, presets, crafting), Achievements, Toast (achievement badges over all scenes)
+  services/                leaderboard.js (solo and co-op tables, ip), net.js (WebRTC + signaling through Firestore rooms, logs `[fury-net]` to console), codex.js (codex in localStorage + copy in Firestore fury_codex/{id}, recovery by id), telemetry.js (run in Firestore fury_runs), inventory.js (stash and bag: localStorage + fury_inventory), achievements.js (localStorage + fury_achievements), firebase.js, nick-store.js
+  ui/                      focus navigation (focus.js) (keyboard/mouse/gamepad), HUD (score, DPS, minimap), on-screen joystick; settings.js options (projectile glow, hero glow, minimap, DPS, last hero and difficulty); hero-picker.js hero choice cards (grid of 3 heroes); dom-input.js text field (nick, code) over canvas; clipboard.js copy to buffer (lobby code on tap); text-align.js centers text by pixels; fullscreen.js fullscreen on phone (Play button and option, not any touch); items.js item picture, tooltip, bag grid, stats panel; loot.js loot screen after run; toast.js achievement badges
+  audio/sfx.js             sound playback, random pitch, simultaneous limit
+  debug.js                 window.__game.debug(), error logging to localStorage
+  i18n/                    en.js, en-items.js, en-achievements.js + index.js (t('key')). All UI strings through t() only
 assets/
-  sprites/manifest.js      ключ спрайта -> файл, размер кадра, точка опоры; персонажи кадр 128 (CHAR), боссы 256 (BOSS), число кадров по ширине PNG (Boot.js)
-  sprites/*.png            спрайты (заглушки и настоящие с тем же именем и кадром)
-  audio/sfx/*.wav          эффекты (jsfxr)
-  audio/music/theme.mp3    фоновая музыка (Whispers of the Abyss, royalty-free), заменяется подменой файла
-  fonts/                   пиксельный шрифт (OFL)
-tools/                     локальные скрипты Node, в игру не попадают
-  gen-sprite.mjs           генерация через OpenRouter (ключ из .secrets/, бюджет из ledger)
-  clean-sprite.mjs         чистка в пиксель-арт: хромакей, даунскейл, палитра, обводка, кадр
-  slice-sheet.mjs          нарезка листа (персонажи, окружение, предметы, иконки, снаряды) по tools/sheets.json; "hd" — плавное уменьшение без сетки
-  snap-image.mjs           целая картинка (фон меню) по родной сетке модели, клетка в пиксель
-  crop-raw.mjs             фигура из сырого листа в исходном разрешении (героиня в меню)
-  hd-frames.mjs            лента из готовой анимации (PixelLab) без снятия сетки: плавное уменьшение, показ 1:1
-  approved-to-raw.mjs      утверждённые листы 3×3 (tools/out/first-frames-256/approved, правятся руками) → assets/raw/<key>_walk256_pixellab и ленты: персонажи ×0.5 (128), боссы и жница ×1 (256)
-  sprite-frames.mjs        число кадров ленты по ширине PNG для скриптов и тестов (как Boot.js)
-  demouth.mjs              убирает рот, который PixelLab дорисовывает на кадрах анимации (assets/raw/*_pixellab)
-  trim-wisps.mjs           стирает лишние язычки пламени на кадрах жницы (зоны кадра), лента потом через hd-frames
-  pixellab-anim.mjs        анимация по первому кадру через PixelLab (ключ только в env PL_KEY)
-  turn-worker.js           Cloudflare Worker: временные учётные данные TURN для коопа (docs/COOP.md)
-  make-grass.mjs           процедурный тайл травы
-  make-slash.mjs           процедурный взмах клинка (гладкий полумесяц, proj_blade_arc)
-  make-ragged-balls.mjs    неровные шары одним цветом без обводки: метеор, ледяной шар, пуля виспа (кольца внутри — FX.zones.pulse)
-  sprite-table.mjs         таблица спрайтов в docs/ASSETS.md из manifest и sheets.json
-  make-music.mjs           процедурный чиптюн-луп (запасной, пишет theme.wav; игра грузит theme.mp3)
-  palette.json             общая палитра всех спрайтов
-  placeholders.mjs         заглушки по manifest.js
-  make-sfx.mjs             генерация звуков из пресетов jsfxr
-  contact-sheet.mjs        превью-лист спрайтов для проверки человеком
-  runs-report.mjs          разбор телеметрии fury_runs: по минутам уровень и урон/замах по оружию (--archive: с архивом чистки)
-  firestore-cleanup.mjs    чистка Firestore (Spark без TTL): отчёт по месту, --apply архивирует старые забеги и удаляет их и брошенные лобби (docs/FIRESTORE.md)
-  telemetry/               export (выгрузка fury_runs), audit (сессии, остаток сборки по минутам), holdout, weapons, movement, food, audit-chart
-  simulation/audit-bots.mjs когорта ботов с телеметрией той же схемы; результаты аудита: docs/BALANCE_AUDIT.md
-  simulation/bags.mjs, targets.mjs  генератор сумки T2 для ботов; цели META 1.1: клир и лестница
-  simulation/clear.mjs, defense.mjs, ladder.mjs  метрика клира (жизнь моба от входа в рамку CLEAR, врагов в рамке), запас ударов защиты
-                           на бумаге, лестница оружия по дальности и квиркам (цель vs факт)
-  telemetry/hits.mjs       удары в минуту и движение у людей из выгрузки fury_runs
-  gen-ledger.json          учёт трат на генерацию
+  sprites/manifest.js      sprite key -> file, frame size, anchor point; characters frame 128 (CHAR), bosses 256 (BOSS), frames per PNG width (Boot.js)
+  sprites/*.png            sprites (placeholders and real with same name and frame)
+  audio/sfx/*.wav          effects (jsfxr)
+  audio/music/theme.mp3    background music (Whispers of the Abyss, royalty-free), replaced by file substitution
+  fonts/                   pixel font (OFL)
+tools/                     local Node scripts, not included in game
+  gen-sprite.mjs           generation via OpenRouter (key from .secrets/, budget from ledger)
+  clean-sprite.mjs         pixel art cleanup: chroma key, downscale, palette, outline, frame
+  slice-sheet.mjs          sheet slicing (characters, environment, items, icons, projectiles) per tools/sheets.json; "hd" means smooth downscale without grid
+  snap-image.mjs           full image (menu background) by native model grid, cell to pixel
+  crop-raw.mjs             figure from raw sheet at original resolution (hero in menu)
+  hd-frames.mjs            animation strip from finished animation (PixelLab) without grid capture: smooth downscale, 1:1 display
+  approved-to-raw.mjs      approved 3x3 sheets (tools/out/first-frames-256/approved, edited by hand) → assets/raw/<key>_walk256_pixellab and strips: characters x0.5 (128), bosses and Reaper x1 (256)
+  sprite-frames.mjs        animation strip frame count by PNG width for scripts and tests (like Boot.js)
+  demouth.mjs              removes mouth that PixelLab adds to animation frames (assets/raw/*_pixellab)
+  trim-wisps.mjs           erases extra flame wisps on Reaper frames (frame zones), strip then via hd-frames
+  pixellab-anim.mjs        animation from first frame via PixelLab (key in env PL_KEY only)
+  turn-worker.js           Cloudflare Worker: temporary TURN credentials for co-op (docs/COOP.md)
+  make-grass.mjs           procedural grass tile
+  make-slash.mjs           procedural blade swing (smooth crescent, proj_blade_arc)
+  make-ragged-balls.mjs    rough balls one color no outline: meteor, ice ball, wisp bullet (rings inside - FX.zones.pulse)
+  sprite-table.mjs         sprite table in docs/ASSETS.md from manifest and sheets.json
+  make-music.mjs           procedural chiptune loop (backup, writes theme.wav; game loads theme.mp3)
+  palette.json             common palette for all sprites
+  placeholders.mjs         placeholders per manifest.js
+  make-sfx.mjs             sound generation from jsfxr presets
+  contact-sheet.mjs        preview sheet of sprites for human review
+  runs-report.mjs          telemetry fury_runs analysis: per minute level and damage/swing per weapon (--archive: with cleanup archive)
+  firestore-cleanup.mjs    Firestore cleanup (Spark no TTL): place report, --apply archives old runs and deletes them and abandoned lobbies (docs/FIRESTORE.md)
+  telemetry/               export (fury_runs export), audit (sessions, build remainder per minute), holdout, weapons, movement, food, audit-chart
+  simulation/audit-bots.mjs bot cohort with same telemetry scheme; audit results: docs/BALANCE_AUDIT.md
+  simulation/bags.mjs, targets.mjs  T2 bag generator for bots; META 1.1 goals: clear and ladder
+  simulation/clear.mjs, defense.mjs, ladder.mjs  clear metric (mob life from CLEAR frame entry, mobs in frame), defense strike reserves
+                           on paper, weapon ladder by range and quirks (goal vs actual)
+  telemetry/hits.mjs       hits per minute and movement in humans from fury_runs export
+  gen-ledger.json          generation spending log
 tests/
-  unit/                    node --test: grid, stats, upgrades, data-валидация
-  balance/                 node --test: headless-бот играет забег на core/sim (players: 2 — кооп)
-  smoke/                   Playwright: запуск, старт, 30 с игры, нет ошибок, fps; coop.spec.js два окна по WebRTC; input.spec.js залипание движения (фокус, ПКМ, мышь)
-docs/                      CONTENT.md, ARCHITECTURE.md, ASSETS.md, LEADERBOARD.md, COOP.md (сводка коопа: сделано, руками, ограничения), FIRESTORE.md (коллекции, лимиты Spark, что и когда чистить)
-references/                референсы, НЕ в git (скриншоты чужих игр)
-.secrets/                  ключи, НЕ в git, никогда не читать в коде игры
+  unit/                    node --test: grid, stats, upgrades, data validation
+  balance/                 node --test: headless bot plays a run on core/sim (players: 2 for co-op)
+  smoke/                   Playwright: startup, start, 30 s of gameplay, no errors, fps; coop.spec.js two windows over WebRTC; input.spec.js movement stickiness (focus, RMB, mouse)
+docs/                      CONTENT.md, ARCHITECTURE.md, ASSETS.md, LEADERBOARD.md, COOP.md (co-op summary: done, by hand, limitations), FIRESTORE.md (collections, Spark limits, what and when to clean)
+references/                references, NOT in git (screenshots from other games)
+.secrets/                  keys, NOT in git, never read in game code
 ```
 
-## Правила
+## Rules
 
-- Баланс и контент только в `src/data/`. Числа в логике не хардкодим.
-- `src/core/` не импортирует Phaser и не трогает DOM.
-- Новое оружие или враг с существующим behavior: только запись в data + спрайт. Новое поведение: новый файл в `behaviors/`, регистрируется по имени.
-- Строки UI только через `t()` из `src/i18n/`.
-- Сетевой кооп: сим детерминирован, клиенты обмениваются только вводом (`core/lockstep.js`). В `core/sim.js` ничего недетерминированного (Math.random, Date, порядок обхода Map по вставке ок).
-- Состояние для проверки: `window.__game.debug()` возвращает JSON (сцена, fps, врагов, hp, уровень, оружие, ошибки). Необработанная ошибка показывается красной строкой поверх игры и пишется в localStorage (`window.__game.lastError()`): Phaser на ней останавливает цикл кадров.
-- Тесты и стиль: `npm run lint` (ESLint, подмножество Google JS Style Guide), `npm test` (unit + balance), `npm run smoke` (Playwright). Перед коммитом все три зелёные.
-- Только именованные экспорты (`export default` запрещён линтером, кроме `*.config.js`).
-- Генерацию ассетов запускает только один процесс за раз. Бюджет $5, стоп на $4.50 (`tools/gen-ledger.json`).
-- `.secrets/` никогда не коммитим, не читаем агентами, не вставляем в код.
-- Субагенты не коммитят. Коммитит, пушит и деплоит основная сессия.
+- Balance and content in `src/data/` only. No hardcoded numbers in logic.
+- `src/core/` does not import Phaser and does not touch DOM.
+- New weapon or enemy with existing behavior: data entry and sprite only. New behavior: new file in `behaviors/`, registered by name.
+- UI strings through `t()` from `src/i18n/` only.
+- Network co-op: sim is deterministic, clients exchange input only (`core/lockstep.js`). Nothing non-deterministic in `core/sim.js` (Math.random, Date, Map insertion order OK).
+- State for verification: `window.__game.debug()` returns JSON (scene, fps, enemies, hp, level, weapons, errors). Unhandled error shows as red line over game and writes to localStorage (`window.__game.lastError()`): Phaser stops the frame loop on it.
+- Tests and style: `npm run lint` (ESLint, Google JS Style Guide subset), `npm test` (unit and balance), `npm run smoke` (Playwright). All three green before commit.
+- Named exports only (`export default` forbidden by linter except `*.config.js`).
+- Only one process runs asset generation at a time. Budget $5, stop at $4.50 (`tools/gen-ledger.json`).
+- Never commit `.secrets/`, never read it in agents, never put it in code.
+- Subagents do not commit. Main session commits, pushes, and deploys.

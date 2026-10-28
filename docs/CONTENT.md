@@ -1,89 +1,89 @@
-# Как добавлять контент
+# How to add content
 
-Баланс и контент лежат в `src/data/`, строки в `src/i18n/en.js`, картинки в `assets/sprites/` (ключи в `assets/sprites/manifest.js`). Формат каждой записи описан комментарием в начале файла data. Как делать картинки: `docs/ASSETS.md`.
+Balance and content live in `src/data/`, UI strings in `src/i18n/en.js`, and sprites in `assets/sprites/` with keys in `assets/sprites/manifest.js`. Each record describes its format in a comment at the top of its data file. For sprites, see `docs/ASSETS.md`.
 
-Общее для всех рецептов:
+Common to all recipes:
 
-- Ключи i18n выводятся из id (таблица в `docs/ARCHITECTURE.md`). Нет ключа: `t()` вернёт сам ключ, игра не упадёт, но на экране будет `weapon.x.name`.
-- Любой спрайт, на который ссылается data, должен быть в `manifest.js` и существовать как файл (тест `manifest: every sprite has a file`). Пока настоящего арта нет, `npm run placeholders` создаёт заглушку по записи manifest (существующие файлы не трогает, `--force` перезаписывает).
-- После правок: `npm test`. Тесты в `tests/unit/data.test.js` считают количество контента (7 обычных оружий, 9 пассивок, 2 комбо, 6 врагов); при добавлении сущности обнови эти числа в тесте осознанно.
+- i18n keys are derived from ids, as shown in the table in `docs/ARCHITECTURE.md`. Missing a key: `t()` returns the key itself and the game doesn't crash, but the screen shows `weapon.x.name` instead.
+- Any sprite referenced by data must be in `manifest.js` and exist as a file. The test `manifest: every sprite has a file` checks this. While real art is being made, `npm run placeholders` creates dummy sprites from the manifest entry (existing files are untouched unless you pass `--force`).
+- After edits, run `npm test`. Tests in `tests/unit/data.test.js` count content items (currently 7 regular weapons, 9 passives, 2 combos, 6 enemies). When adding an entity, deliberately update these numbers in the test.
 
-## Оружие с существующим behavior
+## Weapon with existing behavior
 
-Behavior: `slash`, `melee_arc`, `projectile`, `orbit`, `aura`, `boomerang`, `chain`, `area_drop`, `beam`, `summon`, `cloud`, `slam`, `impale`, `ice_orb`. Смысл полей уровня по behavior расписан в шапке `src/data/weapons.js`. Кратко о последних переделках:
+Behaviors: `slash`, `melee_arc`, `projectile`, `orbit`, `aura`, `boomerang`, `chain`, `area_drop`, `beam`, `summon`, `cloud`, `slam`, `impale`, `ice_orb`. The meaning of level fields for each behavior is described in the header of `src/data/weapons.js`. A summary of recent changes:
 
-- `slash` (Blade Arc, Crimson Arc): росчерк клинка через самую плотную группу врагов, не конус. Раз в `cooldown` серия из `amount` слэшей с паузой `WEAPON_BEHAVIOR.slash.gap`. Перед каждым: среди врагов в `searchRange` от героя (не больше `candidates` кандидатов) центр с наибольшим числом врагов в круге `clusterR`; слэш идёт через центр масс группы вдоль её главной оси (вытянутая толпа режется вдоль), круглая группа (`elongation`) режется поперёк направления от героя. Следующие слэши серии берут другие группы (дальше `apart` × `clusterR`), если их нет, крест-накрест через ту же. Врагов нет: через ближайший объект, иначе вдоль движения. Отрезок длиной `area` и шириной `width` (оба × стат `area`) проводится от начала к концу за `sweep` с и бьёт каждого задетого один раз, отбрасывая от линии; `status` (bleeding) как у прочих ударов. Без RNG. Картинка: зона `slash` в `src/render/zones.js` (шлейф, середина, белое ядро, сложение цвета, над персонажами), цвет `tint` оружия. Старый конус `melee_arc` остаётся в реестре, но оружие на нём сейчас нет.
-- `slam` (Hammer, Titan Maul): удар по земле кругом радиусом `area`, а не конус. Серия из `amount` ударов: первый под героем со сдвигом к ближайшей цели (`WEAPON_BEHAVIOR.slam.offset` × `area`), каждый следующий в следующем направлении по кругу вокруг героя (той же дистанции), с паузой `gap`: молот не бьёт дальше `area` × (`offset` + 1). Удар бьёт один раз всех в круге и отбрасывает от центра (`knockback`). На месте удара трещина (радиус `area` × `crack`) на `duration` с: враги в ней ходят со скоростью × `slow`, ещё `slowTime` с после выхода. Сама трещина не бьёт, гаснет к концу (`fade`). Картинки: зоны `boom` и `crack` в `src/render/zones.js`, цвет `tint` оружия.
-- `impale` (Spear, Dragon Lance): одно копьё (`amount` 1) в ближайшую цель, пробивает `1 + pierce` врагов и каждого пригвождает на `pin` с (замедление до 0 через `applySlow`, боссы вполсилы). Потом втыкается в землю и торчит `WEAPON_BEHAVIOR.impale.stuck` с. С `burst` воткнувшееся копьё взрывается кругом радиусом `burst` (× стат `area`): урон `damage` и пригвождение всех в круге. Луч (`beam`) от копья отличается: летит в случайную сторону и рикошетит от каждого попадания.
-- `ice_orb` (Frost Orb, Blizzard): крупный медленный шар (радиус `area`, `speed`, живёт `duration` с) в ближайшую цель, пробивает всех, бьёт каждого внутри раз в `tick` на `damage` и замораживает (скорость × `slow` ещё `slowTime` с). С `turn` (рад/с) курс закручивается спиралью, и `amount` шаров выходят во все стороны поровну. Пока что заморозка идёт через `applySlow`; потом её переведут на статус `chill`.
+- `slash` (Blade Arc, Crimson Arc): a sword sweep through the densest group of enemies, not a cone. Once per `cooldown`, a series of `amount` slashes with a pause of `WEAPON_BEHAVIOR.slash.gap` between them. Before each slash, the weapon finds the enemy center with the most enemies in a circle of radius `clusterR` within `searchRange` of the hero, selecting no more than `candidates`. The slash passes through the group's center of mass along its longest axis. An elongated group is cut lengthwise, a round group (see `elongation`) is cut across the direction from the hero. Later slashes in the series target other groups at least `apart` × `clusterR` away. If no other groups exist, the slash crosses the same group again. With no enemies, it targets the nearest object, otherwise it cuts along the hero's movement direction. A segment of length `area` and width `width` (both multiplied by the `area` stat) sweeps from start to end over `sweep` seconds, hitting each touched enemy once and knocking them away from the line. The bleeding status applies like other hits. No RNG. Visual: the slash zone in `src/render/zones.js` (trailing line, center, white core, additive blending, drawn above characters) is tinted by the weapon's `tint` color. The old `melee_arc` cone behavior remains in the registry but no weapons use it now.
+- `slam` (Hammer, Titan Maul): a circular ground strike of radius `area`, not a cone. A series of `amount` strikes. The first strikes beneath the hero, offset toward the nearest target by `WEAPON_BEHAVIOR.slam.offset` × `area`. Each following strike happens in the next direction around the hero at the same distance, with a pause of `gap` between them. The hammer doesn't reach beyond `area` × (`offset` + 1). Each strike hits all enemies in the circle once and knocks them away from the center by `knockback`. At each impact point, a crack appears with radius `area` × `crack` that lasts `duration` seconds. Enemies in the crack move at `slow` × their normal speed and remain slowed for `slowTime` seconds after leaving it. The crack itself doesn't deal damage and fades out at the end. Visuals: the `boom` and `crack` zones in `src/render/zones.js` are tinted by the weapon's `tint` color.
+- `impale` (Spear, Dragon Lance): one spear (`amount` 1) fires at the nearest target, pierces through `1 + pierce` enemies, and pins each one for `pin` seconds. Pinned enemies slow to 0 speed via `applySlow`, but bosses are affected at half strength. The spear then lodges in the ground and sticks out for `WEAPON_BEHAVIOR.impale.stuck` seconds. With a `burst` value, the embedded spear detonates in a circle of radius `burst` (multiplied by the `area` stat), dealing `damage` and pinning all enemies in the radius. A beam (`beam`) fired from the spear differs: it travels in a random direction and bounces off each hit.
+- `ice_orb` (Frost Orb, Blizzard): a large slow-moving sphere (radius `area`, traveling at `speed`, lasting `duration` seconds) that fires at the nearest target, pierces all enemies, and hits each one inside once every `tick` for `damage` while chilling them. Chilled enemies move at `slow` × their normal speed for `slowTime` additional seconds. With a `turn` value in radians per second, the sphere's trajectory spirals, and `amount` orbs split in all directions evenly. Currently chill uses `applySlow`, but it will later use the `chill` status.
 
-- `cloud` (Poison Cloud, Miasma): облако ложится под героя (врагов в `WEAPON_BEHAVIOR.cloud.propRange` нет, а объект есть — на объект) и стоит `duration` с, бьёт каждого врага внутри раз в `tick` на `damage`, `area` — радиус. `amount` облаков: у каждого свой таймер `cooldown`, первые разнесены на `cooldown / amount`. Облака одного оружия бьют врага не чаще `tick`.
-- `beam` (Beam, Prism Ray): раз в `cooldown` выпускает `amount` змеек с окружности вокруг героя в случайные стороны (RNG сима, i-я в своём секторе 360° / `amount`). Тело растёт до `length`, дальше ползёт за головой. Бьёт только голова: при попадании во врага или объект поворачивает на 90° влево или вправо, урон × `WEAPON_BEHAVIOR.beam.bounceDamageMul`, длина вдвое (сжимается с хвоста); после `bounces` рикошетов следующее попадание её гасит. Стат area на неё не действует. Рисуется следом в стиле Victory Sword (render/zones.js, fx `snake`).
+- `cloud` (Poison Cloud, Miasma): a cloud appears under the hero, or on a nearby object if no enemies are within `WEAPON_BEHAVIOR.cloud.propRange`. It lasts `duration` seconds and hits each enemy inside once every `tick` for `damage`. The `area` field sets the radius. With `amount` set, each cloud has its own `cooldown` timer, with the initial clouds staggered by `cooldown / amount`. Clouds from the same weapon don't hit the same enemy more often than once per `tick`.
+- `beam` (Beam, Prism Ray): once per `cooldown`, it fires `amount` beams from a circle around the hero in random directions (sim RNG, with the i-th beam in its own sector of 360° / `amount`). The beam body grows to `length`, then trails behind the head. Only the head deals damage. On hitting an enemy or object, it turns 90 degrees left or right, deals `damage` multiplied by `WEAPON_BEHAVIOR.beam.bounceDamageMul`, and loses half its length by retracting the tail. After `bounces` bounces, the next hit extinguishes it. The `area` stat doesn't apply to beams. Drawn as a trail in Victory Sword style using `render/zones.js` and the `snake` effect.
 
-Самонаводящиеся оружия (`projectile`, `boomerang`, `chain`, `summon`) берут цель через `sim.nearestTarget`: ближайший враг или разрушаемый объект из одного списка. Новое самонаводящееся оружие — так же.
+Self-aiming weapons (`projectile`, `boomerang`, `chain`, `summon`) acquire targets through `sim.nearestTarget`: the nearest enemy or destructible object from a single list. New self-aiming weapons should work the same way.
 
-### Статус (ДоТ) на оружии
+### Status (damage over time) on weapons
 
-Необязательное поле `status` на записи оружия или в уровне (уровень главнее): `status: { type, chance, share?, duration?, slow? }`. Типы и числа в `src/data/status.js`, логика в `src/behaviors/status.js`:
+An optional `status` field on a weapon record or level (level takes precedence): `status: { type, chance, share?, duration?, slow? }`. Status types and default values are in `src/data/status.js`, with logic in `src/behaviors/status.js`:
 
-| type | стакание | эффект |
+| type | stacking | effect |
 |---|---|---|
-| `poison` | каждый удар — свой стак со своим таймером, до `maxStacks` | урон |
-| `burning` | один, остаётся сильнейший, таймер обновляется | урон |
-| `bleeding` | как `burning`; только у клинков `melee_arc` и `slash` (проверяет тест) | урон |
-| `chill` | сильнее и дольше из действующего и нового | замедление без урона (`slow`, `duration`) |
+| `poison` | each hit creates its own stack with its own timer, up to `maxStacks` | damage |
+| `burning` | one per enemy, the strongest remains and timer resets | damage |
+| `bleeding` | like `burning`, only on slash-type weapons `melee_arc` and `slash` (test checks this) | damage |
+| `chill` | stronger and longer of current and new | slowdown without damage (`slow`, `duration`) |
 
-Урон ДоТа = `share` × урон удара (после `attack`/`magic`, до крита), разложенный на `duration` тиками `DOT.tick`. Тики не критуют и идут в статистику оружия, которое наложило статус. Шанс `chance < 1` тянет RNG сима. В кодексе строка «… chance» по уровням (`codex.p.status_<type>` в i18n).
+DoT damage is calculated as `share` × hit damage (after the `attack` or `magic` stat is applied, before crit), spread over `duration` ticks of `DOT.tick`. Ticks don't crit and are credited to the weapon that applied the status. A `chance < 1` draws from the sim's RNG. The Codex shows a line "… chance" per level (`codex.p.status_<type>` in i18n).
 
-Радиусы `aura`, `melee_arc` и `orbit` берутся с одной лестницы колец `RINGS` (`src/data/weapons.js`): аура и взмах ставят `area: RINGS[k]`, орбита `area: onRing(k, ORBIT_R[спрайт] * size)`, тогда видимый край снаряда идёт ровно по линии кольца. Новый спрайт на орбите добавь в `ORBIT_R`. Проверка в `tests/unit/data.test.js`. Щиты не растут: базовые на T2, защитные апгрейды на T1, атакующие на T3.
+Radii for `aura`, `melee_arc`, and `orbit` use a shared ring ladder `RINGS` from `src/data/weapons.js`. Aura and slash set `area: RINGS[k]`. Orbit sets `area: onRing(k, ORBIT_R[sprite] * size)` so the projectile's visual edge aligns with the ring. Add new orbit sprites to `ORBIT_R`. The test in `tests/unit/data.test.js` checks this. Shields don't scale: base shields are T2, defensive upgrades are T1, offensive upgrades are T3.
 
-1. `src/data/weapons.js`: запись по образцу `throwing_daggers`:
+1. `src/data/weapons.js`: add a record following the `throwing_daggers` pattern:
    ```js
    throwing_daggers: {
      icon: 'icon_throwing_daggers', sprite: 'proj_dagger', behavior: 'projectile', maxLevel: 7,
-     levels: [ { damage: 8, cooldown: 1.0, amount: 1, speed: 280, duration: 1.2, pierce: 0, knockback: 40 }, /* ... 7 строк */ ],
+     levels: [ { damage: 8, cooldown: 1.0, amount: 1, speed: 280, duration: 1.2, pierce: 0, knockback: 40 }, /* ... 7 more */ ],
    },
    ```
-   `levels.length` равно `maxLevel`; у обычного оружия `maxLevel: 7`, `damage > 0`, `cooldown >= 0`, урон между уровнями не падает.
-2. `assets/sprites/manifest.js`: `art('proj_<имя>', w, h)` для снаряда и `item('icon_<id>', 24, 24, '#цвет', 'rect')` для иконки.
-3. `src/i18n/en.js`: `weapon.<id>.name`, `weapon.<id>.desc`. Необязательно `weapon.<id>.lvl<N>`: описание уровня на карточке (`src/scenes/LevelUp.js` берёт его раньше `.desc`).
-4. Картинки: снаряд и иконка (`docs/ASSETS.md`, листы `projectiles` и `icons` в `tools/sheets.json`).
-5. Тесты: `data: weapons have behavior, icon, sprite and full level tables`, `data: sprites referenced by content exist in manifest`. Баланс: `npm test` (бот из `tests/balance/`).
+   `levels.length` must equal `maxLevel`. Standard weapons have `maxLevel: 7`, `damage > 0`, `cooldown >= 0`, and damage never decreases between levels.
+2. `assets/sprites/manifest.js`: `art('proj_<name>', w, h)` for the projectile and `item('icon_<id>', 24, 24, '#color', 'rect')` for the icon.
+3. `src/i18n/en.js`: add `weapon.<id>.name` and `weapon.<id>.desc`. Optionally add `weapon.<id>.lvl<N>` for per-level descriptions on the level-up card (LevelUp.js checks for this before falling back to `.desc`).
+4. Sprites: the projectile and icon go on the corresponding sheets in `tools/sheets.json` (`projectiles` and `icons`). See `docs/ASSETS.md` for details.
+5. Tests: the test suite checks `data: weapons have behavior, icon, sprite and full level tables` and `data: sprites referenced by content exist in manifest`. Balance testing runs via `npm test` using the bot from `tests/balance/`.
 
-Оружие попадает в пул карточек само: список берётся из `WEAPONS`. Супероружие (`evolved: true`) в карточки не попадает, см. рецепт «Комбо».
+Weapons automatically enter the card pool from the `WEAPONS` list. Evolved weapons (`evolved: true`) don't appear on level-up cards; see the "Evolutions" recipe below.
 
-## Оружие с новым behavior
+## Weapon with new behavior
 
-1. Файл `src/behaviors/weapons/<имя>.js`, `export const <имяCamelCase> = { init(w, sim), update(w, sim, dt) }` (только именованный экспорт, `export default` запрещён линтером). `w` это состояние оружия: `w.id`, `w.level`, `w.def`, `w.params` (числа текущего уровня; `params.damage` уже умножен на `attack` или `magic` по `dmgType`, `params.cooldown` поделён на `haste`, `area` и `duration` умножены на статы `area` и `duration`), `w.slot`. Снаряды: `sim.addProjectile('player', w.def.sprite)`, затем заполнить `life`, `radius`, `dmg`, `vx/vy` и т. д. Образцы: `projectile.js` (простой), `orbit.js` (снаряд с `p.bk = orbit` и методом `moveProjectile`). Событие выстрела: `sim.events.push({ type: 'weaponFire', weapon: w.id })`.
-2. Регистрация: именованный импорт и строка в `WEAPON_BEHAVIORS` в `src/behaviors/index.js` (имя ключа = значение `behavior` в data).
-3. Дальше как в рецепте выше. `src/core/` не импортирует Phaser и DOM; числа берутся из `w.params`, не хардкодятся.
-4. Новые поля уровня опиши в шапке `src/data/weapons.js`.
+1. Create a file `src/behaviors/weapons/<name>.js` exporting `export const <nameCamelCase> = { init(w, sim), update(w, sim, dt) }`. Use named exports only (the linter forbids `export default`). The `w` object holds the weapon state: `w.id`, `w.level`, `w.def`, `w.params` (current level's numbers where `params.damage` is already multiplied by the `attack` or `magic` stat depending on `dmgType`, `params.cooldown` is divided by `haste`, and `area` and `duration` are multiplied by their respective stats), and `w.slot`. To create projectiles, call `sim.addProjectile('player', w.def.sprite)` and fill in `life`, `radius`, `dmg`, `vx/vy`, and so on. See `projectile.js` for a simple example and `orbit.js` for a projectile that manages its own movement using `p.bk = orbit` and a `moveProjectile()` method. Fire a `weaponFire` event with `sim.events.push({ type: 'weaponFire', weapon: w.id })`.
+2. Register the behavior: import it as a named import and add a line to `WEAPON_BEHAVIORS` in `src/behaviors/index.js`. The key name must match the `behavior` value in the data.
+3. Then follow the steps in the recipe above. Code in `src/core/` doesn't import Phaser or DOM. Use numbers from `w.params`, not hardcoded values.
+4. Document any new level fields in the header of `src/data/weapons.js`.
 
-## Пассивка
+## Passive
 
-1. `src/data/passives.js`: `{ icon: 'icon_<id>', stat, levels: [...], minLevel? }`. `stat` обязан быть ключом `src/data/stats.js` (вид сложения percent/flat и капы там же); все пассивки increased. `minLevel` — карточка не предлагается до этого уровня команды. Значения строго растут. `maxLevel` равен `levels.length`.
-2. Новый стат (а не новая пассивка на существующий): добавить в `stats` героя (`src/data/heroes.js`), учесть в `src/core/stats.js` и в месте применения в `sim.js`. Это правка кода, не только данных.
-3. manifest: `item('icon_<id>', 24, 24, ...)`. i18n: `passive.<id>.name`, `passive.<id>.desc`.
-4. Тест: `data: passives are well formed`. Он же считает пассивки (сейчас 9).
+1. `src/data/passives.js`: add a record `{ icon: 'icon_<id>', stat, levels: [...], minLevel? }`. The `stat` must be a key from `src/data/stats.js`, which defines whether it's a percentage or flat stat and sets its caps. All passives are percentage increases. The optional `minLevel` field prevents the card from appearing until the team reaches that level. Values must strictly increase. `maxLevel` equals `levels.length`.
+2. To add a new stat rather than a new passive for an existing stat: add it to the hero's `stats` in `src/data/heroes.js`, handle it in `src/core/stats.js`, and apply it where needed in `sim.js`. This requires code changes, not just data edits.
+3. manifest: add `item('icon_<id>', 24, 24, ...)`. i18n: add `passive.<id>.name` and `passive.<id>.desc`.
+4. Tests: the test `data: passives are well formed` checks this and counts passives (currently 9).
 
-## Герой
+## Hero
 
-Герои перечислены только в `src/data/heroes.js`. Меню (картинки у кнопок), карточки выбора в соло и в лобби коопа, сим и тесты читают этот список сами, правок в сценах не нужно.
+Heroes are defined only in `src/data/heroes.js`. The menu, selection cards, sim, and tests all read this list directly, so no changes to scenes are needed.
 
-1. `src/data/heroes.js`: запись `id: { sprite, portrait, menu?, startWeapon, stats }`. `stats` с полным набором статов из `src/data/stats.js` (`maxHp, attack, magic, speed, crit, critDmg, area, duration, pickup, haste, luck, resistance, regen, xpGain, dodge, thorns`). `menu: { art, side }` необязательно: картинка у кнопок главного меню, `side: 'left'` рисуется отражённой, несколько на одной стороне встают дальше от кнопок по порядку. Порядок записей = порядок карточек выбора.
-2. Спрайты в `assets/sprites/manifest.js`: лента ходьбы `chara('<id>', '#цвет')` (кадр 110×110, число кадров по ширине PNG, кадр 0 стойка, см. `docs/ASSETS.md`), портрет 48×48 и картинка меню. Как сделать ленту того же размера пикселя: `docs/ASSETS.md` (PixelLab, `hd-frames.mjs`, пример магессы).
-3. i18n: `hero.<id>.name`. Статы игроку числами не показываются: на карточке выбора черты относительно среднего героя `HERO_BASE` (`+ATK` зелёным, `-HP` красным, `core/heroes.js heroTraits`); подписи `trait.<stat>` уже есть.
-4. Тест `data: every hero is complete` проверяет спрайты, картинку меню, имя и набор статов; `data: hero start weapons exist` проверяет оружие.
+1. `src/data/heroes.js`: add a record `id: { sprite, portrait, menu?, startWeapon, stats }`. The `stats` field contains the full set from `src/data/stats.js`: `maxHp, attack, magic, speed, crit, critDmg, area, duration, pickup, haste, luck, resistance, regen, xpGain, dodge, thorns`. The optional `menu: { art, side }` puts a picture next to the main menu buttons. With `side: 'left'` it is drawn mirrored, and several pictures on one side stand further from the buttons in order. The order of records determines the order of selection cards.
+2. Sprites in `assets/sprites/manifest.js`: the walk animation `chara('<id>', '#color')` uses 110×110 frames, with the count read from PNG width. Frame 0 is the idle pose. See `docs/ASSETS.md` for how to create the sprite and example (PixelLab, `hd-frames.mjs`, and the Mage example).
+3. i18n: add `hero.<id>.name`. Hero stats aren't shown as raw numbers on the selection card. Instead, traits are shown relative to `HERO_BASE`, the average hero (`+ATK` in green, `-HP` in red, calculated in `core/heroes.js` as `heroTraits`). Labels like `trait.<stat>` already exist.
+4. Tests: `data: every hero is complete` checks sprites, menu art, name, and stat set. `data: hero start weapons exist` checks that start weapons are defined.
 
-Экран выбора (`src/ui/hero-picker.js`): при двух героях большие карточки, с трёх и больше сетка плиток (`GRID_FROM`). Число рядов подбирается под самую крупную плитку, герои делятся по рядам поровну (7 = 4 + 3, 13 = 7 + 6), каждый ряд по центру; под сеткой строка с именем, оружием и чертами героя в фокусе. Проверка на тестовых героях из монстров игры (3, 4, 7, 13, 20): скрипт съёмки описан в `docs/COOP.md`.
+The selection screen (`src/ui/hero-picker.js`) shows large cards for 2 heroes, or a grid of tiles for 3 or more (threshold `GRID_FROM`). Rows are sized to fit the largest tile, heroes are divided evenly across rows (7 becomes 4 + 3, 13 becomes 7 + 6), each row is centered. Below the grid is a line with the focused hero's name, weapon, and traits. The layout is tested with 3, 4, 7, 13, and 20 heroes from the game's roster. The screenshot script is described in `docs/COOP.md`.
 
-Правила выбора (`src/core/heroes.js`): неизвестный id заменяется `DEFAULT_HERO`; в коопе у каждого игрока свой герой (`distinctHeroes`), в лобби герой напарника занят, при одновременном выборе одного героя уступает гость.
+Selection rules (`src/core/heroes.js`): unknown ids are replaced with `DEFAULT_HERO`. In co-op, each player picks their own hero (`distinctHeroes`). In the lobby, a partner's chosen hero is unavailable. If both players try to pick the same hero simultaneously, the guest yields.
 
-## Враг
+## Enemy
 
-Behavior: `chase`, `dash`, `ranged`, `swarm`, `phase` (`boss` только для боссов). Параметры `params` по behavior смотри в соответствующем файле `src/behaviors/enemies/`.
+Behaviors: `chase`, `dash`, `ranged`, `swarm`, `phase` (only bosses use `boss`). Behavior-specific parameters live in the corresponding file in `src/behaviors/enemies/`.
 
-1. `src/data/enemies.js`:
+1. `src/data/enemies.js`: add a record like this:
    ```js
    foxgirl: {
      sprite: 'foxgirl', behavior: 'dash', hp: 26, speed: 50, damage: 9, xp: 4, size: 9, knockbackResist: 0,
@@ -91,25 +91,25 @@ Behavior: `chase`, `dash`, `ranged`, `swarm`, `phase` (`boss` только дл�
      elite: elite(0xff8040),
    },
    ```
-   `size` это радиус хитбокса в px мира. Нулевых `hp/speed/damage/xp/size` быть не должно.
-2. manifest: `girl('<id>', 56, '#цвет', 'humanoid' | 'blob' | 'flyer')` (боссы: кадр 96). Рисунок: строка в промпте `tools/prompts/roster.txt` и ключ в `items` листа `roster` в `tools/sheets.json`, затем `node tools/slice-sheet.mjs roster`.
-3. i18n: `enemy.<id>.name`.
-4. Чтобы враг появился, добавь его в `timeline` этапа (рецепт «Волна»).
-5. Тесты: `data: enemies have behavior, positive stats, elite block`, `stage: timeline sorted and references known enemies`.
+   The `size` field is the hitbox radius in world pixels. Never use 0 for `hp`, `speed`, `damage`, `xp`, or `size`.
+2. manifest: use `girl('<id>', 56, '#color', 'humanoid' | 'blob' | 'flyer')` (bosses use frame size 96). For the sprite: add a line to the prompt `tools/prompts/roster.txt` and a key in the `items` array of the `roster` sheet in `tools/sheets.json`, then run `node tools/slice-sheet.mjs roster`.
+3. i18n: add `enemy.<id>.name`.
+4. To make the enemy appear in a stage, add it to the `timeline` (see the "Wave and event" recipe).
+5. Tests: the suite checks `data: enemies have behavior, positive stats, elite block` and `stage: timeline sorted and references known enemies`.
 
-Новое поведение: файл `src/behaviors/enemies/<имя>.js` (`init(e, sim)`, `update(e, sim, dt)`) и строка в `ENEMY_BEHAVIORS` в `src/behaviors/index.js`. Образец: `chase.js`.
+For a new behavior: create a file `src/behaviors/enemies/<name>.js` with `init(e, sim)` and `update(e, sim, dt)` functions, then add a line to `ENEMY_BEHAVIORS` in `src/behaviors/index.js`. See `chase.js` for an example.
 
-## Элита
+## Elite
 
-Элитная версия не отдельная запись: у врага есть блок `elite`, и тест требует его у каждого врага (`hpMul > 1`, `sizeMul > 1`, `drop === 'chest'`).
+An elite version is not a separate record. Enemies have an `elite` block, and the test requires it on every enemy (`hpMul > 1`, `sizeMul > 1`, `drop === 'chest'`).
 
-1. В `src/data/enemies.js` блок `elite: elite()`. Хелпер даёт `hpMul: 8, damageMul: 1.5, sizeMul: 1.5, xpMul: 6, glow: 0xff3d6e, drop: 'chest'`; `glow` это цвет свечения вокруг силуэта. Нужны другие числа: напиши объект вручную.
-2. Появление: событие `{ at, type: 'elite', enemy }` в `timeline` (рецепт «Волна»). Из элиты всегда выпадает сундук (`src/core/sim.js`, тест `chest: elite always drops a chest, boss drops one too`).
-3. Отдельного спрайта и i18n не нужно: рендер добавляет пульсирующее свечение цветом `glow` (тело не перекрашивается) и увеличивает спрайт на `sizeMul` (тот же множитель, что у хитбокса).
+1. In `src/data/enemies.js`, add the block `elite: elite()`. The helper provides `hpMul: 8, damageMul: 1.5, sizeMul: 1.5, xpMul: 6, glow: 0xff3d6e, drop: 'chest'`. The `glow` color is the aura around the silhouette. To use different values, write the object manually.
+2. Elite appearance: add an event `{ at, type: 'elite', enemy }` to the `timeline` (see "Wave and event" recipe). Elites always drop a chest (`src/core/sim.js`, and the test `chest: elite always drops a chest, boss drops one too` confirms this).
+3. No separate sprite or i18n entry is needed. The renderer adds a pulsing glow in the `glow` color (the sprite itself isn't recolored) and scales the sprite by `sizeMul` (the same multiplier applied to its hitbox).
 
-## Босс
+## Boss
 
-1. `src/data/bosses.js`: поля как у врага плюс `attacks`, `rage`, `drop`:
+1. `src/data/bosses.js`: add a record with the same fields as an enemy plus `attacks`, `rage`, and `drop`:
    ```js
    dryad_queen: {
      sprite: 'dryad_queen', behavior: 'boss', hp: 30000, speed: 34, damage: 44, xp: 0, size: 26, knockbackResist: 1,
@@ -123,66 +123,62 @@ Behavior: `chase`, `dash`, `ranged`, `swarm`, `phase` (`boss` только дл�
      drop: 'chest',
    },
    ```
-   - `dash`: `windup` (замах, поза `windup`), `speed`, `time` (длительность рывка).
-   - `summon`: `enemy` (id из `enemies.js`), `count`, `radius` (кольцо вокруг босса; поза `cast` 0.6 с).
-   - `fan`: `count` снарядов веером на игрока, `spread` (градусы, полный угол), `speed`, `damage`, `life`; необязательно `volleys` (залпов, по умолчанию 1) и `interval` (пауза между залпами, 0.4 с).
-   - `ring`: кольцо из `count` снарядов, `volleys` залпов через `interval`, каждый следующий повёрнут на `spin` рад (спираль); `speed`, `damage`, `life`.
-   - `slam`: `count` ударов по земле через `interval`; каждый целится в позицию игрока в момент предупреждения. Через `delay` с круг `radius` бьёт на `damage`, если игрок внутри. Предупреждение лежит в `sim.telegraphs`, рисует его `src/render/world.js` (красный круг, заливка растёт за `delay`); по удару шлётся событие `slam`.
-   - `blink`: босс растворяется за `delay` с (`e.alpha` падает до 0), появляется на расстоянии `distance` от игрока и проявляется за `fadeIn` (0.3 с); событие `bossBlink`.
-   - Любая атака принимает `rageOnly: true`: включается только в ярости. Урон снарядов и ударов умножается на рост урона босса со временем (`stage.scaling`).
-   - `hpPerLevel`: если задано, HP босса = `hpPerLevel × уровень игрока` при появлении (правило Vampire Survivors), `hp` не используется.
-   - Честность (общие числа `BOSS` в `src/data/bosses.js`, работают для всех боссов): перед веером и кольцом замах `castDelay`; веер и кольцо не начинаются, пока героиня ближе `minRange`; рывок обрывается на `dashStop` px от героини; после рывка и телепорта босс стоит `recover` с и не атакует.
-   - `rage`: когда `hp <= maxHp * hpFraction`, один раз шлётся `bossRage`, кулдауны умножаются на `cooldownMul`, скорость ходьбы на необязательный `speedMul`.
-   - `final: true`: убийство этого босса даёт победу. У остальных боссов падает только `drop` (сундук), шлётся `bossDown`, забег идёт дальше. Каждый босс ещё даёт сундук шмоток (лут, `BOSS_DROPS` в `src/data/items.js`): босс роняет сундук лута (`loot_chest`), подбор открывает экран лута у всех (сцена `Loot`, docs/META.md 2.1); на 3-м и 4-м сундуке (финал, Жница) есть кнопка End run — победа.
-   - Другой тип атаки: ветка в `src/behaviors/enemies/boss.js` и добавь тип в проверку теста `data: bosses use known behavior, attacks and summons`; тест на механику добавь в `tests/unit/boss.test.js`.
-2. manifest: 3 кадра: 0 стойка, 1 шаг, 2 каст/замах (`anim.js`: у босса позы `windup` и `cast` показывают кадр 2). Образец `dryad_queen` (128×128, обычная плотность).
-3. i18n: `boss.<id>.name`.
-4. Этап: `{ at, type: 'boss', boss: '<id>' }`. В лесу три босса: 5:00, 10:00 и финальный на `duration` (15:00, последнее событие таймлайна, у него `final: true`). За `bossWarning` секунд до каждого директор шлёт `bossWarning`, HUD показывает баннер `boss.warning`, полоса HP берёт имя из `boss.<id>.name`.
-5. Победа наступает после убийства босса с `final: true` (`victory` в `sim.js`).
-6. Тесты: `data: bosses use known behavior...`, `tests/unit/mechanics.test.js` (`boss: ...`: предупреждение, позы, ярость).
+   Attack types:
+   - `dash`: `windup` (animation delay and `windup` pose), `speed`, `time` (dash duration).
+   - `summon`: `enemy` (from `enemies.js`), `count`, `radius` (enemies spawn in a circle around the boss, `cast` pose lasts 0.6 seconds).
+   - `fan`: `count` projectiles in a fan toward the hero, `spread` (angle in degrees, full width), `speed`, `damage`, `life`. Optional `volleys` (default 1) and `interval` (pause between volleys, 0.4 seconds).
+   - `ring`: `count` projectiles in a circle, `volleys` times with `interval` between them, each following volley rotated by `spin` radians (spiral effect). `speed`, `damage`, `life`.
+   - `slam`: `count` ground strikes with `interval` between them, each targeting the hero's position at warning time. After `delay` seconds, a circle of radius `radius` deals `damage` if the hero is inside. The warning marker lives in `sim.telegraphs`, rendered by `src/render/world.js` as a red circle with fill growing during `delay`. A `slam` event fires on impact.
+   - `blink`: the boss fades out over `delay` seconds (`e.alpha` drops to 0), reappears at `distance` from the hero, and fades in over `fadeIn` (0.3 seconds). A `bossBlink` event fires.
+   - Any attack can have `rageOnly: true` to activate only during rage. Projectile and strike damage scales with boss damage growth over time (`stage.scaling`).
+   - `hpPerLevel`: if set, the boss's HP is `hpPerLevel × player level` when it spawns (Vampire Survivors rule), and `hp` is ignored.
+   - Fairness (shared values in `BOSS` of `src/data/bosses.js` apply to all bosses): fan and ring attacks have a `castDelay` windup before firing. They don't start while the hero is closer than `minRange`. Dashes stop `dashStop` pixels from the hero. After a dash or blink, the boss stands still for `recover` seconds before attacking again.
+   - `rage`: when `hp <= maxHp * hpFraction`, a `bossRage` event fires once. Cooldowns multiply by `cooldownMul` and walk speed by the optional `speedMul`.
+   - `final: true`: killing this boss ends the run in victory. Other bosses just drop a chest, fire `bossDown`, and the run continues. Every boss also drops a loot chest (`BOSS_DROPS` in `src/data/items.js`). The boss drops a `loot_chest`, collecting it opens the loot screen for all players (Loot scene, see `docs/META.md` section 2.1). On the 3rd and 4th chests (final boss and Reaper), an "End run" button appears to finish.
+   - New attack type: add a branch in `src/behaviors/enemies/boss.js` and add the type to the test `data: bosses use known behavior, attacks and summons`. Add a mechanics test in `tests/unit/boss.test.js`.
+2. manifest: 3 frames: 0 idle, 1 walk, 2 cast/windup (in `anim.js`, boss poses `windup` and `cast` show frame 2). Example: `dryad_queen` (128×128, standard density).
+3. i18n: add `boss.<id>.name`.
+4. Stage timeline: add `{ at, type: 'boss', boss: '<id>' }`. In the forest, three bosses spawn at 5:00, 10:00, and at `duration` (15:00, the final event, marked `final: true`). The director sends `bossWarning` `bossWarning` seconds before each boss. The HUD shows a `boss.warning` banner, and the HP bar takes the boss's name from `boss.<id>.name`.
+5. Victory occurs after defeating a boss marked `final: true` (the `victory` state in `sim.js`).
+6. Tests: the suite checks `data: bosses use known behavior...` and `tests/unit/mechanics.test.js` for boss-specific tests (warnings, poses, rage).
 
-## Карта (этап)
+## Stage (Map)
 
-`src/data/stages/forest.js`: формат в шапке файла.
+See the format documented at the top of `src/data/stages/forest.js`.
 
-1. Новый файл `src/data/stages/<id>.js` с `export const <id> = { id, name: 'stage.<id>', duration, bossWarning, tiles, props, scaling, timeline }`.
-2. Регистрация: пока этапы зашиты в код: `const STAGES = { forest }` в `src/core/sim.js` (там же импорт) и `stage: 'forest'` в `src/scenes/Game.js`. Для второго этапа нужно править эти места (вне `data`).
-3. `props`: список `{ sprite, density, breakable, hp?, drop?, place?, big? }`. `density` это среднее число на чанк `SIM.chunkSize` (320 px). Неразрушаемые (`breakable: false`) только декор: их рисует `src/render/decor.js`, sim о них не знает. Разрушаемые создаёт sim (см. «Разрушаемый объект»). `place`: `'ground'` (по умолчанию, не на дороге), `'any'`, `'road'` (на оси дороги, объект смотрит по её направлению), `'roadside'` (у обочины; без дороги в чанке объект пропускается, если не задан `fallback: 'ground'`, как у фонаря); `big: true` для деревьев и кустов: объект занимает клетку сетки 4×4 чанка, поэтому крупные объекты не растут друг в друге (sim и декор используют одно правило, `placeProp` / `Decor._place`).
-   `roads: { spacing, width, chance, wobble, wave, wave2 }` задаёт сеть песчаных дорог (`src/core/roads.js`): полосы через `spacing` px по обеим осям, каждая с шансом `chance`, извилистость `wobble` с периодами `wave`, `wave2`. Дорога задана формулой на весь мир, поэтому не обрывается; песок рисует `src/render/roads.js` по чанкам.
-4. `tiles`: поле есть в формате, но рендер сейчас рисует фон из спрайта `grass` (`src/render/world.js`) и поле не читает. Другой фон потребует правки `world.js`.
-5. `scaling: { hpPerMinute, damagePerMinute }`: рост HP и урона врагов, множитель `1 + k * минуты`.
-6. `timeline`: события отсортированы по `at` (с). Типы (директор: `src/core/director.js`):
-   - `spawn`: `{ at, type: 'spawn', enemy, rate, rateEnd?, until?, group, min?, minEnd? }`. `rate` групп/с, к `rateEnd` линейно до `until` (`until > at`); `group` врагов в группе; `min`/`minEnd`: держать не меньше столько живых врагов этого вида (линейно).
-   - `ring`: `{ at, type: 'ring', enemy, count, radius? }`, кольцо вокруг игрока.
-   - `elite`: `{ at, type: 'elite', enemy }`, один элитный враг с дропом-сундуком.
-   - `burst`: `{ at, type: 'burst', enemy, count }`, кучка врагов у края экрана.
+1. Create a new file `src/data/stages/<id>.js` exporting `const <id> = { id, name: 'stage.<id>', duration, bossWarning, tiles, props, scaling, timeline }`.
+2. Registration: stages are currently hardcoded. Edit `const STAGES = { forest }` in `src/core/sim.js` (and its import) and `stage: 'forest'` in `src/scenes/Game.js`. Adding a second stage requires changes outside `data/`.
+3. `props`: a list of `{ sprite, density, breakable, hp?, drop?, place?, big? }`. The `density` field is the average count per chunk of size `SIM.chunkSize` (320 pixels). Non-destructible props (`breakable: false`) are decoration rendered by `src/render/decor.js`. The sim doesn't know about them. Destructible props are created by the sim (see "Destructible object"). The `place` field can be `'ground'` (default, not on roads), `'any'`, `'road'` (on the road centerline, object faces the road direction), or `'roadside'` (beside the road, skipped if no road exists in the chunk unless `fallback: 'ground'` is set, like for lanterns). Set `big: true` for trees and bushes. These objects occupy a 4x4 chunk cell so they don't overlap (both sim and render use the same rule: `placeProp` and `Decor._place`).
+   `roads: { spacing, width, chance, wobble, wave, wave2 }` defines a sandy road network (`src/core/roads.js`). Roads are strips spaced `spacing` pixels apart on both axes, each with probability `chance`, with waviness `wobble` and periods `wave` and `wave2`. Roads are defined by a formula across the whole world so they don't end. Sand is rendered per-chunk by `src/render/roads.js`.
+4. `tiles`: a field exists in the format but the renderer currently draws the background from the `grass` sprite (`src/render/world.js`) and doesn't read this field. A different background would require editing `world.js`.
+5. `scaling: { hpPerMinute, damagePerMinute }`: sets enemy HP and damage growth, multiplying by `1 + k × minutes`.
+6. `timeline`: events sorted by `at` (in seconds). Timeline types (handled by the director in `src/core/director.js`):
+   - `spawn`: `{ at, type: 'spawn', enemy, rate, rateEnd?, until?, group, min?, minEnd? }`. `rate` is groups per second, transitioning linearly to `rateEnd` until `until` (must be > `at`). `group` is the number of enemies per group. `min` and `minEnd` set a minimum number of living enemies of this type to maintain (scales linearly).
+   - `ring`: `{ at, type: 'ring', enemy, count, radius? }`. A ring of enemies spawns around the hero.
+   - `elite`: `{ at, type: 'elite', enemy }`. One elite enemy with a chest drop.
+   - `burst`: `{ at, type: 'burst', enemy, count }`. A cluster of enemies appears at the edge of the screen.
    - `boss`: `{ at, type: 'boss', boss }`.
-   - `wall`, `flyby`: шеренга и пролёт стаи (формат в шапке `forest.js`).
-   - У любого события, кроме `boss`, необязательное `afterBoss: N`: событие ждёт, пока убито N боссов
-     (`sim.bossKills`, общее в коопе, детерминировано). Разовое (`ring`, `elite`, `burst`, `wall`, `flyby`)
-     срабатывает в момент убийства, если его `at` уже прошло. `spawn` идёт в своём окне `at..until`
-     (рост `rate` и `min` по абсолютному времени); если окно кончилось раньше убийства, не начинается.
-     Призывы боссов (`attacks: summon`) не гейтятся. В лесу: лисы (`foxgirl`) `afterBoss: 1`, суккубы `afterBoss: 2`
-     (тест `forest: kitsune (foxgirl) waves after the 1st boss, succubi after the 2nd`, `tests/unit/director.test.js`).
-7. `bossWarning`: за сколько секунд до события `boss` слать `bossWarning` (0 или не задано: без предупреждения).
-8. i18n: `stage.<id>.name`. manifest: спрайты props и фон.
-9. Тесты: `stage: timeline sorted and references known enemies`, `data: pickups, props drops and timeline are consistent` (проверяют `forest`; для нового этапа добавь аналогичные проверки). Баланс: `tests/balance/` ходит по лесу.
+   - `wall`, `flyby`: a line and a flying pass of enemies (format documented in the header of `forest.js`).
+   - Any event except `boss` can have an optional `afterBoss: N` field, making it wait until N bosses are killed (`sim.bossKills`, shared in co-op and deterministic). One-time events (`ring`, `elite`, `burst`, `wall`, `flyby`) fire at the moment a boss dies if their `at` time has already passed. `spawn` events run during their `at..until` window (rate and minimum scale by absolute time). If the window closes before the boss dies, the event doesn't start. Boss summons from `attacks: summon` don't gate on boss kills. In the forest, foxgirls have `afterBoss: 1` and succubi have `afterBoss: 2` (the test `forest: kitsune (foxgirl) waves after the 1st boss, succubi after the 2nd` in `tests/unit/director.test.js` verifies this).
+7. `bossWarning`: the number of seconds before a `boss` event to send a `bossWarning` (0 or omitted means no warning).
+8. i18n: add `stage.<id>.name`. manifest: sprites for props and background.
+9. Tests: `stage: timeline sorted and references known enemies`, `data: pickups, props drops and timeline are consistent` (currently test the forest; add similar tests for new stages). Balance tests in `tests/balance/` run through the forest.
 
-## Разрушаемый объект
+## Destructible object
 
-1. В `props` этапа: `{ sprite: 'barrel', density: 0.6, breakable: true, hp: 1, drop: { food: 0.3, coin: 0.35, magnet: 0.05 } }`.
-   - `drop`: `{ pickupId: шанс }`, ключи из `src/data/pickups.js`, шансы в `(0, 1]`, суммарно умножаются на `luck`, выпадает максимум один предмет (кумулятивный бросок).
-   - `hp` по умолчанию 1; каждое попадание снимает 1.
-   - Ломает любое оружие. Снаряды бьют объекты по пути; оружие с наведением (кинжалы, топор, бомба, молния) без врагов в радиусе целится в ближайший объект (`sim.nearestProp`); молния бьёт мгновенно, поэтому ломает объекты вдоль своего пути сама (`sim.hitPropsOnSegment`). Новое поведение оружия с мгновенным уроном должно делать так же: тест `every weapon breaks props on its own` проходит по всем записям `WEAPONS`.
-2. manifest: спрайт (`art('barrel', 18, 20, { origin: FEET })`), опора у основания.
-3. Sim шлёт `{ type: 'propBreak', x, y, sprite }` при поломке (рендер: осколки и звук).
-4. Тест: `props: break from weapons, push propBreak, drop by table` (`tests/unit/mechanics.test.js`), `data: pickups, props drops...`.
+1. Add to the stage's `props`: `{ sprite: 'barrel', density: 0.6, breakable: true, hp: 1, drop: { food: 0.3, coin: 0.35, magnet: 0.05 } }`.
+   - `drop`: `{ pickupId: chance }`, with keys from `src/data/pickups.js`. Chances are in `(0, 1]`, multiplied together by luck, and at most one item drops (cumulative roll).
+   - `hp` defaults to 1. Each hit removes 1 HP.
+   - Any weapon can break objects. Projectiles hit objects along their path. Aiming weapons (daggers, axe, bomb, lightning) without enemies in range target the nearest object via `sim.nearestProp`. Lightning hits instantly, so it breaks objects along its own path using `sim.hitPropsOnSegment`. New instant-damage weapon behaviors must do the same. The test `every weapon breaks props on its own` checks all weapons.
+2. manifest: add the sprite (`art('barrel', 18, 20, { origin: FEET })`), with origin at the base.
+3. The sim sends `{ type: 'propBreak', x, y, sprite }` when an object breaks (the renderer shows debris and plays a sound).
+4. Tests: `props: break from weapons, push propBreak, drop by table` in `tests/unit/mechanics.test.js`, and `data: pickups, props drops...`.
 
-Новый подбираемый предмет: запись в `src/data/pickups.js` (`kind`: `xp | heal | magnet | coin | chest`), спрайт в manifest. Новый `kind` требует ветки в `sim.js`.
+A new pickup type: add a record in `src/data/pickups.js` with a `kind` value (`xp | heal | magnet | coin | chest`), and add a sprite in the manifest. A new `kind` requires a branch in `sim.js`.
 
-## Волна и событие
+## Wave and event
 
-Правится только `timeline` в `src/data/stages/<этап>.js`.
+Only edit the `timeline` in `src/data/stages/<stage>.js`.
 
 ```js
 { at: 150, type: 'ring', enemy: 'ghost', count: 16 },
@@ -192,33 +188,31 @@ Behavior: `chase`, `dash`, `ranged`, `swarm`, `phase` (`boss` только дл�
 { at: 660, type: 'spawn', enemy: 'succubus', rate: 0.8, rateEnd: 1.5, until: 780, group: 2, afterBoss: 2 },
 ```
 
-Держи список отсортированным по `at`. Лимит живых врагов `SIM.maxEnemies` (400) общий; при нехватке места элита и босс вытесняют самого дальнего обычного врага. Проверка: `npm test` (структура и отсортированность) и баланс-тесты (пик врагов не выше лимита).
+Keep the list sorted by `at`. The enemy limit `SIM.maxEnemies` (400) is shared. When space runs out, elites and bosses displace the farthest regular enemy. Verification: `npm test` checks structure and sorting, and balance tests ensure peak enemies don't exceed the limit.
 
-## Супероружие: эволюции
+## Evolution (super weapon)
 
-Коллабов (оружие + оружие) больше нет (docs/META.md 1.4). Каждая запись в `src/data/combos.js` — эволюция
-(как в Vampire Survivors), 1 к 1: `{ from: ['blade_arc', 'attack'], result: 'crimson_arc' }` — оружие на `maxLevel`
-и своя пассивка любого уровня; пассивка остаётся.
+Collaborations (weapon + weapon) have been removed (see `docs/META.md` 1.4). Each record in `src/data/combos.js` is an evolution (like in Vampire Survivors), one-to-one: `{ from: ['blade_arc', 'attack'], result: 'crimson_arc' }` requires a weapon at `maxLevel` and any level of its passive. The passive remains.
 
-Результат встаёт в слот оружия. Даёт его только сундук скиллов (с элит, docs/META.md 1.4): если эволюция готова, сундук показывает выбор из готовых (`chestChoices`, до `CHEST.maxChoices`), карточка с `evolved: true` и `from`. На карточках уровня эволюций нет.
+The result weapon takes the weapon's slot. Only skill chests (from elites, `docs/META.md` 1.4) provide evolutions. If an evolution is ready, the chest offers a choice of the ready ones (`chestChoices`, up to `CHEST.maxChoices`), with cards marked `evolved: true` and showing `from`. Evolutions never appear on level-up cards.
 
-1. `src/data/weapons.js`, запись с `evolved: true`, `maxLevel: 1`, одним уровнем, тем же `dmgType`, что у оружия. Одно поведение с усиленными числами и необязательным цветом снарядов:
+1. `src/data/weapons.js`: add a record with `evolved: true`, `maxLevel: 1`, one level, and the same `dmgType` as the base weapon. Use one behavior with stronger numbers and an optional projectile tint:
    ```js
    crimson_arc: {
      icon: 'icon_crimson_arc', sprite: 'proj_blade_arc', behavior: 'slash', dmgType: 'attack', maxLevel: 1, evolved: true, tint: 0xff5050,
      levels: [ { damage: 58, cooldown: 0.7, amount: 4, area: 200, width: 34, sweep: 0.1, knockback: 150 } ],
    },
    ```
-2. Запись в `src/data/combos.js`.
-3. Иконка `icon_<result>` в manifest (`icon(...)`, кадр 96×96) и на листе `assets/raw/icons_evo.png` (`sheets.json` `icons_evo`, `node tools/slice-sheet.mjs icons_evo`). i18n: `weapon.<result>.name`, `weapon.<result>.desc`.
-4. Тесты: `data: combos use maxed regular weapons and evolved results` (одна эволюция на оружие и на пассивку), `data: evolutions are weapon + passive`, `combo: <id> works in sim` в `mechanics.test.js` (каждое супероружие наносит урон в sim).
-5. Посмотреть вживую: `node tools/playtest.mjs 15 --god --weapons crimson_arc:1 --shot out.png --shot-at 12 --size 1280x720`.
+2. Add a record to `src/data/combos.js`.
+3. Icon: add `icon_<result>` to the manifest (`icon(...)`, 96×96 frame) and to `assets/raw/icons_evo.png` (set `icons_evo` in `sheets.json` and run `node tools/slice-sheet.mjs icons_evo`). i18n: add `weapon.<result>.name` and `weapon.<result>.desc`.
+4. Tests: `data: combos use maxed regular weapons and evolved results` (one evolution per weapon and passive), `data: evolutions are weapon + passive`, and `combo: <id> works in sim` in `mechanics.test.js` (each super weapon deals damage in the sim).
+5. To see it in action: `node tools/playtest.mjs 15 --god --weapons crimson_arc:1 --shot out.png --shot-at 12 --size 1280x720`.
 
-## Чек-лист перед коммитом
+## Pre-commit checklist
 
-- [ ] Все новые id есть в data, и у каждого есть ключи i18n (имя и описание) в `src/i18n/en.js`; строки в коде только через `t()`.
-- [ ] Каждый новый спрайт есть в `assets/sprites/manifest.js` и файл лежит в `assets/sprites/` (заглушка допустима).
-- [ ] `npm test` зелёный (unit + balance).
-- [ ] `npm run smoke` зелёный, если трогал сцены, UI, рендер, manifest или спрайты.
-- [ ] Не трогал `.secrets/`, ключи и `tools/gen-ledger.json` вручную.
-- [ ] Новые поля data описаны в шапке соответствующего файла.
+- [ ] All new ids are in data with i18n keys (name and description) in `src/i18n/en.js`. All UI strings use `t()`.
+- [ ] Every new sprite is in `assets/sprites/manifest.js` with a corresponding file in `assets/sprites/` (placeholders are fine for now).
+- [ ] `npm test` passes (unit and balance tests).
+- [ ] `npm run smoke` passes if you edited scenes, UI, rendering, the manifest, or sprites.
+- [ ] You didn't modify `.secrets/`, keys, or `tools/gen-ledger.json` by hand.
+- [ ] New data fields are documented in the header of the corresponding file.

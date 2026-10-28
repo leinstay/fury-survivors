@@ -1,161 +1,155 @@
-# Аудит баланса: 24 октября 2026
+# Balance audit: October 24, 2026
 
-Код: `main` 87e1379 (source в `src/data/build.js` 46fb2f27…), модель выбора `human-a0cd1f09fa4f`,
-профили `human-provisional-2`. Данные: полная выгрузка `fury_runs` (все страницы, без фильтра периода).
-Ничего из баланса не опубликовано и в `src/data/` не изменено: ниже кандидаты и их проверка.
+Code: `main` 87e1379 (source in `src/data/build.js` 46fb2f27…), model selection `human-a0cd1f09fa4f`,
+profiles `human-provisional-2`. Data: full export of `fury_runs` (all pages, no period filter).
+Nothing from balance has been published and nothing in `src/data/` has changed. Below are candidates and their verification.
 
-## 1. Вердикт
+## 1. Verdict
 
-| Утверждение | Уверенность |
+| Statement | Confidence |
 | --- | --- |
-| Сборка исчерпывается слишком рано: у людей к 10:00 в solo остаётся 9–10 личных уровней улучшений, к 15:00 — 0 у всех 6 выживших; auto-heal начинается в 11:38–14:09 | высокая (люди и боты совпадают) |
-| Причина — кривая опыта: она дословно взята из Vampire Survivors (5, +10/+13/+16, доплаты 600/2400), где этап 30 минут, а у нас 15; компенсации Growth +100% после 20/40 у нас нет | высокая |
-| Сложность сосредоточена в окне 5:00–8:00: все 10 человеческих смертей в 205–468 с; почти все, кто пережил 10:00, побеждают | высокая для solo, умеренная для duo |
-| Дуо слишком тяжёлое не из-за урона, а из-за личной прогрессии: на 5:00 у игрока дуо 17–19 личных взятий против 24–31 в solo; цена «за личный круг» снижает смертность ботов-дуо с 93% до 25% | умеренная (направление надёжно, величина смещена моделью движения) |
-| Боты в дуо получают в 1.8–2.5 раза больше урона, чем люди: доли смертей дуо у ботов — оценка сверху | высокая по направлению, n людей мало |
-| Storm Chain и её эволюции доминируют, Blade Arc и щитовые эволюции почти не наносят урона | высокая |
-| Зависания/обрывы дуо: правдоподобный механизм найден и воспроизведён (остановленный цикл кадров у одного игрока) | умеренная: совпадает с телеметрией, но не доказан у этих пользователей |
-| Цели 50%/75% и «cursed без эволюций ≈ невозможно» не подтверждены: квалификационной выборки (≥400 на режим) нет | — |
+| Build exhausted too early: by 10:00 in solo, players have 9–10 remaining personal upgrade levels; by 15:00, 0 among all 6 survivors. Auto-heal starts between 11:38–14:09. | high (people and bots match) |
+| Cause: experience curve taken verbatim from Vampire Survivors (5, +10/+13/+16, bonuses 600/2400) where the stage is 30 minutes but ours is 15. No Growth compensation +100% after 20/40 for us. | high |
+| Difficulty concentrated in the 5:00–8:00 window: all 10 human deaths between 205–468 s. Almost everyone who survived 10:00 wins. | high for solo, moderate for duo |
+| Duo too difficult not from damage but from personal progression: at 5:00 a duo player has 17–19 personal card picks versus 24–31 in solo. The cost per personal round reduces duo-bot mortality from 93% to 25%. | moderate (direction is reliable, magnitude shifted by movement model) |
+| Storm Chain and its evolutions dominate. Blade Arc and shield evolutions do almost no damage. | high |
+| Duo hangs and disconnects: plausible mechanism found and reproduced (halted frame cycle for one player). | moderate: matches telemetry but not proven for these users |
+| Goals 50%/75% and "cursed without evolutions ≈ impossible" unconfirmed: no qualification sample (≥400 per mode) | — |
 
-## 2. Данные
+## 2. Data
 
-Выгрузка 2026-10-23T23:16Z: **23 документа, 0 отклонено**, `createdAt` 2026-10-23 02:10Z – 23:06Z.
-Снимок: `docs/simulation-evidence/telemetry-2026-10-24.json.gz` (sha256 несжатого 023b9c30…,
-manifest рядом). Ники/IP в записях нет, sessionId захеширован экспортёром.
+Export 2026-10-23T23:16Z: **23 documents, 0 rejected**, `createdAt` 2026-10-23 02:10Z – 23:06Z.
+Snapshot: `docs/simulation-evidence/telemetry-2026-10-24.json.gz` (uncompressed sha256 023b9c30…,
+manifest nearby). No names or IPs in records. sessionId hashed by exporter.
 
-| Версия | Схема | Режим | Документов | Сессий | Исходы сессий |
+| Version | Schema | Mode | Documents | Sessions | Session outcomes |
 | --- | --- | --- | ---: | ---: | --- |
-| 0fc7e5 | v1 | solo cursed | 11 | 11 | 5 победа, 5 смерть, 1 выход (115 с) |
-| 0fc7e5 | v1 | solo normal | 2 | 2 | 1 победа, 1 смерть |
-| e58f49 | v2 | duo cursed | 5 | 3 | 1 смерть команды, 2 disconnect |
+| 0fc7e5 | v1 | solo cursed | 11 | 11 | 5 win, 5 death, 1 quit (115 s) |
+| 0fc7e5 | v1 | solo normal | 2 | 2 | 1 win, 1 death |
+| e58f49 | v2 | duo cursed | 5 | 3 | 1 team death, 2 disconnect |
 | e58f49 | v2 | duo normal | 1 | 1 | disconnect |
-| 6ef720 | v2 | duo normal | 4 | 2 | 1 победа, 1 смерть команды |
+| 6ef720 | v2 | duo normal | 4 | 2 | 1 win, 1 team death |
 
-- Совместимость: между 0fc7e5 и 87e1379 в `src/data` и behaviors изменились только телеметрия,
-  `xpLevelScale` (по умолчанию 1, без эффекта) и фикс устаревшего щита (`_blocked`). Числа баланса
-  одинаковы — все 23 документа сопоставимы. Смена `ver` объясняется хешем `BUILD` в отпечатке.
-- **v2 solo нет ни одного.** Все solo — v1 одного героя (mage), вероятно, 1–2 человека. Дуо — 6 сессий,
-  в 2 из них второй документ не дошёл (у обрыва вкладку, видимо, закрыли: незаконченный забег не сохраняется).
-- Пригодность. Обучение выбора: 23 документа (1051 добровольных действий), но v1 без контекста HP/бюджетов.
-  Баланс по исходам: 13 solo-сессий + 3 завершённые дуо-сессии; disconnect (3) из исходов исключены и
-  показаны отдельно, не как смерти. Движение и входящий урон в окне: только 10 документов v2 дуо.
-  Технические сбои: 3 disconnect, у двух нет второго документа, у e58f49 нет `terminal`.
+- Compatibility: between 0fc7e5 and 87e1379 in `src/data` and behaviors only telemetry changed.
+  `xpLevelScale` (default 1, no effect) and fix for legacy shield (`_blocked`). Balance numbers
+  are identical. All 23 documents are comparable. The `ver` change is explained by the hash of `BUILD` in the fingerprint.
+- **No v2 solo exists.** All solo are v1 of one hero (mage), probably 1–2 people. Duo is 6 sessions,
+  with 2 of them missing the second document (on disconnect the tab was apparently closed: unfinished runs are not saved).
+- Suitability. Training on choice: 23 documents (1051 voluntary actions) but v1 without HP/budget context.
+  Balance by outcomes: 13 solo sessions and 3 completed duo sessions. Disconnects (3) are excluded from outcomes and
+  shown separately, not as deaths. Movement and incoming damage in the window: only 10 v2 duo documents.
+  Technical issues: 3 disconnects, 2 missing second document, e58f49 missing `terminal`.
 
-## 3. Четыре режима: люди и боты
+## 3. Four modes: people and bots
 
-Боты: `balance:quick`-когорта, tuning seeds, 40 матчей на режим, дуо считается по команде.
-Повтор той же когорты с телеметрией дал побитно те же исходы (наблюдатели не трогают RNG).
-L — уровень, T — личные взятия карточек, left — оставшиеся личные уровни улучшений (с учётом слотов,
-поглощённых компонентов и banish), медианы по живым на этой минуте, n — число живых игроков.
+Bots: `balance:quick` cohort, tuning seeds, 40 matches per mode. Duo counted by team.
+Repeated run of the same cohort with telemetry gave identical outcomes byte-for-byte (observers do not affect RNG).
+L = level, T = personal card picks, left = remaining personal upgrade levels (accounting for slots,
+consumed components and banish), medians among those alive at that minute, n = number of alive players.
 
-| Режим | Источник | Исходы | 5:00 L / T / left (n) | 10:00 | 15:00 |
+| Mode | Source | Outcomes | 5:00 L / T / left (n) | 10:00 | 15:00 |
 | --- | --- | --- | --- | --- | --- |
-| normal solo | люди | 1 П, 1 С | 28.5 / 27.5 / 43.5 (2) | 59 / 58 / 10 (1) | 85 / 74 / 0 (1) |
-| normal solo | боты | 16 П, 24 С: **60%** [45–74] | 25 / 24 / 47 (37) | 53 / 52 / 14 (18) | 80 / 65.5 / 0 (16) |
-| cursed solo | люди | 5 П, 5 С, 1 выход | 36 / 35 / 38 (9) | 69 / 68 / 9 (5) | 91 / 77 / 0 (5) |
-| cursed solo | боты | 6 П, 33 С, 1 timeout: **83%** [68–91] | 32 / 31 / 41 (23) | 63 / 62 / 2 (7) | 96 / 71 / 0 (7) |
-| normal duo | люди | 1 П, 1 С, 1 DC | 40 / 19 / 28 (5) | 75 / 37 / 12.5 (2) | 108 / 53 / 3 (2) |
-| normal duo | боты | 3 П, 37 С: **93%** [80–97] | 36 / 17 / 29 (74) | 75 / 37 / 10 (8) | 107 / 49.5 / 3 (6) |
-| cursed duo | люди | 1 С, 2 DC | 44 / 21.5 / 25.5 (2) | — | — |
-| cursed duo | боты | 1 П, 39 С: **98%** [87–100] | 40 / 19 / 28 (52) | 91 / 42 / 4.5 (2) | 113 / 48.5 / 4 (2) |
+| normal solo | people | 1 W, 1 D | 28.5 / 27.5 / 43.5 (2) | 59 / 58 / 10 (1) | 85 / 74 / 0 (1) |
+| normal solo | bots | 16 W, 24 D: **60%** [45–74] | 25 / 24 / 47 (37) | 53 / 52 / 14 (18) | 80 / 65.5 / 0 (16) |
+| cursed solo | people | 5 W, 5 D, 1 quit | 36 / 35 / 38 (9) | 69 / 68 / 9 (5) | 91 / 77 / 0 (5) |
+| cursed solo | bots | 6 W, 33 D, 1 timeout: **83%** [68–91] | 32 / 31 / 41 (23) | 63 / 62 / 2 (7) | 96 / 71 / 0 (7) |
+| normal duo | people | 1 W, 1 D, 1 DC | 40 / 19 / 28 (5) | 75 / 37 / 12.5 (2) | 108 / 53 / 3 (2) |
+| normal duo | bots | 3 W, 37 D: **93%** [80–97] | 36 / 17 / 29 (74) | 75 / 37 / 10 (8) | 107 / 49.5 / 3 (6) |
+| cursed duo | people | 1 D, 2 DC | 44 / 21.5 / 25.5 (2) | — | — |
+| cursed duo | bots | 1 W, 39 D: **98%** [87–100] | 40 / 19 / 28 (52) | 91 / 42 / 4.5 (2) | 113 / 48.5 / 4 (2) |
 
-Время первого auto-heal (выбор исчерпан) у людей: normal 810 с; cursed 698, 736, 746, 833, 849 с;
-дуо normal 958/964 с. У ботов на 15:00 исчерпаны 12/16 normal и 7/7 cursed solo.
+Time to first auto-heal (choice exhausted) for people: normal 810 s. Cursed 698, 736, 746, 833, 849 s.
+Duo normal 958/964 s. For bots, 12/16 normal and 7/7 cursed solo are exhausted by 15:00.
 
-![Оставшиеся личные уровни улучшений](simulation-evidence/balance-audit-options.svg)
+![Remaining personal upgrade levels](simulation-evidence/balance-audit-options.svg)
 
-Смерти: у людей 205–468 с (cursed solo 205, 332, 338, 413, 428; normal solo 421; дуо 420 и 468),
-убийцы — лисы (dash), суккубы, слизни, призраки, первый босс. У ботов медиана смерти 414 с normal solo,
-364 с normal duo; главный убийца тоже foxgirl. Это волны 300–480 с (`forest.js`: лисы, суккубы, ламии).
+Deaths: people 205–468 s (cursed solo 205, 332, 338, 413, 428. Normal solo 421. Duo 420 and 468).
+Killers are foxes (dash), succubi, slimes, ghosts, first boss. For bots median death is 414 s normal solo,
+364 s normal duo. Main killer is also foxgirl. This covers waves 300–480 s (`forest.js`: foxes, succubi, lamiae).
 
-## 4. Достоверность ботов
+## 4. Bot reliability
 
-Подтверждено:
-- **Темп уровней** совпадает (таблица выше): расхождение медиан ≤ 4 уровней на 1/3/5 мин во всех
-  режимах, кроме cursed solo на 1:00 (6.5 у ботов против 9).
-- **Выбор карточек** на новых данных, которых не было в обучении (`tools/telemetry/holdout.mjs`,
-  10 документов v2, 272 взятия): top-1 модели **60.6%**, «первая карта» 26.1%, равномерный 25.7%,
-  logloss 1.026. Для мечницы только **48%** (модель обучена на одной mage).
-- **Входящий урон в solo** по всему забегу: люди 19.4 (normal, n=2) и 27.9 (cursed, n=11) в минуту,
-  боты 20.6 и 27.3.
+Confirmed:
+- **Level pace** matches (table above): median divergence ≤ 4 levels at 1/3/5 min in all
+  modes except cursed solo at 1:00 (6.5 for bots versus 9 for people).
+- **Card choice** on new data not in training (`tools/telemetry/holdout.mjs`,
+  10 v2 documents, 272 picks): model top-1 **60.6%**, "first card" 26.1%, uniform 25.7%,
+  logloss 1.026. For Hero only **48%** (model trained on one Mage).
+- **Incoming damage in solo** over full run: people 19.4 (normal, n=2) and 27.9 (cursed, n=11) per minute.
+  Bots 20.6 and 27.3.
 
-Расхождения (ограничивают выводы):
-- **Движение в дуо.** Окно 1:00–7:00: люди получают 8.9 (normal) / 18.7 (cursed) урона в минуту,
-  боты 22.3 / 33.3. Медиана расстояния до ближайшего врага у людей 148/129 px, у ботов 80/74 px.
-  Боты без цели идут к ближайшему врагу и в толпу за опытом. Пробная «дистанция удержания» 110–140 px
-  почти не изменила картину (82–92 px) — нужна перестройка движения, она откатана, модель не менялась.
-  Следствие: **смертность ботов-дуо — оценка сверху**.
-- **Диверсификация в дуо.** Когда в предложении есть и новое оружие, и прокачка, люди-дуо берут новое
-  в 44% (normal) случаев, боты в 7%. Концентрация на одном оружии в первые 5 минут совпадает (0.50).
-- Простой (нулевой ввод) у людей-дуо 8–9% времени, у ботов 13–19%.
+Divergences (limit conclusions):
+- **Movement in duo.** Window 1:00–7:00: people take 8.9 (normal) / 18.7 (cursed) damage per minute.
+  Bots 22.3 / 33.3. Median distance to nearest enemy for people 148/129 px, for bots 80/74 px.
+  Bots without a target move toward the nearest enemy and into crowds for experience. Trial "holding distance" 110–140 px
+  barely changed things (82–92 px). Movement needs restructuring. It was reverted. Model not updated.
+  Result: **duo-bot mortality is an upper bound**.
+- **Diversification in duo.** When new weapon and an upgrade appear together, duo people pick the new weapon
+  in 44% (normal) of cases, bots in 7%. Concentration on one weapon in first 5 minutes matches at 0.50.
+- Idle (zero input) for duo people 8–9% of the time, for bots 13–19%.
 
-Вывод: темп прогрессии и выборы ботов годятся для оценки экономики опыта; доли поражений solo —
-ориентир; доли поражений дуо — только верхняя граница. Не калибровать дуо-сложность по ботам,
-пока не будет новых данных движения (в том числе v2 solo).
+Conclusion: bot progression pace and choices fit for assessing experience economy. Solo death rates are a guide. Duo death rates are only an upper bound. Do not calibrate duo difficulty by bots until new movement data exists (including v2 solo).
 
-## 5. Опыт и прогрессия: подтверждённые проблемы и проверка гипотез
+## 5. Experience and progression: verified problems and hypothesis checks
 
-Ёмкость сборки: solo 6+6 слотов = 6·7 + 6·5 − 1 = **71** личное улучшение, дуо 4+4 = **47**.
-Люди solo достигают её к 11–14 мин. Накопленный опыт до уровня (текущая кривая): L30 4.9k, L50 16.4k,
-L70 31.8k. Доход выживших людей cursed solo: 7.1k к 5:00, 30.9k к 10:00, 54.8k к 15:00 — во второй
-половине этапа он растёт (больше врагов и сильнее сборка), а цена уровня растёт линейно.
+Build capacity: solo 6+6 slots = 6·7 + 6·5 − 1 = **71** personal upgrades. Duo 4+4 = **47**.
+People solo reach it by 11–14 min. Cumulative experience to level (current curve): L30 4.9k, L50 16.4k,
+L70 31.8k. Income for cursed solo survivors: 7.1k by 5:00, 30.9k by 10:00, 54.8k by 15:00. In the second
+half of the stage income grows (more enemies and stronger builds) while level cost grows linearly.
 
-Дуо: общий уровень, карточки по очереди. При той же минуте у игрока вдвое меньше личных взятий за
-номер уровня, а `xpForLevel` растёт после каждой карточки команды. На 5:00 люди-дуо: T 19–21.5 при L 40–44.
+Duo: shared level, cards taken in turns. At the same minute a duo player has half as many personal picks for that level,
+and `xpForLevel` grows after each team card. At 5:00 duo people have T 19–21.5 at L 40–44.
 
-Гипотезы проверены по одной на tuning seeds (те же seed/профили, 40 матчей на режим; % — поражения):
+Hypotheses checked one at a time on tuning seeds (same seeds/profiles, 40 matches per mode. % = defeats):
 
-| Вариант | normal solo | cursed solo | normal duo | cursed duo | left на 15:00 (n-s / c-s / n-d / c-d) |
+| Variant | normal solo | cursed solo | normal duo | cursed duo | left at 15:00 (n-s / c-s / n-d / c-d) |
 | --- | ---: | ---: | ---: | ---: | --- |
-| Текущий | 60 | 83 | 93 | 98 | 0 / 0 / 3 / 4 |
-| H1 гладкая A (10/25/45, без доплат) | 73 | 80 | 100 | 100 | 2 / 0.5 / — / — |
+| Current | 60 | 83 | 93 | 98 | 0 / 0 / 3 / 4 |
+| H1 smooth A (10/25/45, no bonuses) | 73 | 80 | 100 | 100 | 2 / 0.5 / — / — |
 | H2 A + cursed XP 0.8 | 73 | 85 | 100 | 100 | 2 / 3.5 / — / — |
-| H3 A + личный круг 1.5 | 73 | 80 | 68 | 88 | 2 / 0.5 / 1 / 4 |
-| H4 A + личный круг 2 | 73 | 80 | 25 | 53 | 2 / 0.5 / 2 / 0 |
-| H5 A + круг 2 + coopXP 1.0 | 73 | 80 | 45 | 60 | 2 / 0.5 / 2 / 0 |
-| H6 только реген героя +0.3 | 45 | 73 | 83 | 100 | 0 / 0 / 1.5 / — |
-| C1 A + реген .25 + круг 2 + coopXP 1 + cursed XP .9 | 57 | 85 | 35 | 63 | 5 / 0 / 2 / 0.5 |
-| C2 B (10/25/55, ступень с 35) + реген .3 + круг 2 + coopXP 1 | 48 | 80 | 23 | 45 | 10 / 2.5 / 2 / 0 |
-| C3 C1 без cursed XP, дуо 5+5 слотов | 57 | 78 | 35 | 60 | 5 / 0 / 5 / 2.5 |
-| **C4** B + реген .25 + круг 2 + coopXP 1 + cursed XP .9 + дуо 5+5 | 55 | 80 | 25 | 85 | 10 / 3 / 6.5 / 5 |
+| H3 A + personal round 1.5 | 73 | 80 | 68 | 88 | 2 / 0.5 / 1 / 4 |
+| H4 A + personal round 2 | 73 | 80 | 25 | 53 | 2 / 0.5 / 2 / 0 |
+| H5 A + round 2 + coopXP 1.0 | 73 | 80 | 45 | 60 | 2 / 0.5 / 2 / 0 |
+| H6 hero regen only +0.3 | 45 | 73 | 83 | 100 | 0 / 0 / 1.5 / — |
+| C1 A + regen .25 + round 2 + coopXP 1 + cursed XP .9 | 57 | 85 | 35 | 63 | 5 / 0 / 2 / 0.5 |
+| C2 B (10/25/55, step at 35) + regen .3 + round 2 + coopXP 1 | 48 | 80 | 23 | 45 | 10 / 2.5 / 2 / 0 |
+| C3 C1 without cursed XP, duo 5+5 slots | 57 | 78 | 35 | 60 | 5 / 0 / 5 / 2.5 |
+| **C4** B + regen .25 + round 2 + coopXP 1 + cursed XP .9 + duo 5+5 | 55 | 80 | 25 | 85 | 10 / 3 / 6.5 / 5 |
 
-Выводы по гипотезам:
-- Только замедлить опыт (H1/H2) — сохраняет варианты в solo, но поднимает смертность solo normal
-  (60→73%) и не трогает дуо. Это подтверждает: XP — рычаг «сколько выбора», а не «кто доживает до 8:00».
-- Личный круг (`coopLevelScale` 2) — главный рычаг дуо, но при 4+4 слотах сборка дуо исчерпывается
-  к 10–12 мин (auto-heal у 39–60 из 44–64 выживших). Ограничение — ёмкость, а не опыт.
-- Базовый реген (предложение пользователя) помогает в основном solo (normal −15 п.п.) и почти
-  не помогает дуо (−10 п.п. normal, cursed без изменений). Дуо он не чинит, но компенсирует
-  замедление XP в solo.
-- Одна cursed-доплата XP 0.8–0.9 уменьшает положительную обратную связь «+50% врагов → +50% XP»:
-  уровень cursed на 15:00 при C4 61.5 против 97.5.
+Hypothesis conclusions:
+- Only slowing experience (H1/H2) keeps choices in solo but raises normal solo mortality
+  (60→73%) and does not touch duo. This confirms: XP is a lever for "how much choice" not "who survives to 8:00".
+- Personal round (`coopLevelScale` 2) is the main lever for duo but with 4+4 slots the build exhausts
+  by 10–12 min (auto-heal for 39–60 of 44–64 survivors). The limit is capacity not experience.
+- Base regen (user proposal) helps mostly solo (normal −15 pp) and barely helps duo (−10 pp normal, cursed unchanged). Duo is not fixed by it but it compensates for XP slowdown in solo.
+- One cursed XP bonus 0.8–0.9 reduces the positive feedback "50% more enemies → 50% more XP":
+  level at 15:00 in C4 is 61.5 versus 97.5 now.
 
-Проверка **C4 на validation seeds** (не использовались при подборе; 40 на режим):
+Check **C4 on validation seeds** (not used in tuning. 40 per mode):
 
-| Режим | Текущий: поражения [95% CI] | C4: поражения [95% CI] | C4: left на 15:00 | C4: auto-heal до 15:00 |
+| Mode | Current: defeats [95% CI] | C4: defeats [95% CI] | C4: left at 15:00 | C4: auto-heal by 15:00 |
 | --- | --- | --- | --- | --- |
 | normal solo | 57% [42–71] | **43%** [29–58] | 10 (n=23) | 1 |
 | cursed solo | 75% [60–86] | **85%** [71–93] | 6.5 (n=6) | 1 |
 | normal duo | 93% [80–97] | **45%** [31–60] | 6.5 (n=44) | 10 |
 | cursed duo | 100% [91–100] | **83%** [68–91] | 3.5 (n=14) | 2 |
 
-Cursed без супероружий (validation, 40 на режим): текущий solo 4/40 побед (верхняя 95% граница 21%),
-дуо 0/40 (7%); C4 solo 2/40 (15%), **дуо 7/40 (30%)**. В дуо при C4 отказ от эволюций не меняет
-итог (83% и 83%): там исход решает окно 5–8 минут, а не сундук. Требование «≤5%» не подтверждено ни для
-текущего баланса, ни для C4: для него нужно ≥200 матчей на режим и ноль-немного побед.
+Cursed without super-weapons (validation, 40 per mode): current solo 4/40 wins (95% upper bound 21%),
+duo 0/40 (7%). C4 solo 2/40 (15%), **duo 7/40 (30%)**. In duo with C4 skipping evolutions does not change
+outcome (83% and 83%): the result there is decided in the 5–8 minute window not by the chest. Goal "≤5%" is unconfirmed for current balance and for C4: it needs ≥200 matches per mode and very few wins.
 
-Критерии квалификации (`SIMULATION_GUIDE.md`): ≥400 независимых qualification-матчей на режим, весь
-95% CI внутри 45–55% / 70–80%. **Данных недостаточно**: здесь 40 на режим (CI шириной ~30 п.п.),
-а модель движения дуо смещена. Qualification-сиды не использовались и остаются независимыми.
+Qualification criteria (`SIMULATION_GUIDE.md`): ≥400 independent qualification matches per mode, full
+95% CI within 45–55% / 70–80%. **Data insufficient**: 40 per mode here (CI width ~30 pp),
+and the duo movement model is shifted. Qualification seeds not used, remain independent.
 
-## 6. Оружие
+## 6. Weapons
 
-Естественные забеги ботов (минуты полного владения, медианы) и людей v2; контролируемые пробы —
-`docs/simulation-evidence/combat.json` (L7, бессмертие, общий motion tape).
+Natural bot runs (minutes of full ownership, medians) and people v2. Controlled trials
+in `docs/simulation-evidence/combat.json` (L7, immortality, shared motion tape).
 
-| Оружие | Урон/мин ранняя фаза (lv) | Доля урона игрока ранняя / средняя | Overkill raw/dealt | Проба L7 толпа / стрелки, DPS | Входящий HP в пробе толпа |
+| Weapon | Damage/min early phase (lv) | Player damage share early / mid | Overkill raw/dealt | Trial L7 crowd / archers, DPS | Incoming HP in trial crowd |
 | --- | --- | --- | --- | --- | --- |
-| Storm Chain | 5366 (3) | 0.64 / 0.46 (люди 0.78 / 0.66) | 2.03 | 452 / 273 | 124 |
+| Storm Chain | 5366 (3) | 0.64 / 0.46 (people 0.78 / 0.66) | 2.03 | 452 / 273 | 124 |
 | Firebomb | 2652 (3) | 0.29 / 0.20 | 1.32 | 641 / 225 | 127 |
 | Throwing Daggers | 3280 (3) | 0.41 / 0.16 | 1.41 | 455 / 151 | 134 |
 | War Axe | 1178 (2) | 0.17 / 0.07 | 1.44 | 237 / 50 | 130 |
@@ -163,231 +157,214 @@ Cursed без супероружий (validation, 40 на режим): теку�
 | Holy Ground | 889 (2) | 0.10 / 0.05 | 1.23 | 78 / 17 | 80 |
 | Blade Arc | 864 (3) | 0.16 / 0.03 | 1.67 | 83 / 15 | 83 |
 
-Подтверждено:
-- **Storm Chain доминирует** и у людей, и у ботов; её overkill 2.0 означает, что половина урона уходит
-  в уже убитые цели — она сильна именно ранним «одноударным» добиванием.
-- **Blade Arc слаб сам по себе**, а не только из-за конкуренции: в контролируемой толпе 83 DPS против
-  452–641. Конкуренция тоже есть: доля урона меча в ранней фазе 0.28 без Storm Chain и 0.05 с ней,
-  0.26/0.07 без/с ножами; 65% его добиваний — по целям, которые уже били другие источники.
-  Ближний бой даёт меньше входящего урона в толпе (83 против 124–144), это его защитная ценность.
-- **Эволюции** различаются на два порядка: Plasma Storm 150–200k урона/мин, Thunder Loop 76–139k,
-  Thunder Knives 113–158k против Crimson Arc ~10k, Aegis Bastion 2–3k, Bulwark Spin/Aegis Storm ~3k.
-- **Щиты**: в пробе со стрелками 23 уничтоженных снаряда и входящий урон 11 против 36–40 у ножей и
-  молнии, то есть защитная польза реальна и не видна в DPS. Поведение совпадает с кодексом: снаряды
-  уничтожаются, а не отражаются. В естественных дуо-забегах команды со щитами к 5:00 победили 3/25,
-  без щитов 0/12 (normal) — согласуется с наблюдением пользователя, но выборка мала (p≈0.3),
-  в solo связи нет (11/24 без щитов против 5/13 со щитами).
+Confirmed:
+- **Storm Chain dominates** both people and bots. Its overkill of 2.0 means half the damage goes to already-killed targets. It is strong from early "one-shot" finishing.
+- **Blade Arc is weak on its own** not just from competition: in a controlled crowd 83 DPS versus
+  452–641. Competition exists too: blade share in early phase is 0.28 without Storm Chain and 0.05 with it.
+  0.26/0.07 without/with daggers. 65% of its kills hit targets already hit by other sources.
+  Melee gives less incoming damage in a crowd (83 versus 124–144), which is its defensive value.
+- **Evolutions** differ by two orders of magnitude: Plasma Storm 150–200k damage/min, Thunder Loop 76–139k,
+  Thunder Knives 113–158k versus Crimson Arc ~10k, Aegis Bastion 2–3k, Bulwark Spin/Aegis Storm ~3k.
+- **Shields**: in trial with archers 23 destroyed projectiles and incoming damage 11 versus 36–40 for daggers and
+  lightning. Defensive benefit is real and not visible in DPS. Behavior matches codex: projectiles are destroyed not reflected. In natural duo runs teams with shields beat 3/25 by 5:00 without shields,
+  0/12 (normal). Matches user observation but sample is small (p≈0.3).
+  In solo no link (11/24 without shields versus 5/13 with shields).
 
-### 6.1 Ребаланс оружия: эксперименты (не применены)
+### 6.1 Weapon rebalance: experiments (not applied)
 
-Исход сильно зависит от стартового оружия. Текущий баланс, solo, победы из 20 (tuning / validation):
-магесса (старт Storm Chain) normal 13 / 12, cursed 5 / 9; мечница (старт Blade Arc) normal 3 / 5,
-cursed 1 / 1. Средние «57–60% поражений» складываются из лёгкой магессы и почти непроходимой мечницы.
+Outcome depends heavily on starting weapon. Current balance solo wins from 20 (tuning / validation):
+Mage (start Storm Chain) normal 13 / 12, cursed 5 / 9. Hero (start Blade Arc) normal 3 / 5,
+cursed 1 / 1. Average "57–60% defeats" comes from easy Mage and nearly impassable Hero.
 
-В первые 5 минут (урон в минуту полного владения, боты): Storm Chain 5.4k; ножи 3.3k и бомба 2.7k
-отстают в ~1.7 раза; меч, аура, топор и щиты (0.9–1.2k) — в 4.5–6 раз. В контролируемой пробе L7
-меч и аура слабее молнии в 5–6 раз. Нерф одной молнии без подъёма остальных делает 1–8 мин непроходимыми
-для всех, кроме ножей и бомбы: поэтому сначала поднимаем слабую четвёрку, потом опускаем молнию к ним.
+In first 5 minutes (damage per minute full ownership, bots): Storm Chain 5.4k. Daggers 3.3k and bomb 2.7k
+lag ~1.7×. Blade, aura, axe, shields (0.9–1.2k) lag 4.5–6×. In controlled trial L7
+blade and aura are 5–6× weaker than lightning. Nerfing lightning alone without raising others makes 1–8 min impassable
+for everyone except daggers and bomb. So we raise the weak quartet first, then lower lightning to meet them.
 
-Сравнение с Whip из Vampire Survivors ([вики](https://vampire.survivors.wiki/w/Whip)): 10 урона / 1.35 с,
-2 удара в обе стороны, +5 урона почти каждый уровень до 40, площадь +20% к максимуму, проходит сквозь
-всех. Числа нашего меча почти те же (10→36). Отличия, которые его убивают: (1) наши враги после
-удвоения HP — слизь 24, кошка 32, лиса 160, и 10 урона не убивает даже первую волну, тогда как в VS
-кнут ранней игры убивает с одного удара; (2) длина удара 62–86 px, а люди-дуо держат ближайшего врага
-на 130–150 px (доля урона меча у людей 1%), боты на ~80 px. Поэтому один урон меча почти не помогает
-(×2.8 урона → реальный урон в забеге 864 → 1460 в минуту), а длина удара помогает сразу.
+Comparison with Whip from Vampire Survivors ([wiki](https://vampire.survivors.wiki/w/Whip)): 10 damage / 1.35 s,
+2 hits both directions, +5 damage nearly each level to 40, area +20% to max, passes through all. Our blade numbers nearly match (10→36). Differences that kill it: (1) our enemies after doubling HP—slime 24, cat 32, fox 160. 10 damage does not kill even the first wave where VS whip kills with one hit. (2) hit range 62–86 px and duo people keep nearest enemy
+at 130–150 px (blade damage share for people 1%), bots at ~80 px. So one blade damage barely helps
+(×2.8 damage → actual damage in run 864 → 1460 per minute) but hit range helps immediately.
 
-| Вариант (текущий XP, tuning, 20 на героя / 40 дуо) | Меч, урон/мин 0–5 мин | Молния | Доля молнии | Мечница normal: победы / дожили до 8:00 | Магесса normal | Мечница cursed | Поражения normal solo / cursed solo |
+| Variant (current XP, tuning, 20 per hero / 40 duo) | Blade damage/min 0–5 min | Lightning | Lightning share | Hero normal: wins / reached 8:00 | Mage normal | Hero cursed | Defeats normal solo / cursed solo |
 | --- | ---: | ---: | ---: | --- | --- | --- | --- |
-| Текущий | 864 | 5366 | 0.64 | 3 / 4 | 13 / 14 | 1 / 1 | 60% / 83% |
-| W1 меч урон ×~2 | 1317 | 6477 | 0.68 | 6 / 11 | 13 / 13 | 3 / 6 | 53% / 70% |
-| W2 W1 + молния L1–4 −30% | 1432 | 4602 | 0.61 | 6 / 11 | 11 / 12 | 3 / 6 | 57% / 80% |
-| W4 меч ×2.8, аура ×2.4, топор ×2, щиты ×1.8, молния L1–4 −30%, L5–7 −13% | 1460 | 4661 | 0.59 | 5 / 14 | 15 / 15 | 1 / 7 | 50% / 83% |
-| **W5** W4 + длина меча на 2 ступени колец (78→115 px), молния L1–4: 12–15 урона, 2–3 прыжка | **3118** | **3745** | **0.52** | 9 / 16 | 17 / 17 | 5 / 12 | 35% / 70% |
+| Current | 864 | 5366 | 0.64 | 3 / 4 | 13 / 14 | 1 / 1 | 60% / 83% |
+| W1 blade damage ×~2 | 1317 | 6477 | 0.68 | 6 / 11 | 13 / 13 | 3 / 6 | 53% / 70% |
+| W2 W1 + lightning L1–4 −30% | 1432 | 4602 | 0.61 | 6 / 11 | 11 / 12 | 3 / 6 | 57% / 80% |
+| W4 blade ×2.8, aura ×2.4, axe ×2, shields ×1.8, lightning L1–4 −30%, L5–7 −13% | 1460 | 4661 | 0.59 | 5 / 14 | 15 / 15 | 1 / 7 | 50% / 83% |
+| **W5** W4 + blade range on 2 ring steps (78→115 px), lightning L1–4: 12–15 damage, 2–3 bounces | **3118** | **3745** | **0.52** | 9 / 16 | 17 / 17 | 5 / 12 | 35% / 70% |
 
-W5 впервые выравнивает раннюю силу: меч 3.1k, молния 3.7k, ножи 3.6k, бомба 2.5k в минуту. Мечница
-переживает 8:00 в 16 из 20 normal (было 4). Остались: топор и щиты ~1k (щиты платят защитой,
-топору нужен подъём), разрыв героев по победам (у магессы atk ×1.25 и crit 15% ко всему оружию).
+W5 first evens early power: blade 3.1k, lightning 3.7k, daggers 3.6k, bomb 2.5k per minute. Hero
+survives 8:00 in 16 of 20 normal (was 4). Remaining: axe and shields ~1k (shields pay with defense,
+axe needs raising). Hero/Mage win gap (Mage has attack ×1.25 and crit 15% on all weapons).
 
-Вместе с XP-пакетом (C4W5) игра становится слишком лёгкой: normal solo 20%, normal duo 15%, cursed
-solo 80%, cursed duo 55%. Это ожидаемо — C4 подбирался при слабом мече. Следующий шаг: принять W5 как
-основу оружия и заново подобрать давление волн 5–8 мин или XP при нём; не публиковать W5 без этого.
-Конфиги: `docs/simulation-evidence/balance-audit/W1…W5.json`, `C4W4.json`, `C4W5.json`;
-`node docs/simulation-evidence/balance-audit/byhero.mjs W5` — исходы по героям и доли урона.
+With XP packet (C4W5) the game becomes too easy: normal solo 20%, normal duo 15%, cursed
+solo 80%, cursed duo 55%. This is expected. C4 was tuned with weak blade. Next step: accept W5 as
+weapon base and re-tune wave pressure 5–8 min or XP against it. Do not publish W5 without this.
+Configs: `docs/simulation-evidence/balance-audit/W1…W5.json`, `C4W4.json`, `C4W5.json`.
+`node docs/simulation-evidence/balance-audit/byhero.mjs W5` shows outcomes by hero and damage shares.
 
-### 6.2 Лестница урона по дальности (правило владельца): R2
+### 6.2 Damage ladder by range (owner rule): R2
 
-Правило: чем ближе бьёт оружие, тем выше урон за удар; дальнобойное и со встроенными свойствами
-(цепь, огонь, блок снарядов, возврат) — ниже, без огромного разрыва. Молния бьёт дальше всех и по многим
-целям за экраном, поэтому у неё урон за удар самый низкий. Глобально игра не должна стать сложнее:
-поражения в каждом режиме не выше текущих на тех же сидах.
+Rule: closer weapons do higher damage per hit. Distant and self-contained weapons
+(chain, fire, projectile block, return) do lower, without huge gap. Lightning hits farthest and many targets
+beyond screen so it has the lowest damage per hit. Globally the game should not get harder:
+defeats in each mode not above current on same seeds.
 
-| Оружие | Дальность | Урон за удар L1 → L7 сейчас | R2 | Перезарядка R2 |
+| Weapon | Range | Damage per hit L1 → L7 now | R2 | R2 cooldown |
 | --- | --- | --- | --- | --- |
-| Меч | 78–115 px (было 62–86) | 10 → 36 | 20 → 56 | 1.0 → 0.8 (было 1.35 → 1.2) |
-| Щиты | орбита ~55 px, блок | 12 → … | ×1.5 | без изменений |
-| Топор | 110–185 px, возврат | 12 → 25 | ×1.6 (19 → 40) | ×0.75 |
-| Аура | вокруг героя, постоянно | 5 → 15 | ×2 (10 → 30) | ×0.8 |
-| Бомба | бросок + огонь | 10 → … | без изменений | без изменений |
-| Ножи | ~340 px, пробивание | 8 → … | без изменений | без изменений |
-| Молния | 230–290 px + 3–5 прыжков | 18 → 35 | 8 → 16 | 1.1 → 0.95 (было 1.25 → 1.1) |
+| Blade | 78–115 px (was 62–86) | 10 → 36 | 20 → 56 | 1.0 → 0.8 (was 1.35 → 1.2) |
+| Shields | orbit ~55 px, block | 12 → … | ×1.5 | unchanged |
+| Axe | 110–185 px, return | 12 → 25 | ×1.6 (19 → 40) | ×0.75 |
+| Aura | around hero, constant | 5 → 15 | ×2 (10 → 30) | ×0.8 |
+| Bomb | throw + fire | 10 → … | unchanged | unchanged |
+| Daggers | ~340 px, pierce | 8 → … | unchanged | unchanged |
+| Lightning | 230–290 px + 3–5 bounces | 18 → 35 | 8 → 16 | 1.1 → 0.95 (was 1.25 → 1.1) |
 
-Результаты (текущий XP, 40 матчей на режим; соло по героям 20/20):
+Results (current XP, 40 matches per mode. Solo by hero 20/20):
 
-| | Поражения normal solo | cursed solo | normal duo | cursed duo |
+| | Defeats normal solo | cursed solo | normal duo | cursed duo |
 | --- | ---: | ---: | ---: | ---: |
-| Текущий, tuning | 60% | 83% | 93% | 98% |
+| Current, tuning | 60% | 83% | 93% | 98% |
 | R2, tuning | 30% | 73% | 95% | 98% |
-| Текущий, validation | 57% | 75% | 93% | 100% |
+| Current, validation | 57% | 75% | 93% | 100% |
 | R2, validation | 38% | 70% | 88% | 95% |
 
-Validation: мечница normal 5 → 10 побед из 20 (до 8:00 дожили 9 → 15), cursed 1 → 6; магесса normal
-12 → 14, cursed 9 → 6 (tuning 5 → 6; при n=20 это в пределах шума, но магессу на cursed стоит проверить
-отдельно). Урон в минуту в первые 5 минут: молния 6.1k → 5.1k, меч 0.8k → 2.4k, ножи 3.7k, бомба 2.1k,
-аура 1.0k → 1.6k, топор 1.2k → 1.4k, щиты 0.6k (платят блоком). Молния остаётся сильнейшей по сумме
-(много целей), но разрыв ~1.4× вместо 5–7×. Дуо почти не меняется: его ограничение — личная прокачка
-(раздел 5), а не оружие. Требование «не сложнее» выполнено во всех четырёх режимах на обоих наборах сидов.
-Конфиг: `docs/simulation-evidence/balance-audit/R2.json`.
+Validation: Hero normal 5 → 10 wins from 20 (to 8:00 reached 9 → 15), cursed 1 → 6. Mage normal
+12 → 14, cursed 9 → 6 (tuning 5 → 6. At n=20 within noise but worth checking Mage cursed separately). Damage per minute first 5 minutes: lightning 6.1k → 5.1k, blade 0.8k → 2.4k, daggers 3.7k, bomb 2.1k,
+aura 1.0k → 1.6k, axe 1.2k → 1.4k, shields 0.6k (pay with block). Lightning remains strongest by count
+(many targets) but gap ~1.4× instead of 5–7×. Duo barely changes: its limit is personal progression
+(section 5) not weapons. Goal "not harder" met in all four modes on both seed sets.
+Config: `docs/simulation-evidence/balance-audit/R2.json`.
 
-### 6.3 Кандидат F3: молния и ножи ниже ближнего боя, cursed и дуо легче текущего
+### 6.3 Candidate F3: lightning and daggers lower than melee, cursed and duo easier than now
 
-Требование владельца: молния и ножи (самые дальнобойные) опускаются до уровня остальных и бьют слабее
-меча и топора; cursed и дуо при этом проходятся лучше, чем сейчас. Рычаги: кривая опыта и лимит
-одновременных снарядов обычных врагов (снаряды боссов не ограничиваются).
+Owner requirement: lightning and daggers (most distant) lower to other level and hit weaker
+than blade and axe. Cursed and duo pass easier than now. Levers: experience curve and limit on simultaneous projectiles
+from regular enemies (boss projectiles not limited).
 
-Новое в коде: `COMBAT.maxEnemyShots` (по умолчанию `Infinity`, поведение не меняется): суккуба не
-стреляет, пока летит столько снарядов обычных врагов; снаряды боссов помечены `boss` и не считаются.
-Замер текущего баланса (медиана пика за минуту / максимум): до 5:00 ноль, 6:00 — 6–10 / до 21,
-8:00 — 23–34 / до 169, 14:00 в дуо — 36–49.
+New in code: `COMBAT.maxEnemyShots` (default `Infinity`, behavior unchanged): succubus does not shoot while that many
+regular-enemy projectiles fly. Boss projectiles marked `boss` do not count.
+Current balance measurement (median peak per minute / max): by 5:00 zero. 6:00 6–10 / up to 21.
+8:00 23–34 / up to 169. 14:00 in duo 36–49.
 
-F3 = урон за удар (L1 → L7): меч 20 → 56 (удар 78–115 px, перезарядка 1.0 → 0.8), топор ×1.6 и
-перезарядка ×0.75, щиты ×1.5, аура ×2 и перезарядка ×0.8, бомба без изменений, ножи ×0.7 (6 за удар),
-молния 7 → 14, 2–4 прыжка, исходная перезарядка 1.25 → 1.1; опыт: без доплат 600/2400 на 20/40;
-дуо `xpLevelScale` 1.5, `xpMul` 1.0; `maxEnemyShots` 12; магесса maxHp 80 → 120.
+F3 = damage per hit (L1 → L7): blade 20 → 56 (78–115 px range, cooldown 1.0 → 0.8), axe ×1.6 and
+cooldown ×0.75, shields ×1.5, aura ×2 and cooldown ×0.8, bomb unchanged, daggers ×0.7 (6 per hit),
+lightning 7 → 14, 2–4 bounces, original cooldown 1.25 → 1.1. Experience: no bonuses 600/2400 at 20/40.
+Duo `xpLevelScale` 1.5, `xpMul` 1.0. `maxEnemyShots` 12. Mage maxHp 80 → 120.
 
-| Поражения | normal solo | cursed solo | normal duo | cursed duo |
+| Defeats | normal solo | cursed solo | normal duo | cursed duo |
 | --- | ---: | ---: | ---: | ---: |
-| Текущий, tuning | 60% | 83% | 93% | 98% |
+| Current, tuning | 60% | 83% | 93% | 98% |
 | F3, tuning | 43% | 60% | 43% | 68% |
-| Текущий, validation | 57% | 75% | 93% | 100% |
+| Current, validation | 57% | 75% | 93% | 100% |
 | F3, validation | 35% [22–50] | 55% [40–69] | 43% [29–58] | 53% [37–67] |
 
-Вклад рычагов (tuning): только оружие R3 — normal solo 70%, магесса 3/20 побед (молния её тащила);
-+ дуо-кривая 2.0 — дуо 35% / 65%; + лимит снарядов 12 — cursed solo 78 → 70%, cursed duo 65 → 50%;
-+ без доплат XP — normal solo 50%, но дуо 13% / 30% (слишком легко) → круг 1.5 вместо 2.
+Lever breakdown (tuning): weapon R3 alone—normal solo 70%. Mage 3/20 wins (lightning carried her).
+Plus duo curve 2.0—duo 35% / 65%. Plus projectile limit 12—cursed solo 78 → 70%, cursed duo 65 → 50%.
+Plus no XP bonuses—normal solo 50% but duo 13% / 30% (too easy). Use round 1.5 instead of 2.
 
-Урон в минуту в первые 5 минут, текущая кривая XP, только оружие (R3): меч 3.4k, молния 2.8k, ножи 2.8k,
-бомба 2.7k, топор 1.7k, аура 1.6k, щиты 0.9k. В F3 у молнии 3.7–4.1k из-за быстрой прокачки в дуо.
-Validation по героям (побед из 20): мечница normal 5 → 16, cursed 1 → 12; магесса normal 12 → 10,
-cursed 9 → 6 (tuning: 13 → 10 и 5 → 6). Магесса без молнии-«тащилы» остаётся чуть хуже текущей —
-единственный срез, где «не сложнее» выполнено не полностью; следующий рычаг — её стартовая молния L1.
-Цена: без доплат XP сборка к 15:00 снова исчерпана (left 0), то есть цель «варианты к 15:00» отложена
-ради проходимости; её возвращает поздняя кривая (раздел 5), но уже под F3.
+Damage per minute first 5 minutes, current XP curve, weapon only (R3): blade 3.4k, lightning 2.8k, daggers 2.8k,
+bomb 2.7k, axe 1.7k, aura 1.6k, shields 0.9k. In F3 lightning is 3.7–4.1k from fast tuning-duo upgrade.
+Validation by hero (wins from 20): Hero normal 5 → 16, cursed 1 → 12. Mage normal 12 → 10,
+cursed 9 → 6 (tuning 13 → 10 and 5 → 6). Mage without lightning-"carry" stays slightly worse than current.
+Only point where "not harder" not fully met. Next lever: her starting lightning L1.
+Cost: with no XP bonuses build is exhausted by 15:00 again (left 0). Goal "choices at 15:00" deferred
+for passability. Late curve (section 5) brings it back but already under F3.
 
-### 6.4 Кандидат F4 и поиск еды ботами (профили human-provisional-3)
+### 6.4 Candidate F4 and bot food search (profiles human-provisional-3)
 
-Люди в дуо подбирают еду 0.35–0.4 раза в минуту при ~85% HP (`tools/telemetry/food.mjs`), боты шли к
-ней только ниже 60% HP: 0.17–0.18 в дуо, в solo часто при полном HP (случайно). Теперь бот не трогает
-еду выше 92% HP и идёт к ней с приоритетом 2 + 10 × доля потерянного HP: 0.28–0.31 в минуту при 70–84%.
-Входящий урон в окне 1–7 мин не изменился (это вопрос уклонения, раздел 4). Текущий баланс пересчитан
-этими ботами (P3) — сравнение только с ним.
+Duo people pick up food 0.35–0.4 times per minute at ~85% HP (`tools/telemetry/food.mjs`). Bots went to it
+only below 60% HP: 0.17–0.18 in duo, often at full HP in solo (randomly). Now bot avoids food above 92% HP and moves to it with priority 2 + 10 × fraction of lost HP: 0.28–0.31 per minute at 70–84%.
+Incoming damage in window 1–7 min unchanged (evasion question, section 4). Current balance recalculated
+with these bots (P3). Comparison only against it.
 
-F4 = F3, но HP магессы 80 (как сейчас), щиты без изменений (×1), топор урон ×1.6 и перезарядка ×0.5
-(3.0 → 1.5 с на L1). Урон за удар L1: меч 20, топор 19, щиты 12, бомба 10, аура 10, молния 7, ножи 6.
+F4 = F3 but Mage HP 80 (as now), shields unchanged (×1), axe damage ×1.6 and cooldown ×0.5
+(3.0 → 1.5 s at L1). Damage per hit L1: blade 20, axe 19, shields 12, bomb 10, aura 10, lightning 7, daggers 6.
 
-| Поражения | normal solo | cursed solo | normal duo | cursed duo |
+| Defeats | normal solo | cursed solo | normal duo | cursed duo |
 | --- | ---: | ---: | ---: | ---: |
-| Текущий (P3), tuning | 57% | 83% | 90% | 100% |
+| Current (P3), tuning | 57% | 83% | 90% | 100% |
 | F4, tuning | 45% | 50% | 48% | 78% |
-| Текущий (P3), validation | 45% | 83% | 100% | 100% |
+| Current (P3), validation | 45% | 83% | 100% | 100% |
 | F4, validation | 40% [26–55] | 55% [40–69] | 53% [37–67] | 78% [62–88] |
 
-Урон в минуту 0–5 мин (validation): молния 6.2k → 3.9k, меч 0.85k → 2.8k, ножи 3.0k → 2.9k, бомба 2.8k,
-топор 1.1k → 1.9k, аура 1.0k → 1.7k, щиты 0.6k. Магесса (validation): normal 15 → 10, cursed 7 → 6 побед
-из 20 (tuning 16 → 6 и 7 → 6); мечница normal 5 → 14, cursed 0 → 11. Все режимы легче текущего,
-но магесса на normal без молнии-«тащилы» заметно слабее прежней.
+Damage per minute 0–5 min (validation): lightning 6.2k → 3.9k, blade 0.85k → 2.8k, daggers 3.0k → 2.9k, bomb 2.8k,
+axe 1.1k → 1.9k, aura 1.0k → 1.7k, shields 0.6k. Mage (validation): normal 15 → 10, cursed 7 → 6 wins from 20 (tuning 16 → 6 and 7 → 6). Hero normal 5 → 14, cursed 0 → 11. All modes easier than current
+but Mage on normal without lightning-"carry" noticeably weaker than before.
 
-### 6.5 Применено в `src/data` (24.10.2026)
+### 6.5 Applied in `src/data` (24.10.2026)
 
-F4 перенесён в данные: `weapons.js` (меч, топор, аура, ножи, молния; щиты и бомба без изменений),
+F4 moved to data: `weapons.js` (blade, axe, aura, daggers, lightning. Shields and bomb unchanged).
 `constants.js` (`XP.thresholds = []`, `COMBAT.maxEnemyShots = 12`), `coop.js` (`xpLevelScale` 1.5,
-`xpMul` 1). HP магессы 80. После слияния с main (оружие ломает объекты без врагов рядом) контроль на
-validation-сидах, 40 на режим: поражения normal solo 40%, cursed solo 48%, normal duo 57%,
-cursed duo 60% (текущий баланс до этого: 45 / 83 / 100 / 100%). Unit 193/193, smoke 7/7.
+`xpMul` 1). Mage HP 80. After merge with main (weapons break objects without enemies nearby), check on
+validation seeds, 40 per mode: defeats normal solo 40%, cursed solo 48%, normal duo 57%,
+cursed duo 60% (current balance before this: 45 / 83 / 100 / 100%). Unit 193/193, smoke 7/7.
 
-Не балансировать оружие до решения по опыту и движению дуо: при более медленной прокачке
-поздние эволюции появляются позже и их вклад меняется.
+Do not tune weapons until experience and duo movement resolved: slower progression means
+late evolutions appear later and their contribution shifts.
 
-## 7. Надёжность и зависания дуо
+## 7. Duo reliability and hangs
 
-- Все 3 disconnect произошли в пределах 1 с игрового времени от экрана выбора улучшения:
-  fb7e9e — через 0.9 с после выбора (решение 9.5 с); ed51bb — у хоста открытое предложение в момент
-  обрыва; c1e41b — через 0.4 с после выбора гостя, который думал **21.5 с** (`NET.dropAfter` = 20 с).
-  Случайно такое совпадение маловероятно (окно ~1 с при выборе раз в 5–10 с). Это версия e58f49 — до фикса паузы 835f460;
-  на 6ef720 две сессии завершились без обрыва.
-- **Механизм, воспроизведённый по WebRTC** (`tests/smoke/coop-hidden.spec.js`, запуск
-  `FURY_DUO_HIDDEN=1 npx playwright test tests/smoke/coop-hidden.spec.js`): если у одного игрока
-  остановлен цикл кадров (вкладка в фоне, свёрнутый браузер, переключение приложения на телефоне —
-  браузер перестаёт вызывать requestAnimationFrame), он не шлёт тики. Второй сразу замирает с
-  экраном выбора («зависание без Escape»), а сам тоже перестаёт отправлять, потому что новый тик
-  не посчитан. Через 20 с оба получают disconnect; при уходе на 8 с сессия восстанавливается.
-  Вероятный пользовательский сценарий: ожидающий игрок переключается, пока напарник выбирает.
-- Дополнительный дефект: `Game.now()` = `game.loop.time`, который в фоне не идёт; сообщения,
-  пришедшие в скрытую вкладку, пишут устаревшее `lastRemoteT`.
-- Исправление (не сделано, решение за владельцем): поддерживать обмен из таймера, когда
-  `document.hidden` (в фоне таймеры Chrome срабатывают ~1 раз/с, этого хватает на heartbeat и
-  догон тиков), показывать «напарник отошёл» и не обрывать сессию в состояниях levelup/chest/pause;
-  считать тишину по `performance.now()`. На телефоне при блокировке JS останавливается полностью —
-  нужен более длинный порог в экранах выбора.
-- disconnect/timeout/ошибки отделены от смертей во всех таблицах; ошибок симулятора в ~2 500
-  прогонах аудита нет, 1 timeout (cursed solo baseline).
+- All 3 disconnects happened within 1 s of game time from the upgrade choice screen.
+  fb7e9e 0.9 s after choice (decision took 9.5 s). ed51bb host had open offer at moment of disconnect. c1e41b 0.4 s after guest choice, guest thinking **21.5 s** (`NET.dropAfter` = 20 s).
+  Random coincidence unlikely (window ~1 s when choosing every 5–10 s). This is version e58f49 before pause fix 835f460.
+  On 6ef720 two sessions completed without disconnect.
+- **Mechanism reproduced via WebRTC** (`tests/smoke/coop-hidden.spec.js`, run
+  `FURY_DUO_HIDDEN=1 npx playwright test tests/smoke/coop-hidden.spec.js`): if one player's
+  frame loop is halted (tab in background, minimized browser, app switch on phone, browser stops calling requestAnimationFrame), they do not send ticks. The other freezes immediately on
+  upgrade screen ("hang without Escape"). That player also stops sending because new tick
+  not counted. After 20 s both get disconnect. On quit after 8 s session recovers.
+  Likely user scenario: waiting player switches while partner chooses.
+- Additional defect: `Game.now()` = `game.loop.time`, which does not advance in background. Messages
+  arriving at a hidden tab write stale `lastRemoteT`.
+- Fix (not done, owner decision): maintain exchange from a timer when `document.hidden` (Chrome timers in background fire ~1 s, enough for heartbeat and tick catchup). Show "partner away" and do not disconnect in levelup/chest/pause states. Count silence by `performance.now()`. On phone when JS halts completely,
+  use a longer threshold in choice screens.
+- Disconnect/timeout/errors separated from deaths in all tables. No simulator errors in ~2,500
+  audit runs. 1 timeout (cursed solo baseline).
 
-## 8. Ранжированные предложения
+## 8. Ranked proposals
 
-1. **Кривая опыта B без доплат** — `src/data/constants.js` `XP.steps = [{below: 20, per: 10},
-   {below: 35, per: 25}, {below: Infinity, per: 55}]`, `XP.thresholds = []`. Причина: кривая VS
-   рассчитана на 30 минут. Эффект (validation, C4): к 15:00 в solo остаётся 6.5–10 уровней,
-   auto-heal до 15:00 у 1 из 23/6 выживших против 11/9 сейчас. Ранний темп сохраняется (5:00 L 25–28).
-2. **Базовый реген героев 0.25 HP/с** — `src/data/heroes.js` `stats.regen` обоих героев и `HERO_BASE.regen`
-   (иначе на экране выбора появится ложная черта «+regen»). Компенсирует более медленную прокачку
-   в solo (H6: normal 60→45%). Пассивка regen (+0.2…1.0) остаётся осмысленной.
-3. **Дуо: личный круг и ёмкость** — `src/data/coop.js` `xpLevelScale: 2`, `xpMul: 1`,
-   `slots: {weapons: 5, passives: 5}`. Цена уровня считается по личным кругам; 5+5 слотов дают ёмкость
-   59 вместо 47, поэтому варианты остаются к 15:00. Проверено только ботами с завышенной смертностью
-   дуо: реальная сложность дуо при этом, вероятно, ниже 45/83%. Перед публикацией — новые v2-сессии.
-4. **Cursed XP 0.9** — `src/data/difficulty.js` `cursed.xpMul: 0.9`. Уменьшает обратную связь
-   «больше врагов → больше опыта». Cursed solo на validation 85% [71–93] — верх цели; если после
-   квалификации окажется выше 80%, первым откатывать этот пункт (H1: 80% без него).
-5. После XP: **оружие** — ослабить overkill-раннюю силу Storm Chain (урон L1–3 или число прыжков),
-   поднять Blade Arc (контролируемая проба: при равных вложениях Storm Chain + attack/haste даёт 803 DPS,
-   а меч добавляет к молнии лишь ~100) и щитовые/клинковые эволюции. Только парными пробами `sim:combat`
-   и затем естественными забегами.
-6. **Сеть дуо** — исправление из раздела 7 до любых выводов о дуо-смертности по людям: обрывы
-   систематически отрезают дуо-забеги на экране выбора.
+1. **Experience curve B without bonuses**: `src/data/constants.js` `XP.steps = [{below: 20, per: 10},
+   {below: 35, per: 25}, {below: Infinity, per: 55}]`, `XP.thresholds = []`. Reason: VS curve
+   designed for 30 minutes. Effect (validation, C4): by 15:00 in solo 6.5–10 levels remain
+   (auto-heal by 15:00 for 1 of 23/6 survivors versus 11/9 now). Early pace held (5:00 L 25–28).
+2. **Hero base regen 0.25 HP/s**: `src/data/heroes.js` `stats.regen` both heroes and `HERO_BASE.regen`
+   (else upgrade screen shows false "+regen"). Compensates for slower progression
+   in solo (H6: normal 60→45%). Passive regen (+0.2…1.0) stays meaningful.
+3. **Duo: personal round and capacity**: `src/data/coop.js` `xpLevelScale: 2`, `xpMul: 1`,
+   `slots: {weapons: 5, passives: 5}`. Level cost counted per personal rounds. 5+5 slots give capacity
+   59 instead of 47 so choices remain by 15:00. Tested only with bots with high duo mortality:
+   real duo difficulty likely below 45/83%. Before release get new v2 sessions.
+4. **Cursed XP 0.9**: `src/data/difficulty.js` `cursed.xpMul: 0.9`. Reduces feedback
+   "more enemies → more experience". Cursed solo on validation 85% [71–93] at goal top. If qualification shows above 80%, rollback this first (H1: 80% without it).
+5. After experience: **weapons**. Weaken Storm Chain's overkill early power (damage L1–3 or bounce count).
+   Raise Blade Arc (controlled trial: equal spend Storm Chain + attack/haste gives 803 DPS,
+   blade adds only ~100 to lightning). Shield and blade evolutions. Only paired trials `sim:combat`
+   then natural runs.
+6. **Duo network**: fix from section 7 before any conclusions about duo mortality by people. Disconnects
+   systematically cut duo runs on the choice screen.
 
-Пакет 1–4 одним изменением = C4. Применять пакетом, затем полностью повторить все 4 режима; при
-частичном применении результаты выше не переносятся (параметры связаны: HP босса зависит от общего уровня).
+Apply package 1–4 as one change = C4. Apply as package then fully repeat all 4 modes. Results above
+do not carry to partial application (parameters linked: boss HP depends on total level).
 
-## 9. Что собрать дальше
+## 9. Next collection
 
-- **v2 solo** (сейчас ноль): normal и cursed, оба героя, включая смерти и неудачные сборки.
-  Нужно для калибровки движения и проверки, что solo-боты не расходятся с людьми как дуо-боты.
-- 15–20 дуо-сессий на 6ef720+ с `terminal`, разными парами людей.
-- В телеметрию: `document.visibilityState` переходы и длительность скрытия (событие с тиком), время
-  последнего полученного сообщения по `performance.now()`, отправка незаконченного забега при
-  `pagehide` (сейчас документ теряется). Без этого обрывы нельзя приписать фону вкладки.
-- Для модели движения: расстояние до ближайших 3–5 врагов и до ближайшего кристалла при выборе
-  направления уже есть в `movement` — нужно больше сессий; отдельные профили по героям.
+- **v2 solo** (now zero): normal and cursed, both heroes, including deaths and failed builds.
+  Needed to tune movement and check that solo bots do not diverge from people like duo bots.
+- 15–20 duo sessions on 6ef720+ with `terminal`, different player pairs.
+- Telemetry: `document.visibilityState` transitions and duration (event with tick), last message received time by `performance.now()`, send unfinished run on `pagehide` (now document is lost). Without this hangs cannot be blamed on tab background.
+- For movement model: distance to nearest 3–5 enemies and nearest crystal when picking direction already in `movement`. Need more sessions. Separate profiles by hero.
 
-## 10. Воспроизведение
+## 10. Reproduction
 
 ```bash
 npm ci
-npm run telemetry:export -- --out tools/out/telemetry-all            # или распаковать снимок:
+npm run telemetry:export -- --out tools/out/telemetry-all            # or unpack snapshot:
 gunzip -c docs/simulation-evidence/telemetry-2026-10-24.json.gz > tools/out/telemetry-all/runs.json
-node tools/telemetry/audit.mjs tools/out/telemetry-all/runs.json      # люди: сессии, минуты, остаток сборки
-node tools/telemetry/holdout.mjs tools/out/telemetry-all/runs.json    # выбор на отложенных v2
-node tools/telemetry/weapons.mjs tools/out/telemetry-all/runs.json    # оружие в забегах
+node tools/telemetry/audit.mjs tools/out/telemetry-all/runs.json      # people: sessions, minutes, build remainder
+node tools/telemetry/holdout.mjs tools/out/telemetry-all/runs.json    # choice on holdout v2
+node tools/telemetry/weapons.mjs tools/out/telemetry-all/runs.json    # weapons in runs
 node tools/telemetry/movement.mjs tools/out/telemetry-all/runs.json human
 node tools/simulation/audit-bots.mjs --n 40 --split tuning --out tools/out/audit/bots-baseline.json
 docs/simulation-evidence/balance-audit/run-exp.sh docs/simulation-evidence/balance-audit/C4.json
@@ -397,203 +374,185 @@ node tools/simulation/audit-bots.mjs --n 40 --split validation --lite --no-evolu
   --modes cursed/1,cursed/2 --experiment docs/simulation-evidence/balance-audit/C4.json \
   --out tools/out/audit/V-C4-noevo.json
 node docs/simulation-evidence/balance-audit/cmp.mjs bots-baseline C4 V-baseline V-C4
-node docs/simulation-evidence/balance-audit/evidence.mjs   # сводка → balance-audit/results.json
+node docs/simulation-evidence/balance-audit/evidence.mjs   # summary → balance-audit/results.json
+node docs/simulation-evidence/balance-audit/evidence.mjs   # summary → balance-audit/results.json
 node tools/telemetry/audit-chart.mjs tools/out/telemetry-all/runs.json tools/out/audit/bots-baseline.json \
   tools/out/audit/C4.json docs/simulation-evidence/balance-audit-options.svg
 ```
 
-Конфиги всех гипотез — `docs/simulation-evidence/balance-audit/*.json`; итоги всех когорт с исходами,
-CI и поминутной прогрессией — `balance-audit/results.json`. Эксперименты меняют `XP`, `DIFFICULTIES`,
-`COOP` и статы героев только внутри прогона (`tools/simulation/experiment.mjs`), затем восстанавливают.
+All hypothesis configs in `docs/simulation-evidence/balance-audit/*.json`. All cohort results with outcomes,
+CI and per-minute progression in `balance-audit/results.json`. Experiments change `XP`, `DIFFICULTIES`,
+`COOP` and hero stats only inside the run (`tools/simulation/experiment.mjs`) then restore.
 
-Внешние ориентиры: [VS Level up](https://vampire.survivors.wiki/w/Level_up) (кривая 5/+10/+13/+16,
-доплаты 600/2400, +100% Growth после 20 и 40; просмотрено 24.10.2026), [HoloCure Collaborations](https://holocure.wiki.gg/wiki/Collaborations)
-(коллабы из двух оружий максимального уровня, освобождают слот). Числа не переносились: сравнивалась
-доля этапа, к которой исчерпывается сборка (у VS при 30-минутном этапе и той же кривой — заметно позже).
+External reference: [VS Level up](https://vampire.survivors.wiki/w/Level_up) (curve 5/+10/+13/+16,
+bonuses 600/2400, +100% Growth after 20 and 40. Viewed 24.10.2026). [HoloCure Collaborations](https://holocure.wiki.gg/wiki/Collaborations)
+(collabs from two weapons at max level, free a slot). Numbers not ported: compared
+share of stage where build exhausts (VS at 30-min stage and same curve exhausts noticeably later).
 
-## 11. Ребаланс под цели META 1.1 (27.10.2026)
+## 11. Rebalance for META 1.1 goals (27.10.2026)
 
-Код: ветка `meta-items` от dd143ec (стата steel/magic, 16 оружий, только эволюции, XP ×2, реген 0.25,
-поочерёдные карточки, предметы). Боты `human-provisional-4` (focus 25%, evolution 45%, adaptive 20%,
-defensive 10%), герои поровну, horizon 18:00. «Убил 2-го» = `sim.bossKills ≥ 2` (Harpy Queen, 10:00),
-«убил 3-го» = победа (Dryad Queen, 15:00, `final`). Подбор чисел — только на tuning-сидах (n 80–240),
-итог — один прогон на validation (n 200) и qualification (n 240), в таблице их сумма, n = 440 на режим,
-95% Wilson CI. Таймауты (Дриаду не добили к 18:00) засчитаны как «не убил 3-го»: 0–3 на режим.
+Code: branch `meta-items` from dd143ec (steel/magic stat, 16 weapons, evolutions only, XP ×2, regen 0.25,
+turn-based cards, items). Bots `human-provisional-4` (focus 25%, evolution 45%, adaptive 20%,
+defensive 10%). Heroes even. Horizon 18:00. "Killed 2nd" = `sim.bossKills ≥ 2` (Harpy Queen, 10:00).
+"Killed 3rd" = win (Dryad Queen, 15:00, `final`). Number tuning on tuning seeds only (n 80–240).
+Result: one run on validation (n 200) and qualification (n 240). Table shows their sum, n = 440 per mode,
+95% Wilson CI. Timeouts (did not kill Dryad by 18:00) counted as "did not kill 3rd": 0–3 per mode.
 
-Сумка T2 (`tools/simulation/bags.mjs`): 9×5, предметы `rollItem(rng, 2)` (редкость по таблице T2 без
-уникалок), ставятся первым свободным местом до 45 клеток, без отбора (`pick: 1`); у каждого забега своя.
+Bag T2 (`tools/simulation/bags.mjs`): 9×5, items `rollItem(rng, 2)` (rarity by T2 table without uniques).
+Placed first free spot up to 45 cells, no selection (`pick: 1`). Each run gets its own.
 
-| режим | 2-й босс до | после | 3-й босс до | после | цель |
+| mode | 2nd boss by | after | 3rd boss by | after | goal |
 | --- | --- | --- | --- | --- | --- |
-| normal соло, пустая сумка | 51% [46–55] | **51% [47–56]** | 39% [35–44] | **17% [14–21]** | 50–60% / 15–25% |
-| normal соло, сумка T2 | 89% [86–92] | 83% [79–86] | 84% [80–87] | **49% [44–54]** | — / ~50% |
-| cursed соло | 19% [16–23] | 26% [22–30] | 12% [10–16] | 11% [9–14] | не невозможно |
-| normal дуо (команда) | 14% [11–17] | 63% [58–67] | 9% [7–12] | 18% [14–21] | около соло |
+| normal solo, empty bag | 51% [46–55] | **51% [47–56]** | 39% [35–44] | **17% [14–21]** | 50–60% / 15–25% |
+| normal solo, bag T2 | 89% [86–92] | 83% [79–86] | 84% [80–87] | **49% [44–54]** | — / ~50% |
+| cursed solo | 19% [16–23] | 26% [22–30] | 12% [10–16] | 11% [9–14] | not impossible |
+| normal duo (team) | 14% [11–17] | 63% [58–67] | 9% [7–12] | 18% [14–21] | like solo |
 
-- Окно 5:00–8:00: доля смертей в нём normal соло 44% → 32% всех смертей (118/267 → 116/362), дуо
-  84% → 20%. Смерти сместились в 10:00–12:30 (бой с Harpy Queen и волны после неё), до 5:00 почти нет.
-  Cursed по-прежнему умирает в основном в окне (64% смертей): это и есть отличие сложности.
-- Герои (normal соло, qualification): мечница 61% / 23%, магесса 44% / 15% (до: 77/58% и 28/21%).
-  Разрыв сократился, но магесса всё ещё слабее; следующий рычаг — её молния L1 или HP (80 закреплено тестом).
-- Дуо: 2-го босса бьют чаще соло (63 против 51%), 3-го так же (18 против 17%).
-- Чувствительность: исход очень круто зависит от силы. ±0.001 в `ITEM_POWER.scale` сумки двигает 3-го
-  босса на 5–10 п.п.; между наборами сидов (tuning/validation/qualification) normal соло гуляет 46–58% / 13–21%.
+- Window 5:00–8:00: death share in it normal solo 44% → 32% of all deaths (118/267 → 116/362). Duo
+  84% → 20%. Deaths shifted to 10:00–12:30 (Harpy Queen fight and waves after). By 5:00 almost none.
+  Cursed still dies mostly in window (64% of deaths): this is difficulty distinction.
+- Heroes (normal solo, qualification): Hero 61% / 23%, Mage 44% / 15% (was 77/58% and 28/21%).
+  Gap narrowed but Mage still weaker. Next lever: her lightning L1 or HP (80 set by test).
+- Duo: kill 2nd boss more than solo (63 versus 51%), 3rd same (18 versus 17%).
+- Sensitivity: outcome depends very steeply on power. ±0.001 in `ITEM_POWER.scale` for bag moves 3rd boss 5–10 pp. Between seed sets (tuning/validation/qualification) normal solo ranges 46–58% / 13–21%.
 
-### 11.1 Что изменено
+### 11.1 What changed
 
-- **Поздняя игра** (до: кто пережил 10:00, почти всегда побеждал; после 12:00 лимит 400 врагов был забит
-  кошками и гарпиями по 30–100 HP). `stages/forest.js`: волны 10:00–15:00 гуще (частоты спавна ×2–2.9,
-  размеры событий ×1.6–1.9), но минимумы кошек и гарпий 13–14 мин 80–140 вместо 175–320; новые потоки ламий (13:00,
-  min 20→60) и две стены ламий (13:30, 14:00). `damagePerMinute` 0.03 → 0.07. `enemies.js`: lamia HP 400 → 700,
-  bunnygirl 60 → 100. Окно 5:00–8:00 слегка легче (частоты и события ×0.89), 8:00–10:00 ×1.05.
-- **Боссы** (`bosses.js`, Жница не тронута): Harpy Queen `hpPerLevel` 440 → 400; Dryad Queen `hpPerLevel`
-  900 → 1200, урон 14 → 18, удар по земле 34 → 40, призыв кошек 6 раз в 8 с → 10 раз в 6 с, плюс 3 ламии
-  раз в 10 с, кольцо снарядов работает и вне ярости.
-- **Оружие** (`weapons.js`, только `damage`, множитель L5): молния ×2.9, луч ×2.9 (и `width` +4),
-  арбалет ×2.3, огонёк ×2.1, ледяной шар ×1.7, яд ×1.7, щиты ×1.5, ножи ×1.3, метеор ×1.2; бомба ×0.7,
-  топор ×0.8, мины ×0.83, копьё ×0.84; меч и молот без изменений. Эволюции: aegis_bastion 22 → 211
-  (щиты были бесполезны), crimson_arc 15 → 52 (была слабее L5 меча), blizzard ×1.8, ballista ×1.25,
-  spirit_choir ×1.2, death_spiral ×1.15, prism_ray ×1.06, miasma 12 → 11 (soul_garden в итоге без изменений, 22),
-  starfall ×0.7, titan_maul 130 → 70, minefield ×0.47, napalm_rain ×0.38, dragon_lance ×0.37. Правило:
-  эволюция не слабее своего L5 по урону в секунду на цель (кроме ауры/облака с заметно большей площадью).
-- **Предметы** (`items.js`): `STAT_REF` защиты ниже пассивки — maxHp 1.0 → 0.3, armor 5 → 2, regen 1.0 → 0.35,
-  dodge 0.15 → 0.08, speed 0.4 → 0.25; `scale` 0.02 без изменений. Абляция (сумка без maxHp/armor/regen/dodge
-  давала 54% против 79% с ними) показала, что ботов тащит защита. Тест «сумка ≈ 2–3 пассивки» меряет в
-  единицах `STAT_REF`, поэтому формально остаётся 2.4: по защите это теперь завышенная оценка (решение владельцу).
-- **Режимы**: `coop.js` spawnMul 1.4 → 1.25, enemyHpMul 0.85 → 0.7, bossHpMul 0.5 → 0.4;
-  `difficulty.js` cursed hpMul 1.25 → 1.08 (spawnMul 1.5, тест требует > 1.3× спавна); магесса magic 1.25 → 1.4.
+- **Late game** (was: who survived 10:00 almost always won. After 12:00 limit 400 enemies hit with cats and harpies 30–100 HP). `stages/forest.js`: waves 10:00–15:00 denser (spawn frequencies ×2–2.9,
+  event sizes ×1.6–1.9) but cat and harpy minimums at 13–14 min 80–140 instead of 175–320. New lamia streams (13:00,
+  min 20→60) and two lamia walls (13:30, 14:00). `damagePerMinute` 0.03 → 0.07. `enemies.js`: lamia HP 400 → 700,
+  bunnygirl 60 → 100. Window 5:00–8:00 slightly easier (frequencies and events ×0.89), 8:00–10:00 ×1.05.
+- **Bosses** (`bosses.js`, Reaper untouched): Harpy Queen `hpPerLevel` 440 → 400. Dryad Queen `hpPerLevel`
+  900 → 1200, damage 14 → 18, ground slam 34 → 40, cat summon 6 times in 8 s → 10 times in 6 s plus 3 lamiae
+  every 10 s, projectile ring works outside frenzy.
+- **Weapons** (`weapons.js`, `damage` only, L5 multiplier): lightning ×2.9, beam ×2.9 (and `width` +4),
+  ballista ×2.3, sparkfire ×2.1, frost orb ×1.7, miasma ×1.7, shields ×1.5, daggers ×1.3, meteor ×1.2. Bomb ×0.7,
+  axe ×0.8, mines ×0.83, lance ×0.84. Blade and mallet unchanged. Evolutions: aegis_bastion 22 → 211
+  (shields were useless), crimson_arc 15 → 52 (was weaker than L5 blade), blizzard ×1.8, ballista ×1.25,
+  spirit_choir ×1.2, death_spiral ×1.15, prism_ray ×1.06, miasma 12 → 11 (soul_garden ends unchanged, 22).
+  radiant_star ×0.7, titan_maul 130 → 70, minefield ×0.47, napalm_rain ×0.38, dragon_lance ×0.37. Rule:
+  evolution not weaker than its L5 by damage per second per target (except aura/cloud with noticeably more area).
+- **Items** (`items.js`): `STAT_REF` defense lower than passive. maxHp 1.0 → 0.3, armor 5 → 2, regen 1.0 → 0.35,
+  dodge 0.15 → 0.08, speed 0.4 → 0.25. `scale` 0.02 unchanged. Ablation (bag without maxHp/armor/regen/dodge
+  gave 54% versus 79% with them) shows bots are carried by defense. Test "bag ≈ 2–3 passives" measures in
+  `STAT_REF` units so formally stays 2.4: for defense this is now an overestimate (owner decision).
+- **Modes**: `coop.js` spawnMul 1.4 → 1.25, enemyHpMul 0.85 → 0.7, bossHpMul 0.5 → 0.4.
+  `difficulty.js` cursed hpMul 1.25 → 1.08 (spawnMul 1.5, test requires > 1.3× spawn). Mage magic 1.25 → 1.4.
 
-### 11.2 Оружие: урон за секунду владения
+### 11.2 Weapons: damage per second of ownership
 
-Метрика `tools/simulation/targets.mjs`: эффективный урон оружия / секунды, пока оно в сборке (normal соло,
-qualification). Базовые оружия держат с ранних минут, эволюции только поздно (больше врагов, все пассивки),
-поэтому сравнивать базовые с базовыми, эволюции с эволюциями. * — меньше 20 мин владения в сумме.
+Metric `tools/simulation/targets.mjs`: effective weapon damage per second while in build (normal solo,
+qualification). Base weapons held from early minutes, evolutions late only (more enemies, all passives).
+Compare base to base, evolutions to evolutions. * = less than 20 min ownership total.
 
-| | до | после |
+| | before | after |
 | --- | --- | --- |
-| базовые, мин–макс | beam 56, frost 78, storm 87 … war_axe 351 (×6.3) | frost 136, shields 190, beam 218 … firebomb 425 (×3.1, без двух защитных ×2.0) |
-| эволюции, мин–макс | aegis 166*, blizzard 366, crimson 409 … dragon_lance 1637 | napalm 883*, aegis 944, blizzard 1320 … soul_garden 2521, minefield 2536* |
-| доля урона, топ | blade_arc 18.5%, daggers 9.1%, holy 8.8% | blade_arc 18.6%, storm_chain 13.4%, daggers 9.0% |
+| base weapons, min–max | beam 56, frost 78, storm 87 … war_axe 351 (×6.3) | frost 136, shields 190, beam 218 … firebomb 425 (×3.1, without two defense ×2.0) |
+| evolutions, min–max | aegis 166*, blizzard 366, crimson 409 … dragon_lance 1637 | napalm 883*, aegis 944, blizzard 1320 … soul_garden 2521, minefield 2536* |
+| damage share, top | blade_arc 18.5%, daggers 9.1%, holy 8.8% | blade_arc 18.6%, storm_chain 13.4%, daggers 9.0% |
 
-Доминирования нет: верх долей — стартовые оружия героев (меч у половины забегов, молния у другой).
-Молния в дуо — самое сильное базовое оружие (327 в секунду против 117–277 у остальных, 24% урона, магесса в
-каждом дуо), в соло в середине (263). Следить: soul_garden после подъёма до 22 — верх эволюций; щиты и лёд
-ниже остальных — они платят за блок снарядов и замедление.
+No domination: top share is hero starting weapons (blade for half the runs, lightning for the other).
+Lightning in duo is the strongest base weapon (327 per second versus 117–277 for others, 24% damage. Mage in
+every duo). In solo mid-range (263). Watch: soul_garden after raise to 22 is top evolution. Shields and ice
+below others. They pay with projectile block and slow.
 
-### 11.3 Воспроизведение
+### 11.3 Reproduction
 
 ```bash
 node tools/simulation/targets.mjs --n 240 --split qualification --workers 30 --out tools/out/targets/q.json
-node tools/simulation/targets.mjs --n 80 --modes normal/1,normal/1/bag --pick 1 --tier 2   # быстрый tuning
+node tools/simulation/targets.mjs --n 80 --modes normal/1,normal/1/bag --pick 1 --tier 2   # fast tuning
 ```
 
-Режимы `difficulty/players[/bag]`; сумка — `config.bag = {tier, cells, pick}` (runner, replay) или готовые
-`config.loadouts`. «До» считалось теми же скриптами на снимке dd143ec (`git archive`), сиды те же.
+Modes `difficulty/players[/bag]`. Bag is `config.bag = {tier, cells, pick}` (runner, replay) or ready
+`config.loadouts`. "Before" same scripts on snapshot dd143ec (`git archive`), same seeds.
 
-## 12. Клир вместо смертей (27.10.2026)
+## 12. Clear instead of deaths (27.10.2026)
 
-Владелец: «за провал считается не смерть, а то, что монстров становится больше». Разделы 1–11 мерили долю
-забегов с убитым боссом у смертных ботов, а смерть бота определялась его движением (бот получал больше ударов,
-чем люди, раздел 4). Теперь две раздельные метрики: **клир** (бессмертные боты трёх билдов) и **защита на бумаге**
-(человеческая частота ударов × урон врагов). Код: ветка `meta-items`; данные людей — снимок 24.10 и свежая
-выгрузка 27.10 (52 документа; публичный REST Firestore через `tools/telemetry/export.mjs`, без секретов).
+Owner: "failure is not death but monsters becoming more." Sections 1–11 measured win rate among mortal bots
+and death defined by bot movement (bots took more hits than people, section 4). Now two metrics: **clear**
+(immortal bots of three builds) and **defense on paper** (human hit frequency × enemy damage). Code: branch `meta-items`.
+People data: snapshot 24.10 and fresh export 27.10 (52 documents. Public REST Firestore via `tools/telemetry/export.mjs`, no secrets).
 
-### 12.1 Данные людей: удары, движение, клир
+### 12.1 People data: hits, movement, clear
 
-`tools/telemetry/hits.mjs` (итог в `docs/simulation-evidence/human-hits-2026-10-27.json`). Удар — событие
-`playerHurt` своего игрока (схема v2+, i-frames 0.5 с); у v1 событий нет, удары оценены как урон по источнику /
-урон врага на средней минуте забега. Документы с обрезанными `events` (лимит 4000, 2 забега) считаются до
-последнего события. Соло: 42 документа (29 с событиями), дуо: 10. Почти все соло — магесса, 1–3 человека.
+`tools/telemetry/hits.mjs` (result in `docs/simulation-evidence/human-hits-2026-10-27.json`). Hit is
+`playerHurt` event of own player (schema v2+, i-frames 0.5 s). V1 has no events. Hits estimated as enemy damage / enemy damage on median minute. Documents with cut-off `events` (limit 4000, 2 runs) count to last event. Solo: 42 documents (29 with events). Duo: 10. Almost all solo are Mage, 1–3 people.
 
-| | соло normal (7 док.) | соло cursed (22 док.) | дуо normal (5) | дуо cursed (5) |
+| | solo normal (7 docs) | solo cursed (22 docs) | duo normal (5) | duo cursed (5) |
 |---|---|---|---|---|
-| ударов в минуту, весь забег | 0.9 | 1.6 | 0.9 | 1.8 |
-| v1 (оценка по урону) | 0.9 | 1.7 | — | — |
-| ударов в минуту 5:00–7:00 | 1.0–1.7 | 1.7–3.8 | 1.0–3.5 | 2.5–6.2 |
-| ударов в минуту 8:00–15:00 | 0–2 | 0.5–1.4 (14:00 — 3.3, Дриада) | 0–1.5 | — |
-| урон в минуту 5:00–7:00 / 10:00–14:00 | 15–24 / 0–35 | 24–53 / 8–61 | 14–50 / 0–23 | 35–91 / — |
-| до ближайшего врага, медиана px | 90–240 | 81–150 | 105–238 | 72–246 |
-| скорость, медиана px/с | 46–89 (поздно 0) | 73–94 (12:00+ 0–9) | 45–88 | 42–91 |
-| доля секунд на месте, 10:00–14:00 | 9–56% | 30–60% | 0–47% | — |
+| hits per minute, whole run | 0.9 | 1.6 | 0.9 | 1.8 |
+| v1 (estimate by damage) | 0.9 | 1.7 | — | — |
+| hits per minute 5:00–7:00 | 1.0–1.7 | 1.7–3.8 | 1.0–3.5 | 2.5–6.2 |
+| hits per minute 8:00–15:00 | 0–2 | 0.5–1.4 (14:00 3.3, Dryad) | 0–1.5 | — |
+| damage per minute 5:00–7:00 / 10:00–14:00 | 15–24 / 0–35 | 24–53 / 8–61 | 14–50 / 0–23 | 35–91 / — |
+| distance to nearest enemy, median px | 90–240 | 81–150 | 105–238 | 72–246 |
+| speed, median px/s | 46–89 (late 0) | 73–94 (12:00+ 0–9) | 45–88 | 42–91 |
+| time standing still 10:00–14:00 | 9–56% | 30–60% | 0–47% | — |
 
-- **Подтверждено: удары редкие.** Средний человек получает ~1–2 удара в минуту; 80 против 120 HP — это 2 удара
-  на 10:00 (удар ~22). Пик 5:00–7:00 (3.4–3.8 в 5:00–6:59 cursed соло) почти целиком от рывков и выстрелов:
-  из 114 ударов соло в 5:00–7:59 — 67 лисы (`foxgirl`), 31 суккубы, 10 Кицунэ, 6 остальные. В 0:00–4:59 —
-  гарпии, кошки, слизни.
-- **Движение.** После 12:00 люди в cursed соло больше половины времени стоят (медиана скорости 0): сборка
-  чистит экран сама. Ближайший враг в 80–150 px (бот раньше 74–80 px, раздел 4).
-- **Клир у людей** (срезы раз в минуту: `en` живых в мире, `k` убийств): живых в мире на конце минуты в соло
-  27–130 до 5:00, 200–390 на 12:00–13:00 (у лимита 400 и у победителей). Жизнь моба по закону Литтла
-  (живые / убийства в секунду, с появления за краем экрана) 7–8 с до 4:00, 4–9 с позже.
-- **Боссы у людей** (с появления до убийства, медиана / макс, старые HP 240/400/1200 за уровень): соло normal
-  Кицунэ 25 / 108 с, Гарпия 17 / 29 с, Дриада 37 / 49 с; соло cursed 33 / 85, 19 / 29, 41 / 72 с.
-- Ограничения: людей мало (1–3 человека, в основном магесса); минуты после 8:00 — 3 (normal) и 10 (cursed)
-  документов; событие — только прошедший удар (увороты dodge не видны); на экране телеметрия хранит только
-  ближайшего врага, поэтому «врагов на экране» у людей нет, только живые в мире.
+- **Confirmed: hits are rare.** Average person takes ~1–2 hits per minute. 80 versus 120 HP is 2 hits by 10:00 (hit ~22). Peak 5:00–7:00 (3.4–3.8 at 5:00–6:59 cursed solo) almost entirely from dashes and shots:
+  of 114 solo hits in 5:00–7:59, 67 are foxes (`foxgirl`), 31 succubi, 10 Kitsune, 6 others. At 0:00–4:59
+  harpies, cats, slimes.
+- **Movement.** After 12:00 people in cursed solo stand still over half the time (median speed 0): build clears screen itself. Nearest enemy at 80–150 px (bot earlier 74–80 px, section 4).
+- **Clear for people** (snapshot per minute: `en` alive in world, `k` kills): alive in world end of minute in solo
+  27–130 by 5:00, 200–390 at 12:00–13:00 (at limit 400 and at winners). Enemy lifetime by Little's Law
+  (alive / kills per second, from spawn beyond edge) 7–8 s by 4:00, 4–9 s later.
+- **Bosses for people** (appearance to kill, median / max, old HP 240/400/1200 per level): solo normal
+  Kitsune 25 / 108 s, Harpy 17 / 29 s, Dryad 37 / 49 s. Solo cursed 33 / 85, 19 / 29, 41 / 72 s.
+- Limits: few people (1–3, mostly Mage). Minutes after 8:00: 3 (normal) and 10 (cursed)
+  documents. Event only past hit (no evade visible). Telemetry keeps nearest enemy only so people have no "enemies on screen" count, just alive in world.
 
-### 12.2 Метрики
+### 12.2 Metrics
 
-**Клир** (`tools/simulation/clear.mjs`, `tools/simulation/targets.mjs`). Бессмертные боты (`immortal`: смертельный
-удар возвращает 30% HP) — меряется только убийство. Билды (`profiles.mjs` `BUILD_BIAS`, бот берёт пассивки по
-профилю, оружие как обычно): **glass** — урон своего типа, крит, крит-урон, перезарядка, area, защита −4;
-**mid** — модель выбора людей без перекоса; **tank** — 4 защитные пассивки (max_hp, armor, regen, dodge) +3.
-По минутам: **жизнь моба на экране** (с первого кадра в видимой области 640×360 до смерти; обычные враги без
-элит и боссов), **врагов на экране** (среднее за минуту, замер раз в 0.25 с, по видам — `--types`), TTK (с первого
-попадания до смерти), попаданий на убийство, доля «одним ударом», живые в мире и доля времени у лимита 400.
-Провал минуты: жизнь > 8 с, или > 150 врагов на экране, или мир у лимита > 25% минуты; провал забега — две
-такие минуты подряд. Жизнь с появления за краем (390 px) на ~2 с больше «на экране»: это подход моба.
+**Clear** (`tools/simulation/clear.mjs`, `tools/simulation/targets.mjs`). Immortal bots (`immortal`: lethal hit returns 30% HP). Only kill measured. Builds (`profiles.mjs` `BUILD_BIAS`, bot picks passives by profile, weapons normally): **glass** attack damage type, crit, crit damage, cooldown, area, defense −4. **mid** model of people's choice without bias. **tank** 4 defensive passives (max_hp, armor, regen, dodge) +3.
+Per minute: **enemy lifetime on screen** (first frame in visible 640×360 to death. Regular enemies without elite, bosses).
+**Enemies on screen** (average per minute, sampled every 0.25 s, by type `--types`). TTK (first hit to death). Hits per kill. Share "one-shot". Alive in world. Time at limit 400.
+Minute failure: lifetime > 8 s or > 150 enemies on screen or world at limit > 25% of minute. Run failure: two such minutes in a row. Lifetime from spawn beyond edge (~2 s more than "on screen"): this is approach time.
 
-Цели (`docs/META.md` 1.1): mid — 3–5 с на экране весь забег при ≤ ~120 на экране; glass — с 10:00 TTK 1–2 с
-при ≥ 2 попаданиях на убийство; tank — без провала до 10:00. Боссы — TTK отчётом.
+Goals (`docs/META.md` 1.1): mid 3–5 s on screen all run at ≤ ~120 on screen. Glass from 10:00 TTK 1–2 s
+at ≥ 2 hits per kill. Tank no failure by 10:00. Bosses reported as TTK.
 
-**Защита на бумаге** (`tools/simulation/defense.mjs`): удар на минуте m — урон врагов по человеческой смеси
-источников этой минуты (сглажено по m−1..m+1) × рост этапа; e = max(1, удар − броня) × (1 − уклон); **запас** =
-maxHp / e ударов, **реген** = regen × 60 / e ударов в минуту, **окно 3 мин** = запас + 3 × реген; «лишних
-в минуту» — разница с голым героем / 3. Шипы не входят (это урон). Сумки — средние по 40 сидам: случайная T2
-(как у ботов) и защитная T2 (шлем/броня/пояс/щит/сапоги, из трёх предметов берётся лучший по защите).
+**Defense on paper** (`tools/simulation/defense.mjs`): hit on minute m = enemy damage per minute
+(smoothed m−1…m+1 of people's source mix) × stage growth. e = max(1, hit − armor) × (1 − evade). **Buffer** =
+maxHp / e hits. **Regen** = regen × 60 / e hits per minute. **3-minute window** = buffer + 3 × regen. "Extra per minute" difference from bare hero / 3. Spikes not included (that is damage). Bags: average over 40 seeds.
+Random T2 (like bots) and defensive T2 (helmet/armor/belt/shield/boots, best defense item from three).
 
-### 12.3 Защита: до и после
+### 12.3 Defense: before and after
 
-Лишних ударов за 3-минутное окно на 10:00 (удар 22.4) за уровень пассивки, мечница (HP 120):
+Extra hits in 3-minute window at 10:00 (hit 22.4) per passive level, Hero (HP 120):
 
-| пассивка | до | после |
+| passive | before | after |
 |---|---|---|
-| max_hp (+20% за уровень, без изменений) | 1.0 | 1.0 |
-| armor | +1 за уровень: 0.30 … 0.43 | [2.5, 4.5, 6.5, 8, 9]: 0.85 … 1.15 |
-| regen | +0.2 за уровень: 1.5 | [0.12 … 0.60]: 0.96 |
-| dodge | +3% за уровень: 0.21 … 0.27 | [12, 21, 29, 35, 40%]: 0.94 … 1.05 |
-| защитная сумка T2 (45 клеток) | +2.2 (≈ 3 уровня) | +9.8 (≈ 10 уровней) |
-| случайная сумка T2 | +0.3 | +1.3 |
+| max_hp (+20% per level, unchanged) | 1.0 | 1.0 |
+| armor | +1 per level: 0.30 … 0.43 | [2.5, 4.5, 6.5, 8, 9]: 0.85 … 1.15 |
+| regen | +0.2 per level: 1.5 | [0.12 … 0.60]: 0.96 |
+| dodge | +3% per level: 0.21 … 0.27 | [12, 21, 29, 35, 40%]: 0.94 … 1.05 |
+| defensive bag T2 (45 cells) | +2.2 (≈ 3 levels) | +9.8 (≈ 10 levels) |
+| random bag T2 | +0.3 | +1.3 |
 
-Шаги брони и уклонения убывают, потому что эти статы выпуклые (удар − броня, × (1 − уклон)): так каждый
-уровень даёт ≈ 1 удар. Магесса (HP 80): 0.7 за уровень HP, брони и уклонения, 0.96 регена. Предметы: `STAT_REF`
-защиты снова равен пассивке L5 (maxHp 1.0, armor 9, regen 0.6, dodge 0.4; было 0.3 / 2 / 0.35 / 0.08): большой
-предмет (2×3, T2, обязательный аффикс) даёт ~0.7–0.9 уровня пассивки, почти удар, а не +8 HP.
+Armor and dodge steps fall because these stats are convex (hit − armor, × (1 − evade)): each level gives ≈ 1 hit. Mage (HP 80): 0.7 per level HP, armor, evade. 0.96 regen. Items: `STAT_REF`
+defense equals passive L5 (maxHp 1.0, armor 9, regen 0.6, dodge 0.4. Was 0.3 / 2 / 0.35 / 0.08): large item (2×3, T2, guaranteed affix) gives ~0.7–0.9 passive level, nearly a hit, not +8 HP.
 
-Таблица `defense.mjs` (мечница; запас / реген ударов в минуту / лишних в минуту против голой):
+Table `defense.mjs` (Hero. Buffer / regen hits per minute / extra per minute versus bare):
 
-| сборка | HP | броня | реген | уклон | 6:00 (удар 17.7) | 10:00 (22.4) | 14:00 (27.3) |
+| build | HP | armor | regen | evade | 6:00 (hit 17.7) | 10:00 (22.4) | 14:00 (27.3) |
 |---|---|---|---|---|---|---|---|
-| голая | 120 | 0 | 0.25 | 0 | 6.8 / 0.8 / — | 5.3 / 0.7 / — | 4.4 / 0.5 / — |
-| средняя: 10 уровней защиты | 192 | 6.5 | 0.49 | 21% | 21.8 / 3.3 / +7.5 | 15.2 / 2.3 / +5.0 | 11.7 / 1.8 / +3.7 |
-| полная: 4 пассивки L5 | 240 | 9 | 0.85 | 40% | 46.2 / 9.8 / +22 | 29.8 / 6.3 / +13.8 | 21.8 / 4.6 / +9.9 |
-| голая + защитная сумка T2 | 204 | 5.2 | 0.40 | 6% | 17.6 / 2.1 / +4.8 | 12.7 / 1.5 / +3.3 | 9.9 / 1.2 / +2.4 |
+| bare | 120 | 0 | 0.25 | 0 | 6.8 / 0.8 / — | 5.3 / 0.7 / — | 4.4 / 0.5 / — |
+| medium: 10 defense levels | 192 | 6.5 | 0.49 | 21% | 21.8 / 3.3 / +7.5 | 15.2 / 2.3 / +5.0 | 11.7 / 1.8 / +3.7 |
+| full: 4 passives L5 | 240 | 9 | 0.85 | 40% | 46.2 / 9.8 / +22 | 29.8 / 6.3 / +13.8 | 21.8 / 4.6 / +9.9 |
+| bare + defensive bag T2 | 204 | 5.2 | 0.40 | 6% | 17.6 / 2.1 / +4.8 | 12.7 / 1.5 / +3.3 | 9.9 / 1.2 / +2.4 |
 
-Полоса glass → защитный (уровней защиты → ударов за окно на 10:00): 0 → 7.4, 4 → 12.0, 8 → 18.1, 12 → 26.7,
-16 → 37.0, 20 → 48.7 (магесса 5.6 → 38.8). Каждая пассивка по отдельности линейна, вместе они **множатся**
-(HP × снижение удара), поэтому полная защита ≈ 6.5× голой. При человеческих 1–3 ударах в минуту голая мечница
-на 6:00 живёт ~3.6 мин без еды, средняя защита — без ограничения (реген закрывает).
+Range glass → defense (defense levels → hits in 3-minute window at 10:00): 0 → 7.4, 4 → 12.0, 8 → 18.1, 12 → 26.7,
+16 → 37.0, 20 → 48.7 (Mage 5.6 → 38.8). Each passive alone linear. Together they **multiply**
+(HP × damage reduction) so full defense ≈ 6.5× bare. At human 1–3 hits per minute bare Hero at 6:00
+lives ~3.6 min without food. Medium defense: no limit (regen covers).
 
-### 12.4 Клир: до и после
+### 12.4 Clear: before and after
 
-Validation-сиды (n = 40 на ячейку, 480 забегов), `targets.mjs`. «До» — данные на начало задачи, восстановленные
-экспериментом (таймлайн и враги из HEAD, HP боссов 240/400/1200, `coop.enemyHpMul` 0.7, cursed 1.5, старые
-пассивки, скорость героев 95); «после» — текущие данные (скорость 100). Ячейка: жизнь моба на экране, с /
-врагов на экране в среднем. Провалы — по правилу 12.2 у обеих колонок.
+Validation seeds (n = 40 per cell, 480 runs), `targets.mjs`. "Before" data at task start, recovered by experiment (timeline and enemies from HEAD, boss HP 240/400/1200, `coop.enemyHpMul` 0.7, cursed 1.5, old passives, hero speed 95). "After" current data (speed 100). Cell: enemy lifetime on screen with / enemies on screen average. Failures by rule 12.2 in both columns.
 
-До:
+Before:
 
-| режим/билд | 1:00 | 3:00 | 5:00 | 6:00 | 7:00 | 9:00 | 11:00 | 12:00 | 13:00 | 14:00 | TTK 10–14 | уд/убийство 10–14 | провал до 10:00 | провал всего |
+| mode/build | 1:00 | 3:00 | 5:00 | 6:00 | 7:00 | 9:00 | 11:00 | 12:00 | 13:00 | 14:00 | TTK 10–14 | hits/kill 10–14 | failure by 10:00 | failure total |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | normal/1/glass | 3.4 / 17 | 3.9 / 38 | 4.8 / 43 | 5.5 / 57 | 9.9 / 47 | 5.1 / 88 | 5.6 / 87 | 6.1 / 136 | 5 / 179 | 4.2 / 152 | 3.1 | 6.1 | 9/40 | 23/40 |
 | normal/1/mid | 3.3 / 17 | 3.9 / 38 | 4.9 / 44 | 6.3 / 64 | 11.9 / 57 | 5.9 / 95 | 7.1 / 103 | 8.4 / 152 | 7 / 183 | 6.3 / 173 | 4.4 | 7.1 | 13/40 | 34/40 |
@@ -608,9 +567,9 @@ Validation-сиды (n = 40 на ячейку, 480 забегов), `targets.mjs
 | cursed/2/mid | 2.9 / 29 | 3.3 / 61 | 3.3 / 55 | 3.6 / 70 | 5.1 / 42 | 3.3 / 107 | 5 / 137 | 6.3 / 191 | 5.1 / 199 | 5.4 / 202 | 2.8 | 5.8 | 0/40 | 40/40 |
 | cursed/2/tank | 3 / 29 | 3.2 / 61 | 3.4 / 57 | 4.1 / 77 | 5.9 / 51 | 4 / 116 | 7.3 / 167 | 8.6 / 191 | 7.3 / 192 | 7.8 / 202 | 4.6 | 7.3 | 0/40 | 40/40 |
 
-После:
+After:
 
-| режим/билд | 1:00 | 3:00 | 5:00 | 6:00 | 7:00 | 9:00 | 11:00 | 12:00 | 13:00 | 14:00 | TTK 10–14 | уд/убийство 10–14 | провал до 10:00 | провал всего |
+| mode/build | 1:00 | 3:00 | 5:00 | 6:00 | 7:00 | 9:00 | 11:00 | 12:00 | 13:00 | 14:00 | TTK 10–14 | hits/kill 10–14 | failure by 10:00 | failure total |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | normal/1/glass | 3.2 / 17 | 3.7 / 36 | 3.5 / 28 | 3.5 / 35 | 4.4 / 21 | 2.9 / 71 | 3.2 / 40 | 3.5 / 63 | 3.2 / 99 | 2.7 / 76 | 1.7 | 4.1 | 0/40 | 0/40 |
 | normal/1/mid | 3.3 / 17 | 4.1 / 39 | 3.9 / 30 | 3.9 / 39 | 5.2 / 24 | 3.4 / 77 | 4.1 / 50 | 4.6 / 78 | 4.1 / 117 | 3.8 / 91 | 2.4 | 5.0 | 4/40 | 6/40 |
@@ -625,13 +584,13 @@ Validation-сиды (n = 40 на ячейку, 480 забегов), `targets.mjs
 | cursed/2/mid | 3 / 27 | 3.6 / 60 | 3 / 45 | 3.3 / 60 | 3.8 / 33 | 2.7 / 111 | 4.1 / 85 | 5.2 / 137 | 4.9 / 176 | 5 / 164 | 3.1 | 5.6 | 0/40 | 28/40 |
 | cursed/2/tank | 3 / 27 | 3.6 / 61 | 3.4 / 49 | 4 / 72 | 5 / 43 | 3.2 / 121 | 5.8 / 113 | 8 / 171 | 7.2 / 193 | 6.7 / 181 | 3.9 | 6.5 | 0/40 | 38/40 |
 
-Итог (normal соло): средний билд держит 3.3–5.2 с на экране весь забег (до: 6–12 с с 6:00, у лимита мира с 12:00), врагов на экране ≤ 117 (до: до 183); провалы mid 6/40 (до 34/40), до 10:00 4/40 (до 13/40). Glass с 10:00 убивает за 1.7 с с первого попадания при 4.1 попадания на убийство (до 3.1 с / 6.1); tank клирит заметно хуже (7–8 с с 12:00), проваливается в основном после 11:00 (до 10:00 3/40, до: 20/40). Дуо — как соло, было вдвое быстрее (2.4–4.8 с при HP × 0.7). Cursed тяжелее: больше врагов на экране, mid проваливается в 9/40 соло и 28/40 дуо, почти всё после 12:00.
+Summary (normal solo): medium build holds 3.3–5.2 s on screen the whole run (before: 6–12 s from 6:00, at world limit from 12:00). Enemies on screen ≤ 117 (before: to 183). Mid failures 6/40 (before 34/40). By 10:00: 4/40 (before 13/40). Glass kills from 10:00 in 1.7 s from first hit with 4.1 hits per kill (before 3.1 s / 6.1). Tank clears noticeably slower (7–8 s from 12:00), fails mostly after 11:00 (before 10:00: 3/40, was 20/40). Duo like solo, was twice as fast (2.4–4.8 s at HP × 0.7). Cursed harder: more on screen. Mid fails 9/40 solo, 28/40 duo. Mostly after 12:00.
 
-Боссы (бот, HP по уровню при появлении; TTK — медиана / максимум, с):
+Bosses (bot, HP per level at spawn. TTK median / max, s):
 
-До:
+Before:
 
-| режим/билд | Кицунэ: HP, TTK мед/макс | Гарпия: HP, TTK | Дриада: HP, TTK, убита | L |
+| mode/build | Kitsune: HP, TTK med/max | Harpy: HP, TTK | Dryad: HP, TTK, killed | L |
 |---|---|---|---|---|
 | normal/1/glass | 4800, 57.4/256.3 | 15200, 25.4/54.8 | 76800, 56.2/106, 37/40 | 70 |
 | normal/1/mid | 4800, 69.2/169.4 | 15600, 36.3/178.2 | 72000, 70.7/117.2, 33/40 | 70 |
@@ -646,9 +605,9 @@ Validation-сиды (n = 40 на ячейку, 480 забегов), `targets.mjs
 | cursed/2/mid | 3264, 26.1/63.4 | 11200, 15.7/34.7 | 49440, 53.6/91.3, 38/40 | 110 |
 | cursed/2/tank | 3264, 32/64.3 | 10400, 25/42.3 | 44160, 73.3/109.4, 39/40 | 99 |
 
-После:
+After:
 
-| режим/билд | Кицунэ: HP, TTK мед/макс | Гарпия: HP, TTK | Дриада: HP, TTK, убита | L |
+| mode/build | Kitsune: HP, TTK med/max | Harpy: HP, TTK | Dryad: HP, TTK, killed | L |
 |---|---|---|---|---|
 | normal/1/glass | 5000, 40.6/102.4 | 18500, 22.7/41.2 | 61000, 35.5/75.1, 40/40 | 63 |
 | normal/1/mid | 5000, 48/169.5 | 19500, 32.3/107.4 | 58000, 51.6/110, 39/40 | 63 |
@@ -663,87 +622,67 @@ Validation-сиды (n = 40 на ячейку, 480 забегов), `targets.mjs
 | cursed/2/mid | 3200, 25.6/50.6 | 12800, 19.3/39.7 | 38400, 43.4/92, 40/40 | 100 |
 | cursed/2/tank | 3300, 28.4/63.4 | 12000, 27.5/49 | 35200, 52/97.9, 39/40 | 94 |
 
-Боты бьют боссов дольше людей (люди: Кицунэ 25–33 с, Гарпия 17–19 с, Дриада 37–41 с при старых HP): бот не
-преследует босса, а ходит за опытом. Жница (750 × уровень) этой метрикой не меряется: нужен сценарий
-с Библией.
+Bots take longer on bosses than people (people: Kitsune 25–33 s, Harpy 17–19 s, Dryad 37–41 s on old HP): bot does not chase boss, walks for experience. Reaper (750 × level) not measured by this metric: needs Bible scenario.
 
-### 12.5 Что изменено
+### 12.5 What changed
 
-- **Гейтинг** (`src/core/director.js`, поле `afterBoss`, `docs/CONTENT.md`): лисы (`foxgirl`, рывок) — после
-  убийства 1-го босса, суккубы (стрелки) — после 2-го; призыв лис Кицунэ остаётся. Ранние потоки суккуб
-  (4:10–11:00) заменены кроликами и кошками, элитная суккуба 8:00 — элитным кроликом, на 10:00 добавлен
-  слабый поток суккуб (`afterBoss: 2`). Тесты `tests/unit/director.test.js`.
-- **Таймлайн 10:00–15:00** (`stages/forest.js`): минимумы живых × 0.6 (с 12:30 ещё × 0.85), частоты × 0.85
-  (с 12:30 ещё × 0.8), разовые события × 0.85 (с 12:30 ещё × 0.8), суккубы 12:00 частота ещё × 0.5, ламии
-  (потоки и стены) минимум × 0.6, частота × 0.7. Раньше одни минимумы заполняли мир до лимита 400 к 13:00
-  при любом клире.
-- **Враги** (`enemies.js`, `forest.scaling`): ламия HP 700 → 500, лиса 160 → 140, рост HP 0.133 → 0.11 в минуту.
-- **Режимы**: `coop.enemyHpMul` 0.7 → 1.0 (дуо клирило вдвое быстрее соло), `cursed.spawnMul` 1.5 → 1.4.
-- **Боссы** (`bosses.js`, числа владельца): hpPerLevel Кицунэ 240 → 250, Гарпия 400 → 500, Дриада 1200 → 1000,
-  Жница 1300 → 750.
-- **Пассивки** (`passives.js`): attack/magic +10% → +15% за уровень (полоса glass ↔ mid шире); armor, regen,
-  dodge по таблице 12.3. **Предметы** (`items.js` `STAT_REF`): защита = пассивка L5.
-- **Инструменты**: `tools/telemetry/hits.mjs`, `tools/simulation/clear.mjs`, `defense.mjs`, `targets.mjs`
-  (переписан: клир по билдам вместо доли убитых боссов), `profiles.mjs` (`BUILD_BIAS`, `BUILD_PROFILES`),
-  `policy.mjs` (выбор пассивок по билду), `runner.mjs` (`config.clear`), `experiment.mjs` (поля enemies, bosses,
+- **Gating** (`src/core/director.js`, field `afterBoss`, `docs/CONTENT.md`): foxes (`foxgirl`, dash) after 1st boss kill. Succubi (archers) after 2nd. Kitsune's summon of foxes remains. Early succubus streams (4:10–11:00) replaced with bunnies and cats. Elite succubus at 8:00 replaced with elite bunny. At 10:00 weak succubus stream added (`afterBoss: 2`). Tests `tests/unit/director.test.js`.
+- **Timeline 10:00–15:00** (`stages/forest.js`): minimums alive × 0.6 (from 12:30 also × 0.85). Spawn frequencies × 0.85
+  (from 12:30 also × 0.8). One-off events × 0.85 (from 12:30 also × 0.8). Succubi at 12:00 frequency also × 0.5. Lamiae
+  (streams and walls) minimum × 0.6, frequency × 0.7. Before, minimums alone filled world to 400 limit by 13:00
+  in any clear.
+- **Enemies** (`enemies.js`, `forest.scaling`): lamia HP 700 → 500. Fox 160 → 140. HP growth 0.133 → 0.11 per minute.
+- **Modes**: `coop.enemyHpMul` 0.7 → 1.0 (duo cleared twice as fast as solo), `cursed.spawnMul` 1.5 → 1.4.
+- **Bosses** (`bosses.js`, owner numbers): hpPerLevel Kitsune 240 → 250, Harpy 400 → 500, Dryad 1200 → 1000,
+  Reaper 1300 → 750.
+- **Passives** (`passives.js`): attack/magic +10% → +15% per level (glass ↔ mid range wider). Armor, regen,
+  dodge per table 12.3. **Items** (`items.js` `STAT_REF`): defense = passive L5.
+- **Tools**: `tools/telemetry/hits.mjs`, `tools/simulation/clear.mjs`, `defense.mjs`, `targets.mjs`
+  (rewritten: clear per builds instead of boss kill rate), `profiles.mjs` (`BUILD_BIAS`, `BUILD_PROFILES`),
+  `policy.mjs` (passive choice by build), `runner.mjs` (`config.clear`), `experiment.mjs` (fields enemies, bosses,
   timeline, scaling, passives, difficulty).
-- **Тесты**: `stats.test.js` брал броню L5 = 5 и attack L5 = 0.5 числом — теперь из `PASSIVES`;
-  `sim.test.js` cursed «спавн > 1.3× normal» → «> 1.2×» (spawnMul 1.4, в первую минуту ~1.29× из-за округления);
-  `system.test.js`: изменённый ввод теперь отвергается как невозможная команда экрана раньше расхождения
-  чекпоинта — регулярка принимает оба.
+- **Tests**: `stats.test.js` took armor L5 = 5 and attack L5 = 0.5 by number. Now from `PASSIVES`.
+  `sim.test.js` cursed "spawn > 1.3× normal" → "> 1.2×" (spawnMul 1.4, first minute ~1.29× from rounding).
+  `system.test.js`: changed input now rejected as impossible screen command before checkpoint divergence. Regex accepts both.
 
-### 12.6 Что не решено
+### 12.6 Unresolved
 
-- Броня и уклонение множатся с HP: полная защита (4 × L5) ≈ 6.5× голой, с защитной сумкой ≈ 14×, броня 14
-  на 3:00 сводит удары к 1. Линейную полосу «вместе» даст только другая формула (броня процентом с убыванием
-  или общий кап снижения удара) — правка `core/stats.js` / `sim.hurtPlayer`, решение владельца.
-- `STAT_REF` атаки и магии на предметах 0.5 = 2/3 новой пассивки L5 (0.75): не поднимал, сумки клиром не мерились.
-- «3–5 с» понято как жизнь моба **на экране** (с первого кадра): с появления за краем добавляется ~2 с подхода,
-  с первого попадания (TTK) у mid 2–3 с поздно. «1–2 с» у glass — по TTK. Если владелец имел в виду другое,
-  цели пересчитываются той же таблицей.
-- Cursed дуо проваливается после 12:00 у mid в большинстве забегов (на экране 165–176): оставлено как
-  сложность режима; если нужно «cursed проходим средним билдом», следующий рычаг — минимумы 12:30–14:00 × spawnMul.
-- Боты медленнее людей на боссах (не преследуют); TTK людей на новых HP появится с новой телеметрией.
+- Armor and dodge multiply with HP: full defense (4 × L5) ≈ 6.5× bare, with defensive bag ≈ 14×. Armor 14 at 3:00 reduces hits to 1. Linear range "together" requires different formula (armor as percentage with diminishing or shared cap on damage reduction). Fix `core/stats.js` / `sim.hurtPlayer`. Owner decision.
+- `STAT_REF` attack and magic on items 0.5 = 2/3 of new passive L5 (0.75): not raised. Bags not measured by clear.
+- "3–5 s" understood as enemy lifetime **on screen** (first frame in visible). From spawn edge +~2 s approach.
+  From first hit (TTK) mid is 2–3 s late. "1–2 s" for glass is TTK. If owner meant something else,
+  goals recalculated same table.
+- Cursed duo fails after 12:00 at mid in most runs (on screen 165–176): left as mode difficulty. If "cursed passable at mid" needed,
+  next lever: 12:30–14:00 minimums × spawnMul.
+- Bots slower than people on bosses (do not chase). TTK for people on new HP appears with new telemetry.
 
-### 12.7 Воспроизведение
+### 12.7 Reproduction
 
 ```bash
-node tools/telemetry/export.mjs --out tools/out/telemetry-fresh       # публичная выгрузка fury_runs
+node tools/telemetry/export.mjs --out tools/out/telemetry-fresh       # public export fury_runs
 node tools/telemetry/hits.mjs docs/simulation-evidence/telemetry-2026-10-24.json.gz \
   tools/out/telemetry-fresh/runs.json --json docs/simulation-evidence/human-hits-2026-10-27.json
 node tools/simulation/defense.mjs [--hero heroine] [--window 3]
-node tools/simulation/targets.mjs --n 16 --modes normal/1 --workers 30 [--types]         # подбор, tuning
+node tools/simulation/targets.mjs --n 16 --modes normal/1 --workers 30 [--types]         # tuning, fast
 node tools/simulation/targets.mjs --n 40 --split validation --modes normal/1,cursed/1,normal/2,cursed/2 \
-  --workers 30 --out tools/out/clear/after-validation.json                               # итог, ~25 мин
+  --workers 30 --out tools/out/clear/after-validation.json                               # result, ~25 min
 ```
 
-«До» — тем же скриптом с `--experiment` (поля: `timeline`, `scaling`, `enemies`, `bosses`, `coop`, `difficulty`,
-`passives`, `heroStats`), собранным из `git show HEAD:src/data/...`.
+"Before" uses the same script with `--experiment` (fields `timeline`, `scaling`, `enemies`, `bosses`, `coop`,
+`difficulty`, `passives` and `heroStats`), built from `git show HEAD:src/data/...`.
+## 13. Clear from hero frame, weapon ladder, defense as percentage (2026-10-27)
 
-## 13. Клир от рамки героя, лестница оружия, защита процентом (27.10.2026)
+Phase 1: tools and measurements on the committed state (16b2cd9, section 12) before mechanic rework (resistance instead of armor, DoTs, cloud, beam). Number tuning is phase 2, below.
 
-Фаза 1: инструменты и замеры на закоммиченном состоянии (16b2cd9, раздел 12) до переделки механики
-(сопротивление вместо брони, ДоТы, облако, луч). Подбор чисел — фаза 2, ниже.
+### 13.1 Metric: life from entry into frame
 
-### 13.1 Метрика: жизнь с входа в рамку
+Owner: count mob life as "from the moment it enters a certain range of the Hero", otherwise balance gets anchored to ranged weapons (they hit mobs past the screen edge). The `CLEAR` frame in `src/data/constants.js`: 400 × 240 px of world around the Hero (~64% of screen width and 2/3 of height). `tools/simulation/clear.mjs`: **life in frame** means from the first entry of hitbox into frame until death (mobs killed before the frame does not count, their share is "before frame %"), **enemies in frame** is the average per minute; in coop life is counted from entry into frame of any Hero, the count is the average across hero frames. Old "on screen" and "from spawn" remain for comparison. Telemetry from players: in `movement` and in snaps `snaps.ef = [average, maximum]` enemies in frame per minute (`src/core/telemetry.js`, field added in v3 without version change; `tools/telemetry/hits.mjs` outputs it and life in frame by Little's law). Human data with `ef` is not yet available.
 
-Владелец: считать жизнь моба «от момента входа в определённый рендж героя», иначе баланс упирается в дальнобойное
-оружие (оно бьёт мобов ещё за краем экрана). Рамка `CLEAR` в `src/data/constants.js`: 400 × 240 px мира вокруг героя
-(~64% ширины и 2/3 высоты экрана). `tools/simulation/clear.mjs`: **жизнь в рамке** — с первого входа хитбокса в рамку
-до смерти (убитые до рамки не входят, их доля — «до рамки %»), **врагов в рамке** — среднее за минуту; в коопе жизнь —
-с входа в рамку любого героя, число — среднее по рамкам героев. Старые «на экране» и «с появления» остаются для
-сравнения. Телеметрия людей: в `movement` и в срезах `snaps.ef = [среднее, максимум]` врагов в рамке за минуту
-(`src/core/telemetry.js`, поле добавлено в v3 без смены версии; `tools/telemetry/hits.mjs` выводит его и жизнь в
-рамке по Литтлу). Человеческих данных с `ef` пока нет.
+Thresholds (`targets.mjs` `CLEAR_TARGETS`): goals are the same (mid 3–5 s, glass from 10:00 TTK 1–2 s at ≥ 2 hits, tank without failure through 10:00). Failure in a minute: life in frame > 8 s, or > 60 enemies in frame, or world limit > 25% of the minute, or crowd growing (in frame ≥ 30 and 1.5 times larger than last minute with life > 5 s); failure in a run is 2 consecutive minutes. 60 in frame ≈ 150 on screen: on the same runs, in frame is 0.36–0.5 of the screen.
 
-Пороги (`targets.mjs` `CLEAR_TARGETS`): цели те же (mid 3–5 с, glass с 10:00 TTK 1–2 с при ≥ 2 попаданиях, tank
-без провала до 10:00). Провал минуты: жизнь в рамке > 8 с, или > 60 врагов в рамке, или лимит мира > 25% минуты,
-или толпа растёт (в рамке ≥ 30 и в 1.5 раза больше прошлой минуты при жизни > 5 с); провал забега — 2 минуты подряд.
-60 в рамке ≈ 150 на экране: на тех же забегах в рамке 0.36–0.5 от экрана.
+Same run as 12.4 (validation, n = 40, HEAD). Cell: life in frame, s / enemies in frame (on screen in parentheses):
 
-Тот же прогон, что 12.4 (validation, n = 40, HEAD). Ячейка: жизнь в рамке, с / врагов в рамке (в скобках на экране):
-
-| режим/билд | 3:00 | 5:00 | 7:00 | 9:00 | 11:00 | 13:00 | 14:00 | TTK 10–14 | уд/убийство | провал до 10 / всего |
+| mode/build | 3:00 | 5:00 | 7:00 | 9:00 | 11:00 | 13:00 | 14:00 | TTK 10–14 | hits/kill | fail before 10 / total |
 |---|---|---|---|---|---|---|---|---|---|---|
 | normal/1/glass | 2.1/18 (3.7/36) | 2.0/12 | 2.7/10 | 1.4/28 | 1.7/14 | 1.6/31 | 1.4/27 (2.7/76) | 1.7 | 4.1 | 0 / 0 |
 | normal/1/mid | 2.5/20 (4.1/39) | 2.4/14 | 3.4/13 | 1.8/32 | 2.5/20 | 2.3/42 | 2.4/36 (3.8/91) | 2.4 | 5.0 | 3 / 4 |
@@ -754,240 +693,178 @@ node tools/simulation/targets.mjs --n 40 --split validation --modes normal/1,cur
 | normal/1/bag2/mid | 2.1/17 | 1.8/10 | 2.1/8 | 1.3/26 | 1.7/14 | 1.6/34 | 1.6/32 | 1.8 | 4.4 | 1 / 1 |
 | normal/1/dmg2/mid | 2.1/17 | 1.8/10 | 2.2/8 | 1.3/25 | 1.7/13 | 1.8/34 | 1.9/33 | 1.8 | 4.1 | 0 / 2 |
 
-\* дуо в этом прогоне считалось объединением двух рамок (завышает толпу, отсюда 14/40); теперь число — среднее
-по героям, дуо пересчитывается в фазе 2.
+\* duo in this run was counted as union of two frames (overstates the crowd, hence 14/40); now the count is the average across Heroes, duo is recalculated in phase 2.
 
-- От входа в рамку моб живёт на ~1.5 с меньше, чем «на экране»: **средний билд сейчас 1.8–3.4 с, ниже цели 3–5 с**.
-  Под новую метрику и те же цели наступление надо ослабить (или пересмотреть цель: решение владельца).
-- Glass в цели (TTK 1.4–1.9 с, 4 попадания). Tank клирит вдвое хуже mid после 11:00, до 10:00 не проваливается.
+A mob entering the frame lives roughly 1.5 s less than "on screen": the average build right now is 1.8–3.4 s, below the goal of 3–5 s. For the new metric and the same goals, offense needs to weaken (or reconsider the goal: owner's call). Glass meets the goal (TTK 1.4–1.9 s, 4 hits). Tank clears half as well as mid after 11:00, does not fail before 10:00.
 
-### 13.2 Лестница оружия: формула
+### 13.2 Weapon ladder: formula
 
-`tools/simulation/ladder.mjs`. Цель — сила оружия относительно якоря (Blade Arc L5; эволюции — Crimson Arc):
+`tools/simulation/ladder.mjs`. The goal is weapon strength relative to the anchor (Blade Arc L5; evolutions are Crimson Arc):
 
 ```
-target(w) = f(R) × Q,   f(R) = 1 / (1 + k · ln(max(R, r0) / r0)),  k = 0.6,  r0 = R якоря (115 px)
+target(w) = f(R) × Q,   f(R) = 1 / (1 + k · ln(max(R, r0) / r0)),  k = 0.6,  r0 = R of anchor (115 px)
 Q = 1 / (1 + Σ q_i)
 ```
 
-- **R** — дальность, с которой оружие начинает бить, из данных по behavior: удар и аура — `area`, орбита —
-  `area + hitRadius`, топор — `area`, цепь — `range`, луч — `area`, снаряды — `min(targetRange, speed × duration)`,
-  бомбы и метеор — `targetRange` броска, мины — `spread + trigger`, огоньки — дальность выстрела + орбита.
-  Берётся макс. уровень: правило про дальность между оружиями, а не про рост радиуса по уровням.
-- **f логарифмическая**: R = 2.5 × r0 → 0.65, 3 × r0 → 0.6. Степенная (r0/R)^α при α ≥ 0.5 растягивает разрыв до
-  ×3 и больше: контролируемая площадь растёт как R², но число целей и время до контакта — почти линейно.
-  Убывающая отдача, как диминишинги в RPG: рейтинг → процент через x / (x + k) (WoW, PoE: броня A / (A + 5·D)),
-  D3/D4: броня / (броня + 50·уровень), LoL: 100 / (100 + броня). У VS и HoloCure формулы нет, оружие тюнят руками
-  по DPS-метру; формула задаёт форму, а не точные числа.
-- **Квирки** складываются гиперболой 1 / (1 + Σq) (та же x / (x + k)): много свойств не уводит урон в ноль. q:
-  отталкивание дальнего оружия 0.10, тяжёлое отталкивание ближнего (≥ 200) 0.10, замедление 0.15, пробивание
-  0.04 за цель (до 4), пробивает всех 0.20, ДоТ 0.15 × шанс (огонь на земле — полный), самонаведение (цепь) 0.15,
-  стреляет само (огоньки) 0.10, блок снарядов 0.15, бьёт по кругу без наведения (аура, орбита, облако) 0.15,
-  ловушка (мины) 0.10; недостатки с минусом: долгий замах ≥ 0.9 с −0.10, случайное направление (луч) −0.10.
-  Числа — в `LADDER` в `ladder.mjs` (инструмент, не игра).
+**R** is the range at which the weapon starts hitting, from behavior data: slash and aura use `area`, orbit uses `area + hitRadius`, axe uses `area`, chain uses `range`, beam uses `area`, projectiles use `min(targetRange, speed × duration)`, bombs and meteor use `targetRange` of the throw, mines use `spread + trigger`, wisps use fire range plus orbit. The max level is used: the rule is about range between weapons, not radius growth across levels.
 
-### 13.3 Лестница: сейчас против цели
+**f is logarithmic**: R = 2.5 × r0 gives 0.65, 3 × r0 gives 0.6. Power law (r0/R)^α with α ≥ 0.5 stretches the gap to 3× or more: controlled area grows as R², but the number of targets and time to contact is nearly linear. Diminishing returns like in RPGs: rating becomes a percentage through x / (x + k) (WoW, PoE: armor A / (A + 5·D)), D3/D4: armor / (armor + 50·level), LoL: 100 / (100 + armor). VS and HoloCure have no formula, weapons are tuned by hand with a DPS meter; the formula sets the shape, not exact numbers.
 
-Два замера. **Лаборатория** (`ladder.mjs --lab`, n = 16, 2:00–9:59): бессмертная мечница с attack = magic = 1,
-одно оружие на макс. уровне, один слот оружия, пассивки только защитные и сбор, сундуки пропускает. «Лаб» — сила
-клира 1 / (жизнь в рамке) относительно якоря: урон за секунду у одного оружия упирается в приток мобов
-(у большинства 450–640), а жизнь в рамке — нет. **Боты** (`ladder.mjs --bots`, normal/1/mid из 13.1, 10:00–14:59):
-урон за секунду владения на макс. уровне без стата, * — меньше 20 мин владения в сумме.
+**Quirks combine as a hyperbola** 1 / (1 + Σq) (the same x / (x + k)): many properties do not drive damage to zero. q values: knockback for ranged weapons 0.10, heavy knockback for melee ≥ 200 is 0.10, slow 0.15, pierce 0.04 per target (up to 4), pierces all 0.20, DoT 0.15 × chance (ground fire is full), homing (chain) 0.15, autoaim (wisps) 0.10, projectile block 0.15, hits in circle without aim (aura, orbit, cloud) 0.15, trap (mines) 0.10; drawbacks with minus: long windup ≥ 0.9 s is −0.10, random direction (beam) is −0.10. Numbers are in `LADDER` in `ladder.mjs` (tool, not game).
 
-| оружие | R | квирки | цель | лаб | жизнь в рамке, с / в рамке | боты |
+### 13.3 Ladder: now versus goal
+
+Two measurements. **Lab** (`ladder.mjs --lab`, n = 16, 2:00–9:59): immortal Hero with attack = magic = 1, one weapon at max level, one weapon slot, only defensive passives and pickup, skips chests. "Lab" is clear strength 1 / (life in frame) relative to the anchor: one weapon's damage per second hits the mob inflow limit (most 450–640), but life in frame does not. **Bots** (`ladder.mjs --bots`, normal/1/mid from 13.1, 10:00–14:59): damage per second of ownership at max level without stat, * means less than 20 min of ownership in total.
+
+| weapon | R | quirks | goal | lab | life in frame, s / in frame | bots |
 |---|---|---|---|---|---|---|
 | blade_arc | 115 | — | 1 | 1 | 6.3 / 31 | 1 |
-| hammer | 115 | тяж. отталкивание | 0.91 | 0.75 | 8.1 / 33 | 0.66 |
-| holy_ground | 105 | по кругу | 0.87 | 0.88 | 7.3 / 36 | 0.60 |
-| poison_cloud | 105 | по кругу | 0.87 | 1.06 | 5.9 / 31 | 0.73 |
-| mines | 126 | ловушка | 0.86 | 0.81 | 7.7 / 30 | 0.84 |
-| guardian_shields | 77 | блок, по кругу | 0.77 | 0.44 | 14.3 / 67 | 0.35 |
-| frost_orb | 94 | замедление, по кругу | 0.77 | 0.63 | 9.8 / 44 | 0.34 |
-| beam | 155 | пробивает всех, случайный | 0.77 | 0.38 | 17.4 / 59 | 0.47 |
-| war_axe | 185 | отталкивание | 0.71 | **1.38** | 4.6 / 25 | 0.74 |
-| meteor | 300 | замах | 0.71 | 0.81 | 7.6 / 31 | 0.43 |
-| firebomb | 300 | огонь | 0.55 | **1.06** | 6.0 / 28 | 0.74 |
-| storm_chain | 290 | отталкивание, наведение | 0.51 | 0.69 | 9.0 / 39 | 0.73 |
-| wisp | 282 | отталкивание, пробивание, само | 0.51 | 0.75 | 8.2 / 44 | 0.76 |
-| crossbow | 360 | отталкивание, пробивание 2 | 0.50 | 0.25 | 26.9 / 92 | 0.63 |
-| throwing_daggers | 360 | отталкивание, пробивание 3 | 0.49 | 0.81 | 7.5 / 34 | 0.71 |
-| spear | 360 | отталкивание, пробивает всех | 0.46 | **0.88** | 7.3 / 28 | 0.76 |
+| hammer | 115 | heavy knockback | 0.91 | 0.75 | 8.1 / 33 | 0.66 |
+| holy_ground | 105 | omni | 0.87 | 0.88 | 7.3 / 36 | 0.60 |
+| poison_cloud | 105 | omni | 0.87 | 1.06 | 5.9 / 31 | 0.73 |
+| mines | 126 | trap | 0.86 | 0.81 | 7.7 / 30 | 0.84 |
+| guardian_shields | 77 | block, omni | 0.77 | 0.44 | 14.3 / 67 | 0.35 |
+| frost_orb | 94 | slow, omni | 0.77 | 0.63 | 9.8 / 44 | 0.34 |
+| beam | 155 | pierces all, random | 0.77 | 0.38 | 17.4 / 59 | 0.47 |
+| war_axe | 185 | knockback | 0.71 | **1.38** | 4.6 / 25 | 0.74 |
+| meteor | 300 | windup | 0.71 | 0.81 | 7.6 / 31 | 0.43 |
+| firebomb | 300 | fire | 0.55 | **1.06** | 6.0 / 28 | 0.74 |
+| storm_chain | 290 | knockback, homing | 0.51 | 0.69 | 9.0 / 39 | 0.73 |
+| wisp | 282 | knockback, pierce, autoaim | 0.51 | 0.75 | 8.2 / 44 | 0.76 |
+| crossbow | 360 | knockback, pierce 2 | 0.50 | 0.25 | 26.9 / 92 | 0.63 |
+| throwing_daggers | 360 | knockback, pierce 3 | 0.49 | 0.81 | 7.5 / 34 | 0.71 |
+| spear | 360 | knockback, pierces all | 0.46 | **0.88** | 7.3 / 28 | 0.76 |
 | crimson_arc | 115 | — | 1 | 1 | 5.8 / 29 | 1 |
-| titan_maul | 130 | тяж. отталкивание | 0.85 | 1.47 | 4.0 / 24 | — |
-| miasma | 130 | по кругу | 0.81 | 1.29 | 4.5 / 24 | 1.05 |
-| minefield | 148 | ловушка | 0.79 | 1.41 | 4.1 / 22 | 1.45* |
-| aegis_bastion | 59 | блок, по кругу | 0.77 | **0.18** | 35.6 / 116 | 1.44* |
-| blizzard | 87 | замедление, по кругу | 0.77 | 0.76 | 7.9 / 42 | 0.87* |
-| starfall | 300 | замах | 0.71 | 1.41 | 4.2 / 26 | 1.34* |
-| prism_ray | 190 | пробивает всех, случайный | 0.70 | 1.12 | 5.3 / 24 | — |
-| soul_garden | 150 | отталкивание, по кругу | 0.69 | **1.53** | 3.8 / 20 | 2.21* |
-| death_spiral | 210 | отталкивание | 0.67 | 1.29 | 4.6 / 24 | 0.89* |
-| napalm_rain | 300 | огонь | 0.55 | 1.29 | 4.5 / 23 | 1.70* |
-| spirit_choir | 282 | отталкивание, пробивание, само | 0.51 | 0.71 | 8.4 / 41 | 1.01* |
-| thunder_loop | 320 | отталкивание, наведение | 0.50 | 1.12 | 5.4 / 19 | 1.43 |
-| thousand_edge | 360 | отталкивание, пробивание 3 | 0.49 | 0.88 | 6.5 / 31 | 1.56 |
-| ballista | 360 | отталкивание, пробивание 4 | 0.47 | 0.59 | 9.8 / 37 | 1.77* |
-| dragon_lance | 360 | отталкивание, пробивает всех | 0.46 | 1.12 | 5.4 / 23 | 1.31* |
+| titan_maul | 130 | heavy knockback | 0.85 | 1.47 | 4.0 / 24 | — |
+| miasma | 130 | omni | 0.81 | 1.29 | 4.5 / 24 | 1.05 |
+| minefield | 148 | trap | 0.79 | 1.41 | 4.1 / 22 | 1.45* |
+| aegis_bastion | 59 | block, omni | 0.77 | **0.18** | 35.6 / 116 | 1.44* |
+| blizzard | 87 | slow, omni | 0.77 | 0.76 | 7.9 / 42 | 0.87* |
+| starfall | 300 | windup | 0.71 | 1.41 | 4.2 / 26 | 1.34* |
+| prism_ray | 190 | pierces all, random | 0.70 | 1.12 | 5.3 / 24 | — |
+| soul_garden | 150 | knockback, omni | 0.69 | **1.53** | 3.8 / 20 | 2.21* |
+| death_spiral | 210 | knockback | 0.67 | 1.29 | 4.6 / 24 | 0.89* |
+| napalm_rain | 300 | fire | 0.55 | 1.29 | 4.5 / 23 | 1.70* |
+| spirit_choir | 282 | knockback, pierce, autoaim | 0.51 | 0.71 | 8.4 / 41 | 1.01* |
+| thunder_loop | 320 | knockback, homing | 0.50 | 1.12 | 5.4 / 19 | 1.43 |
+| thousand_edge | 360 | knockback, pierce 3 | 0.49 | 0.88 | 6.5 / 31 | 1.56 |
+| ballista | 360 | knockback, pierce 4 | 0.47 | 0.59 | 9.8 / 37 | 1.77* |
+| dragon_lance | 360 | knockback, pierces all | 0.46 | 1.12 | 5.4 / 23 | 1.31* |
 
-**Правило сейчас не выполняется** (владелец прав): ранговая корреляция Спирмена «дальность → сила» в лаборатории
-+0.13 у базовых и +0.01 у эволюций, у ботов +0.11…+0.39 (для «дальше — слабее» нужно около −1). Меч не сильнейший:
-топор, облако, бомба и копьё клирят лучше; у эволюций дальние (thunder_loop, thousand_edge, ballista, dragon_lance)
-у ботов в 1.3–1.8 раза сильнее Crimson Arc. Отдельно сломаны: aegis_bastion (жизнь в рамке 36 с — щиты одни почти
-не убивают), арбалет (27 с), луч (17 с), щиты (14 с); soul_garden и titan_maul сильнее якоря в 1.5 раза. Мины — не
-худшие (0.81 лаб, 0.67–0.84 у ботов); проверить после новой механики (`mineArm`, area 70–92).
+The rule does not hold right now (owner is right): Spearman rank correlation "range versus strength" in lab is +0.13 for base weapons and +0.01 for evolutions, for bots it is +0.11…+0.39 (for "farther = weaker" need around −1). Blade Arc is not the strongest: axe, cloud, bomb, and spear clear better; for evolutions the ranged ones (thunder_loop, thousand_edge, ballista, dragon_lance) are 1.3–1.8 times stronger than Crimson Arc in bots. Broken separately: aegis_bastion (life in frame 36 s, shields alone almost cannot kill), crossbow (27 s), beam (17 s), shields (14 s); soul_garden and titan_maul are 1.5 times stronger than the anchor. Mines are not the worst (0.81 lab, 0.67–0.84 for bots); check after new mechanics (`mineArm`, area 70–92).
 
-### 13.4 Защита: сопротивление процентом
+### 13.4 Defense: resistance as percentage
 
-`tools/simulation/defense.mjs` читает всё из данных: стат снижения (`resistance`, если есть в `STATS`, иначе старый
-`armor`), капы `STAT_CAPS`, `COMBAT.minDamage`, защитные пассивки по стату, защитные типы предметов по implicit.
-Удар e = max(minDamage, d × (1 − resistance)) × (1 − dodge); запас = HP / e; окно 3 мин = запас + 3 × реген × 60 / e.
-Новые блоки: прирост по уровням каждой пассивки, **аддитивность** (все четыре L5 вместе / сумма по отдельности) и
-**полоса** 0 → 20 уровней с отношением последнего шага к первому.
+`tools/simulation/defense.mjs` reads everything from data: the reduction stat (`resistance` if in `STATS`, else old `armor`), caps `STAT_CAPS`, `COMBAT.minDamage`, defensive passives by stat, defensive item types by implicit. Hit is e = max(minDamage, d × (1 − resistance)) × (1 − dodge); buffer = HP / e; window 3 min = buffer + 3 × regen × 60 / e. New checks: per-level growth for each passive, additivity (all four L5 together versus sum alone) and band 0 to 20 levels with last-step to first-step ratio.
 
-На рабочем дереве (сопротивление [0.12 … 0.40], кап 0.65; мечница, 10:00, удар 22.4), ударов за уровень:
-max_hp 1.07 на каждом уровне, resistance 1.00 / 0.95 / 1.05 / 0.96 / 0.94, regen 0.96, dodge как resistance.
+On the working tree (resistance [0.12 … 0.40], cap 0.65; Hero, 10:00, hit 22.4), hits per level: max_hp is 1.07 at each level, resistance is 1.00 / 0.95 / 1.05 / 0.96 / 0.94, regen is 0.96, dodge like resistance.
 
-- **Каждый источник по отдельности линеен** (≈ +1 удар за уровень). **Вместе — нет**: четыре L5 дают +41 удар против
-  суммы +20 (аддитивность 2.07×, у магессы 2.10×), полоса 0 → 20 уровней: 7.4 → 48.6, последний шаг в 2.8 раза
-  больше первого. Причина — произведение HP × 1/(1 − res) × 1/(1 − dodge); процент с капом это не лечит.
-- Защитная сумка T2 ≈ +10 ударов (≈ 10 уровней пассивок): `STAT_REF` защиты = пассивка L5, а сумка — много предметов.
-  Полная защита + защитная сумка T2: сопротивление 0.62 (у капа), 68 ударов за окно (×9 голой).
-- Линейно и вместе дала бы только формула «одного пула живучести»: все защитные источники складываются в один
-  рейтинг T, удар × 1 / (1 + T) (как броня LoL: каждый пункт +1% EHP), а HP-пассивка тоже идёт в T. Тогда окно =
-  HP₀ (1 + T) / d + реген, ровно сумма вкладов. Это смена механики (`core/stats.js`, `sim.hurtPlayer`), решение владельца.
-- **Решение владельца (27.10):** защита остаётся как есть — resistance процентом с капом множится с HP, dodge и regen
-  (так в PoE: armour/evasion/life множатся; Brotato: armor x / (x + k) × HP; VS: плоская броня × HP). Линейность
-  важна по каждому стату отдельно (+N ударов за уровень), «вместе» не линеаризуем, общий пул 1 / (1 + T) не делаем
-  (`docs/META.md` 1.5).
+Each source alone is linear (about +1 hit per level). Together it is not: four L5 give +41 hits versus a sum of +20 (additivity 2.07×, for Mage 2.10×), band 0 to 20 levels: 7.4 to 48.6, last step is 2.8 times larger than the first. Reason: the product HP × 1/(1 − res) × 1/(1 − dodge); percentage with cap does not fix this.
 
-### 13.5 Атака и магия на предметах (вопрос D)
+Defensive bag T2 is about +10 hits (about 10 levels of passives): `STAT_REF` for defense = passive L5, a bag is many items. Full defense plus defensive bag T2: resistance 0.62 (at cap), 68 hits for the window (9 times naked).
 
-Сумки T2 на бумаге (40 сидов, мечница): случайная — attack +10%, magic +9% (≈ 0.7 уровня пассивки), атакующая
-(из 3 предметов лучший по attack + magic) — +26% / +21% (≈ 1.7 / 1.4 уровня). Клир (13.1, normal/1/mid): любая сумка
-T2 ускоряет поздний клир на ~25% (TTK 10–14: 2.4 → 1.8 с, жизнь в рамке 2.4 → 1.6–1.9 с), провалы 4 → 1–2 из 40;
-атакующая не лучше случайной (TTK 1.8 против 1.8 с). Атака на предметах — не главный рычаг: сумку делает сильной сумма
-мелких статов. Предложение: оставить attack/magic на предметах с `STAT_REF` 0.5 (≈ 2/3 пассивки L5 на полный ролл),
-силу сумки держать общим `ITEM_POWER.scale`; окончательно — в фазе 2 тем же сравнением на новой механике.
+Linear and together would only come from a formula of "one pool of durability": all defense sources fold into one rating T, hit × 1 / (1 + T) (like LoL armor: each point adds 1% EHP), and HP-passive goes into T too. Then window = HP₀ (1 + T) / d + regen, exactly the sum of contributions. This is a mechanic change (`core/stats.js`, `sim.hurtPlayer`), owner's call.
 
-### 13.6 Также сделано
+Owner's decision (27.10): defense stays as is—resistance as percentage with cap multiplies with HP, dodge, and regen (like PoE: armour/evasion/life multiply; Brotato: armor x / (x + k) × HP; VS: flat armor × HP). Linearity per stat alone matters (+N hits per level), we do not linearize "together", we do not do one pool 1 / (1 + T) (`docs/META.md` 1.5).
 
-- `tools/simulation/record.mjs`: бессмертие ботов читало `COMBAT.armorMinDamage` и `stats.armor`; после переименования
-  в `minDamage` / `resistance` проверка давала NaN, и бессмертные боты умирали (падал `tests/simulation/system.test.js`).
-  Теперь как `sim.hurtPlayer`, со старым вариантом для снимков.
-- Боты: id пассивки `resistance` добавлен рядом с `armor` в `features.mjs`, `policy.mjs`, `profiles.mjs` (иначе tank брал
-  3 защитные пассивки вместо 4).
-- `bags.mjs`: отбор предметов по статам (`stats`); `targets.mjs`: режимы `…/bag2`, `…/dmg2`, таблица оружия по окнам
-  (урон за секунду владения, без стата, с оверкиллом, дистанция попадания); `runner.mjs`: `fixture.weaponSlots`,
-  готовый профиль объектом; `policy.mjs`: профиль `allow` (лаборатория).
+### 13.5 Attack and magic on items (question D)
 
-### 13.7 Воспроизведение
+Bags T2 on paper (40 seeds, Hero): random is attack +10%, magic +9% (about 0.7 level of passive), attacking (best of 3 items by attack + magic) is +26% / +21% (about 1.7 / 1.4 levels). Clear (13.1, normal/1/mid): any bag T2 speeds up the late clear by about 25% (TTK 10–14: 2.4 to 1.8 s, life in frame 2.4 to 1.6–1.9 s), failures 4 to 1–2 of 40; attacking is no better than random (TTK 1.8 both). Attack on items is not the main lever: a bag is strong because of the sum of small stats. Proposal: keep attack/magic on items with `STAT_REF` 0.5 (about 2/3 of passive L5 on a full roll), keep bag strength as common `ITEM_POWER.scale`; final answer in phase 2 by the same comparison on new mechanics.
+
+### 13.6 Also done
+
+`tools/simulation/record.mjs`: immortal bots read `COMBAT.armorMinDamage` and `stats.armor`; after renaming to `minDamage` / `resistance` the check gave NaN and immortal bots died (broke `tests/simulation/system.test.js`). Now same as `sim.hurtPlayer`, with old variant for snapshots.
+
+Bots: passive id `resistance` added next to `armor` in `features.mjs`, `policy.mjs`, `profiles.mjs` (else tank took 3 defensive passives instead of 4).
+
+`bags.mjs`: filter items by stats (`stats`); `targets.mjs`: modes `…/bag2`, `…/dmg2`, table of weapons by windows (damage per second of ownership, no stat, with overkill, hit distance); `runner.mjs`: `fixture.weaponSlots`, ready profile as object; `policy.mjs`: profile `allow` (lab).
+
+### 13.7 Reproduction
 
 ```bash
-node tools/simulation/ladder.mjs                                  # бумага: R, квирки, цель
-node tools/simulation/ladder.mjs --lab --n 16 --workers 16 --out tools/out/ladder/lab.json   # ~10 мин
+node tools/simulation/ladder.mjs                                  # paper: R, quirks, goal
+node tools/simulation/ladder.mjs --lab --n 16 --workers 16 --out tools/out/ladder/lab.json   # ~10 min
 node tools/simulation/targets.mjs --n 40 --split validation \
   --modes normal/1,cursed/1,normal/2,cursed/2,normal/1/bag2,normal/1/dmg2 --workers 30 --out tools/out/clear/f.json
 node tools/simulation/ladder.mjs --bots tools/out/clear/f.json --key normal/1/mid --window late
 node tools/simulation/defense.mjs --hero heroine --minute 10
 ```
 
-Фаза 1 считалась на снимке HEAD (`git archive HEAD src tools/simulation`) с новыми инструментами и `CLEAR`: рабочее
-дерево в это время меняла переделка механики.
+Phase 1 was run on snapshot HEAD (`git archive HEAD src tools/simulation`) with new tools and `CLEAR`: the working tree was changing with mechanic rework at that time.
 
-### 13.8 Правила владельца для фазы 2
+### 13.8 Owner rules for phase 2
 
-- Мины «практически ваншотят мобов»: за случайное падение радиус больше и урон выше, мина всегда ложится и взводится
-  через `mineArm` 0.5 с. Цель: почти ваншот обычного моба своей минуты.
-- Молния (storm_chain) на всех уровнях до уровня ножей, ножи чуть сильнее (спред против чейна с отталкиванием).
-  Боссов не отталкивает ничто: в `sim.js` отталкивание только при `!e.boss && resist < 1`, у всех боссов
-  `knockbackResist: 1` (проверено).
-- Стартовое оружие магессы — wisp (боты берут стартовое из `heroes.js`).
-- Копьё: один снаряд, целится, пробивает N, сильное; луч: случайный, пробивает всех, слабый; frost orb: крупный
-  медленный слабый шар, пробивает всех, замораживает.
+Mines "almost one-shot mobs": random drop radius is larger and damage higher, mine always lands and arms through `mineArm` 0.5 s. Goal: almost one-shot a normal mob of its minute.
 
-### 13.9 Фаза 2: подбор чисел (27.10.2026)
+Lightning (storm_chain) on all levels up to dagger level, daggers slightly stronger (spread versus chain with knockback). Bosses knockback nothing: in `sim.js` knockback only when `!e.boss && resist < 1`, all bosses have `knockbackResist: 1` (verified).
 
-Механика на момент подбора: сопротивление процентом (кап 0.65), статусы poison/burning/bleeding/chill (боссы иммунны
-к статусам и отталкиванию), облако `cloud`, лучи в случайные стороны, `slam` (молот), `impale` (копьё), `ice_orb`
-(ледяной шар), `slash` (Blade Arc), мины 30 с с взводом 0.5 с, сундук скиллов (+1 случайной пассивке и оружию) только с
-элит, магесса стартует с wisp. Подбор — на tuning-сидах (лаборатория `ladder.mjs --tune`, боты `targets.mjs` n = 24),
-итог — один прогон на validation (n = 40 на ячейку). «До» — рабочее дерево на начало фазы 2 (та же механика, старые числа).
+Mage starting weapon is wisp (bots take starting weapon from `heroes.js`).
 
-**Якорь лестницы — абсолютный.** Во время подбора Blade Arc переделали в `slash`; новый меч в лаборатории в 2.3 раза
-сильнее старого (моб в рамке 2.7 с против 6.3), Crimson Arc в 3 раза. Чтобы правки меча не двигали лестницу, цели
-считаются от силы старого меча L5 (`LADDER.anchorPower` 0.16, эволюции 0.19), а сам меч сверяется с ней же.
-Числа меча и Crimson Arc в `src/data` **не менялись** (их ведёт агент slash); рекомендация ниже, все прогоны «после»
-сделаны с ней через эксперимент (`tools/out/p2/blade-rec.json`).
+Spear: one projectile, aims, pierces N, strong; beam: random, pierces all, weak; frost orb: large slow weak ball, pierces all, freezes.
 
-| | рекомендация (урон по уровням) | сейчас в данных | лаборатория |
+### 13.9 Phase 2: number tuning (2026-10-27)
+
+Mechanics at tuning time: resistance as percentage (cap 0.65), statuses poison/burning/bleeding/chill (bosses immune to statuses and knockback), cloud, random-direction beams, `slam` (hammer), `impale` (spear), `ice_orb` (frost orb), `slash` (Blade Arc), mines 30 s with 0.5 s arm time, skill chest (+1 random passive and weapon) only from elites, Mage starts with wisp. Tuning is on tuning seeds (lab `ladder.mjs --tune`, bots `targets.mjs` n = 24), result is one run on validation (n = 40 per cell). "Before" is the working tree at the start of phase 2 (same mechanics, old numbers).
+
+The ladder anchor is absolute. During tuning Blade Arc became `slash`; the new blade is 2.3 times stronger in lab than the old one (mob in frame 2.7 s vs 6.3), Crimson Arc is 3 times. To keep blade changes from moving the ladder, goals are computed from the old blade L5 strength (`LADDER.anchorPower` 0.16, evolutions 0.19), and the blade itself is checked against the same anchor. Blade and Crimson Arc numbers in `src/data` were not changed (the slash agent owns them); the recommendation below, all "after" runs were done with it through experiment (`tools/out/p2/blade-rec.json`).
+
+| | recommendation (damage per level) | now in data | lab |
 |---|---|---|---|
-| blade_arc | 6, 8, 10, 12, 14 | 20, 26, 30, 40, 48 | ×0.4 урона = якорь (6.2 с в рамке); с общим ×0.75 — 0.81 якоря |
-| crimson_arc | 11 | 58 | ×0.4 ещё 1.6 якоря эволюций, нужно ≈ ×0.2 |
+| blade_arc | 6, 8, 10, 12, 14 | 20, 26, 30, 40, 48 | ×0.4 damage = anchor (6.2 s in frame); with shared ×0.75—0.81 of anchor |
+| crimson_arc | 11 | 58 | ×0.4 still 1.6× anchor of evolutions, need about ×0.2 |
 
-С текущим мечом весь забег быстрее цели вдвое (mid 1.1–1.7 с в рамке, меч и Crimson Arc 30–40% урона).
+With the current blade the whole run is twice as fast as goal (mid 1.1–1.7 s in frame, blade and Crimson Arc 30–40% of damage).
 
-**Что изменено в `src/data`:**
-- `weapons.js` — все оружия, кроме blade_arc и crimson_arc: урон (или кулдаун там, где урон уходит в оверкилл или задан
-  правилом: копьё, арбалет, баллиста, dragon_lance, мины, минное поле, луч, prism_ray) подобран лабораторией под лестницу
-  13.2 с абсолютным якорем, затем общий уровень по уровням оружия (L1–L2 ×0.75, L3 ×0.8, L4 ×0.78, L5 ×0.75 от
-  промежуточного, эволюции ×0.7). Отдельно: мины — урон 40/55/90/125/160 (почти ваншот моба своей минуты при attack
-  ~1.3–1.6: медиана HP моба в рамке 35 на 3:00, ~220 на 10:00), сила держится кулдауном (L5 5.7 с); минное поле — урон
-  200, жизнь мины 40 → 15 с; щиты — hitRadius ×1.4; aegis_bastion — кольцо 2, hitRadius 24, без отбрасывания (с
-  отбрасыванием 160 враги вылетали из кольца, и сила была 0.16 цели при любом уроне); молния — knockback 50–60
-  (было 20–25: смещение моба за удар ≈ knockback / `COMBAT.knockbackDecay`, 2 → 5–6 px), thunder_loop 65; wisp L1 —
-  урон 22, кулдаун 0.8, пробивание 1 (было 29 / 0.9 / 0: стартовое оружие клирило 0–3 мин в 4.5 раза хуже меча L1;
-  с двумя огоньками — вровень, владелец оставил один огонёк); луч — урон за тик выше (16–36), лучи реже (кулдаун 6.0 → 4.7 с).
-- `passives.js` — attack и magic +20% за уровень (было +15%), crit +8% (было +5%), crit_dmg +40% (было +20%): иначе glass
-  не отрывается от mid (сундуки скиллов раздают пассивки обоим поровну, mid по модели людей тоже берёт атаку).
-- `stages/forest.js` — ровно 8 элиток (сундуки скиллов): 2:00, 4:20, 6:40, 8:00, 9:20, 11:30, 13:00, 14:20 (перед
-  каждым боссом одна), без `afterBoss`; было 8 элит + 2 сундука с боссов до 15:00 (10). Окно 6–8 мин легче: лисы
-  `rateEnd` 0.89 → 0.55, кролики 6:00 0.35–0.53 → 0.3–0.45, ламии с 7:00 → 8:00 и 0.13–0.31 → 0.1–0.25. С 12:00 потоки
-  (частоты и минимумы) × 0.8, разовые события × 0.9: иначе mid к 13:00 упирался в 60 врагов в рамке.
-- `bosses.js` — `drop: 'chest'` у боссов уже убрал агент лута; поправлен комментарий формата.
+**What changed in `src/data`:**
 
-### 13.10 Клир: до и после (validation, n = 40)
+`weapons.js` all weapons except blade_arc and crimson_arc: damage (or cooldown where damage is overkill or set by rule: spear, crossbow, ballista, dragon_lance, mines, minefield, beam, prism_ray) tuned by lab under the ladder 13.2 with absolute anchor, then shared level growth (L1–L2 ×0.75, L3 ×0.8, L4 ×0.78, L5 ×0.75 from intermediate, evolutions ×0.7). Separately: mines damage 40/55/90/125/160 (nearly one-shot mob of its minute at attack ~1.3–1.6: median mob HP in frame 35 at 3:00, about 220 at 10:00), strength held by cooldown (L5 5.7 s); minefield damage 200, mine life 40 to 15 s; shields hitRadius ×1.4; aegis_bastion ring 2, hitRadius 24, no knockback (with knockback 160 enemies fly out of the ring, strength was 0.16 of goal at any damage); lightning knockback 50–60 (was 20–25: mob displacement per hit is about knockback / `COMBAT.knockbackDecay`, 2 to 5–6 px), thunder_loop 65; wisp L1 damage 22, cooldown 0.8, pierce 1 (was 29 / 0.9 / 0: starting weapon cleared 0–3 min 4.5 times worse than blade L1; with two wisps it matches, owner kept one wisp); beam damage per tick higher (16–36), beams rarer (cooldown 6.0 to 4.7 s).
 
-Ячейка: жизнь в рамке, с / врагов в рамке. Провалы — по правилу 13.1.
+`passives.js` attack and magic +20% per level (was +15%), crit +8% (was +5%), crit_dmg +40% (was +20%): otherwise glass does not separate from mid (skill chests hand out passives equally to both, mid by human model also picks attack).
 
-| режим/билд | | 1:00 | 3:00 | 5:00 | 7:00 | 9:00 | 11:00 | 13:00 | 14:00 | TTK 10–14 | уд/уб | провал до 10 | провал всего |
+`stages/forest.js` exactly 8 elites (skill chests): 2:00, 4:20, 6:40, 8:00, 9:20, 11:30, 13:00, 14:20 (one before each boss), no `afterBoss`; was 8 elites + 2 chests from bosses through 15:00 (10). 6–8 min window easier: foxes `rateEnd` 0.89 to 0.55, rabbits 6:00 are 0.35–0.53 to 0.3–0.45, lamias from 7:00 to 8:00 and 0.13–0.31 to 0.1–0.25. From 12:00 flows (frequencies and minimums) are ×0.8, one-time events ×0.9: otherwise mid at 13:00 hit 60 enemies in frame.
+
+`bosses.js` boss `drop: 'chest'` was already removed by the loot agent; comment format fixed.
+
+### 13.10 Clear: before and after (validation, n = 40)
+
+Cell: life in frame, s / enemies in frame. Failures by rule 13.1.
+
+| mode/build | | 1:00 | 3:00 | 5:00 | 7:00 | 9:00 | 11:00 | 13:00 | 14:00 | TTK 10–14 | hits/kill | fail before 10 | fail total |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| normal/1/glass | до | 2.5/11.7 | 2.6/22.8 | 2.5/16.7 | 2.4/9.4 | 1.3/25.6 | 1.5/11.4 | 1.3/24.8 | 1.3/22.9 | 1.3 | 3.4 | 3/40 | 3/40 |
-| | после | 2/9.2 | 2/16.6 | 1.9/11.9 | 2/5.6 | 1.3/24.3 | 1.7/12.9 | 1.5/26 | 1.6/25.8 | 1.9 | 4.8 | 0/40 | 0/40 |
-| normal/1/mid | до | 2.6/12 | 2.6/22.2 | 3.4/16.3 | 2.8/11.5 | 1.5/29.2 | 2.1/16 | 2.1/36.4 | 2/33.3 | 1.9 | 4.1 | 2/40 | 4/40 |
-| | после | 2/8.9 | 2.3/18.2 | 2.2/13 | 2.8/7.9 | 1.5/29.1 | 2.8/20.5 | 2.8/40.7 | 2.6/38.3 | 3.0 | 6.3 | 0/40 | 5/40 |
-| normal/1/tank | до | 2.7/12.4 | 3.6/26.1 | 3.7/21.3 | 6.9/19.9 | 2.7/43 | 4.5/29.5 | 4/54.3 | 4.3/49.9 | 3.6 | 5.8 | 6/40 | 14/40 |
-| | после | 2.2/9.8 | 2.9/20.4 | 2.9/16.3 | 4.2/12.2 | 2.4/37.1 | 5.7/33.2 | 6/57.8 | 6.4/55.3 | 5.9 | 8.8 | 0/40 | 20/40 |
-| cursed/1/glass | до | 4.4/26.2 | 5.6/42.1 | 3.6/24.1 | 5.2/19.9 | 1.7/39.7 | 2.4/19.2 | 1.8/36.3 | 1.8/35.5 | 1.7 | 3.7 | 10/40 | 10/40 |
-| | после | 2.2/12.9 | 2.6/25.7 | 2/16.3 | 2.4/8.8 | 1.3/34.8 | 1.9/18.4 | 1.8/40.4 | 1.8/39.6 | 1.9 | 4.4 | 2/40 | 4/40 |
-| cursed/1/mid | до | 4.2/25.8 | 5.9/38.5 | 4.6/26.8 | 4.5/20.9 | 1.7/41.8 | 2.2/23.4 | 2/49.7 | 2/49.8 | 2.2 | 4.9 | 11/40 | 18/40 |
-| | после | 2.4/13.2 | 3.2/27.7 | 2.5/18.7 | 3.4/11.5 | 1.5/38.3 | 2.8/25.7 | 2.6/54.7 | 2.7/54.2 | 3.2 | 7.1 | 4/40 | 15/40 |
-| cursed/1/tank | до | 4.4/26.2 | 6.2/45.5 | 7.9/34.6 | 7.2/28.7 | 3.2/49.2 | 4.5/39.7 | 4.3/60.4 | 4/59.8 | 4.0 | 6.0 | 11/40 | 25/40 |
-| | после | 2.6/14.1 | 3.6/30.7 | 4/26.3 | 7.1/21.2 | 2.8/53.9 | 7.2/47.1 | 7.3/67.2 | 7.1/67 | 7.2 | 9.6 | 10/40 | 30/40 |
-| normal/2/mid | до | 2.2/10.2 | 2.2/20.2 | 1.9/13.3 | 2.2/8.6 | 1.4/31.5 | 2/15.9 | 2/41.2 | 2/41.5 | 1.9 | 4.7 | 0/40 | 0/40 |
-| | после | 1.8/7.8 | 1.7/15 | 1.9/11.2 | 1.9/5.1 | 1.2/24.7 | 2.2/16.7 | 2.2/43.1 | 2.5/42.9 | 2.5 | 6.9 | 0/40 | 1/40 |
-| normal/2/tank | до | 2.2/10.4 | 2.5/21.8 | 2.2/15.6 | 2.8/11.9 | 1.8/39 | 2.8/25.6 | 2.8/54.3 | 2.8/50.8 | 2.5 | 5.3 | 0/40 | 5/40 |
-| | после | 1.8/8 | 1.9/16.8 | 2/12.4 | 2.7/8.3 | 1.5/34.4 | 3.4/27.1 | 4/55.9 | 4.2/59.3 | 4.0 | 9.0 | 0/40 | 12/40 |
-| cursed/2/mid | до | 2.3/14.2 | 2.2/28.1 | 2/19.5 | 2.3/12.2 | 1.3/38.8 | 2.1/22.7 | 2/55.5 | 2/56.1 | 1.8 | 4.6 | 0/40 | 8/40 |
-| | после | 2/12.1 | 1.7/21.3 | 1.8/15.2 | 2.1/8.1 | 1.2/34.8 | 2.8/29 | 2.9/63.4 | 3/64.2 | 3.2 | 7.8 | 0/40 | 21/40 |
-| cursed/2/tank | до | 2.3/14.4 | 2.5/30.4 | 2.2/21.7 | 2.8/16.3 | 1.5/45.4 | 2.7/30.5 | 2.6/64.6 | 2.5/65.4 | 2.4 | 5.2 | 0/40 | 23/40 |
-| | после | 2/12.2 | 2.2/25.7 | 2.4/19.8 | 3.7/15.1 | 1.6/48.9 | 4.2/40.8 | 4.6/71.6 | 4.2/79.1 | 4.5 | 9.9 | 0/40 | 35/40 |
-| normal/1/bag2/mid | до | 2.2/9.9 | 2.2/19.7 | 2.1/15.2 | 2.9/11.2 | 1.7/26.5 | 2.2/14.1 | 1.9/28 | 2/29.2 | 1.9 | 4.1 | 1/40 | 1/40 |
-| | после | 1.7/7.7 | 1.8/14.9 | 1.7/10.4 | 1.8/5.2 | 1.2/23.4 | 1.9/15 | 1.9/35 | 2/32.1 | 2.4 | 5.7 | 0/40 | 0/40 |
-| normal/1/dmg2/mid | до | 2.4/10.5 | 2.4/19.2 | 2/12.8 | 2.3/8.9 | 1.3/24.6 | 1.5/10.8 | 1.5/25.1 | 1.5/25.2 | 1.5 | 3.5 | 1/40 | 1/40 |
-| | после | 1.7/8 | 1.8/14.8 | 1.9/11.1 | 2.1/5.8 | 1.3/23.8 | 2.1/16 | 1.9/32.9 | 2.1/31.6 | 2.5 | 5.9 | 0/40 | 0/40 |
+| normal/1/glass | before | 2.5/11.7 | 2.6/22.8 | 2.5/16.7 | 2.4/9.4 | 1.3/25.6 | 1.5/11.4 | 1.3/24.8 | 1.3/22.9 | 1.3 | 3.4 | 3/40 | 3/40 |
+| | after | 2/9.2 | 2/16.6 | 1.9/11.9 | 2/5.6 | 1.3/24.3 | 1.7/12.9 | 1.5/26 | 1.6/25.8 | 1.9 | 4.8 | 0/40 | 0/40 |
+| normal/1/mid | before | 2.6/12 | 2.6/22.2 | 3.4/16.3 | 2.8/11.5 | 1.5/29.2 | 2.1/16 | 2.1/36.4 | 2/33.3 | 1.9 | 4.1 | 2/40 | 4/40 |
+| | after | 2/8.9 | 2.3/18.2 | 2.2/13 | 2.8/7.9 | 1.5/29.1 | 2.8/20.5 | 2.8/40.7 | 2.6/38.3 | 3.0 | 6.3 | 0/40 | 5/40 |
+| normal/1/tank | before | 2.7/12.4 | 3.6/26.1 | 3.7/21.3 | 6.9/19.9 | 2.7/43 | 4.5/29.5 | 4/54.3 | 4.3/49.9 | 3.6 | 5.8 | 6/40 | 14/40 |
+| | after | 2.2/9.8 | 2.9/20.4 | 2.9/16.3 | 4.2/12.2 | 2.4/37.1 | 5.7/33.2 | 6/57.8 | 6.4/55.3 | 5.9 | 8.8 | 0/40 | 20/40 |
+| cursed/1/glass | before | 4.4/26.2 | 5.6/42.1 | 3.6/24.1 | 5.2/19.9 | 1.7/39.7 | 2.4/19.2 | 1.8/36.3 | 1.8/35.5 | 1.7 | 3.7 | 10/40 | 10/40 |
+| | after | 2.2/12.9 | 2.6/25.7 | 2/16.3 | 2.4/8.8 | 1.3/34.8 | 1.9/18.4 | 1.8/40.4 | 1.8/39.6 | 1.9 | 4.4 | 2/40 | 4/40 |
+| cursed/1/mid | before | 4.2/25.8 | 5.9/38.5 | 4.6/26.8 | 4.5/20.9 | 1.7/41.8 | 2.2/23.4 | 2/49.7 | 2/49.8 | 2.2 | 4.9 | 11/40 | 18/40 |
+| | after | 2.4/13.2 | 3.2/27.7 | 2.5/18.7 | 3.4/11.5 | 1.5/38.3 | 2.8/25.7 | 2.6/54.7 | 2.7/54.2 | 3.2 | 7.1 | 4/40 | 15/40 |
+| cursed/1/tank | before | 4.4/26.2 | 6.2/45.5 | 7.9/34.6 | 7.2/28.7 | 3.2/49.2 | 4.5/39.7 | 4.3/60.4 | 4/59.8 | 4.0 | 6.0 | 11/40 | 25/40 |
+| | after | 2.6/14.1 | 3.6/30.7 | 4/26.3 | 7.1/21.2 | 2.8/53.9 | 7.2/47.1 | 7.3/67.2 | 7.1/67 | 7.2 | 9.6 | 10/40 | 30/40 |
+| normal/2/mid | before | 2.2/10.2 | 2.2/20.2 | 1.9/13.3 | 2.2/8.6 | 1.4/31.5 | 2/15.9 | 2/41.2 | 2/41.5 | 1.9 | 4.7 | 0/40 | 0/40 |
+| | after | 1.8/7.8 | 1.7/15 | 1.9/11.2 | 1.9/5.1 | 1.2/24.7 | 2.2/16.7 | 2.2/43.1 | 2.5/42.9 | 2.5 | 6.9 | 0/40 | 1/40 |
+| normal/2/tank | before | 2.2/10.4 | 2.5/21.8 | 2.2/15.6 | 2.8/11.9 | 1.8/39 | 2.8/25.6 | 2.8/54.3 | 2.8/50.8 | 2.5 | 5.3 | 0/40 | 5/40 |
+| | after | 1.8/8 | 1.9/16.8 | 2/12.4 | 2.7/8.3 | 1.5/34.4 | 3.4/27.1 | 4/55.9 | 4.2/59.3 | 4.0 | 9.0 | 0/40 | 12/40 |
+| cursed/2/mid | before | 2.3/14.2 | 2.2/28.1 | 2/19.5 | 2.3/12.2 | 1.3/38.8 | 2.1/22.7 | 2/55.5 | 2/56.1 | 1.8 | 4.6 | 0/40 | 8/40 |
+| | after | 2/12.1 | 1.7/21.3 | 1.8/15.2 | 2.1/8.1 | 1.2/34.8 | 2.8/29 | 2.9/63.4 | 3/64.2 | 3.2 | 7.8 | 0/40 | 21/40 |
+| cursed/2/tank | before | 2.3/14.4 | 2.5/30.4 | 2.2/21.7 | 2.8/16.3 | 1.5/45.4 | 2.7/30.5 | 2.6/64.6 | 2.5/65.4 | 2.4 | 5.2 | 0/40 | 23/40 |
+| | after | 2/12.2 | 2.2/25.7 | 2.4/19.8 | 3.7/15.1 | 1.6/48.9 | 4.2/40.8 | 4.6/71.6 | 4.2/79.1 | 4.5 | 9.9 | 0/40 | 35/40 |
+| normal/1/bag2/mid | before | 2.2/9.9 | 2.2/19.7 | 2.1/15.2 | 2.9/11.2 | 1.7/26.5 | 2.2/14.1 | 1.9/28 | 2/29.2 | 1.9 | 4.1 | 1/40 | 1/40 |
+| | after | 1.7/7.7 | 1.8/14.9 | 1.7/10.4 | 1.8/5.2 | 1.2/23.4 | 1.9/15 | 1.9/35 | 2/32.1 | 2.4 | 5.7 | 0/40 | 0/40 |
+| normal/1/dmg2/mid | before | 2.4/10.5 | 2.4/19.2 | 2/12.8 | 2.3/8.9 | 1.3/24.6 | 1.5/10.8 | 1.5/25.1 | 1.5/25.2 | 1.5 | 3.5 | 1/40 | 1/40 |
+| | after | 1.7/8 | 1.8/14.8 | 1.9/11.1 | 2.1/5.8 | 1.3/23.8 | 2.1/16 | 1.9/32.9 | 2.1/31.6 | 2.5 | 5.9 | 0/40 | 0/40 |
 
-- **mid (normal соло)**: TTK 10–14 1.9 → 3.0 с, жизнь в рамке поздно 2.0–2.1 → 2.6–3.3 с — у нижнего края цели 3–5 с.
-  Рано (0–7 мин) моб в рамке живёт ~2 с при любом уроне: это время подхода от края рамки к герою, а большинство ранних
-  мобов умирает с 1–2 ударов. 3–5 с там недостижимо без того, чтобы оружие не убивало вовсе; предлагаю цель 3–5 с
-  считать с 8:00, раньше ≥ 2 с.
-- **glass**: TTK 1.3 → 1.9 с при 4.8 попадания (цель 1–2 с, не ваншот) — в цели.
-- **tank**: провал до 10:00 6/40 → 0/40 (цель), после 11:00 проваливается в половине забегов (цель этого не требует).
-- **cursed**: mid до 10:00 11/40 → 4/40, всего 18 → 15; tank до 10:00 10/40 (было 11). **Дуо**: normal как соло (0–1/40),
-  cursed дуо mid после 12:00 проваливается 21/40 (было 8) — толпа в рамке 63–64 при пороге 60.
+Mid (normal solo): TTK 10–14 is 1.9 to 3.0 s, life in frame late is 2.0–2.1 to 2.6–3.3 s, at the lower edge of goal 3–5 s. Early (0–7 min) a mob in frame lives about 2 s at any damage: this is travel time from frame edge to Hero, most early mobs die in 1–2 hits. 3–5 s there is unachievable without the weapon not killing at all; I suggest goal 3–5 s from 8:00 on, before that ≥ 2 s.
 
-### 13.11 Лестница: до и после (лаборатория, n = 16, сила от абсолютного якоря)
+Glass: TTK 1.3 to 1.9 s at 4.8 hits (goal 1–2 s, not one-shot), in goal. Tank: fail before 10:00 is 6/40 to 0/40 (goal), after 11:00 fails in half of runs (goal does not require this).
 
-| оружие | R | цель | до | после | жизнь в рамке, с (до → после) |
+Cursed: mid before 10:00 is 11/40 to 4/40, total 18 to 15; tank before 10:00 is 10/40 (was 11). Duo: normal like solo (0–1/40), cursed duo mid after 12:00 fails in 21/40 (was 8), crowd in frame is 63–64 at threshold 60.
+
+### 13.11 Ladder: before and after (lab, n = 16, strength from absolute anchor)
+
+| weapon | R | goal | before | after | life in frame, s (before → after) |
 |---|---|---|---|---|---|
 | blade_arc | 170 | 1 | 1.00 | 0.81 | 6.3 → 7.5 |
 | throwing_daggers | 360 | 0.59 | 0.81 | 0.56 | 8 → 10.9 |
@@ -1022,20 +899,13 @@ node tools/simulation/defense.mjs --hero heroine --minute 10
 | spirit_choir | 300 | 0.62 | 0.63 | 0.58 | 8 → 9.5 |
 | starfall | 300 | 0.81 | 1.26 | 0.79 | 4.2 → 6.7 |
 
-«До» у blade_arc и crimson_arc — старые конусные; «после» — рекомендованный slash. После общего ×0.75 все оружия
-ниже якоря примерно на 20%, сравнивать надо с мечом (0.81) и Crimson Arc (0.89). Спирмен (цель, сила): базовые
-0.62 → 0.70, эволюции 0.36 → 0.89; (дальность, сила): −0.42 → −0.36 и −0.31 → −0.74. Правило «дальше — слабее»
-теперь выполняется у эволюций и в основном у базовых. Остатки: молот 0.62 от меча при цели 0.83 (slam слабее конуса,
-урон ×1.8 за шаг подбора не догнал), арбалет 0.85 при 0.6, баллиста 0.89 при 0.59, мины 1.23 при 0.95 (почти ваншот
-перекрывает кулдаун), молния 0.54 ≤ ножи 0.69 (правило владельца выполнено), луч 0.54 (слабый).
+"Before" for blade_arc and crimson_arc is the old arc shape; "after" is the recommended slash. After the shared ×0.75 all weapons below the anchor are roughly 20% below it, compare with blade (0.81) and Crimson Arc (0.89). Spearman (goal, strength): base 0.62 to 0.70, evolutions 0.36 to 0.89; (range, strength): −0.42 to −0.36 and −0.31 to −0.74. The rule "farther is weaker" now holds for evolutions and mostly for base weapons. Remainder: hammer 0.62 from blade at goal 0.83 (slam weaker than arc, damage ×1.8 per tuning did not catch up), crossbow 0.85 at 0.6, ballista 0.89 at 0.59, mines 1.23 at 0.95 (nearly one-shot covers the cooldown), lightning 0.54 ≤ daggers 0.69 (owner rule met), beam 0.54 (weak).
 
-### 13.12 DPS на манекенах (`tools/simulation/dps.mjs`)
+### 13.12 DPS on dummies (`tools/simulation/dps.mjs`)
 
-Средний герой (HERO_BASE, статы 100%), без пассивок и сумки, одно оружие; манекены бессмертные и неподвижные, ДоТы на
-них работают; прогрев 5 с, замер 60 с, сид 1. Сцены: 1 цель в 40 px (орбиты — на кольце), 10 кучкой радиусом 20 px,
-рамка 400 × 240 заставлена с шагом 18 px (320 манекенов). Blade Arc и Crimson Arc — с рекомендацией 13.9.
+Average Hero (HERO_BASE, 100% stats), no passives and bag, one weapon; dummies are immortal and still, DoTs work on them; warm-up 5 s, measure 60 s, seed 1. Scenes: 1 target at 40 px (orbits on a ring), 10 in a cluster radius 20 px, frame 400 × 240 filled at 18 px step (320 dummies). Blade Arc and Crimson Arc use the recommendation 13.9.
 
-| оружие | уровень | DPS 1 цель | DPS 10 | DPS экран | дальность, px | радиус удара, px | квирки |
+| weapon | level | DPS 1 target | DPS 10 | DPS screen | range, px | hit radius, px | quirks |
 |---|---|---|---|---|---|---|---|
 | blade_arc | L1 | 7 | 60 | 100 | 120 | 20 | bleeding |
 | blade_arc | L5 | 58 | 565 | 1545 | 170 | 28 | bleeding |
@@ -1086,14 +956,11 @@ node tools/simulation/defense.mjs --hero heroine --minute 10
 | spirit_choir | evo | 161 | 460 | 475 | 300 | 4 | knockbackRanged pierce autoAim |
 | starfall | evo | 27 | 400 | 2722 | 300 | 76 | burning delayed |
 
-Что видно: оружие с одним сильным ударом (арбалет 625, баллиста 391, копьё 150 по одной цели) после подбора под клир
-бьёт одну цель в 5–10 раз сильнее меча (58): в живом бою их урон уходит в оверкилл, поэтому для клира им подняли частоту.
-Это значит, что **боссов они бьют сильнее всех** (TTK боссов ниже). Щиты и aegis на манекенах — лучшие по толпе
-(21–23 тыс. по экрану): их ограничивает не урон, а то, что живые враги проходят кольцо и отлетают.
+What stands out: a weapon with one strong hit (crossbow 625, ballista 391, spear 150 per single target) tuned for clear does 5–10 times more damage to one target than blade (58): in live play their damage gets wasted as overkill, so for clear they got higher frequency. This means they hit bosses hardest (boss TTK is lower). Shields and aegis on dummies are the best for crowds (21–23k on screen): their limit is not damage but live enemies walking through the ring and flying off.
 
-### 13.13 Боссы (TTK, с: медиана / максимум, убиты из 40)
+### 13.13 Bosses (TTK, s: median / maximum, killed out of 40)
 
-| режим/билд | Кицунэ до → после | Гарпия до → после | Дриада до → после |
+| mode/build | Kitsune before → after | Harpy before → after | Dryad before → after |
 |---|---|---|---|
 | normal/1/glass | 37.5/108 → 36.5/94 | 16.3/43 → 18.9/61 | 28.8/92 → 37.0/109 (40/40) |
 | normal/1/mid | 38.6/130 → 47.3/208 | 19.7/83 → 29.2/123 | 43.3/67 → 58.5/120 (39/40) |
@@ -1102,83 +969,68 @@ node tools/simulation/defense.mjs --hero heroine --minute 10
 | normal/2/mid | 16.6/47 → 19.7/62 | 12.3/26 → 13.2/31 | 26.9/100 → 34.5/113 (40/40) |
 | cursed/2/mid | 16.5/37 → 18.6/39 | 12.0/27 → 14.1/47 | 28.9/79 → 36.1/82 (40/40) |
 
-HP боссов не трогал (250/500/1000 за уровень). Боты бьют боссов дольше людей (не преследуют). Жница (разгон
-70 → 160, иммунитеты) этой метрикой не меряется: нужен сценарий с Библией.
+Boss HP was not changed (250/500/1000 per level). Bots take longer to kill bosses than people (do not pursue). Reaper (70 to 160 ramp, immunities) cannot be measured this way: needs a scenario with the Bible.
 
-### 13.14 Защита после (`defense.mjs`, мечница, 10:00)
+### 13.14 Defense after (`defense.mjs`, Hero, 10:00)
 
-Ударов за уровень: max_hp 1.19, resistance 1.26–1.40, regen 1.07, dodge 1.05–1.17 (числа пассивок защиты менял агент
-механики). Все четыре L5 вместе +50 ударов против суммы +23 (2.16×), полоса 0 → 20 уровней 8.2 → 58.4. Решение владельца
-(13.4): так и оставить. Защитная сумка T2 ≈ 10.7 уровней пассивок.
+Hits per level: max_hp 1.19, resistance 1.26–1.40, regen 1.07, dodge 1.05–1.17 (passive defense numbers were changed by the mechanic agent). All four L5 together give +50 hits versus a sum of +23 (2.16×), band 0 to 20 levels is 8.2 to 58.4. Owner's decision (13.4): leave as is. Defensive bag T2 is about 10.7 levels of passives.
 
-### 13.15 Атака и магия на предметах (решение D)
+### 13.15 Attack and magic on items (decision D)
 
-Validation, normal/1/mid: без сумки TTK 10–14 3.0 с, провалы 5/40; случайная T2 2.4 с, 0/40; атакующая T2 2.5 с, 0/40.
-Атакующая сумка не лучше случайной, как и в фазе 1. **Решение: attack/magic на предметах оставить, `STAT_REF` 0.5 без
-изменений**; сила сумки — общим `ITEM_POWER.scale`.
+Validation, normal/1/mid: no bag TTK 10–14 is 3.0 s, failures 5/40; random T2 is 2.4 s, 0/40; attacking T2 is 2.5 s, 0/40. Attacking bag is no better than random, like in phase 1. Decision: keep attack/magic on items, `STAT_REF` 0.5 unchanged; bag strength is common `ITEM_POWER.scale`.
 
-### 13.16 Требует решения или не сделано
+### 13.16 Needs decision or not done
 
-- **Blade Arc и Crimson Arc** (агент slash): по лестнице урон ×0.4 и ≈ ×0.2 (таблица 13.9); пока это не сделано,
-  данные в репо дают забег вдвое быстрее цели.
-- **Цель 3–5 с рано недостижима** (время подхода); предложение: 3–5 с с 8:00, раньше ≥ 2 с.
-- **Одиночный урон дальнобойных против боссов** (13.12): если боссы должны умирать не от арбалета, нужна вторая цель
-  лестницы — по одной цели (например, сила по боссу не выше меча L5 × f(R)).
-- **Молот** слабее цели (slam), **щиты/aegis** сильно зависят от поведения кольца (`orbit.js`, не мой файл).
-- **Cursed дуо** после 12:00 проваливается в половине забегов (порог 60 в рамке).
-- Тесты, закрепляющие числа и поправленные: `sim.test.js` (мины — окно 10 → 20 с, у L1 кулдаун ~8 с; крит L5 из
-  данных вместо 0.25). Падают тесты старого сундука с выбором эволюции (`mechanics.test.js` combo, `upgrades.test.js`,
-  `sim.test.js` skill chest) — их переделывает агент лута.
+Blade Arc and Crimson Arc (slash agent): by ladder, damage is ×0.4 and about ×0.2 (table 13.9); until this is done, data in repo makes a run twice as fast as goal.
 
-### 13.17 Воспроизведение (фаза 2)
+Goal 3–5 s early is unachievable (travel time); proposal: 3–5 s from 8:00, before that ≥ 2 s.
+
+Single damage of ranged weapons against bosses (13.12): if bosses should not die from the crossbow, need a second ladder goal, by single target (for example, strength on boss no higher than blade L5 × f(R)).
+
+Hammer is weaker than goal (slam), shields/aegis depend heavily on ring behavior (`orbit.js`, not my file).
+
+Cursed duo after 12:00 fails in half of runs (threshold 60 in frame).
+
+Tests, pinning numbers and corrected: `sim.test.js` (mines window 10 to 20 s, L1 cooldown about 8 s; crit L5 from data instead of 0.25). Old chest tests with evolution choice fail (`mechanics.test.js` combo, `upgrades.test.js`, `sim.test.js` skill chest), redone by the loot agent.
+
+### 13.17 Reproduction (phase 2)
 
 ```bash
 node tools/simulation/ladder.mjs --tune --anchor-power --iters 2 --n 12 --skip blade_arc,crimson_arc \
-  --experiment base.json --out tools/out/p2/tuned.json          # подбор лестницы, ~25 мин
+  --experiment base.json --out tools/out/p2/tuned.json          # ladder tuning, ~25 min
 node tools/simulation/ladder.mjs --lab --anchor-power --n 16 --experiment tools/out/p2/blade-rec.json
-node tools/simulation/ladder.mjs --lab --level 1 --from 0 --to 3 --ids blade_arc,wisp   # стартовые оружия
+node tools/simulation/ladder.mjs --lab --level 1 --from 0 --to 3 --ids blade_arc,wisp   # starting weapons
 node tools/simulation/targets.mjs --n 40 --split validation \
   --modes normal/1,cursed/1,normal/2,cursed/2,normal/1/bag2,normal/1/dmg2 --experiment tools/out/p2/blade-rec.json
 node tools/simulation/dps.mjs --md [--experiment tools/out/p2/blade-rec.json]
 ```
 
-### 13.18 Теги целей, bloom, меч, single (27.10.2026, решения владельца)
+### 13.18 Target tags, bloom, blade, single (2026-10-27, owner decisions)
 
-**Решения:** меч урезан по рекомендации 13.9 (blade_arc урон 6/8/10/12/14, crimson_arc 11); цель mid 3–5 с — с 8:00,
-раньше ≥ 2 с; у каждого оружия тег `targets` и необязательный `bloom` (`weapons.js`). Главная лестница — клир толпы для
-всех тегов (single тоже клирит паки — частотой и пробиванием); по одной цели — только потолок «single не больше ~1.5–2×
-aoe», TTK боссов — проверка «не ваншот», не цель (боссы сейчас не угроза).
+Decisions: blade is cut by recommendation 13.9 (blade_arc damage 6/8/10/12/14, crimson_arc 11); goal mid 3–5 s from 8:00 on, before that ≥ 2 s; each weapon has tag `targets` and optional `bloom` (`weapons.js`). Main ladder is clear for all crowds (single also clears packs by frequency and pierce); single target only has a ceiling "single no more than about 1.5–2× of aoe", boss TTK is a check "not one-shot", not a goal (bosses are not a threat now).
 
-- **Теги:** aoe — щиты, святая земля, бомба, молот, мины, ледяной шар, облако, метеор и их эволюции; cleave — меч, ножи,
-  топор, молния, луч и их эволюции; single — арбалет, копьё, огонёк и их эволюции. Лестница (`LADDER.tags`): клир
-  f(R) × Q × {aoe 1, cleave 0.9, single 0.7}, потолок по одной цели f(R) × Q × {aoe 1, cleave 1.35, single 3}.
-- **Bloom** — по лаборатории (сила относительно меча в окне 1–5 мин против 8–12 мин): early — ножи (×3.0), святая
-  земля (×2.0), молния (×5.6), копьё (×2.3), огонёк (×1.7); late — мины (×0.42), луч (×0.56). `ladder.mjs --lab --bloom`
-  сравнивает такое оружие с мечом в его окне (`LADDER.bloom`: early 1–6, late 7–12 мин).
-- **Single:** урон по одной цели (манекен-босс, `dps.mjs`) был арбалет 625, баллиста 391, копьё 150, огонёк 166; срезан
-  до ~100 (эволюции ~90–115) — пополам уроном и кулдауном (болт остаётся сильным за удар), огоньку L5 2 огонька вместо 4.
-  Клир паков возвращён пробиванием (оно не добавляет урон по одной цели): арбалет 4–12, копьё 3–8, огонёк 1–5, баллиста 10,
-  dragon_lance 9, spirit_choir 4. Огонёк L1 — один (решение владельца).
-- **Тест:** `weapons-rework.test.js` «spear: pins…» закреплял pierce L1 = 1 (из трёх целей задеты две) — теперь ряд из
-  2 + pierce целей из данных.
+Tags: aoe covers shields, holy ground, bomb, hammer, mines, frost orb, cloud, meteor and evolutions; cleave covers blade, daggers, axe, lightning, beam and evolutions; single covers crossbow, spear, wisp and evolutions. Ladder (`LADDER.tags`): clear is f(R) × Q × {aoe 1, cleave 0.9, single 0.7}, single target ceiling is f(R) × Q × {aoe 1, cleave 1.35, single 3}.
 
-DPS по тегам (`dps.mjs`, медианы):
+Bloom is from lab (strength relative to blade in 1–5 min window versus 8–12 min window): early are daggers (×3.0), holy ground (×2.0), lightning (×5.6), spear (×2.3), wisp (×1.7); late are mines (×0.42), beam (×0.56). `ladder.mjs --lab --bloom` compares such a weapon with blade in its window (`LADDER.bloom`: early 1–6, late 7–12 min).
+
+Single: damage per single target (dummy-boss, `dps.mjs`) was crossbow 625, ballista 391, spear 150, wisp 166; cut to about 100 (evolutions about 90–115) by half damage and half cooldown (bolt stays strong per hit), wisps L5 get 2 instead of 4. Clear packs is restored by pierce (it adds no single-target damage): crossbow 4–12, spear 3–8, wisp 1–5, ballista 10, dragon_lance 9, spirit_choir 4. Wisp L1 is one (owner's decision).
+
+Test: `weapons-rework.test.js` "spear: pins…" pinned pierce L1 = 1 (from 3 targets hit two), now is a row of 2 plus pierce targets from data.
+
+DPS by tag (`dps.mjs`, medians):
 
 | | aoe | cleave | single |
 |---|---|---|---|
-| L5: по боссу | 38 (макс 476, щиты) | 59 | 101 |
-| L5: толпа (экран) | 3511 | 1545 | 883 |
-| эволюции: по боссу | 17 (макс 300, aegis) | 67 | 105 |
-| эволюции: толпа | 3090 | 2443 | 1161 |
+| L5: per boss | 38 (max 476, shields) | 59 | 101 |
+| L5: crowd (screen) | 3511 | 1545 | 883 |
+| evolutions: per boss | 17 (max 300, aegis) | 67 | 105 |
+| evolutions: crowd | 3090 | 2443 | 1161 |
 
-Single по одной цели теперь 2.7× медианы aoe и 1.7× cleave (было до 16× у арбалета); медиана aoe занижена ДоТами (боссы к
-ним иммунны). Выше потолка по одной цели остаются aoe с тяжёлым ударом: щиты 476, aegis 300, молот 222 (на неподвижном
-крупном манекене кольцо и удар по земле не промахиваются).
+Single per single target is now 2.7× median aoe and 1.7× cleave (was up to 16× for crossbow); median aoe is understated by DoTs (bosses immune). Above single target ceiling remain aoe with heavy impact: shields 476, aegis 300, hammer 222 (on still large dummy ring and ground hit do not miss).
 
-Полная таблица (средний герой, без пассивок; «босс/якорь (потолок)» — DPS по боссу относительно меча L5 или Crimson Arc
-и в скобках потолок по лестнице):
+Full table (average Hero, no passives; "boss/anchor (ceiling)" is DPS per boss relative to blade L5 or Crimson Arc and in parentheses the ceiling by ladder):
 
-| оружие | ур. | тег | bloom | DPS 1 цель | DPS 10 | DPS толпа (экран) | DPS босс | босс/якорь (потолок) | R, px | удар, px |
+| weapon | lvl | tag | bloom | DPS 1 target | DPS 10 | DPS crowd (screen) | DPS boss | boss/anchor (ceiling) | R, px | hit, px |
 |---|---|---|---|---|---|---|---|---|---|---|
 | blade_arc | L1 | cleave | — | 7 | 60 | 100 | 6 | — | 120 | 20 |
 | blade_arc | L5 | cleave | — | 58 | 565 | 1545 | 56 | 1 (1) | 170 | 28 |
@@ -1229,9 +1081,9 @@ Single по одной цели теперь 2.7× медианы aoe и 1.7× c
 | spirit_choir | evo | single | — | 114 | 508 | 559 | 114 | 1.7 (1.3) | 300 | 4 |
 | starfall | evo | aoe | — | 9 | 89 | 1703 | 7 | 0.1 (0.6) | 300 | 76 |
 
-Лестница клира (лаборатория, n = 16, сила от абсолютного якоря 13.9; цель включает множитель тега):
+Clear ladder (lab, n = 16, strength from absolute anchor 13.9; goal includes tag multiplier):
 
-| оружие | тег | bloom | R | цель | сила | жизнь в рамке, с |
+| weapon | tag | bloom | R | goal | strength | life in frame, s |
 |---|---|---|---|---|---|---|
 | blade_arc | cleave | — | 170 | 1 | 0.81 | 7.5 |
 | throwing_daggers | cleave | early | 360 | 0.59 | 0.56 | 10.9 |
@@ -1266,13 +1118,11 @@ Single по одной цели теперь 2.7× медианы aoe и 1.7× c
 | spirit_choir | single | — | 300 | 0.45 | 0.47 | 11.4 |
 | starfall | aoe | — | 300 | 0.89 | 0.53 | 10.4 |
 
-Меч после общего ×0.75 — 0.81 якоря, Crimson Arc 0.89: сравнивать с ними. Ниже цели (множитель тега поднял цели aoe, их
-не переподбирал): молот 0.50 при 0.92, ледяной шар 0.63 при 0.78, starfall 0.53 при 0.89, blizzard 0.53 при 0.72;
-огонёк 0.38 при 0.44 (поздно, bloom early).
+Blade after shared ×0.75 is 0.81 of anchor, Crimson Arc is 0.89: compare with them. Below goal (tag multiplier raised aoe goals, did not retune them): hammer 0.50 at 0.92, frost orb 0.63 at 0.78, starfall 0.53 at 0.89, blizzard 0.53 at 0.72; wisp 0.38 at 0.44 (late, bloom early).
 
-Клир ботов (validation, n = 24; жизнь в рамке, с / врагов в рамке):
+Bots clear (validation, n = 24; life in frame, s / enemies in frame):
 
-| режим/билд | 3:00 | 7:00 | 9:00 | 11:00 | 13:00 | 14:00 | TTK 10–14 | уд/уб | провал до 10 / всего |
+| mode/build | 3:00 | 7:00 | 9:00 | 11:00 | 13:00 | 14:00 | TTK 10–14 | hits/kill | fail before 10 / total |
 |---|---|---|---|---|---|---|---|---|---|
 | normal/1/glass | 3.0/21 | 2.5/8 | 1.3/25 | 1.9/15 | 1.7/31 | 1.7/26 | 2.1 | 5.2 | 2 / 2 |
 | normal/1/mid | 2.7/20 | 5.6/12 | 1.5/28 | 3.3/22 | 2.5/40 | 2.7/37 | 3.4 | 7.5 | 1 / 3 |
@@ -1281,34 +1131,28 @@ Single по одной цели теперь 2.7× медианы aoe и 1.7× c
 | normal/2/mid | 1.9/17 | 2.3/7 | 1.2/24 | 2.5/20 | 2.5/43 | 2.6/43 | 2.8 | 7.1 | 0 / 1 |
 | cursed/2/mid | 2.3/25 | 2.8/12 | 1.3/37 | 3.0/32 | 3.0/63 | 3.2/61 | 3.5 | 8.3 | 0 / 10 |
 
-- mid с 8:00: 11:00–14:00 2.5–3.3 с (у нижнего края цели), 9:00 1.5 с — минута после 8:00 лёгкая (элита и стена 8:00
-  уже убиты, ламии ещё редки); glass TTK 2.1 с при 5 попаданиях (на границе 1–2 с).
-- Боссы, normal/1/mid (медиана / максимум, убиты): Кицунэ 68/169 с 24/24, Гарпия 58/152 с 24/24, Дриада 65/102 с 20/24
-  (до среза single: 47 / 29 / 59 с). Ваншота нет, боссы живут дольше; по решению владельца это не цель.
+Mid from 8:00: 11:00–14:00 is 2.5–3.3 s (at lower edge of goal), 9:00 is 1.5 s—the minute after 8:00 is easy (elite and wall at 8:00 already dead, lamias still rare); glass TTK 2.1 s at 5 hits (at edge of 1–2 s).
 
-Требует решения: single 2.7× медианы aoe по одной цели — если нужно строго ≤ 2×, урон single ×0.75 (клир почти не
-изменится, его держит пробивание); щиты, aegis и молот по одной цели выше single; aoe с множителем тега ниже цели клира
-(молот, ледяной шар, starfall, blizzard) — следующий проход `ladder.mjs --tune --anchor-power`.
+Bosses, normal/1/mid (median / maximum, killed): Kitsune 68/169 s from 24/24, Harpy 58/152 s from 24/24, Dryad 65/102 s from 20/24 (before single cut: 47 / 29 / 59 s). No one-shot, bosses live longer; by owner decision this is not a goal.
+
+Need decision: single is 2.7× median aoe per single target—if strictly ≤ 2×, cut single damage ×0.75 (clear changes little, pierce holds it); shields, aegis, and hammer per single target exceed single; aoe with tag multiplier below clear goal (hammer, frost orb, starfall, blizzard)—next pass `ladder.mjs --tune --anchor-power`.
 
 ```bash
-node tools/simulation/dps.mjs --md                                   # таблица DPS: 1 цель, 10, экран, босс
-node tools/simulation/ladder.mjs --lab --anchor-power --bloom --n 16  # клир с окнами bloom
+node tools/simulation/dps.mjs --md                                   # DPS table: 1 target, 10, screen, boss
+node tools/simulation/ladder.mjs --lab --anchor-power --bloom --n 16  # clear with bloom windows
 ```
 
-### 13.19 Потолок по одной цели и короткий проход (27.10.2026, ответы владельца на 13.18)
+### 13.19 Single target ceiling and short pass (2026-10-27, owner answers to 13.18)
 
-- **Single ×0.75** по урону (огонёк L1 не тронут; L2–L3 подняты до 22, урон не падает с уровнем — `data.test.js`);
-  клир возвращён пробиванием: копьё 4–10, огонёк 1–6, баллиста 16, spirit_choir 6.
-- **Щиты, aegis, молот** — урон по одной цели срезан, клир оставлен ростом радиуса или площади (боссу они ничего не
-  добавляют: крупная цель и так целиком в кольце или под ударом). Щиты: урон ×0.32, hitRadius ×1.3 (L5 40; выше нельзя —
-  при 51 px цель стоит в нескольких щитах сразу, `mechanics.test.js` «orbit: each shield rehits…» и визуально удар за
-  50 px от щита). aegis: урон 67 → 9 за удар, hitRadius 24 → 54. Молот: урон ×0.35, area ×1.25; titan_maul урон ×0.6,
-  area 99.
-- **Короткий проход** (лаборатория, tuning-сиды, n = 12): starfall урон ×1.7, blizzard ×1.4, ледяной шар ×1.15.
+Single ×0.75 damage (wisp L1 untouched; L2–L3 raised to 22, damage does not drop with level—`data.test.js`); clear returned by pierce: spear 4–10, wisp 1–6, ballista 16, spirit_choir 6.
 
-Сила по боссу (`dps.mjs`, L5 или эволюция) и клир (лаборатория, от абсолютного якоря; в скобках цель):
+Shields, aegis, hammer: single target damage is cut, clear held by radius or area growth (bosses gain nothing: large target fits wholly in ring or under impact). Shields: damage ×0.32, hitRadius ×1.3 (L5 40; higher hits 51 px where target stands in multiple shields, `mechanics.test.js` "orbit: each shield rehits…" and visually hit 50 px from shield). Aegis: damage 67 to 9 per hit, hitRadius 24 to 54. Hammer: damage ×0.35, area ×1.25; titan_maul damage ×0.6, area 99.
 
-| оружие | тег | по боссу до → после | клир до → после (цель) |
+Short pass (lab, tuning seeds, n = 12): starfall damage ×1.7, blizzard ×1.4, frost orb ×1.15.
+
+Strength per boss (`dps.mjs`, L5 or evolution) and clear (lab, from absolute anchor; goal in parentheses):
+
+| weapon | tag | per boss before → after | clear before → after (goal) |
 |---|---|---|---|
 | crossbow | single | 103 → 78 | 0.44 → 0.44 (0.44) |
 | spear | single | 96 → 72 | 0.56 → 0.44 (0.44) |
@@ -1324,20 +1168,17 @@ node tools/simulation/ladder.mjs --lab --anchor-power --bloom --n 16  # клир
 | starfall | aoe | 7 → 13 | 0.53 → 0.95 (0.89) |
 | blizzard | aoe | 15 → 20 | 0.53 → 0.74 (0.72) |
 
-Медианы по боссу теперь: single ~75, cleave ~59, aoe ~40 (single ≈ 1.9× aoe). Выше потолка остаются щиты (161): у орбиты
-урон по боссу и клир связаны (оба от числа касаний), ниже без потери клира не опустить. Огонёк по клиру 0.31 при 0.44 —
-пробивание ему не помогает (огоньки бьют ближайшего к себе, редко в ряд); он early bloom, L1 владелец оставил.
+Boss medians now: single about 75, cleave about 59, aoe about 40 (single is about 1.9× aoe). Above the ceiling remain shields (161): with orbit, single damage and clear tie together (both from hit count), cannot lower without losing clear. Wisp per clear is 0.31 at 0.44—pierce does not help (wisps hit nearest to self, rarely in row); it is early bloom, owner kept L1.
 
-Боты, validation, n = 24 (жизнь в рамке, с / врагов в рамке):
+Bots, validation, n = 24 (life in frame, s / enemies in frame):
 
-| режим/билд | 9:00 | 11:00 | 12:00 | 13:00 | 14:00 | TTK 10–14 | уд/уб | провал до 10 / всего |
+| mode/build | 9:00 | 11:00 | 12:00 | 13:00 | 14:00 | TTK 10–14 | hits/kill | fail before 10 / total |
 |---|---|---|---|---|---|---|---|---|
 | normal/1/glass | 1.5/26 | 2.2/16 | 2.2/21 | 1.8/31 | 1.7/29 | 2.3 | 5.3 | 2 / 2 |
 | normal/1/mid | 1.6/28 | 3.6/23 | 4.2/35 | 3.2/41 | 3.1/41 | 4.1 | 8.8 | 1 / 4 |
 | normal/1/tank | 2.8/40 | 7.0/36 | 8.5/51 | 8.2/64 | 7.4/59 | 7.3 | 10.4 | 2 / 16 |
 | cursed/1/mid | 2.0/40 | 4.7/35 | 5.0/49 | 4.1/59 | 4.2/58 | 5.2 | 9.9 | 6 / 15 |
 
-- mid с 11:00 — 3.1–4.2 с, в цели 3–5 с (9:00 по-прежнему лёгкая минута, 1.6 с). Glass TTK 2.3 с (чуть выше 2).
-  Cursed соло mid стал проваливаться после 11:00 чаще (15/24, было 7/24): наступление в целом слабее после среза
-  single и щитов; если cursed должен оставаться проходимым средним билдом, рычаг — cursed spawnMul 1.4 → 1.3.
-- Боссы normal/1/mid: Кицунэ 87/170 с, Гарпия 59/147 с, Дриада 67/106 с (19/24). Ваншота нет.
+Mid from 11:00 is 3.1–4.2 s, in goal 3–5 s (9:00 still easy, 1.6 s). Glass TTK 2.3 s (slightly above 2). Cursed solo mid now fails more after 11:00 (15/24, was 7/24): overall offense is weaker after single and shield cuts; if cursed should stay passable as mid build, the lever is cursed spawnMul 1.4 to 1.3.
+
+Normal/1/mid: Kitsune 87/170 s, Harpy 59/147 s, Dryad 67/106 s (19/24). No one-shot.

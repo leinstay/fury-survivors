@@ -1,115 +1,74 @@
-# SIMULATIONS: результаты реализации 23 октября 2026
+# Simulations: implementation results October 23, 2026
 
-Старые `tests/balance` с лечением/выдачей билдов заменены отдельным измерительным стендом.
-Механические unit-тесты сохранены. Есть воспроизводимые честные прогоны, точные bot replay,
-общий policy для Node/браузера, раздельные бессмертные диагностики, рецепты, контролируемые
-сравнения оружия и отчёты с интервалами. Команды: [SIMULATION_GUIDE.md](SIMULATION_GUIDE.md).
+Old `tests/balance` with healing and build gifting has been replaced by a separate test stand.
+Mechanical unit tests are kept. Reproducible fair runs exist, exact bot replay works, a shared policy for Node and browser exists, separate immortal diagnostics, recipes, controlled weapon comparisons, and reports with intervals all exist. Commands: [SIMULATION_GUIDE.md](SIMULATION_GUIDE.md).
 
-## Достоверность человеческой модели
+## Human model fidelity
 
-Закреплены 13 v1 solo-забегов: 969 событий, 656 take, 135 минутных срезов; 11 cursed,
-2 normal. Это малая смещённая выборка забегов, не 13 независимых известных людей.
-Все восстановленные конечные билды совпали; версия исторической таблицы рецептов
-не подтверждена. Пропавший после эволюции v1 урон остаётся неизвестным.
+13 v1 solo runs are locked: 969 events, 656 takes, 135 minute snapshots; 11 cursed, 2 normal.
+This is a small biased sample of runs, not 13 independent known people. All recovered final builds matched. The historical recipe version is unconfirmed. Damage lost after v1 evolution stays unknown.
 
-Leave-one-run-out, с одинаковым весом забега: learned top-1 **65.43%**, прежний bot
-**34.23%**, uniform **23.98%**; logloss **0.922 / 1.907 / 1.360** соответственно.
-Подробные folds и checksum: `tests/fixtures/telemetry/validation.json`.
-Это проверка предпочтений карточек, не доказательство реализма движения или смертности.
-Профили держат выбранное направление, но выбирают из реального случайного предложения.
+Leave-one-run-out with equal run weight: learned top-1 **65.43%**, previous bot **34.23%**, uniform **23.98%**; logloss **0.922 / 1.907 / 1.360** respectively.
+Detailed folds and checksum in `tests/fixtures/telemetry/validation.json`.
+This validates card preferences, not movement realism or loss probability. Profiles hold chosen direction but pick from actual random offers.
 
-Движение учитывает задержку реакции, уклонение, предметы, союзника и сбор XP через магнит.
-Доли профилей и частота banking пока предварительные. Выгрузка после 14:00 UTC,
-проверенная в 17:30 UTC, новых забегов не содержала. Поэтому человеческий movement/duo
-validation и финальная настройка 50%/75% пока остаются открытыми этапами плана.
+Movement accounts for reaction delay, evasion, items, partner, and XP collection through magnet.
+Profile shares and banking frequency are preliminary. Export after 14:00 UTC, checked at 17:30 UTC, contained no new runs. So human movement and duo validation and final 50%/75% tuning remain open plan stages.
 
-## Опыт и дуо
+## Experience and duo
 
-Ниже исследовательские tuning-прогоны по 20 матчей на режим, одни и те же seed/profile
-внутри сравнения. Это поиск направлений, не qualification; интервалы широкие.
-Уровень на 15:00 условен на выживание, число наблюдений обязательно смотреть в JSON.
+Below are research tuning runs of 20 matches per mode with identical seed/profile within each comparison.
+This is direction-finding, not qualification. Intervals are wide. Level at 15:00 depends on survival; check observation count in JSON.
 
-| Вариант | Победы normal solo | normal duo | cursed solo | cursed duo |
+| Variant | normal solo wins | normal duo | cursed solo | cursed duo |
 | --- | ---: | ---: | ---: | ---: |
-| Исходный XP, banking-профили | 9/20 | 0/20 | 3/20 | 0/20 |
-| Только duo XP 1.25 → 1.75 | 9/20 | 4/20 | 3/20 | 1/20 |
-| Гладкая A, cursed XP .9, duo XP 2 | 9/20 | 2/20 | 3/20 | 1/20 |
-| Гладкая C, cursed XP .9, duo XP 2 | 10/20* | 6/20 | 2/20 | 0/20 |
-| Только цена за личный круг, scale 2 | 9/20 | 14/20 | 3/20 | 9/20 |
-| Гладкая A + личный круг, cursed .9, duo 1.25 | 9/20 | 16/20 | 3/20 | 8/20 |
+| Baseline XP, banking profiles | 9/20 | 0/20 | 3/20 | 0/20 |
+| Duo XP only 1.25 → 1.75 | 9/20 | 4/20 | 3/20 | 1/20 |
+| Smooth A, cursed XP .9, duo XP 2 | 9/20 | 2/20 | 3/20 | 1/20 |
+| Smooth C, cursed XP .9, duo XP 2 | 10/20* | 6/20 | 2/20 | 0/20 |
+| Personal level cost only, scale 2 | 9/20 | 14/20 | 3/20 | 9/20 |
+| Smooth A + personal level, cursed .9, duo 1.25 | 9/20 | 16/20 | 3/20 | 8/20 |
 
-A: прибавки цены 10/25/45 на диапазонах до 20/до 40/дальше, без доплат на 20/40.
-C: 10/22/40. В C один normal solo прогон завершился ошибкой, оставшиеся 9 — поражением;
-ошибка не скрыта и не засчитана смертью. Причина — истёкший щит в списке блокировщиков,
-исправлена отдельно с регрессионным тестом. Его [seed/config и результат replay](simulation-evidence/shield-regression.json) сохранены:
-630 секунд завершены ожидаемым timeout без ошибки, replay 39444 шагов совпал по контрольным и итоговому хешам.
+A: cost increases 10/25/45 at ranges below 20/below 40/above, with no bonuses at 20 and 40.
+C: 10/22/40. In C, one normal solo run ended in error, the rest 9 in loss. The error is not hidden or counted as death. Cause: an expired shield in the blocker list, fixed separately with a regression test. Its [seed/config and replay result](simulation-evidence/shield-regression.json) are saved:
+630 seconds completed as expected timeout without error, replay of 39,444 steps matched control and final hashes.
 
-У исходного solo на 15:00 normal медиана уровня 78, cursed 100; у всех наблюдаемых
-выживших cursed уже закончились доступные улучшения. Увеличение duo XP помогает
-ранней прокачке/выживанию, но все дожившие дуо в варианте 1.75 также исчерпали сборки.
-Гладкая A снижает normal solo медиану до 65 и оставляет медиану 2 варианта, но не решает
-выживаемость дуо и сохраняет раннее исчерпание у части сборок. Ни один кандидат не принят
-как итоговый баланс. Данные: [xp-exploration.json](simulation-evidence/xp-exploration.json).
+Baseline solo at 15:00: normal median level 78, cursed 100. All observed cursed survivors already exhausted available upgrades. Raising duo XP helps early leveling and survival, but all surviving duo at 1.75 also exhausted builds. Smooth A lowers normal solo median to 65 and keeps a median 2 variant, but does not solve duo survival and keeps early exhaustion in some builds. No candidate is accepted as final balance. Data: [xp-exploration.json](simulation-evidence/xp-exploration.json).
 
-Цена за личный круг поддерживает гипотезу о нехватке личной прокачки: в 5:00 normal duo
-получает медиану 25 выбранных карточек на игрока вместо прежних 17. Но к 15:00 во всех
-15 доживших normal duo уже начался auto-heal. У гладкой A с личными кругами он начался
-в 15 из 16 доживших команд. Следовательно, нельзя просто включить scale 2: следующая
-задача — удержать ранний темп и поднять позднюю цену с учётом 4+4 слотов дуо. Изменение
-повышает также общий уровень и HP боссов; победы выше уже учитывают этот эффект.
+Personal level cost supports the hypothesis of insufficient personal leveling. At 5:00 normal duo gets median 25 chosen cards per player vs. the prior 17. But by 15:00 all 15 surviving normal duo teams already started auto-heal. Smooth A with personal levels triggered it in 15 of 16 surviving teams. So you cannot just enable scale 2. Next is to hold early pace and raise late cost accounting for 4+4 duo slots. The change also raises shared level and boss HP; wins above already account for this.
 
-Отдельный бессмертный XP-B опыт (10 матчей на режим, ранняя версия распределения профилей)
-дал 507 спасений normal duo и 1331 cursed duo: возможность докачаться не означает
-честную проходимость. Он сохранён отдельно, в смертность не включён.
+A separate immortal XP-B experiment (10 matches per mode, early profile distribution) gave 507 normal duo rescues and 1331 cursed duo. Ability to level further does not mean fair completion. Stored separately, not in loss rates.
 
-## Радиус, совместная работа оружия и защита
+## Radius, weapon synergy, and defense
 
-Сделано 1558 контролируемых проб: все 21 пары ×6 вариантов ×4 окружения ×3 seed,
-28 отдельных recipe probes и щиты block-on/off. Подробные агрегаты:
-[combat.json](simulation-evidence/combat.json). Это диагностические установки готовых
-билдов и фиксированного движения, не обычные забеги.
+1558 controlled trials run: all 21 pairs times 6 variants times 4 environments times 3 seeds, 28 recipe probes separately, and shields on and off.
+Detailed aggregates: [combat.json](simulation-evidence/combat.json). These are diagnostic setups of ready builds and fixed movement, not normal runs.
 
-В толпе средний DPS Blade Arc83, Storm Chain452, вместе 554; при той же цене вложений
-Storm Chain + attack5/haste2 даёт 803. Это сильный повод проверять цену/радиус и полезность
-меча. Само различие ещё не определяет нужный nerf: стенд сохраняет доступность целей,
-первый удар, добивания после другого оружия и отбрасывания. В реальном забеге движение,
-время получения уровней и защита меняют результат.
+In crowds, median DPS: Blade Arc 83, Storm Chain 452, together 554. At equal investment cost, Storm Chain plus attack5/haste2 gives 803.
+Strong reason to check cost and radius and sword utility. The difference alone does not prescribe needed nerf. The stand preserves target availability, first hits, finishes after other weapons, and knockback. In real runs, movement, level timing, and defense change the result.
 
-В стреляющем fixture щиты показывают отдельную защитную пользу при неизменном DPS
-между block-on/off. Уничтоженный снаряд не обязательно попал бы в игрока: interceptedRaw
-отчётливо отделён от входящего HP damage. Сырой DPS щитов нельзя уравнивать с чисто
-наступательным оружием без цены за защиту. Выводов о процентах побед из fixture нет.
+In a ranged fixture, shields show separate defensive benefit with unchanged DPS between block on and off. Destroyed projectiles do not always hit the player. interceptedRaw is clearly separate from incoming HP damage. Raw shield DPS cannot equal pure offensive weapons without a defense cost. No win-rate conclusions from fixtures.
 
-Подтверждённый дефект core: список блокировщиков создавался до обхода снарядов, и щит,
-истёкший/возвращённый в пул раньше в том же обходе, мог продолжать блокировать.
-Теперь проверяется актуальность щита; регрессия проверяет expired и reused object.
+Confirmed core defect: the blocker list was built before scanning projectiles, so a shield that expired or returned to pool earlier in the same scan could keep blocking.
+Now shield validity is checked. Regression tests expired and reused objects.
 
-## Внешние ориентиры
+## External benchmarks
 
-Открытые community wiki, просмотрены 23 октября 2026:
+Publicly accessed community wikis, viewed October 23, 2026:
 
-- [Vampire Survivors: Level up](https://vampire.survivors.wiki/w/Level_up) и
-  [Growth](https://vampire.survivors.wiki/w/Growth): пороговые доплаты на 20/40 сопровождаются
-  временным +100% Growth. В нашей прежней кривой доплаты есть, такой компенсации нет.
-  Это основание проверять гладкую кривую, а не переносить отдельные числа без механики.
-- [HoloCure: Collaborations](https://holocure.wiki.gg/wiki/Collaborations) и
-  [Main weapon](https://holocure.wiki.gg/wiki/Main_weapon): коллабы требуют двух оружий
-  максимального уровня и Golden Anvil, расходуют компоненты и освобождают слот.
-  Это ориентир бюджета/момента рецепта; длительность этапа и экономика нашей игры другие.
+- [Vampire Survivors: Level up](https://vampire.survivors.wiki/w/Level_up) and
+  [Growth](https://vampire.survivors.wiki/w/Growth): threshold bonuses at 20 and 40 pair with temporary +100% Growth. Our prior curve has bonuses but no compensation.
+  This grounds checking a smooth curve rather than moving individual numbers without mechanics.
+- [HoloCure: Collaborations](https://holocure.wiki.gg/wiki/Collaborations) and
+  [Main weapon](https://holocure.wiki.gg/wiki/Main_weapon): collabs need two max-level weapons and a Golden Anvil, spend components, and free a slot.
+  This benchmarks recipe budget and timing. Stage length and our economy differ.
 
-## Условия следующего этапа
+## Next phase conditions
 
-Собрать новые обычные v2 solo/duo с обеих сложностей, включая смерти, rush, banking,
-магниты и разные рецепты. Сверить задержку/движение, личные улучшения и время эволюций,
-зафиксировать смесь поведения. Затем выбрать XP по tuning/validation и проверить
-отдельной qualification выборкой. После XP переходить к HP/мобам/оружию по контролируемым
-сравнениям. До этой проверки цель 50%/75% и cursed без эволюций не объявляется достигнутой.
+Collect new regular v2 solo and duo from both difficulties, including deaths, rush, banking, magnets, and varied recipes. Verify delay and movement, personal upgrades and evolution timing, and lock the behavior mix. Then choose XP via tuning/validation and test with separate qualification sample. After XP, move to HP, mobs, and weapons via controlled comparisons. Until this check, 50%/75% targets and cursed without evolution are not declared achieved.
 
 
-## Проверки реализации
+## Implementation checks
 
-185 unit/contract проверок и все 7 браузерных smoke прошли; lint и проверка актуальности
-runtime manifest прошли. В smoke больше нет фиксированных waitForTimeout или FPS-порогов.
-Точный replay регрессии щита совпал на 39444 шагах; headless/lockstep сравниваются в тестах.
-Performance на Node 24.19.0, AMD EPYC 9V45, 400 врагов: mean 0.227 ms, p95 0.338 ms,
-p99 4.338 ms, max 44.243 ms под параллельной нагрузкой; это измерение среды, не приёмочный FPS.
+185 unit and contract checks and all 7 browser smoke tests passed. Lint and runtime manifest freshness checks passed. No fixed waitForTimeout or FPS thresholds in smoke. Shield regression exact replay matched at 39,444 steps; headless and lockstep are compared in tests.
+Performance on Node 24.19.0, AMD EPYC 9V45, 400 enemies: mean 0.227 ms, p95 0.338 ms, p99 4.338 ms, max 44.243 ms under parallel load. This is environment measurement, not acceptance FPS.

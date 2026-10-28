@@ -1,122 +1,121 @@
 # Fury Survivors
 
-## Что создаем
+## What we're building
 
-Игру в жанре Vampire Survivors, графически и по анимациям и по геймплею ближе всего к HoloCure. Героиня бегает по полю, со всех сторон лезут толпы врагов, оружие стреляет само, с врагов падает опыт, на новом уровне выбираешь улучшение из нескольких. Этап длится фиксированное время, в конце можно босса.
+A Vampire Survivors-style game, visually and in animation and gameplay closest to HoloCure. A hero runs across a field. Crowds of enemies attack from all sides. Weapons fire automatically. Experience drops from enemies. At each new level, you pick an upgrade from several options. The stage lasts a fixed amount of time, with a boss at the end.
 
-Сейчас нужна демка, но не голая. В ней должны быть стартовый экран с кнопкой старта, пауза на Esc, выход в меню, экран смерти с результатами. Визуально у демки должно быть все: анимации, эффекты, числа урона, тряска, частицы, звуки.
+For now we need a demo, but a complete one. It should have a start screen with a play button, pause on Esc, menu exit, and a death screen with results. Visually the demo should have everything: animations, effects, damage numbers, screen shake, particles, and sound.
 
-## Референсы
+## References
 
-В папке references лежат скриншоты HoloCure (геймплей, главное меню, экран выбора улучшений, магазин), скриншот Vampire Survivors и пикселизированная девочка (main.png), в стиле и графике которой я хочу видеть игру.
+The references folder has screenshots from HoloCure (gameplay, main menu, upgrade choice screen, shop), a Vampire Survivors screenshot, and a pixelated girl (main.png) in whose style and graphics I want to see the game.
 
-## Графика
+## Graphics
 
-Всё в пиксель арте как у референс героини: тёмная обводка в один пиксель, мягкие пастельные цвета, по два три оттенка на цвет. От референса берём только технику рисовки, пропорции взрослые. Пиксели чёткие, без размытия при масштабировании. У героини и врагов должны быть хотя бы стойка, ходьба, получение урона и смерть. Враги разных типов, но все в одном стиле идентичном референсу, чтобы игра не выглядела собранной из разных источников.
+Everything in pixel art like the reference girl: dark one-pixel outline, soft pastel colors, two or three shades per color. We take only the drawing technique from the reference, with adult proportions. Pixels are sharp, no blur on scaling. Hero and enemies should have at least idle, walk, damage, and death poses. Different enemy types, all in one style matching the reference so the game doesn't look assembled from different sources.
 
-Главная героиня рыжеволосая рыцарша. Враги это монстродевочки в аниме стиле: кошкодевочки, лисодевочки, слаймы, призраки, суккубы и так далее, чем больше разнообразия, тем лучше. 
+The main hero is a red-haired knight woman. Enemies are monster girls in anime style: cat girls, fox girls, slimes, ghosts, succubi and so on. The more variety, the better.
 
-Все персонажи взрослые девушки. Наряды откровенные в духе аниме и JRPG, в пределах 16+: открытые бёдра и живот, короткие юбки и шорты, чулки, у некоторых большая грудь, без наготы. Если генерируешь картинки, описывай в промпте только сам наряд и фигуру, без слов вроде sexy, fanservice, seductive, busty чтобы фильтр модели рисования не отклонял запросы из-за таких слов.
+All characters are adult women. Costumes are daring in an anime and JRPG spirit, within PG-16: exposed thighs and belly, short skirts and shorts, stockings, some with large breasts, no nudity. If you generate images, describe only the outfit and figure in the prompt, without words like sexy, fanservice, seductive, or busty, so the drawing model's filter doesn't reject requests.
 
-Ассеты будем генерировать через API по референсам (в папке /.secrets/ лежит ключ OpenRouter, gpt-image-2.5-flare), если полученные спрайты будут грязными необходимо, програмно чистить скриптом в настоящий пиксель арт. На ключе OpenRouter выставлен бюджет, его нужно учитывать и не жечь перегенерациями, особенно когда агенты работают параллельно.
+We'll generate assets via API using references (the .secrets/ folder holds the OpenRouter key, gpt-image-2.5-flare). If the sprites come out dirty, we need to clean them programmatically into real pixel art with a script. The OpenRouter key has a budget that we need to watch and not burn with repeated generation, especially when agents work in parallel.
 
-Ассеты генерируются параллельно с кодом. До их готовности в игре стоят заглушки того же размера кадра и с той же точкой опоры. Готовые спрайты отдаются на проверку по одному или пачкой и подменяются без правки кода.
+Assets are generated in parallel with code. Until they're ready, the game has placeholders the same frame size with the same anchor point. Finished sprites are submitted for review one at a time or in batches and swapped in without code changes.
 
-Ассеты и названия HoloCure и Vampire Survivors не копируем. Механики и баланс брать можно, картинки, звуки и имена нет.
+We do not copy assets, names from HoloCure or Vampire Survivors. We can take mechanics and balance, but not images, sounds, and names.
 
-Базовое разрешение как в HoloCure. Размеры персонажей между собой нужно обязательно выдержать, гуманоиды должны быть одного роста в пикселях, монстры могут быть разных размеров, от маленьких летучих мышей до крупных слаймов. Графика не должна быть мыльной. 
+The base resolution is like HoloCure. Character sizes relative to each other must be consistent. Humanoids should be the same pixel height, monsters can be different sizes from tiny bats to large slimes. Graphics should not be muddy.
 
-Графика должна держать направление, персонажи не должны стоять лицом к зрителю и кадры ходьбы не должны выглядить одинаковыми. Учитывай что враги будут двигаться за героиней во все 360 градусов. 
-С учетом времени система должна быть простая и не зависящая от модели рисования, например все персонажи в одном ракурсе три четверти вправо, а влево просто зеркалим, ходьба процедурная. Предложи, как сделать это лучше.
+Graphics should hold direction. Characters shouldn't face the viewer. Walk frames shouldn't look identical. Consider that enemies move toward the hero in all 360 degrees. The system should be simple and not dependent on the drawing model. For example, all characters in one three-quarter view to the right, and we just mirror for the left side. Procedural walk. Suggest a better way or your own option.
 
-Дополнять анимацию  тоже можно процедурно: покачивание, сжатие, наклон, белая вспышка при уроне, облачко при смерти, перекраска одного врага в несколько вариантов.
+Animation can be added procedurally too: sway, squeeze, tilt, white flash on damage, puff on death, recolor one enemy into variants.
 
-Предложи, как лучше, или свой вариант.
+Suggest what's best or your own option.
 
-## Звук
+## Sound
 
-Звуки должны быть "дофаминовые", приятные, но ненавязчивые, как в Roblox. Фоновая песня одна, бесплатная из интернета, и лежит отдельным файлом, чтобы её легко было заменить. Откуда брать звуковые эффекты (генерировать процедурно, бесплатные паки или генерация моделью), предложи сам.
+Sounds should be dopamine-friendly, nice but not intrusive, like in Roblox. One background song, free from the internet, separate file so it's easy to replace. Suggest where to get sound effects (generate procedurally, free packs, or model generation).
 
-## Управление
+## Controls
 
-На компьютере героиня ходит на WASD и стрелках в восемь направлений, Esc ставит паузу, по меню и карточкам улучшений можно ходить и клавиатурой, и мышью.
-На телефоне клавиатуры нет, поэтому там нужно управление пальцем (например экранный джойстик) и кнопка паузы вместо Esc.
-Нужна ли поддержка геймпада, подскажи сам.
+On desktop the hero walks on WASD or arrow keys in eight directions. Esc pauses. You navigate the menu and upgrade cards with keyboard and mouse.
+On phone there's no keyboard, so you need finger control (for example on-screen joystick) and a pause button instead of Esc.
+Whether gamepad support is needed, let me know.
 
-## Производительность
+## Performance
 
-Игра должна держать сотни врагов на экране при 60 fps, в том числе на телефоне.
+The game should hold hundreds of enemies on screen at 60 fps, including on phone.
 
-## Язык
+## Language
 
-Интерфейс на английском, с возможностью легко добавить другие языки в будущем.
+Interface in English, with easy ability to add other languages later.
 
-## Контент
+## Content
 
-В демке уже должно быть несколько видов активного оружия и пассивок, чтобы было что выбирать на уровнях. Их можно полностью брать из аналогичных игр вместе с балансом. Данные можно собрать в интернете: вики Vampire Survivors и HoloCure. Как запасной вариант можно найти опенсорсные реализации игр этого жанра и посмотреть, как там сделано.
+The demo should already have several types of active weapons and passives so there's something to choose at levels. You can take them fully from similar games along with their balance. Data can be found online: Vampire Survivors and HoloCure wikis. As a backup you can find open source implementations of games in this genre and see how they did it.
 
-Механики, которые я знаю по этим играм и хочу видеть или хотя бы обсудить:
-- оружие стреляет само по таймеру
-- опыт падает с врагов, магнит притягивает его к игроку, радиус магнита прокачивается
-- выбор из нескольких улучшений на новом уровне, с реролом
-- статы: здоровье, атака, скорость, крит, радиус подбора, скорость атаки
-- комбинации двух прокачанных оружий в одно супероружие (коллабы в HoloCure, эволюции в Vampire Survivors)
-- отбрасывание врагов
-- неуязвимость на короткое время после удара
-- элитные враги, перекрашенные, сильнее и с лучшим дропом
-- ящики и сундуки с бонусами
-- еда, которая лечит
-- босс в конце этапа
+I know these mechanics from those games and want to see them or at least discuss them:
+- Weapons fire automatically on a timer
+- Experience drops from enemies, magnet pulls it to the player, magnet radius upgrades
+- Choice of several upgrades at new level, with reroll
+- Stats: health, attack, speed, crit, pickup radius, attack speed
+- Combination of two upgraded weapons into one super weapon (collabs in HoloCure, evolutions in Vampire Survivors)
+- Enemy knockback
+- Brief invincibility after taking a hit
+- Elite enemies, recolored, stronger with better drops
+- Boxes and chests with bonuses
+- Food that heals
+- Boss at stage end
 
-Разбери этот список и подскажи, что ещё стоит применить.
+Review this list and suggest what else should apply.
 
-## Структура под дальнейшее развитие
+## Structure for future growth
 
-Хоть это и демка, это начало большой игры, а не одноразовый прототип. После создания демки в отдельных сессиях я буду добавлять новый контент, поэтому структура должна быть удобной для развития с первого релиза.
+Even though this is a demo, it's the start of a big game, not a one-off prototype. After the demo is done, in separate sessions I'll add new content. The structure should be convenient for growth from day one.
 
-Что должно добавляться легко:
-- новое активное оружие и его уровни
-- новые пассивки и улучшения статов
-- новые герои со своим стартовым оружием и статами
-- новые враги, элитные варианты и боссы
-- новые карты, окружение и объекты на них (деревья, камни, ящики)
-- волны врагов и события по времени этапа
-- комбинации оружия
+What should be easy to add:
+- new active weapon and its levels
+- new passives and stat upgrades
+- new heroes with their own starting weapon and stats
+- new enemies, elite variants, and bosses
+- new maps, environments, and objects (trees, stones, boxes)
+- enemy waves and events over stage time
+- weapon combinations
 
-В идеале новое оружие, враг или герой добавляется описанием в данных и спрайтом, без переписывания движка и без правки кода. Весь баланс (урон, скорость, здоровье, опыт, частота волн) лежит в одном месте, чтобы его можно было подкручивать, не трогая логику. Опиши в документации, как добавить каждую из этих вещей, чтобы это мог сделать и человек, и агент.
+Ideally new weapon, enemy, or hero is added as data description and sprite, without rewriting the engine or fixing code. All balance (damage, speed, health, experience, wave frequency) sits in one place so it can be tuned without touching logic. Document how to add each of these so both a person and an agent can do it.
 
-## Технологии
+## Technology
 
-Я не знаю, на чём будем делать. Есть только пожелание: JavaScript и мультиплатформа, то есть чтобы работало в браузере, на телефоне, а при желании собиралось в десктоп. На этапе демо нужен только вебсайт.
-JavaScript необходим так как нейросети его лучше всего понимают, TypeScript не используем потому что сборка проетка усложнит его.
+I don't know what we'll build with. There's only one requirement: JavaScript and multiplatform, meaning it works in a browser, on phone, and if desired, builds for desktop. For the demo stage we only need a website.
+JavaScript is needed because neural networks understand it best. We don't use TypeScript because the build would complicate the project.
 
-В контексте всего описанного выше мне нужны плюсы и минусы использования существующих библиотек, движков или вариант создания игры без них. Также сам подскажи какой вариант считаешь лучшим для агентов.
-Упор на то что даст самый красивый результат за наименьшее время.
+Given all of the above I need the pros and cons of using existing libraries, engines, or building the game without them. Also suggest what you think is best for agents.
+Focus on what will give the most beautiful result in the least time.
 
-Ещё вопросы по технической части:
-- как агенты будут видеть, что получилось на экране
-- если используем движок, как держать актуальную документацию движка под рукой
-- какие автотесты нам нужны, чтобы баланс проверялся на уровне тестов, так же как и минимальный запуск игры
-- git с самого начала для версионирования/бекапов/откатов, репозиторий на GitHub (помоги засетапить, аккаунт у меня есть), и деплой на GitHub Pages, чтобы друзья могли сразу открыть игру по ссылке с телефона
+Still have questions about the technical side:
+- How agents will see what came out on screen
+- If we use an engine, how to keep its documentation handy
+- What automated tests we need so balance is checked at the test level, same as minimal game launch
+- Git from the start for versioning, backups, and rollbacks. Repository on GitHub (help set it up, I have an account) and deploy to GitHub Pages so friends can open the game from a link on their phone right away
 
-Любые ключи и секреты лежат вне репозитория. Папка .secrets в .gitignore с первого коммита, ключ никогда не попадает ни в репозиторий, ни в код игры. Генерация ассетов идёт локальным скриптом, а не из браузера: игра будет на публичном GitHub Pages, и ключ из кода страницы украдут за минуты.
+Any keys and secrets live outside the repo. The .secrets/ folder is in .gitignore from the first commit. The key never goes into the repo or game code. Asset generation runs as a local script, not from the browser. The game will be on public GitHub Pages and the key would be stolen from the page code in minutes.
 
-## Как работаем
+## How we work
 
-Структуру проекта ты собираешь сам по итогам вопросов, ответов и брейншторма, я не знаю, как это должно быть устроено правильно. Документацию раскладывай так, чтобы агентам было куда писать и откуда читать.
+You build the project structure yourself based on the discussion, answers, and brainstorm. I don't know how it should be set up correctly. Lay out documentation so agents have somewhere to write and somewhere to read.
 
-Заранее создай агента на Sonnet, который пишет код. Модель указывай явно в описании агента. Основная сессия на Opus планирует, раздаёт задачи, проверяет результат, коммитит, пушит и деплоит. Одновременно работают 2–3 агента, не больше, и только на задачах, которые не трогают одни и те же файлы.
+Set up a Sonnet agent to write code in advance. State the model explicitly in the agent description. The main session on Opus plans, assigns tasks, verifies results, commits, pushes, and deploys. Two to three agents work at the same time, no more, and only on tasks that don't touch the same files.
 
-Игру проверяем в основном текстом, состояние игры, консоль, тесты. Скриншоты делаем в уменьшенном размере и только на ключевых этапах.
+We check the game mostly through text, game state, console, tests. We take screenshots in small size and only at key stages.
 
-В корне проекта положи короткую карту проекта где что лежит и куда что добавлять, чтобы агенты не изучали весь код.
+Put a short project map in the root where things are and where to add them, so agents don't study the whole codebase.
 
-Вся работа должна уложиться в одно 5-часовое окно подписки Pro. Основная сессия проверяет расход после каждого этапа и сообщает, когда использовано 75%.
+All work should fit in one 5-hour Pro subscription window. The main session checks spending after each stage and reports when we reach 75%.
 
-После брейншторма я открою другую сессию и попрошу запустить работу, а эту оставлю открытой для вопросов.
+After brainstorming I'll open another session and ask you to start work. I'll leave this one open for questions.
 
-Задай мне любые вопросы, прежде чем что-то создавать.
+Ask me anything before you start building.
 
-## Цель
+## Goal
 
-Играбельная демка за 30 минут от старта разработки, задеплоенная по ссылке. Брейншторм по времени не ограничен.
+Playable demo in 30 minutes from the start of development, deployed to a link. The brainstorm is unlimited in time.

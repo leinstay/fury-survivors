@@ -1,142 +1,141 @@
-# Ассеты
+# Assets
 
-Картинки: генерация (`tools/gen-sprite.mjs`), чистка в пиксель-арт (`tools/clean-sprite.mjs`, `tools/slice-sheet.mjs`), ключи и геометрия кадров в `assets/sprites/manifest.js`. Звук и музыка процедурные (`tools/make-sfx.mjs`, `tools/make-music.mjs`). Все скрипты запускаются из корня репозитория, `sharp` ставит `npm install`. Игра ссылается на спрайты только по ключу из manifest: настоящий файл подменяет заглушку тем же именем, размером кадра и опорой.
+Sprites are generated with `tools/gen-sprite.mjs`, cleaned to pixel art with `tools/clean-sprite.mjs` and `tools/slice-sheet.mjs`, and their keys and frame geometry are defined in `assets/sprites/manifest.js`. Sound and music are procedural, created with `tools/make-sfx.mjs` and `tools/make-music.mjs`. All scripts run from the repo root. The `sharp` package is installed via `npm install`. The game references sprites only by key from the manifest. A real sprite file replaces a placeholder with the same name, frame size, and origin.
 
-## Плотность пикселей
+## Pixel density
 
-Мир и UI в координатах 640×360, холст 1280×720 (`RENDER_ZOOM = 2`). Спрайт рисуется в масштабе `1 / density` (`src/render/density.js`), поэтому поле `density` в manifest говорит, сколько пикселей картинки приходится на пиксель мира. Все спрайты рисуются целым множителем, без пересэмплинга.
+The world and UI use 640×360 coordinates, with the canvas at 1280×720 (`RENDER_ZOOM = 2`). Sprites are drawn at scale `1 / density` (`src/render/density.js`). The `density` field in the manifest tells how many image pixels map to one world pixel. All sprites scale by integer multiples without resampling.
 
-| density | масштаб в мире | 1 пиксель картинки на холсте | Когда брать |
+| density | world scale | 1 image pixel on canvas | When to use |
 |---|---|---|---|
-| 2 | 0.5 | 1 px | сейчас не используется: пиксель вдвое мельче, чем у персонажей |
-| 1 (по умолчанию) | 1 | 2×2 px | всё: персонажи (~50 px в кадре 56×56), боссы (~95 px в кадре 96×96), окружение, предметы, иконки. Персонажи и окружение сняты с родной сетки модели клетка в пиксель |
-| 2/3 | 1.5 | 3×3 px | боссы: тот же лист, что персонажи, но втрое выше героини |
-| 0.4 | 2.5 | 5×5 px | фон меню (`tools/snap-image.mjs`) |
-| 4, smooth | 0.25 | плавно | `proj_blade_arc`: процедурная дуга взмаха (`tools/make-slash.mjs`), хранится в размере самого крупного показа и уменьшается линейно (`smooth` в manifest), без пиксельной сетки |
+| 2 | 0.5 | 1 px | currently unused; pixel is half the size of character sprites |
+| 1 (default) | 1 | 2×2 px | everything: characters (~50 px in 56×56 frames), bosses (~95 px in 96×96 frames), environment, items, icons. Characters and environment are captured cell-by-cell from the model's native grid |
+| 2/3 | 1.5 | 3×3 px | bosses: same sheet as characters but three times the hero's height |
+| 0.4 | 2.5 | 5×5 px | menu background (`tools/snap-image.mjs`) |
+| 4, smooth | 0.25 | smooth | `proj_blade_arc`: procedural slash arc (`tools/make-slash.mjs`), stored at maximum display size and scaled linearly (marked `smooth` in manifest), no pixel grid |
 
-Правило выбора: всё новое делаем в density 1 и на той же сетке, что персонажи (рост обычного персонажа ~50 клеток, дерево ~100). 0.5 только для больших эффектов, растягиваемых от ширины 64 px.
+Selection rule: new sprites use density 1 on the same grid as characters (typical character height ~50 cells, tree ~100). Use 0.5 only for large effects stretching from 64 px width.
 
-Растяжка холста на экран: при целом масштабе экрана пиксели чёткие (`image-rendering: pixelated`), при нецелом включается мягкое сглаживание (`src/ui/scaling.js`).
+Canvas-to-screen scaling: with integer screen scale, pixels stay sharp (`image-rendering: pixelated`). With non-integer scale, soft antialiasing kicks in (`src/ui/scaling.js`).
 
-## Генерация: `tools/gen-sprite.mjs`
+## Generation: `tools/gen-sprite.mjs`
 
 ```
 node tools/gen-sprite.mjs <name> [--ref path]... [--aspect 3:2] [--quality medium] [--bg transparent] [--model google/gemini-3-pro-image] [--resolution 2K] [--dry-run]
 ```
 
-- Промпт: `tools/prompts/_style.txt` (общий стиль, идёт первым) + `tools/prompts/<name>.txt` (персонаж или лист). Результат: `assets/raw/<name>.png`, сырой ответ модели.
-- Референсы `--ref`: `references/main.png` (техника и чибиобразные пропорции) для листа персонажей; готовый `assets/raw/roster.png` для остальных листов, чтобы держать размер клетки и стиль. Папка `references/` не в git.
-- Персонажи: один общий лист `roster` (`tools/prompts/roster.txt`, `--aspect 21:9 --quality high`): героиня, враги и три босса вдвое выше, все в стойке в три четверти вправо. Ходьба процедурная (`src/render/anim.js`). Лист окружения или предметов: объекты с промежутками, размеры заданы относительно персонажа («вдвое выше девушки»).
-- `--model`: по умолчанию модель из ledger (Flare). Gemini (Nano Banana Pro, `google/gemini-3-pro-image`, ~$0.136 за картинку 1K/2K): без `quality`, `background`, `moderation`, фон непрозрачный (промпт просит пурпурный #FF00FF), `_style.txt` к нему не добавляется. Сетка у Gemini мыльная и неровная (клетка 18–22 px), кадры приходится уменьшать.
-- Ореол: Flare рисует свечение (огонь, молнии, руны) мягкой полупрозрачной дымкой вокруг предмета; на шахматке её не видно, на тёмном фоне и в JPEG это цветной туман. Проверка листа: `node tools/alpha-check.mjs assets/raw/<лист>.png` (доля полупрозрачных пикселей и превью на чёрном и белом в `tools/out/`). Чистый лист — почти без полупрозрачных. Промпт `icons_all.txt` (все 45 иконок игры одним листом 9×5) запрещает свечение за контуром; если дымка осталась, второй проход `icons_all_fix` с листом в `--ref` просит модель убрать только её.
-- Ключ OpenRouter: локально `.secrets/openrouter-flare`, в облачной сессии env `OPENROUTER_API_KEY`.
-- Правка готового листа: лист в `--ref` и промпт «верни ту же картинку, измени только …» (отдельный файл в `tools/prompts/`, после правки его можно удалить). Flare держит раскладку и сетку, но мелкие детали в 1–2 клетки (рот) не стирает.
-- Все спрайты с листов модели идут в HD: `sheets.json` `"hd": { "default": k, "<ключ>": k }` — фигура не снимается по сетке,
-  а плавно уменьшается из исходника (lanczos3, альфа порогом) в k раз и показывается 1:1 на холсте (`density: 2`, константа `HD` в manifest).
-  Множители: персонажи 0.392 (как героиня), боссы 0.588, окружение 0.28, предметы и снаряды 0.152, взмах 0.62 (кадр 256, density 4, smooth), святой круг 0.28, иконки 0.31.
-  Кадр в manifest в px холста (вдвое больше мира). Элемент `{ "key", "hd": false }` только даёт исходник (`--raw`): так у героини и кошки, у них свои ленты ходьбы.
-- Иконки лежат в кадре 96×96, `src/ui/icons.js` один раз уменьшает их под каждый размер показа и рисует 1:1.
-- Анимация персонажа: PixelLab `animate-with-text-v3` (первый кадр до 256×256, исходник из `assets/raw/roster/`), кадры в `assets/raw/<анимация>/`, лента через `node tools/hd-frames.mjs <out.png> <scale> --canvas 110x110 <кадры...>` и `chara(...)` в manifest. По сетке такие кадры не резать: детализация в 1 px.
-  Единый кадр персонажа (все, кроме боссов и жницы): 110×110 (`CHAR` в manifest), ноги на нижней строке по центру, рисунок без масштабирования, запас вокруг под волосы и оружие. Кадр 0 стойка, дальше цикл ходьбы. Число кадров берётся из ширины PNG (`src/scenes/Boot.js`): 4, 9 или 24 кадра — доклеить квадраты 110×110 вправо, код и manifest не трогать. `tests/unit/sprites.test.js` проверяет, что ширина делится на кадр. Боссы и жница на своём кадре, число кадров у них тоже по ширине.
-  Запас кадра не возвращает то, что срезано в самом исходнике PixelLab: у героини, магессы и боссов фигура касается верхнего края холста 192×256 (256×256), волосы обрезаны уже там. Это лечится только новым первым кадром с запасом сверху и перегенерацией.
-  Первый кадр: исходник из `assets/raw/roster/<ключ>.png`, уменьшенный в 256/261 (как героиня), низом в холст 192×256; запуск `tools/pixellab-anim.mjs`.
-  Шов цикла: если стойка (кадр 0) по силуэту ближе к кадрам 8 и 1, чем они друг к другу, её ставят переходом (`seam: true`: цикл 1..N-1, затем 0; так у всех анимаций PixelLab). Свой порядок кадров при желании: `walk: [...]`.
+- Prompt: `tools/prompts/_style.txt` (general style, goes first) plus `tools/prompts/<name>.txt` (character or sheet). Output: `assets/raw/<name>.png`, the raw model response.
+- References `--ref`: `references/main.png` (technique and chibi proportions) for the character roster sheet; finished `assets/raw/roster.png` for other sheets to maintain cell size and style. The `references/` folder is not in git.
+- Characters: one shared roster sheet (`tools/prompts/roster.txt`, `--aspect 21:9 --quality high`) with the hero, enemies, and three bosses twice as tall, all in idle pose facing three-quarters right. Walking is procedural (`src/render/anim.js`). Environment or item sheets have objects spaced apart, with sizes given relative to the character (e.g., "twice as tall as the girl").
+- `--model`: defaults to the ledger model (Flare). Gemini (Nano Banana Pro, `google/gemini-3-pro-image`, ~$0.136 per 1K/2K image): ignores `quality`, `background`, and `moderation` flags. The background is opaque (the prompt requests magenta #FF00FF), and `_style.txt` is not added. Gemini's grid is soft and uneven (18–22 px per cell), so frames often need downscaling.
+- Halo: Flare draws glows (fire, lightning, runes) as soft semi-transparent mist around objects. On a checkerboard it's invisible, but on dark backgrounds or in JPEG it appears as colored fog. Check a sheet with `node tools/alpha-check.mjs assets/raw/<sheet>.png` (outputs the proportion of semi-transparent pixels and previews on black and white in `tools/out/`). A clean sheet has almost no semi-transparent pixels. The `icons_all.txt` prompt (all 45 game icons in one 9×5 sheet) forbids glows outside outlines. If mist remains, a second pass with `icons_all_fix` and the sheet in `--ref` asks the model to remove only the halo.
+- OpenRouter key: locally from `.secrets/openrouter-flare`, in cloud sessions from the `OPENROUTER_API_KEY` env variable.
+- Editing a finished sheet: pass the sheet in `--ref` and a prompt like "return the same image but change only…" (in a separate `tools/prompts/` file, delete it after use). Flare preserves layout and grid but doesn't erase tiny details like a 1–2 cell mouth.
+- All model-sheet sprites go through HD: in `sheets.json`, set `"hd": { "default": k, "<key>": k }`. The figure isn't sampled by grid but smoothly downscaled from the source (lanczos3, alpha by threshold) by factor k and displayed 1:1 on canvas (`density: 2`, constant `HD` in manifest).
+  Scale factors: characters 0.392 (like the hero), bosses 0.588, environment 0.28, items and projectiles 0.152, slash arc 0.62 (256 frame, density 4, smooth), holy circle 0.28, icons 0.31.
+  Frame size in the manifest is in canvas pixels (twice world size). An element `{ "key", "hd": false }` provides only the source (`--raw`): the hero and cat have their own walk strips.
+- Icons are 96×96, and `src/ui/icons.js` downscales them once for each display size and renders 1:1.
+- Character animation: PixelLab `animate-with-text-v3` (first frame up to 256×256, source from `assets/raw/roster/`), frames in `assets/raw/<animation>/`, then create a strip with `node tools/hd-frames.mjs <out.png> <scale> --canvas 110x110 <frames...>` and `chara(...)` in manifest. Don't trim these frames by grid; details are 1 pixel.
+  Standard character frame (all except bosses and Reaper): 110×110 (`CHAR` in manifest), feet on the bottom line centered, art unscaled, margin around for hair and weapon. Frame 0 is idle, then the walk cycle. Frame count comes from PNG width (`src/scenes/Boot.js`). Use 4, 9 or 24 frames. Append 110×110 squares to the right, don't edit code or manifest. The test `tests/unit/sprites.test.js` verifies width is divisible by frame size. Bosses and Reaper use their own frame size, frame count read the same way.
+  Canvas margins don't recover what PixelLab already trimmed. The hero, Mage, and bosses touch the top edge of the 192×256 canvas (256×256), with hair already cropped there. Fix this only with a new first frame with margin and regeneration.
+  First frame: source from `assets/raw/roster/<key>.png`, scaled to 256/261 (like the hero), bottom-aligned to the 192×256 canvas, then run `tools/pixellab-anim.mjs`.
+  Cycle seam: if the idle pose (frame 0) is silhouette-wise closer to frames 8 and 1 than they are to each other, it's placed as a transition (`seam: true`: cycle 1..N-1, then 0; all PixelLab animations do this). Custom frame order: `walk: [...]`.
 
-### План анимаций PixelLab по персонажам
+### PixelLab animation plan by character
 
-Холст 192×256 стоит 6 генераций пробного тарифа (на 33 из 40 хватило героини и кошки, осталось 27: ещё 4 персонажа).
+The 192×256 canvas costs 6 of the trial budget generations (the hero and cat used 33 of 40 budget, leaving 27: room for 4 more characters).
 
-Действие уходит в PixelLab по-английски как есть (`PL_ACTION`), рядом перевод.
+Actions go to PixelLab in English as-is (`PL_ACTION`), with a translation reference below.
 
-| Персонаж | Действие (PL_ACTION) | Перевод | Статус |
+| Character | Action (PL_ACTION) | Reference | Status |
 |---|---|---|---|
-| catgirl | walking to the right in place, light graceful cat-like walk cycle, small steps, arms swing gently, cat tail sways behind her, ears twitch | шагает вправо на месте, лёгкая грациозная кошачья походка, мелкие шаги, руки мягко качаются, хвост покачивается, уши подёргиваются | готово |
-| foxgirl | walking to the right in place, playful bouncy walk cycle, arms swing, big fluffy fox tail swishes side to side | шагает вправо на месте, игривая пружинистая походка, руки качаются, пушистый лисий хвост мотается из стороны в сторону | готово |
-| succubus | hovering in place facing right, slow wing flaps, gentle up and down float, tail sways | парит на месте лицом вправо, медленные взмахи крыльев, плавно покачивается вверх-вниз, хвост колышется | готово |
-| bunnygirl | hopping in place facing right, small rabbit hops, ears bounce, knees bend on landing | прыгает на месте лицом вправо, мелкие заячьи прыжки, уши подпрыгивают, колени сгибаются при приземлении | готово |
-| harpy | hovering in place facing right, strong wing flaps, talons dangle, gentle bob | парит на месте лицом вправо, сильные взмахи крыльев, когти свисают, плавно покачивается | готово |
-| lamia | slithering to the right in place, snake tail undulates in waves, upper body sways, arms relaxed | ползёт вправо на месте, змеиный хвост извивается волнами, корпус покачивается, руки расслаблены | готово |
-| slime | bouncing in place, squash and stretch, jelly body wobbles, hair-like drips sway | подпрыгивает на месте, сжимается и растягивается, желейное тело колышется, капли-пряди покачиваются | готово |
-| ghost | floating in place facing right, gentle bob up and down, wispy tail and sleeves drift | парит на месте лицом вправо, плавно покачивается вверх-вниз, призрачный хвост и рукава развеваются | готово |
-| kitsune_empress (босс) | standing idle facing right, nine tails sway in slow waves, sleeves and hair drift, calm breathing | стоит лицом вправо, девять хвостов медленно колышутся волнами, рукава и волосы развеваются, спокойное дыхание | готово |
-| harpy_queen (босс) | hovering in place facing right, large slow wing flaps, crown and feathers ruffle | парит на месте лицом вправо, большие медленные взмахи крыльев, корона и перья топорщатся | готово |
-| dryad_queen (босс) | standing idle facing right, swaying like a tree in wind, leaves and vines in her hair rustle | стоит лицом вправо, покачивается, как дерево на ветру, листья и лозы в волосах шелестят | готово |
-| mage (героиня-магесса) | walking to the right in place, light elegant walk cycle, small steps, the staff stays in her raised right hand and bobs gently with each step, her left arm swings slightly, long twin tails and starry cape sway behind her, the big witch hat stays on her head | шагает вправо на месте, лёгкая походка, посох в поднятой руке покачивается в такт, хвосты и звёздный плащ колышутся, шляпа на месте | готово (холст 256×256: шляпа и посох не влезают в 192×256; лента ×0.4282, тот же размер пикселя, что у героини; 8 генераций) |
-| reaper (жница овертайма) | hovering in place facing right, slow gentle up and down float, long white hair and tattered cloak drifting in the wind, scythe sways slightly, cyan soul-fire flickers | парит на месте лицом вправо, плавно покачивается, волосы и рваный плащ колышутся, коса чуть качается, синее пламя мерцает | готово (первый кадр из assets/raw/reaper.png, лента ×1.5) |
+| catgirl | walking to the right in place, light graceful cat-like walk cycle, small steps, arms swing gently, cat tail sways behind her, ears twitch | walks right in place with a light, graceful cat gait, tiny steps, gentle arm swing, tail sway, ear twitch | done |
+| foxgirl | walking to the right in place, playful bouncy walk cycle, arms swing, big fluffy fox tail swishes side to side | walks right with a playful, bouncy gait, swinging arms, fluffy tail swishing | done |
+| succubus | hovering in place facing right, slow wing flaps, gentle up and down float, tail sways | hovers right, slow wing flaps, gentle bobbing, tail sway | done |
+| bunnygirl | hopping in place facing right, small rabbit hops, ears bounce, knees bend on landing | hops in place facing right, small hops, bouncing ears, knees bend on landing | done |
+| harpy | hovering in place facing right, strong wing flaps, talons dangle, gentle bob | hovers right with strong wing flaps, dangling talons, gentle bobbing | done |
+| lamia | slithering to the right in place, snake tail undulates in waves, upper body sways, arms relaxed | slithers right in place, snake tail undulates, swaying upper body, relaxed arms | done |
+| slime | bouncing in place, squash and stretch, jelly body wobbles, hair-like drips sway | bounces in place, squashes and stretches, wobbling jelly body, swaying drip-like strands | done |
+| ghost | floating in place facing right, gentle bob up and down, wispy tail and sleeves drift | floats right, gentle up-down bob, wispy tail and sleeves drift | done |
+| kitsune_empress (boss) | standing idle facing right, nine tails sway in slow waves, sleeves and hair drift, calm breathing | stands idle right, nine tails sway in slow waves, sleeves and hair drift, calm breathing | done |
+| harpy_queen (boss) | hovering in place facing right, large slow wing flaps, crown and feathers ruffle | hovers right with large slow wing flaps, crown and feathers rustle | done |
+| dryad_queen (boss) | standing idle facing right, swaying like a tree in wind, leaves and vines in her hair rustle | stands idle right, sways like a tree in wind, leaves and vines in hair rustle | done |
+| mage (hero Mage) | walking to the right in place, light elegant walk cycle, small steps, the staff stays in her raised right hand and bobs gently with each step, her left arm swings slightly, long twin tails and starry cape sway behind her, the big witch hat stays on her head | walks right with a light, elegant gait, staff in raised hand bobbing gently, twin tails and starry cape sway, witch hat stays on | done (canvas 256×256: hat and staff don't fit in 192×256; strip ×0.4282, same pixel size as hero; 8 generations) |
+| reaper (overtime Reaper) | hovering in place facing right, slow gentle up and down float, long white hair and tattered cloak drifting in the wind, scythe sways slightly, cyan soul-fire flickers | hovers right, slow gentle float, long white hair and tattered cloak drift, scythe sways slightly, cyan soul-fire flickers | done (first frame from assets/raw/reaper.png, strip ×1.5) |
 
-- `--dry-run` печатает тело запроса без отправки и без трат.
-- Деньги: `tools/gen-ledger.json` (`budget` 5, `stop` 4.5, `spent`, список трат). Скрипт отказывается работать, если `spent + оценка > stop` (оценка: самая дорогая из прошлых трат или `estimatePerImage`). Трата пишется в ledger даже если картинки в ответе нет. Вручную ledger не править.
-- Один процесс за раз: lock-файл `tools/.gen.lock` (в `.gitignore`); второй запуск завершится с кодом 4. Если процесс убили и lock остался, удали файл.
-- Ключ читает только этот скрипт, из `.secrets/`; в игру и логи он не попадает. Агентам `.secrets/` не читать.
-- Перегенерация не чаще одного раза на позицию; дальше чинить скриптом чистки или оставить процедурную анимацию.
+- `--dry-run` prints the request body without sending or spending budget.
+- Budget: `tools/gen-ledger.json` tracks `budget` (5), `stop` (4.5), `spent`, and the list of costs. The script refuses to run if `spent + estimate > stop` (estimate is the priciest past cost or `estimatePerImage`). Costs are logged even if the response contains no images. Don't manually edit the ledger.
+- One process at a time: a lock file `tools/.gen.lock` (in `.gitignore`). A second run exits with code 4. If a process dies and the lock remains, delete the file.
+- Only this script reads the key from `.secrets/`. It doesn't reach the game, logs, or agents.
+- Don't regenerate the same character more than once. Fix details with the cleaning script or keep the procedural animation.
 
-## Чистка: `tools/clean-sprite.mjs`
+## Cleaning: `tools/clean-sprite.mjs`
 
 ```
 node tools/clean-sprite.mjs <raw.png> <spriteKey> [--frames N] [--colors 16 | --palette] [--threshold 0.4] [--dark 0.3]
   [--no-outline] [--grid | --resample] [--height N] [--frame N] [--out path]
 ```
 
-Размер кадра, опора и рост берутся из записи `spriteKey` в manifest; результат пишется в `assets/sprites/<key>.png` (strip по горизонтали). `--out` пишет в другой файл (для проб). Печатает JSON с режимом и размером каждой позы; `clipped` больше нуля значит, что рисунок не влез в кадр: увеличь кадр в manifest или задай `--height`.
+Frame size, origin, and height come from the `spriteKey` record in the manifest. Output is written to `assets/sprites/<key>.png` as a horizontal strip. `--out` writes to a different file (for testing). The script prints JSON showing mode and size for each pose. A non-zero `clipped` value means the art didn't fit in the frame. Increase the frame in the manifest or set `--height`.
 
-Шаги: фон (альфа или пурпурный хромакей, убирается ореол), поиск поз (столбцы с пикселями режутся по пустым промежуткам), затем один из режимов, удаление одиночных пикселей, постановка в кадр с опорой по ногам.
+Steps: background removal (alpha or magenta chroma key, removes halo), pose detection (columns are split at empty gaps), then one of the modes, remove stray pixels, align to frame with origin at feet.
 
-- `--grid` включён по умолчанию для спрайтов с `density > 1`. Модель рисует пиксель-арт на своей неровной сетке; границы клеток ищутся по перепадам цвета, из каждой клетки берётся самый частый цвет. Рисунок переносится один арт-пиксель в один пиксель, без новой палитры и обводки (своя уже есть).
-- `--resample` (режим по умолчанию при density 1): уменьшает рисунок до роста из manifest, квантует (`--colors N` или общая `tools/palette.json` через `--palette`) и рисует обводку 1 px.
-- Shrink: если родной рост после `--grid` больше `manifest.size[1]` (или `--height`) больше чем на 10%, рисунок уменьшается голосованием по блокам. Нужен, потому что модель рисует разные листы на сетке разного шага.
-- Слипшиеся позы. Позы ищутся по пустым столбцам; если соседние позы перекрываются по x (так было у босса), они склеиваются в один кадр. Тогда лист разводят заранее: позы раскладываются по связным областям с промежутками, получившийся файл идёт на вход чистки. Для босса это `assets/raw/dryad_queen_split.png`. Разводилось одноразовым скриптом: связные области маски (8-связность), три крупнейшие — позы, мелкие куски прицепляются к ближайшей по x, позы копируются без пересэмплинга через 80 px пустоты; на вход `clean-sprite` подавался `dryad_queen_split.png`. Альтернатива: перегенерировать лист с просьбой о больших промежутках между позами.
+- `--grid` is on by default for sprites with `density > 1`. The model draws pixel art on its uneven grid. Cell boundaries are found by color shifts, and the most common color in each cell is extracted. Art is transferred one art-pixel to one pixel, without resampling or new outline (it already has one).
+- `--resample` (default for density 1): downscales to the manifest height, quantizes using `--colors N` or the shared `tools/palette.json` (with `--palette`), and draws a 1 px outline.
+- Shrink: if native height after `--grid` exceeds `manifest.size[1]` (or `--height`) by more than 10%, the art is downscaled by block voting. This handles varying cell sizes across model sheets.
+- Stuck poses: poses are detected by empty columns. If adjacent poses overlap horizontally (as happened with a boss), they merge into one frame. Manually separate the sheet first: distribute poses by connected regions with gaps between them, then feed the result to `clean-sprite`. For the boss this was `assets/raw/dryad_queen_split.png`. Separation used a one-time script: find 8-connected mask regions, treat the three largest as poses, attach small pieces to the nearest pose by x, copy poses without resampling with 80 px gaps. Feed the split file to `clean-sprite`. Alternatively, regenerate the sheet requesting larger gaps between poses.
 
-Проверка результата: `node tools/contact-sheet.mjs <key>` и просмотр глазами.
+Verify output: `node tools/contact-sheet.mjs <key>` and review by eye.
 
-## Листы объектов: `tools/slice-sheet.mjs` и `tools/sheets.json`
+## Object sheets: `tools/slice-sheet.mjs` and `tools/sheets.json`
 
-Для окружения, предметов, иконок и снарядов: одна картинка с разрозненными объектами.
+For environment, items, icons, and projectiles: a single image with scattered objects.
 
 ```
 node tools/slice-sheet.mjs <sheet> [--report]
 ```
 
-- `tools/sheets.json`: `{ "<sheet>": { "raw": "assets/raw/x.png", "items": [...] } }`. Листы: `roster`, `env_props`, `items`, `icons`, `projectiles`. Необязательные поля листа: `step: [min, max]` (границы шага сетки модели, px исходника; при `--quality high` около 4.5–7), `rows: "center"` (ряды по центрам, для листа с высокими фигурами на два ряда), `mergeGap` (сливать области ближе этого, по умолчанию 14; 0, если фигуры стоят тесно), `cuts: [[x, y0, y1], ...]` (вертикальные разрезы маски, если соседние фигуры касаются свечением или хвостом; `[x0, x1, y, "h"]` — горизонтальный отрезок для ступенчатого разреза вокруг выступа), `boxes: [[x0, y0, x1, y1], ...]` (рамка на каждый item: область достаётся рамке, где её центр, у каждой фигуры своя маска; так нарезан `roster`), `drop: [[x0, y0, x1, y1]]` (области с центром внутри выбрасываются), `align: "head"` (кадры шага выравниваются по голове).
-- `items` идут в порядке чтения (ряды сверху вниз, слева направо). Элемент: ключ спрайта, или `{ "key", "frame", "flip" }` для кадра многокадрового спрайта (`tree`, `flower`), или `null`, чтобы пропустить найденный объект (в `icons` последний `null`).
-- `--raw` (листы с `boxes`): каждая фигура ещё и в исходном разрешении с прозрачным фоном, `assets/raw/<лист>/<ключ>.png`. Это референсы для Nano Banana и героиня в меню (`heroine_menu` = `assets/raw/roster/heroine.png`).
-- `--report` только печатает найденные объекты и их родные размеры, файлы не пишет. Запускай его первым: число объектов должно совпасть с `items`.
-- Объект больше `manifest.size` уменьшается голосованием по блокам, меньше остаётся родным. При `origin[1] = 1` он ставится низом на нижнюю строку кадра, иначе центром.
-- Новый объект: ключ в manifest, строка в `items` листа в нужной позиции, промпт `tools/prompts/<лист>.txt`.
+- `tools/sheets.json`: `{ "<sheet>": { "raw": "assets/raw/x.png", "items": [...] } }`. Sheets: `roster`, `env_props`, `items`, `icons`, `projectiles`. Optional sheet fields: `step: [min, max]` (model grid cell step bounds in source pixels, ~4.5–7 for `--quality high`), `rows: "center"` (align rows by center, for tall figures on two rows), `mergeGap` (merge regions closer than this, default 14, use 0 for tight figures), `cuts: [[x, y0, y1], ...]` (vertical mask cuts if adjacent figures touch with glow or tail; `[x0, x1, y, "h"]` for horizontal step cuts around protrusions), `boxes: [[x0, y0, x1, y1], ...]` (bounding box for each item: region goes to the box where its center lands, each figure gets its own mask; `roster` uses this), `drop: [[x0, y0, x1, y1]]` (regions with center inside are discarded), `align: "head"` (step frames align by head).
+- `items` are read in order (rows top to bottom, left to right). Each item is a sprite key, or `{ "key", "frame", "flip" }` for a frame of a multi-frame sprite (`tree`, `flower`), or `null` to skip a found object (the last `null` in `icons`).
+- `--raw` (for sheets with `boxes`): each figure also at source resolution with transparent background, `assets/raw/<sheet>/<key>.png`. These are references for Nano Banana and the hero in the menu (`heroine_menu` = `assets/raw/roster/heroine.png`).
+- `--report` only prints found objects and their native sizes, doesn't write files. Run this first. The count should match `items`.
+- Objects larger than `manifest.size` are downscaled by block voting, smaller ones keep native size. With `origin[1] = 1` they're bottom-aligned to the frame, otherwise center-aligned.
+- New object: add key to manifest, add to `items` in the sheet in the right position, add a prompt in `tools/prompts/<sheet>.txt`.
 
-## Остальные скрипты
+## Other scripts
 
-- `node tools/contact-sheet.mjs [key ...] [--scale 4] [--out tools/out/contact-sheet.png] [--bg grass]`: превью спрайтов на шахматке или траве с подписью и линией опоры. Без ключей берёт все из manifest. `tools/out/` в `.gitignore`.
-- `node tools/snap-image.mjs <raw.png> <out.png> [--step N]`: целая картинка (фон) по родной сетке модели без потерь; показ целым множителем через `density` в manifest.
-- `node tools/make-grass.mjs [--seed 7]`: процедурный бесшовный тайл `assets/sprites/grass.png` (128×128).
-- `node tools/make-slash.mjs`: взмах клинка `assets/sprites/proj_blade_arc.png`, край удара конусом: кусок кольца вокруг героя из SVG почти белого цвета (tint супероружия красит его целиком). Геометрия кадра в `WEAPON_BEHAVIOR.melee_arc` (`src/data/weapons.js`), её же читает оружие; после правки чисел перезапусти скрипт.
-- `node tools/make-weapon-art.mjs [wisp|shot|meteor|spear|bolt|mine|frost|beam|cloud]...`: процедурные спрайты новых оружий (без аргументов все) в стиле ножей с листа projectiles: пиксель-арт без сглаживания, палитра `tools/palette.json`, обводка у твёрдых предметов (копьё, болт, мина, шар), свечения без обводки ступенчатой прозрачностью. Ленты кадров: огонёк виспа `proj_wisp` (8: ядро, ореол, переливание голубой ↔ бирюзовый ↔ белый, пульс, язычок пламени) (метеор `meteor` отложен: в игре прежний спрайт, без аргументов скрипт его не перерисовывает), мина `proj_mine` (6: мигающий огонёк), ледяной шар `proj_frost` (4: блёстки), звено луча `proj_beam` (4: бегущие блики). Число кадров Boot.js берёт по ширине PNG, снаряд листает их по времени сима (`FX.projAnim`, `src/render/world.js`). Пуля виспа `proj_wisp_shot` — это `proj_enemy` с листа с поворотом оттенка в голубой. `proj_poison_cloud` нужен только кодексу (в игре облако рисуется зоной). Иконки `icon_*` новых оружий остаются заглушками до настоящей графики. Размеры кадров из manifest; после правки чисел перезапусти скрипт.
-- `node tools/trim-wisps.mjs [apply]`: у жницы PixelLab дорисовал отдельные язычки пламени над капюшоном и у волос; скрипт стирает в заданных зонах кадра отдельные пятна и синие пиксели, приросшие к фигуре, затем лента пересобирается `hd-frames.mjs` с масштабом 1.5.
-- `node tools/demouth.mjs [key...] [--dry] [--debug]`: PixelLab дорисовывает персонажам рот, которого нет на исходном рисунке. Скрипт находит голову на каждом кадре (сдвиг относительно кадра 0), ищет под глазами замкнутые пятна не цвета кожи и заливает их кожей вокруг; правит `assets/raw/<key>_{anim|walk}_pixellab/*.png` на месте, после него ленты пересобираются `tools/hd-frames.mjs` (0.4 для обычных, 1 для боссов). Точки лица по персонажам и ручные прямоугольники для трудных кадров заданы в начале скрипта; `--debug` пишет лист проверки `tools/out/demouth-debug.png`.
-- `node tools/sprite-table.mjs`: пересобирает раздел «Таблица спрайтов» в этом файле; запускать после правок manifest.
-- `node tools/placeholders.mjs [--force]` (или `npm run placeholders`): цветные заглушки по manifest (форма из `shape`, цвет из `color`). Существующие файлы не трогает без `--force`, чтобы не затереть настоящие спрайты.
-- `node tools/playtest.mjs`: headless-плейтест с логом `__game.debug()` и скриншотом, для проверки результата в самой игре.
+- `node tools/contact-sheet.mjs [key ...] [--scale 4] [--out tools/out/contact-sheet.png] [--bg grass]`: preview sprites on a checkerboard or grass with label and origin line. Without keys, uses all from manifest. `tools/out/` is in `.gitignore`.
+- `node tools/snap-image.mjs <raw.png> <out.png> [--step N]`: a whole image (background) sampled from the model's native grid losslessly, displayed at integer scale via `density` in the manifest.
+- `node tools/make-grass.mjs [--seed 7]`: a procedural seamless tile `assets/sprites/grass.png` (128×128).
+- `node tools/make-slash.mjs`: sword slash arc `assets/sprites/proj_blade_arc.png`, with a conical strike edge as an SVG ring arc around the hero in off-white (the evolved weapon's tint colors it). Frame geometry is in `WEAPON_BEHAVIOR.melee_arc` in `src/data/weapons.js` and read by the weapon. After editing numbers, rerun the script.
+- `node tools/make-weapon-art.mjs [wisp|shot|meteor|spear|bolt|mine|frost|beam|cloud]...`: procedural weapon sprites (all if no args) in the style of projectile sheet daggers: pixel art without smoothing, `tools/palette.json` palette, outline on hard objects (spear, bolt, mine, ball), glow without outline using stepped alpha. Frame strips: wisp spark `proj_wisp` (8: core, halo, color shift blue ↔ cyan ↔ white, pulse, flame flicker) (meteor `meteor` is deferred: game uses old sprite, script doesn't redraw it without args), mine `proj_mine` (6: blinking spark), ice ball `proj_frost` (4: sparkles), beam link `proj_beam` (4: scrolling glints). Frame count comes from PNG width, projectiles play them by sim time (`FX.projAnim` in `src/render/world.js`). Wisp shot `proj_wisp_shot` is `proj_enemy` from the sheet with hue shift to blue. `proj_poison_cloud` is for Codex only (in-game cloud is a zone). New weapon icons remain placeholders until real art. Frame sizes from manifest; after edits, rerun the script.
+- `node tools/trim-wisps.mjs [apply]`: PixelLab added stray flame flicks above the Reaper's hood and in her hair. This script erases scattered spots and cyan pixels stuck to the figure in set zones, then reassembles the strip with `hd-frames.mjs` at scale 1.5.
+- `node tools/demouth.mjs [key...] [--dry] [--debug]`: PixelLab draws mouths on characters that had none in the source. The script finds the head on each frame (offset from frame 0), looks for closed non-skin patches under the eyes, and fills them with surrounding skin. It edits `assets/raw/<key>_{anim|walk}_pixellab/*.png` in place, then reassembles strips with `tools/hd-frames.mjs` (0.4 for characters, 1 for bosses). Face points per character and manual rectangles for tricky frames are set at the start of the script. `--debug` writes a check sheet to `tools/out/demouth-debug.png`.
+- `node tools/sprite-table.mjs`: rebuilds the "Sprite table" section in this file. Run after manifest edits.
+- `node tools/placeholders.mjs [--force]` (or `npm run placeholders`): colored placeholder sprites from manifest (shape from `shape`, color from `color`). Existing files are left alone without `--force` to avoid overwriting real sprites.
+- `node tools/playtest.mjs`: headless playtest with `__game.debug()` log and screenshot for testing results in-game.
 
-## Звук
+## Sound
 
-- Эффекты: `node tools/make-sfx.mjs [имя...]` (или `npm run sfx`) пишет `assets/audio/sfx/<имя>.wav` (22050 Гц, моно, 16 бит) из пресетов `PRESETS` в начале скрипта; поля пресета описаны там же комментарием (`wave`, `freq`, `slide`, `attack/sustain/decay`, `steps`, `lp`, `noiseMix`). Синтез детерминирован. Новый звук: пресет, имя в `SFX_NAMES` в `src/audio/sfx.js` (оттуда загрузка и лимит одновременных), вызов `playSfx(scene, '<имя>')` или ветка в обработчике событий того же файла.
-- Подмена звука файлом: положи wav с тем же именем в `assets/audio/sfx/`. После этого запускай `make-sfx.mjs` только с явными именами: без аргументов он перезапишет все эффекты.
-- Музыка: `assets/audio/music/theme.mp3`, трек «Whispers of the Abyss (Loop)» (2:40, 128 кбит/с, royalty-free, в Credits не указывается), ключ `music_theme` в `src/audio/sfx.js`. Запасной процедурный луп: `node tools/make-music.mjs` пишет `theme.wav` (ля минор, 140 bpm, ~41 с); чтобы играл он, поменяй путь в `preloadAudio`. Источник и лицензию внешнего файла впиши в раздел Credits в `README.md`.
+- Effects: `node tools/make-sfx.mjs [name...]` (or `npm run sfx`) writes `assets/audio/sfx/<name>.wav` (22050 Hz, mono, 16-bit) from `PRESETS` at the script's start. Preset fields are documented there as comments (`wave`, `freq`, `slide`, `attack/sustain/decay`, `steps`, `lp`, `noiseMix`). Synthesis is deterministic. New sound: add a preset, add the name to `SFX_NAMES` in `src/audio/sfx.js` (used for loading and simultaneous count limits), call `playSfx(scene, '<name>')` or add a branch in the event handler in that file.
+- Override with a file: drop a .wav with the same name in `assets/audio/sfx/`. Then run `make-sfx.mjs` with explicit names only; without args it regenerates all effects.
+- Music: `assets/audio/music/theme.mp3` is "Whispers of the Abyss (Loop)" (2:40, 128 kbps, royalty-free, not credited), with key `music_theme` in `src/audio/sfx.js`. Backup procedural loop: `node tools/make-music.mjs` writes `theme.wav` (A minor, 140 bpm, ~41 s). To use that, change the path in `preloadAudio`. Add the source and license of external audio to the Credits section in `README.md`.
 
-## Шрифт
+## Font
 
-`assets/fonts/Jersey15-Regular.ttf` (лицензия OFL, `assets/fonts/OFL.txt`), грузится через `FontFace` в `src/scenes/Boot.js`; источник в README.md, раздел Credits. Подмена: другой файл по тому же пути либо смена `FONT_NAME` и пути в `Boot.js`.
+`assets/fonts/Jersey15-Regular.ttf` (OFL license, `assets/fonts/OFL.txt`), loaded via `FontFace` in `src/scenes/Boot.js`. Source is noted in README.md, Credits section. To replace: use another file at the same path or change `FONT_NAME` and the path in `Boot.js`.
 
-## Таблица спрайтов
+## Sprite table
 
-Собрана из `assets/sprites/manifest.js` (кадр, число кадров, density) и `tools/sheets.json` (лист-источник) скриптом `node tools/sprite-table.mjs`.
+Built by `node tools/sprite-table.mjs` from `assets/sprites/manifest.js` (frame, frame count and density) and `tools/sheets.json` (source sheet).
 
-| Ключ | Кадр | Кадров | density | Источник |
+| Key | Frame | Frames | density | Source |
 |---|---|---|---|---|
-| `heroine` | 128×128 | 9 | 2 | `assets/raw/heroine_walk256_pixellab/` (стойка PixelLab Edit Pro + ходьба Animate V3, 256×256, tools/hd-frames.mjs ×0.5) |
-| `heroine_portrait` | 48×48 | 1 | 1 | заглушка (tools/placeholders.mjs) |
-| `mage` | 128×128 | 9 | 2 | `assets/raw/mage_walk256_pixellab/` (стойка PixelLab Edit Pro + ходьба Animate V3, 256×256, tools/hd-frames.mjs ×0.5) |
-| `mage_menu` | 164×223 | 1 | 2 | `assets/raw/roster/mage.png`: вырезка из `assets/raw/mage.png` (tools/crop-raw.mjs), уменьшена ×261/637 по копии героини на том же листе |
-| `mage_portrait` | 48×48 | 1 | 1 | заглушка (tools/placeholders.mjs) |
+| `heroine` | 128×128 | 9 | 2 | `assets/raw/heroine_walk256_pixellab/` (PixelLab Edit Pro stance and Animate V3 walk, 256×256, tools/hd-frames.mjs ×0.5) |
+| `heroine_portrait` | 48×48 | 1 | 1 | placeholder (tools/placeholders.mjs) |
+| `mage` | 128×128 | 9 | 2 | `assets/raw/mage_walk256_pixellab/` (PixelLab Edit Pro stance and Animate V3 walk, 256×256, tools/hd-frames.mjs ×0.5) |
+| `mage_menu` | 164×223 | 1 | 2 | `assets/raw/roster/mage.png`: cut from `assets/raw/mage.png` (tools/crop-raw.mjs), scaled ×261/637 to match the copy of the Hero on the same sheet |
+| `mage_portrait` | 48×48 | 1 | 1 | placeholder (tools/placeholders.mjs) |
 | `heroine_menu` | 114×209 | 1 | 2 | tools/crop-raw.mjs |
 | `catgirl` | 128×128 | 9 | 2 | `assets/raw/catgirl_walk_pixellab/` (PixelLab, tools/hd-frames.mjs) |
 | `foxgirl` | 128×128 | 9 | 2 | `assets/raw/foxgirl_anim_pixellab/` (PixelLab, tools/hd-frames.mjs) |
@@ -170,10 +169,10 @@ node tools/slice-sheet.mjs <sheet> [--report]
 | `proj_bolt` | 36×12 | 1 | 2 | tools/make-weapon-art.mjs |
 | `proj_mine` | 28×28 | 6 | 2 | tools/make-weapon-art.mjs |
 | `proj_frost` | 44×44 | 1 | 2 | tools/make-weapon-art.mjs |
-| `proj_poison_cloud` | 128×128 | 1 | 2 | tools/make-weapon-art.mjs (только кодекс: в игре зона) |
+| `proj_poison_cloud` | 128×128 | 1 | 2 | tools/make-weapon-art.mjs (codex only, in game it is a zone) |
 | `proj_beam` | 28×12 | 4 | 2 | tools/make-weapon-art.mjs |
 | `proj_wisp` | 28×28 | 8 | 2 | tools/make-weapon-art.mjs |
-| `proj_wisp_shot` | 20×20 | 1 | 2 | tools/make-weapon-art.mjs (proj_enemy, оттенок в голубой) |
+| `proj_wisp_shot` | 20×20 | 1 | 2 | tools/make-weapon-art.mjs (proj_enemy, tinted blue) |
 | `proj_meteor` | 56×56 | 1 | 2 | tools/make-weapon-art.mjs |
 | `icon_blade_arc` | 96×96 | 1 | 2 | `assets/raw/icons_redo.png` |
 | `icon_throwing_daggers` | 96×96 | 1 | 2 | `assets/raw/icons_redo.png` |

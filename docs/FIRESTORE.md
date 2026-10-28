@@ -1,44 +1,38 @@
-# Firestore: что хранится, что чистить и когда
+# Firestore: what's stored, what to clean, when
 
-Проект `fury-survivors` на бесплатном тарифе Spark. Лимиты: 1 ГиБ места, в сутки 50 000 чтений,
-20 000 записей и 20 000 удалений, 10 ГиБ исходящего трафика в месяц. TTL-политики (автоудаление по полю
-времени) на Spark не работают, им нужен биллинг. Поэтому чистка своя: часть делает игра, остальное скрипт
+Project `fury-survivors` on free Spark tier. Limits: 1 GiB storage, 50,000 reads per day,
+20,000 writes and 20,000 deletes, 10 GiB outbound per month. TTL policies (auto-delete by time field) don't work on Spark. They need billing. So cleanup is ours: part from game, the rest from script
 `tools/firestore-cleanup.mjs`.
 
-## Коллекции
+## Collections
 
-| Коллекция | Что | Размер | Рост | Политика |
+| Collection | What | Size | Growth | Policy |
 |---|---|---|---|---|
-| `fury_runs` | телеметрия забега, документ на игрока | 150–200 КБ | каждый забег от 30 с | 30 дней, затем в локальный архив и удалить |
-| `rooms` | лобби коопа, offer/answer | 5–20 КБ | каждое лобби | игра удаляет сама; остатки старше часа удаляет скрипт |
-| `fury_codex` | резервная копия кодекса | до 800 КБ, обычно меньше | документ на игрока, перезаписывается | не чистим (по id восстанавливают кодекс); по желанию `--codex-days` |
-| `fury_achievements` | ачивки игрока (копия localStorage) | до 100 КБ, обычно меньше 5 КБ | документ на игрока, перезаписывается | не чистим |
-| `fury_inventory` | стеш, сумка, валюта (копия localStorage) | до 300 КБ, обычно ~60 КБ | документ на игрока, не чаще раза в 60 с | не чистим |
-| `fury_scores`, `fury_scores_coop` | таблицы рекордов | < 1 КБ | отправка рекорда | не чистим: копейки по месту |
+| `fury_runs` | run telemetry, document per player | 150–200 KB | each run from 30 s | 30 days, then local archive and delete |
+| `rooms` | co-op lobby, offer/answer | 5–20 KB | each lobby | game deletes itself. Script clears old over 1 hour |
+| `fury_codex` | codex backup | up to 800 KB, usually less | document per player, rewritten | don't clean (recover codex by id). Optional `--codex-days` |
+| `fury_achievements` | player achievements (localStorage copy) | up to 100 KB, usually under 5 KB | document per player, rewritten | don't clean |
+| `fury_inventory` | stash, bag, currency (localStorage copy) | up to 300 KB, usually ~60 KB | document per player, no faster than once per 60 s | don't clean |
+| `fury_scores`, `fury_scores_coop` | leaderboards | < 1 KB | score submit | don't clean: negligible space |
 
-Место съедает почти только телеметрия: 1 ГиБ — это около 5–6 тысяч забегов. Остальное вместе
-на порядки меньше.
+Telemetry eats almost all space: 1 GiB is about 5–6 thousand runs. Everything else orders of magnitude less.
 
-## Что делает игра
+## What game does
 
-- Хост удаляет комнату после ответа гостя, при отмене и при закрытии вкладки (`pagehide`, лучшее усилие).
-- Пока хост ждёт, он раз в `ROOMS.beatMs` обновляет `aliveAt`. Гость, зашедший в комнату, где хост
-  не отмечался дольше `ROOMS.staleMs`, сам удаляет её и видит «лобби не найдено».
+- Host deletes room after guest replies, on cancel, and on tab close (`pagehide`, best effort).
+- While host waits, it updates `aliveAt` every `ROOMS.beatMs`. Guest entering a room where host didn't mark for longer than `ROOMS.staleMs` deletes it and sees "lobby not found".
 
-## Когда запускать скрипт
+## When to run script
 
-Раз в неделю или когда в консоли Firebase (Firestore → Usage) место подходит к 70 %.
+Once a week or when Firebase console (Firestore > Usage) reaches 70% space.
 
 ```
-gcloud auth login                               # аккаунт владельца проекта, один раз
-node tools/firestore-cleanup.mjs                # отчёт: сколько места и что ушло бы в чистку
-node tools/firestore-cleanup.mjs --apply        # архив забегов + удаление
+gcloud auth login                               # account owner of project, once
+node tools/firestore-cleanup.mjs                # report: space and what would clean
+node tools/firestore-cleanup.mjs --apply        # archive runs + delete
 ```
 
-Ключи: `--runs-days N` (срок забегов), `--rooms-hours N`, `--codex-days N` (по умолчанию 0, не трогать).
-Архив забегов: `tools/out/firestore-archive/fury_runs-<дата>.jsonl` (не в git). Разбор баланса вместе
-с архивом: `node tools/runs-report.mjs --archive`.
+Flags: `--runs-days N` (run age), `--rooms-hours N`, `--codex-days N` (default 0, don't touch).
+Run archive: `tools/out/firestore-archive/fury_runs-<date>.jsonl` (not in git). Parse balance with archive: `node tools/runs-report.mjs --archive`.
 
-Расход квоты на один запуск: чтение каждого документа всех коллекций (одно чтение на документ) и одно
-удаление на удалённый. Скрипт скачивает телеметрию целиком: при полной базе это около 1 ГиБ трафика из
-10 ГиБ в месяц, поэтому чаще раза в неделю гонять незачем.
+Quota per run: read each document of all collections (one read per document) and one delete per removed. Script downloads telemetry wholly. At full database roughly 1 GiB from 10 GiB monthly, so running weekly is unnecessary.
