@@ -125,6 +125,7 @@ export const SPRITES = Object.fromEntries([
   art('proj_poison_cloud', 128, 128, { density: HD, layer: 'ground', color: '#9be04a', shape: 'round' }),
   art('proj_beam', 28, 12, { density: HD, frames: null, color: '#ffe0ff' }),
   art('proj_wisp', 28, 28, { density: HD, frames: null, color: '#9ff0ff', shape: 'round' }),
+  art('hourglass', 23, 36, { density: HD, color: '#f0c8a0' }), // часы Жницы в кольце таймера (assets/raw/hourglass_src.png)
   art('proj_wisp_shot', 20, 20, { density: HD, color: '#d0ffff', shape: 'round' }), // кривое пятно без обводки (tools/make-ragged-balls.mjs)
   // Метеор крупный: density 1 (1 px текстуры = 1 px мира), шар r 36 → диаметр 72 px мира при scale 1
   // (WEAPON_BEHAVIOR.area_drop.meteorBall); при area 44–76 растяжение 0.9–1.6×, а не ×7.

@@ -5,27 +5,29 @@
 // звёзды кружат над головой Жницы (заглушка иконки).
 import { textStyle } from '../ui/style.js';
 import { drawAura } from './zones.js';
+import { spriteScale } from './density.js';
 
 const HOLY = 0xfffbe6;      // свет круга: почти белый, чуть тёплый
 const HOLY_WAVE = 1.4;      // с на волну круга
 const HOLY_GLOW = 0.6;      // яркость ауры (1 — как у святой земли)
-const SAND = 0xd8b070;      // песок часов
+const SAND = 0xd8b070;      // кольцо таймера часов
 const SAND_EDGE = 0xf0d8a0;
 const MISS = 0xff4040;      // пропуск
 const HOUR_ENDING = 3;      // с до пропуска: таймер мигает
 const MISS_LIFE = 0.5;      // с кольца пропуска
 const STUN = 0xfff070;      // звёзды оглушения
 const TIMERS = 4;           // текстов таймера (кооп: часы перед каждым игроком)
-const GLASS = 0xbfe8ff;
 const BLINK = 0xb050ff;     // метка телепорта
-const ENDING = 2;           // с до конца круга: мигает
 
 export class ReaperFx {
   constructor(scene, depth) {
     this.ground = scene.add.graphics().setDepth(depth);
     this.glow = scene.add.graphics().setDepth(depth + 1).setBlendMode(Phaser.BlendModes.ADD);
     this.timers = [];
+    this.glasses = []; // спрайты часов по центру кольца таймера
     for (let i = 0; i < TIMERS; i++) {
+      this.glasses.push(scene.add.image(0, 0, 'hourglass').setScale(spriteScale('hourglass'))
+          .setDepth(depth + 1).setVisible(false));
       this.timers.push(scene.add.text(0, 0, '', textStyle(10, '#f0d8a0', { stroke: '#1a1426', strokeThickness: 2 }))
           .setOrigin(0.5, 1).setDepth(depth + 2).setVisible(false));
     }
@@ -41,11 +43,14 @@ export class ReaperFx {
     for (const c of sim.holy) this._holy(g, l, c, time);
     const now = new Set();
     sim.hourglasses.forEach((h, i) => {
-      this._hourglass(g, h, time, this.timers[i]);
+      this._hourglass(g, h, time, this.timers[i], this.glasses[i]);
       now.add(h.uid);
       this.seen.set(h.uid, { x: h.x, y: h.y, left: h.life - h.t });
     });
-    for (let i = sim.hourglasses.length; i < TIMERS; i++) this.timers[i].setVisible(false);
+    for (let i = sim.hourglasses.length; i < TIMERS; i++) {
+      this.timers[i].setVisible(false);
+      this.glasses[i].setVisible(false);
+    }
     for (const [uid, h] of this.seen) {
       if (now.has(uid)) continue;
       this.seen.delete(uid);
@@ -58,8 +63,7 @@ export class ReaperFx {
     if (r && r.stunT > 0) this._stun(l, r.e, time);
   }
 
-  // Проявление (t < warn) как предупреждение босса: заливка растёт от центра к краю. Потом свет пульсирует;
-  // в последние секунды круг мигает.
+  // Проявление (t < warn): аура бледная и разгорается. Отключённый круг плавно гаснет.
   _holy(g, l, c, time) {
     const x = Math.round(c.x);
     const y = Math.round(c.y);
@@ -69,14 +73,14 @@ export class ReaperFx {
       drawAura(g, x, y, c.radius, HOLY, time, HOLY_WAVE, 0.25 + 0.5 * k);
       return;
     }
-    const left = c.life - c.t;
-    if (left < ENDING && Math.floor(time * 8) % 2 === 0) return;
-    drawAura(g, x, y, c.radius, HOLY, time, HOLY_WAVE, 1);
-    drawAura(l, x, y, c.radius, HOLY, time + HOLY_WAVE / 4, HOLY_WAVE, HOLY_GLOW);
+    // отключён (с Жницы снята доля HP): гаснет до конца жизни
+    const a = c.off ? Math.max(0, (c.life - c.t) / Math.max(1e-6, c.life - c.offAt)) : 1;
+    drawAura(g, x, y, c.radius, HOLY, time, HOLY_WAVE, a);
+    drawAura(l, x, y, c.radius, HOLY, time + HOLY_WAVE / 4, HOLY_WAVE, HOLY_GLOW * a);
   }
 
   // Часы (наступить — разбить), дуга таймера вокруг и число секунд над ними.
-  _hourglass(g, h, time, label) {
+  _hourglass(g, h, time, label, glass) {
     const left = Math.max(0, h.life - h.t);
     const ending = left < HOUR_ENDING;
     const blink = ending && Math.floor(time * 6) % 2 === 0;
@@ -92,18 +96,10 @@ export class ReaperFx {
       label.setPosition(h.x, h.y - 22).setText(String(Math.ceil(left)))
           .setColor(ending ? '#ff6060' : '#f0d8a0').setVisible(!blink);
     }
+    // спрайт часов по центру кольца, чуть покачивается
     const bob = Math.round(Math.sin(time * 4 + h.uid) * 1);
-    const x = h.x;
-    const y = h.y - 8 + bob; // по центру кольца таймера
-    g.fillStyle(0x000000, 0.3).fillEllipse(h.x, h.y + 1, 12, 4);
-    g.fillStyle(GLASS, 0.85);
-    g.fillTriangle(x - 4, y - 6, x + 4, y - 6, x, y);
-    g.fillTriangle(x - 4, y + 6, x + 4, y + 6, x, y);
-    g.fillStyle(SAND, 1);
-    g.fillTriangle(x - 3, y + 6, x + 3, y + 6, x, y + 2);
-    g.lineStyle(1, 0x5a3a1a, 1);
-    g.lineBetween(x - 5, y - 7, x + 5, y - 7);
-    g.lineBetween(x - 5, y + 7, x + 5, y + 7);
+    g.fillStyle(0x000000, 0.3).fillEllipse(h.x, h.y + 2, 12, 4);
+    if (glass) glass.setPosition(Math.round(h.x), Math.round(h.y - 8 + bob)).setVisible(true);
   }
 
   // Пропуск: кольцо расходится и гаснет за MISS_LIFE с.

@@ -1,7 +1,8 @@
 // Жница овертайма (docs/META.md, 4): освящённые круги, песочные часы, фазы. Числа в BOSSES.reaper
 // (holy, hourglass, summon, teleport). Чистая логика без Phaser: случайность только sim.rng, время только sim.time.
 // Состояние в sim: sim.reaper (таймеры), sim.holy (круги), sim.hourglasses (часы). Рендер читает их как есть.
-//   круг: { uid, x, y, radius, t, life, warn }  — действует, когда t >= warn
+//   круг: { uid, x, y, radius, t, life, warn, off, offAt } — действует, когда t >= warn и не off; живёт, пока
+//   с Жницы не снята доля holy.step HP, потом off и гаснет до life
 //   часы: { uid, x, y, t, life, breakRadius } — таймер life с: не разбили, пока t < life, — пропуск
 //   sim.reaper.stunT — с оглушения от разбитых часов (стоит, касание смертельно); pl.overtimeSlow — минус скорости
 //   игрока от пропущенных часов
@@ -23,6 +24,7 @@ export function initReaper(sim, e) {
   sim.reaper = {
     e, uid: e.uid,
     holyT: d.holy ? d.holy.first : 0,
+    holyMark: d.holy ? e.maxHp * (1 - d.holy.step) : 0, // HP, ниже которого круг переезжает
     hourT: d.hourglass ? d.hourglass.first : 0,
     summoned: false,
     tpT: 0,
@@ -43,7 +45,7 @@ export function inHoly(sim, x, y) {
   const list = sim.holy;
   for (let i = 0; i < list.length; i++) {
     const c = list[i];
-    if (c.t < c.warn) continue;
+    if (c.off || c.t < c.warn) continue;
     const dx = x - c.x;
     const dy = y - c.y;
     if (dx * dx + dy * dy <= c.radius * c.radius) return true;
@@ -78,9 +80,18 @@ export function updateReaper(sim, dt) {
   r.age += dt;
   age(sim.holy, dt);
   if (sim.hasBible && d.holy) {
-    r.holyT -= dt;
-    if (r.holyT <= 0) {
-      r.holyT += d.holy.every;
+    if (r.holyT > 0) {
+      r.holyT -= dt;
+      if (r.holyT <= 0) spawnHoly(sim, e, d.holy);
+    } else if (e.hp <= r.holyMark && e.hp > 0) {
+      // снята очередная доля HP: круг гаснет, новый в другом месте
+      while (r.holyMark >= e.hp) r.holyMark -= e.maxHp * d.holy.step;
+      for (const c of sim.holy) {
+        if (c.off) continue;
+        c.off = true;
+        c.offAt = c.t;
+        c.life = c.t + d.holy.fade;
+      }
       spawnHoly(sim, e, d.holy);
     }
   }
@@ -138,11 +149,14 @@ function place(sim, e, cx, cy, baseAngle, spread, cfg, dist) {
 
 function spawnHoly(sim, e, cfg) {
   const v = sim.view;
-  const p = place(sim, e, v.x, v.y, 0, TAU, cfg, cfg.distance);
+  // новый — по другую сторону от прежнего (от середины между игроками), чтобы круг заметно переехал
+  const old = sim.holy.find((c) => c.off);
+  const base = old ? Math.atan2(old.y - v.y, old.x - v.x) + Math.PI : 0;
+  const p = place(sim, e, v.x, v.y, base, old ? Math.PI : TAU, cfg, cfg.distance);
   const c = {
-    uid: ++sim.uid, x: p.x, y: p.y, radius: cfg.radius, t: 0, life: cfg.life, warn: cfg.warn,
+    uid: ++sim.uid, x: p.x, y: p.y, radius: cfg.radius, t: 0, life: Infinity, warn: cfg.warn,
+    off: false, offAt: 0,
   };
-  sim.holy.length = 0; // круг всегда один: новый заменяет старый
   sim.holy.push(c);
   sim.events.push({ type: 'holyCircle', x: c.x, y: c.y, radius: c.radius });
 }
