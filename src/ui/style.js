@@ -33,3 +33,9 @@ export const COLORS = {
   xp: 0x4fc3ff,
   cursed: '#c06cff',   // метка сложности Cursed в таблице, на итогах и в меню
 };
+
+// Цвет метки сложности (меню, лобби, таблица, итоги, хроника); normal — цвет по месту (fallback).
+const DIFFICULTY_COLORS = { cursed: COLORS.cursed, hexed: '#ff6fb0', abyss: '#ff4a4a' };
+export function difficultyColor(id, fallback = '#ffffff') {
+  return DIFFICULTY_COLORS[id] || fallback;
+}

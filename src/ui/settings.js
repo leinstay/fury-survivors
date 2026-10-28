@@ -5,6 +5,7 @@
 // detailStats — строки статов и иконки оружий на карточках уровня (как «advanced tooltips»), по умолчанию вкл.
 // v2: шкала сменилась, старые сохранения не переносим.
 import { HEROES, DEFAULT_HERO } from '../data/heroes.js';
+import { DIFFICULTIES } from '../data/difficulty.js';
 
 const KEY = 'fury-survivors.settings.v2';
 const DEFAULTS = {
@@ -16,7 +17,7 @@ const DEFAULTS = {
 export const OPTIONS = {
   minimap: ['full', 'transparent'],  // радар не выключается
   dps: ['full', 'transparent', 'off'],
-  difficulty: ['normal', 'cursed'],  // последний выбор перед забегом (data/difficulty.js)
+  difficulty: Object.keys(DIFFICULTIES),  // последний выбор перед забегом
   hero: Object.keys(HEROES),          // последний выбранный герой (соло и кооп)
 };
 let data = null;

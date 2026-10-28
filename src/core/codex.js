@@ -19,6 +19,7 @@ import { PASSIVES, PASSIVE_RENAMES } from '../data/passives.js';
 import { ENEMIES } from '../data/enemies.js';
 import { BOSSES } from '../data/bosses.js';
 import { DEFAULT_HERO } from '../data/heroes.js';
+import { DIFFICULTIES, DEFAULT_DIFFICULTY } from '../data/difficulty.js';
 
 export const CODEX_KINDS = ['weapon', 'passive', 'enemy', 'boss'];
 export const RUN_STATUSES = ['victory', 'dead', 'disconnected', 'quit'];
@@ -61,7 +62,21 @@ export function emptyCodex(id = '', nick = '') {
     v: CODEX.version, id, nick,
     seen: { weapon: {}, passive: {}, enemy: {}, boss: {} },
     foes: {}, totals: emptyTotals(), runs: [],
+    cleared: {}, // сложности с хоть одной победой: id -> 1 (открывают следующую, data/difficulty.js requires)
   };
+}
+
+const diffId = (r) => (r && DIFFICULTIES[r.difficulty] ? r.difficulty : DEFAULT_DIFFICULTY);
+
+/** Пройдена ли сложность хоть раз (победа в любом режиме). */
+export function isCleared(codex, id) {
+  return !!(codex && codex.cleared && codex.cleared[id]);
+}
+
+/** Открыта ли сложность: без requires — всегда, иначе нужна победа на requires. */
+export function difficultyOpen(codex, id) {
+  const d = DIFFICULTIES[id];
+  return !!d && (!d.requires || isCleared(codex, d.requires));
 }
 
 const num = (v) => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : 0);
@@ -169,6 +184,10 @@ export function normalizeCodex(raw) {
   }
   c.runs = (Array.isArray(raw.runs) ? raw.runs : []).map(normalizeRun).filter(Boolean)
       .slice(0, CODEX.maxRuns);
+  const cl = raw.cleared && typeof raw.cleared === 'object' ? raw.cleared : {};
+  for (const id of Object.keys(cl)) if (cl[id] && DIFFICULTIES[id]) c.cleared[id] = 1;
+  // кодекс до поля cleared: победы из истории забегов
+  for (const r of c.runs) if (r.status === 'victory') c.cleared[diffId(r)] = 1;
   return c;
 }
 
@@ -371,7 +390,10 @@ export function mergeRun(codex, result) {
   }
   const t = codex.totals;
   t.runs[run.mode]++;
-  if (run.status === 'victory') t.wins[run.mode]++;
+  if (run.status === 'victory') {
+    t.wins[run.mode]++;
+    (codex.cleared ||= {})[diffId(run)] = 1;
+  }
   t.time += run.time;
   t.dist += run.dist;
   t.kills += run.kills;

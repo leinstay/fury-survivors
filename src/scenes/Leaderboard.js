@@ -3,14 +3,13 @@ import { t } from '../i18n/index.js';
 import { GAME_WIDTH } from '../data/constants.js';
 import { BOARD } from '../data/leaderboard.js';
 import { FocusNav, addButton } from '../ui/focus.js';
-import { textStyle, COLORS } from '../ui/style.js';
+import { textStyle, COLORS, difficultyColor } from '../ui/style.js';
 import { addPanel } from '../ui/panel.js';
 import {
   BUTTON, EDGE, PAGE_GAP, PAGE_TAB_Y, PAGE_TOP, PAGE_BOTTOM, backRect, screenTitle, menuBackdrop,
 } from '../ui/menu-layout.js';
 import { formatTime } from '../ui/hud.js';
 import { fetchTop10 } from '../services/leaderboard.js';
-import { DEFAULT_DIFFICULTY } from '../data/difficulty.js';
 import { pairLabel } from '../core/nick.js';
 import { HEROES, DEFAULT_HERO } from '../data/heroes.js';
 
@@ -129,7 +128,7 @@ export class LeaderboardScene extends Phaser.Scene {
         this.add.text(COL.time, y, formatTime(r.time), st).setOrigin(1, 0),
         this.add.text(COL.kills, y, String(r.kills), st).setOrigin(1, 0),
         this.add.text(COL.mode, y, t(`difficulty.${r.difficulty}.short`),
-            textStyle(12, r.difficulty === DEFAULT_DIFFICULTY ? COLORS.dim : COLORS.cursed))
+            textStyle(12, difficultyColor(r.difficulty, COLORS.dim)))
             .setOrigin(1, 0),
       );
     });

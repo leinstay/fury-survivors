@@ -77,7 +77,7 @@ export function createDirector(stage, rng) {
               p.x + Math.cos(a) * dist - Math.sin(a) * s,
               p.y + Math.sin(a) * dist + Math.cos(a) * s, false);
           if (!e) break;
-          drift(e, a + Math.PI, ev.speed);
+          drift(sim, e, a + Math.PI, ev.speed);
         }
         break;
       }
@@ -97,7 +97,7 @@ export function createDirector(stage, rng) {
               cx + (rng.next() - 0.5) * DIRECTOR.burstJitter,
               cy + (rng.next() - 0.5) * DIRECTOR.burstJitter, false);
           if (!e) break;
-          drift(e, course, ev.speed);
+          drift(sim, e, course, ev.speed);
         }
         break;
       }
@@ -107,11 +107,11 @@ export function createDirector(stage, rng) {
   }
 
   // Прямой курс для стены и пролёта: поведение drift поверх родного, за краем мира враг исчезает.
-  function drift(e, angle, speed) {
+  function drift(sim, e, angle, speed) {
     e.beh = ENEMY_BEHAVIORS.drift;
     e.a = angle;
     e.transient = true;
-    if (speed) e.speed = speed;
+    if (speed) e.speed = speed * (sim.diff.speedMul || 1);
   }
 
   // Группа врагов типа type у края экрана.

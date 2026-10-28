@@ -197,6 +197,7 @@ class Sim {
       slots: { weapons: slots.weapons, passives: slots.passives },
       dead: false, coffinT: 0, revives: 0, dist: 0,
       overtimeSlow: 0, // минус скорости от пропущенных часов Жницы (src/core/reaper.js), поверх stats.speed
+      hitSlowEnd: 0,   // до этого времени удар врага замедляет (сложность hitSlow)
       name: '',
       thornsAt: NEVER, // время последнего срабатывания шипов (стат thorns, COMBAT.thornsCooldown)
       // свои карточки и пул: набор текущего уровня (done — не его ход или уже выбрал), изгнанные, лимиты;
@@ -360,7 +361,7 @@ class Sim {
     if (len > 1) { ix /= len; iy /= len; }
     pl.moving = len > 0.05;
     if (pl.moving) {
-      const sp = playerSpeed(this, pl);
+      const sp = this.moveSpeed(pl);
       pl.x += ix * sp * dt;
       pl.y += iy * sp * dt;
       pl.dist += Math.min(1, len) * sp * dt; // пройдено, px (кодекс)
@@ -377,7 +378,7 @@ class Sim {
     }
     const still = pl.uq && pl.uq.regenOnlyStill;
     if (pl.stats.regen > 0 && pl.hp < pl.maxHp && !(still && pl.moving)) {
-      pl.hp = Math.min(pl.maxHp, pl.hp + pl.stats.regen * dt);
+      pl.hp = Math.min(pl.maxHp, pl.hp + pl.stats.regen * (this.diff.healMul || 1) * dt);
     }
   }
 
@@ -495,7 +496,7 @@ class Sim {
     e.hitFlash = 0;
     e.moving = false;
     e.vx = 0; e.vy = 0; e.kx = 0; e.ky = 0;
-    e.speed = def.speed;
+    e.speed = def.speed * (this.diff.speedMul || 1);
     e.damage = def.damage * dmgScale * (ed ? ed.damageMul : 1);
     const coopXp = this.coop ? COOP.xpMul : 1;
     e.xp = (def.xp || 0) * (ed ? ed.xpMul || 1 : 1) * this.diff.xpMul * coopXp;
@@ -520,7 +521,9 @@ class Sim {
     // Правило VS: HP босса = hpPerLevel × уровень игрока при появлении (без роста со временем).
     // Без hpPerLevel работает прежний путь: hp × рост этапа.
     if (e && e.def.hpPerLevel) {
-      e.maxHp = e.def.hpPerLevel * pl.level * (this.coop ? COOP.bossHpMul : 1);
+      // сложность (bossHpMul) — не для Жницы: её HP задаёт Библия (core/reaper.js)
+      const diff = e.def.invulnerable ? 1 : this.diff.bossHpMul || 1;
+      e.maxHp = e.def.hpPerLevel * pl.level * (this.coop ? COOP.bossHpMul : 1) * diff;
       e.hp = e.maxHp;
     }
     if (e) {
@@ -717,6 +720,14 @@ class Sim {
     o.dps = sum / b.length;
   }
 
+  // Скорость героя сейчас: статы, минус часы Жницы (core/reaper.js), замедление от удара (сложность hitSlow).
+  // Ей же предсказывает движение рендер (scenes/Game.js).
+  moveSpeed(pl) {
+    const sp = playerSpeed(this, pl);
+    const hs = this.diff.hitSlow;
+    return hs && this.time < pl.hitSlowEnd ? sp * hs.mul : sp;
+  }
+
   // Урон врагу. (sx, sy) — точка удара, отбрасывание от неё; by — игрок-владелец оружия (крит по его статам).
   // Если толчок от точки направлен на by (центр молота, взрыв, линия меча, прыжок молнии, бумеранг на возврате
   // бывают дальше врага), враг летит от by: удар не тянет толпу на героя.
@@ -903,11 +914,14 @@ class Sim {
       this.events.push({ type: 'dodge', player: pl.id, x: pl.x, y: pl.y, src });
       return;
     }
-    // сопротивление: доля снижения удара (сумма источников, кап в STAT_CAPS), но не меньше COMBAT.minDamage
-    const amount = Math.max(COMBAT.minDamage, raw * (1 - (pl.stats.resistance || 0)));
+    // урон сложности (dmgMul), затем сопротивление: доля снижения удара (сумма источников, кап в STAT_CAPS),
+    // но не меньше COMBAT.minDamage
+    const hit = raw * (this.diff.dmgMul || 1);
+    const amount = Math.max(COMBAT.minDamage, hit * (1 - (pl.stats.resistance || 0)));
     pl.hp -= amount;
     pl.iframes = PLAYER.iframes;
     pl.hurtFlash = PLAYER.hurtFlash;
+    if (this.diff.hitSlow) pl.hitSlowEnd = this.time + this.diff.hitSlow.time;
     this.events.push({ type: 'playerHurt', amount, player: pl.id, src });
     if (pl.stats.thorns > 0) this._thorns(pl);
     if (pl.hp <= 0 && this._cheatDeath(pl)) return;
@@ -1407,7 +1421,7 @@ class Sim {
         this.player.xp += pk.value * (pl.stats.xpGain ?? 1); // опыт общий (у первого игрока), множитель подобравшего
         break;
       case 'heal':
-        pl.hp = Math.min(pl.maxHp, pl.hp + pk.value);
+        pl.hp = Math.min(pl.maxHp, pl.hp + pk.value * (this.diff.healMul || 1));
         break;
       case 'magnet':
         for (const o of this.pickups) if (o.kind === 'xp' || o.kind === 'coin') o.pulled = true;
@@ -1858,7 +1872,7 @@ class Sim {
   _rollLoot(index, boss) {
     const tier = bossDrop(index).tier;
     for (const pl of this.players) {
-      const entries = rollChest(this.lootRng, tier);
+      const entries = rollChest(this.lootRng, tier, this.diff.loot);
       const hearts = rollHearts(this.lootRng, index);
       // 3-й и 4-й сундук (финальный босс, Жница): на экране лута кнопка End run
       pl.loot.push({ tier, boss, entries, hearts, endRun: index >= BOSS_END_RUN });

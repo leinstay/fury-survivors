@@ -317,13 +317,14 @@ export class GameScene extends Phaser.Scene {
     const a = live && this.hitstop <= 0 ? Math.min(1, this.acc / STEP) : 1;
     this.world.alpha = a;
     if (!live || p.dead || this.hitstop > 0) { this.world.predict = null; return; }
-    const pend = this.ls ? this.ls.predictOffset(p.stats.speed, STEP) : { x: 0, y: 0, face: 0 };
+    const speed = sim.moveSpeed(p);
+    const pend = this.ls ? this.ls.predictOffset(speed, STEP) : { x: 0, y: 0, face: 0 };
     let ix = input && input.x ? input.x : 0;
     let iy = input && input.y ? input.y : 0;
     const len = Math.sqrt(ix * ix + iy * iy);
     const moving = len > 0.05;
     if (len > 1) { ix /= len; iy /= len; }
-    const k = moving ? p.stats.speed * STEP * a : 0;
+    const k = moving ? speed * STEP * a : 0;
     const face = ix > 0.05 ? 1 : ix < -0.05 ? -1 : pend.face;
     this.world.predict = {
       i: sim.local, x: pend.x + ix * k, y: pend.y + iy * k, face,

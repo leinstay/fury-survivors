@@ -2,10 +2,12 @@ import { t } from '../i18n/index.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
 import { FocusNav, addButton } from '../ui/focus.js';
 import { addVolumeSliders } from '../ui/volume.js';
-import { textStyle, COLORS } from '../ui/style.js';
+import { textStyle, COLORS, difficultyColor } from '../ui/style.js';
 import { stopMusic } from '../audio/sfx.js';
 import { requestFullscreen } from '../ui/fullscreen.js';
 import { DIFFICULTIES, DEFAULT_DIFFICULTY } from '../data/difficulty.js';
+import { getCodex } from '../services/codex.js';
+import { difficultyOpen } from '../core/codex.js';
 import { getSetting, setSetting, isMobile } from '../ui/settings.js';
 import { createTextInput } from '../ui/dom-input.js';
 import { addPanel } from '../ui/panel.js';
@@ -75,7 +77,7 @@ export class MenuScene extends Phaser.Scene {
   // Выбранная сложность (последний выбор, по умолчанию DEFAULT_DIFFICULTY).
   difficulty() {
     const d = getSetting('difficulty');
-    return DIFFICULTIES[d] ? d : DEFAULT_DIFFICULTY;
+    return DIFFICULTIES[d] && difficultyOpen(getCodex(), d) ? d : DEFAULT_DIFFICULTY;
   }
 
   show(view) {
@@ -121,12 +123,14 @@ export class MenuScene extends Phaser.Scene {
       // подсказка про клавиши: на телефоне клавиатуры нет
       if (!isMobile()) this.add.text(cx, GAME_HEIGHT - 14, t('menu.hint'), textStyle(10, '#dddddd', { stroke: '#000000', strokeThickness: 3 })).setOrigin(0.5);
     } else if (view === 'difficulty') {
-      // Сложность соло; последний выбор запоминается и стоит в фокусе.
+      // Сложность соло; последний выбор запоминается и стоит в фокусе. Закрытая (нет победы на requires)
+      // неактивна.
       const ids = Object.keys(DIFFICULTIES);
+      const codex = getCodex();
       ids.forEach((id, i) => {
-        const cursed = id !== DEFAULT_DIFFICULTY;
-        sub(i, t(`difficulty.${id}.name`), () => { setSetting('difficulty', id); this.show('hero'); },
-            cursed ? COLORS.cursed : '#ffffff');
+        const b = sub(i, t(`difficulty.${id}.name`), () => { setSetting('difficulty', id); this.show('hero'); },
+            difficultyColor(id));
+        if (!difficultyOpen(codex, id)) b.setDisabled(true);
       });
       back('main');
       focus = Math.max(0, ids.indexOf(this.difficulty()));

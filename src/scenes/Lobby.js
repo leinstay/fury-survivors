@@ -16,7 +16,9 @@ import { t } from '../i18n/index.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
 import { DIFFICULTIES, DEFAULT_DIFFICULTY } from '../data/difficulty.js';
 import { FocusNav, addButton } from '../ui/focus.js';
-import { textStyle, COLORS } from '../ui/style.js';
+import { textStyle, COLORS, difficultyColor } from '../ui/style.js';
+import { getCodex } from '../services/codex.js';
+import { difficultyOpen } from '../core/codex.js';
 import { addPanel } from '../ui/panel.js';
 import { getSetting, setSetting } from '../ui/settings.js';
 import { createRoom, joinRoom } from '../services/net.js';
@@ -36,6 +38,9 @@ import { BUTTON, screenTitle, menuBackdrop } from '../ui/menu-layout.js';
 const BTN_W = BUTTON.action.w; // кнопки в ряд — размер action (ui/menu-layout.js)
 const BTN_DX = 70;
 const LOBBY_GRID_W = 400; // сетка героев, когда их много: на всю ширину панели
+const DIFF_Y = 252;       // первый ряд сложностей (2×2 под карточками героев)
+const DIFF_STEP = 28;     // шаг рядов сложностей
+const ACTIONS_Y = 318;    // Start и Cancel под сложностями
 
 // Герой от напарника: '' — отпустил (никого не выбрал), иначе id из HEROES (неизвестный — по умолчанию)
 function heroOf(raw) {
@@ -61,7 +66,9 @@ export class LobbyScene extends Phaser.Scene {
     this.conn = null;
     this.room = null;
     this.partner = '';
-    this.difficulty = DIFFICULTIES[getSetting('difficulty')] ? getSetting('difficulty') : DEFAULT_DIFFICULTY;
+    const saved = getSetting('difficulty');
+    const open = DIFFICULTIES[saved] && difficultyOpen(getCodex(), saved);
+    this.difficulty = open ? saved : DEFAULT_DIFFICULTY;
     this.hero = validHero(getSetting('hero'));
     this.partnerHero = '';
     this.started = false;
@@ -274,7 +281,6 @@ export class LobbyScene extends Phaser.Scene {
     this.players.setText(`${t('lobby.host')}: ${a}    ${t('lobby.guest')}: ${b}`);
 
     // свой герой: карточки, выбор сразу уходит напарнику
-    this.add.text(cx, 136, t('lobby.your_hero'), textStyle(9, '#aaaaaa')).setOrigin(0.5);
     addHeroPicker(this, this.nav, {
       // ширина и шаг как у кнопок ниже (BTN_W, BTN_DX): карточки стоят ровно над ними
       x: cx, y: 190, w: BTN_W, h: 92, gap: 2 * BTN_DX - BTN_W, compact: true, mark: true,
@@ -283,39 +289,40 @@ export class LobbyScene extends Phaser.Scene {
       onPick: (id) => this.pickHero(id),
     });
 
+    // сложности квадратом 2×2 в колонках Start и Cancel; хосту закрытые по его кодексу (нет победы на
+    // requires) недоступны
     const ids = Object.keys(DIFFICULTIES);
-    const y = 256;
+    const codex = getCodex();
     ids.forEach((id, i) => {
-      const x = cx - BTN_DX + i * 2 * BTN_DX;
-      const cursed = id !== DEFAULT_DIFFICULTY;
       const sel = id === this.difficulty;
       const b = addButton(this, this.nav, {
-        x, y, w: BTN_W, h: BUTTON.action.h, size: 12, label: t(`difficulty.${id}.name`), selected: sel,
-        color: cursed ? COLORS.cursed : '#ffffff',
+        x: cx + (i % 2 ? BTN_DX : -BTN_DX), y: DIFF_Y + Math.floor(i / 2) * DIFF_STEP, w: BTN_W, h: BUTTON.action.h, size: 12, label: t(`difficulty.${id}.name`), selected: sel,
+        color: difficultyColor(id),
         onSelect: () => this.pickDifficulty(id),
       });
+      if (this.role === 'host' && !difficultyOpen(codex, id)) b.setDisabled(true);
       if (this.role !== 'host') {
         b.setDisabled(true);
         if (sel) { b.rect.setAlpha(1); b.text.setAlpha(1); } // гость видит выбор хоста ярко
       }
     });
     if (this.role !== 'host') {
-      this.add.text(cx, 278, t('lobby.host_picks'), textStyle(9, '#aaaaaa')).setOrigin(0.5);
+      this.add.text(cx, DIFF_Y + 2 * DIFF_STEP - 8, t('lobby.host_picks'), textStyle(9, '#aaaaaa')).setOrigin(0.5);
     }
     const ready = !!(this.conn && this.partner && this.partnerHero && this.hero &&
       this.partnerBag) &&
       this.partnerHero !== this.hero && !this.mismatch;
     if (this.role === 'host') {
-      const start = addButton(this, this.nav, { x: cx - BTN_DX, y: 308, w: BTN_W, h: BUTTON.action.h, label: t('lobby.start'), onSelect: () => this.start() });
+      const start = addButton(this, this.nav, { x: cx - BTN_DX, y: ACTIONS_Y, w: BTN_W, h: BUTTON.action.h, label: t('lobby.start'), onSelect: () => this.start() });
       start.setDisabled(!ready);
     }
-    addButton(this, this.nav, { x: this.role === 'host' ? cx + BTN_DX : cx, y: 308, w: BTN_W, h: BUTTON.action.h, label: t('lobby.cancel'), onSelect: () => this.leave() });
+    addButton(this, this.nav, { x: this.role === 'host' ? cx + BTN_DX : cx, y: ACTIONS_Y, w: BTN_W, h: BUTTON.action.h, label: t('lobby.cancel'), onSelect: () => this.leave() });
     this.objs = this.children.list.filter((o) => !before.has(o) && o.type !== 'Zone');
     this.nav.focus(Math.max(0, Math.min(keep, this.nav.items.length - 1)));
   }
 
   pickDifficulty(id) {
-    if (this.role !== 'host') return;
+    if (this.role !== 'host' || !difficultyOpen(getCodex(), id)) return;
     this.difficulty = id;
     setSetting('difficulty', id);
     if (this.conn) this.conn.send({ type: 'diff', id });

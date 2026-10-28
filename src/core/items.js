@@ -163,11 +163,12 @@ export function rollUnique(rng, tier, opts = {}) {
 }
 
 /**
- * Сундук с босса: CHEST_SIZE записей {kind: 'item'|'unique'|'scroll', item?}.
+ * Сундук с босса: CHEST_SIZE записей {kind: 'item'|'unique'|'scroll', item?}. tables — таблицы сложности
+ * ({tier: веса}, data/difficulty.js loot) вместо CHEST_TABLES для своих тиров.
  * @return {!Array<{kind: string, item: (Object|undefined)}>}
  */
-export function rollChest(rng, tier) {
-  const tbl = CHEST_TABLES[tier] || CHEST_TABLES[1];
+export function rollChest(rng, tier, tables = null) {
+  const tbl = (tables && tables[tier]) || CHEST_TABLES[tier] || CHEST_TABLES[1];
   const out = [];
   const seenUniques = [];
   for (let i = 0; i < CHEST_SIZE; i++) {

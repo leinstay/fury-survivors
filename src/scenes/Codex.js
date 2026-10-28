@@ -13,12 +13,11 @@ import { ENEMIES } from '../data/enemies.js';
 import { BOSSES } from '../data/bosses.js';
 import { HEROES } from '../data/heroes.js';
 import { heroTraits } from '../core/heroes.js';
-import { DEFAULT_DIFFICULTY } from '../data/difficulty.js';
 import { SPRITES } from '../../assets/sprites/manifest.js';
 import { FocusNav, addButton, setTextFocusStyle } from '../ui/focus.js';
 import { addPanel } from '../ui/panel.js';
 import { addIcon, iconKeyFor, displayName } from '../ui/icons.js';
-import { textStyle, COLORS } from '../ui/style.js';
+import { textStyle, COLORS, difficultyColor } from '../ui/style.js';
 import { formatTime } from '../ui/hud.js';
 import { copyText } from '../ui/clipboard.js';
 import { createTextInput } from '../ui/dom-input.js';
@@ -886,11 +885,10 @@ export class CodexScene extends Phaser.Scene {
       const panel = addPanel(this, cx, y, rw, 20);
       const st = textStyle(9);
       const mode = r.mode === 'duo' ? (r.partner ? `${t('codex.mode.duo')} & ${r.partner}` : t('codex.mode.duo')) : t('codex.mode.solo');
-      const cursed = r.difficulty && r.difficulty !== DEFAULT_DIFFICULTY;
       this.add.text(rl + 6, y, fmtDate(r.at), textStyle(9, COLORS.dim)).setOrigin(0, 0.5);
       this.add.text(rl + 70, y, mode, st).setOrigin(0, 0.5);
       this.add.text(rl + 140, y, displayName('hero', r.hero), st).setOrigin(0, 0.5);
-      this.add.text(rl + 186, y, t(`difficulty.${r.difficulty}.short`), textStyle(9, cursed ? COLORS.cursed : COLORS.dim)).setOrigin(0, 0.5);
+      this.add.text(rl + 186, y, t(`difficulty.${r.difficulty}.short`), textStyle(9, difficultyColor(r.difficulty, COLORS.dim))).setOrigin(0, 0.5);
       this.add.text(rl + 228, y, t(`codex.status.${r.status}`), textStyle(9, STATUS_COLOR[r.status])).setOrigin(0, 0.5);
       this.add.text(rl + 316, y, formatTime(r.time), st).setOrigin(1, 0.5);
       this.add.text(rl + rw - 6, y, String(r.score), textStyle(9, '#ffd84a')).setOrigin(1, 0.5);
@@ -934,11 +932,10 @@ export class CodexScene extends Phaser.Scene {
     const T = TOP + PAD;
     const mode = r.mode === 'duo' ? (r.partner ? t('codex.mode.duo_with', { name: r.partner }) : t('codex.mode.duo')) : t('codex.mode.solo');
     this.add.text(x0, T, `${fmtDate(r.at)}   ${mode}`, textStyle(11)).setOrigin(0, 0);
-    const cursed = r.difficulty && r.difficulty !== DEFAULT_DIFFICULTY;
     let x = x0;
     for (const [s, c] of [[displayName('hero', r.hero), '#dddddd'],
       [t(`stage.${r.stage}.name`), '#9ad0ff'],
-      [t(`difficulty.${r.difficulty}.name`), cursed ? COLORS.cursed : COLORS.dim],
+      [t(`difficulty.${r.difficulty}.name`), difficultyColor(r.difficulty, COLORS.dim)],
       [t(`codex.status.${r.status}`), STATUS_COLOR[r.status]]]) {
       const tx = this.add.text(x, T + 16, s, textStyle(10, c)).setOrigin(0, 0);
       x += tx.width + 12;

@@ -39,8 +39,9 @@ export const NICK = { min: 3, max: 6, re: /^[A-Za-z0-9]+$/, storageKey: 'fury-su
 // Убийство и монета ×1.5 (было 1 и 10): после ребаланса врагов меньше, потолок Cursed упал с ~55к до ~45к.
 export const SCORE_FORMULA = { perSecond: 10, perKill: 1.5, perCoin: 15, victoryBonus: 5000 };
 
-// Сложность в документе: поле difficulty ('normal' | 'cursed'); старые записи без поля читаются как normal.
-export const DIFFICULTY_FIELD = { key: 'difficulty', values: ['normal', 'cursed'], fallback: 'normal' };
+// Сложность в документе: поле difficulty (id из data/difficulty.js); старые записи без поля читаются как normal.
+// Правила (firestore.rules) держат тот же список.
+export const DIFFICULTY_FIELD = { key: 'difficulty', values: ['normal', 'cursed', 'hexed', 'abyss'], fallback: 'normal' };
 
 // Допустимые диапазоны полей документа (клиентская проверка; правила держат те же границы).
 export const LIMITS = { scoreMax: 9999999, timeMax: 86400, killsMax: 1000000, levelMax: 999 };

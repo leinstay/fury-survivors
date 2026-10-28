@@ -3,7 +3,7 @@ import { t } from '../i18n/index.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
 import { FocusNav, addButton } from './focus.js';
 import { BUTTON, rowXs, overlayTitle } from './menu-layout.js';
-import { textStyle, COLORS, FONT } from './style.js';
+import { textStyle, COLORS, FONT, difficultyColor } from './style.js';
 import { formatTime } from './hud.js';
 import { displayName, addIcon, iconKeyFor } from './icons.js';
 import { addPanel } from './panel.js';
@@ -49,9 +49,9 @@ export function buildResults(scene, sim,
     const pair = sim.players.map((p) => p.name || '?').join(PAIR.shown);
     const diff = cursed ? `${t(`difficulty.${sim.difficulty}.name`)}  ·  ` : '';
     scene.add.text(cx, 46, lost ? t('result.lost') : `${diff}${t('result.players')}: ${pair}`,
-        textStyle(10, lost ? '#ff8080' : cursed ? COLORS.cursed : '#9ad0ff')).setOrigin(0.5);
+        textStyle(10, lost ? '#ff8080' : difficultyColor(sim.difficulty, '#9ad0ff'))).setOrigin(0.5);
   } else if (cursed) {
-    scene.add.text(cx, 46, t(`difficulty.${sim.difficulty}.name`), textStyle(10, COLORS.cursed)).setOrigin(0.5);
+    scene.add.text(cx, 46, t(`difficulty.${sim.difficulty}.name`), textStyle(10, difficultyColor(sim.difficulty))).setOrigin(0.5);
   }
 
   const rows = [

@@ -162,6 +162,10 @@ export const en = {
   'difficulty.normal.short': 'Normal',
   'difficulty.cursed.name': 'Cursed',
   'difficulty.cursed.short': 'Cursed',
+  'difficulty.hexed.name': 'Hexed',
+  'difficulty.hexed.short': 'Hexed',
+  'difficulty.abyss.name': 'Abyss',
+  'difficulty.abyss.short': 'Abyss',
 
   // Герои
   'hero.heroine.name': 'Hero',
@@ -185,7 +189,6 @@ export const en = {
   'trait.xpGain': 'XP GAIN',
   'trait.dodge': 'DODGE',
   'trait.thorns': 'THORNS',
-  'lobby.your_hero': 'Your hero',
   'lobby.taken': 'Partner',
 
   // Оружие
