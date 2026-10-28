@@ -21,7 +21,7 @@ const WO = FX.weaponOrigin;
 //   bloom: 'early',              // необязательно: 'early' — сильно в начале и теряет актуальность к 15:00, 'late' —
 //                                // наоборот; лестница сравнивает такое оружие в его окне минут (LADDER.bloom)
 //   levels: [                    // levels[0] = уровень 1; каждая следующая запись — полный набор чисел
-//     { damage, cooldown, amount, area, speed, duration, pierce, knockback, ... },
+//     { damage, cooldown, amount, area, speed, duration, pierce, knockback, ... },  // knockback: не на героя (sim.damageEnemy)
 //   ],
 // }
 // Смысл полей по behavior (damage умножается на attack или magic по dmgType, cooldown делится на haste,

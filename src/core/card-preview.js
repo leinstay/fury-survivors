@@ -4,6 +4,7 @@
 // Без Phaser: проверяется в tests/unit/card-preview.test.js.
 import { WEAPONS } from '../data/weapons.js';
 import { PASSIVES } from '../data/passives.js';
+import { COMBOS } from '../data/combos.js';
 import { STATS } from '../data/stats.js';
 import { computeStats, critChance } from './stats.js';
 import { loadoutExtra, applyUniqueRules } from './loadout.js';
@@ -41,6 +42,27 @@ export function statAffectsWeapon(stat, id) {
  */
 export function weaponsForStat(stat, ids) {
   return ids.filter((id) => statAffectsWeapon(stat, id));
+}
+
+/**
+ * Взятые пассивки игрока, которые меняют оружие (в порядке взятия).
+ * @param {!Object} pl игрок sim
+ * @param {string} id оружие
+ * @return {!Array<string>}
+ */
+export function weaponBuffs(pl, id) {
+  return pl.passives.map((p) => p.id)
+      .filter((pid) => PASSIVES[pid] && statAffectsWeapon(PASSIVES[pid].stat, id));
+}
+
+/**
+ * Эволюция оружия: с какой пассивкой и во что (COMBOS), null у эволюций и оружия без пары.
+ * @param {string} id оружие
+ * @return {?{passive: string, result: string}}
+ */
+export function evolutionOf(id) {
+  const c = COMBOS.find((x) => x.from[0] === id && PASSIVES[x.from[1]]);
+  return c ? { passive: c.from[1], result: c.result } : null;
 }
 
 // Итоговые статы игрока с другим набором пассивок (как sim._syncBuild).

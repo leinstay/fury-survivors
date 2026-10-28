@@ -717,7 +717,9 @@ class Sim {
     o.dps = sum / b.length;
   }
 
-  // Урон врагу. (sx, sy) — источник для направления отбрасывания; by — игрок-владелец оружия (крит по его статам).
+  // Урон врагу. (sx, sy) — точка удара, отбрасывание от неё; by — игрок-владелец оружия (крит по его статам).
+  // Если толчок от точки направлен на by (центр молота, взрыв, линия меча, прыжок молнии, бумеранг на возврате
+  // бывают дальше врага), враг летит от by: удар не тянет толпу на героя.
   // status — поле status оружия ({type, chance}, src/data/status.js): после удара по живому врагу ДоТ от урона
   // до крита.
   damageEnemy(e, dmg, wid, kb, sx, sy, by = this.player, component = '', status = null) {
@@ -735,8 +737,9 @@ class Sim {
     by.hitsByWeapon[wid] = (by.hitsByWeapon[wid] || 0) + 1;
     this.events.push({ type: 'hit', x: e.x, y: e.y, amount: Math.max(1, Math.round(amount)), crit, weapon: wid });
     if (kb > 0 && e.resist < 1 && !e.boss) {
-      const dx = e.x - sx;
-      const dy = e.y - sy;
+      let dx = e.x - sx;
+      let dy = e.y - sy;
+      if (dx * (e.x - by.x) + dy * (e.y - by.y) < 0) { dx = e.x - by.x; dy = e.y - by.y; }
       const d = Math.sqrt(dx * dx + dy * dy) || 1;
       const k = kb * (1 - e.resist);
       e.kx = (dx / d) * k;

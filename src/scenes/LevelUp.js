@@ -9,6 +9,8 @@ import { addPanel } from '../ui/panel.js';
 import { createActions } from '../core/actions.js';
 import { fadeOutAndStop, resetFade } from '../ui/fade.js';
 import { addCardPreview } from '../ui/card-preview.js';
+import { getCodex } from '../services/codex.js';
+import { isSeen } from '../core/codex.js';
 import { BUTTON, rowXs, overlayTitle } from '../ui/menu-layout.js';
 
 const CARD_W = 140;
@@ -136,9 +138,11 @@ export class LevelUpScene extends Phaser.Scene {
       // описание в своей зоне: с одного y, не больше DESC_LINES строк (до линии иконок)
       this.add.text(x, cy + DESC_Y, cardDesc(c), textStyle(10, '#cccccc',
           { align: 'center', wordWrap: { width: CARD_W - 14 }, maxLines: DESC_LINES })).setOrigin(0.5, 0);
-      // внизу карточки зона фиксированной высоты: изменение стата или параметров оружия и оружия, на которые
-      // влияет пассивка (ui/card-preview.js), строки и иконки на одном y у всех карточек
-      addCardPreview(this, x, cy + CARD_H / 2 - 6, CARD_W - 10, pl, c);
+      // внизу карточки зона фиксированной высоты: изменение стата или параметров оружия и ряд иконок (у пассивки —
+      // оружия, на которые она влияет; у оружия — пассивки-баффы и открытая эволюция; ui/card-preview.js),
+      // строки и иконки на одном y у всех карточек
+      addCardPreview(this, x, cy + CARD_H / 2 - 6, CARD_W - 10, pl, c,
+          { seen: (id) => isSeen(getCodex(), 'weapon', id) });
       if (this.banishMode) this.add.rectangle(x, cy, CARD_W, CARD_H, 0xaa2020, 0.18);
       if (!mine) return;
       this.nav.add({
