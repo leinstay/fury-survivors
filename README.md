@@ -26,7 +26,6 @@ Two more five-hour sessions added a second heroine, two-player online co-op, new
 
 ## Screenshots
 
-<p align="center"><img src=".github/assets/gameplay.webp" width="100%" alt="The Mage on a forest road at 13:00 with a ghost ring closing in"></p>
 <p align="center"><img src=".github/assets/inventory.webp" width="100%" alt="Inventory with the packed bag, the stash and the hero stats panel"></p>
 <p align="center"><img src=".github/assets/codex.webp" width="100%" alt="Codex Armory with all weapons, evolutions, upgrades and uniques"></p>
 <p align="center"><img src=".github/assets/chronicle.webp" width="100%" alt="Codex Chronicle with run totals and run history"></p>
