@@ -96,10 +96,12 @@ export class ReaperFx {
       label.setPosition(h.x, h.y - 22).setText(String(Math.ceil(left)))
           .setColor(ending ? '#ff6060' : '#f0d8a0').setVisible(!blink);
     }
-    // спрайт часов в кольце, низом на тени; чуть покачивается
+    // спрайт часов в центре кольца (на 1.5 px мира = 3 px холста ниже), чуть покачивается; позиция с шагом
+    // в пиксель холста (полпикселя мира)
     const bob = Math.round(Math.sin(time * 4 + h.uid) * 1);
-    g.fillStyle(0x000000, 0.3).fillEllipse(h.x, h.y + 5, 12, 4);
-    if (glass) glass.setPosition(Math.round(h.x), Math.round(h.y - 5 + bob)).setVisible(true);
+    g.fillStyle(0x000000, 0.3).fillEllipse(h.x, h.y + 3, 12, 4);
+    const gy = Math.round((h.y - 6.5 + bob) * 2) / 2;
+    if (glass) glass.setPosition(Math.round(h.x), gy).setVisible(true);
   }
 
   // Пропуск: кольцо расходится и гаснет за MISS_LIFE с.
