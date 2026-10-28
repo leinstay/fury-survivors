@@ -142,6 +142,7 @@ function spawnHoly(sim, e, cfg) {
   const c = {
     uid: ++sim.uid, x: p.x, y: p.y, radius: cfg.radius, t: 0, life: cfg.life, warn: cfg.warn,
   };
+  sim.holy.length = 0; // круг всегда один: новый заменяет старый
   sim.holy.push(c);
   sim.events.push({ type: 'holyCircle', x: c.x, y: c.y, radius: c.radius });
 }
