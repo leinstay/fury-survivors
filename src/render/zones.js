@@ -236,6 +236,24 @@ function drawPulse(g, p, time, P) {
   }
 }
 
+/**
+ * Святая земля: полупрозрачный диск с ядром, лёгкое дыхание радиуса, две волны от центра к краю со сдвигом
+ * в полпериода и светлый край. Им же рисуются освящённые круги Жницы (render/reaper.js).
+ * @param {number} period с на волну
+ * @param {number} a общая прозрачность (0..1)
+ */
+export function drawAura(g, x, y, radius, c, time, period, a) {
+  const A = FX.zones.aura;
+  const r = radius * (1 + A.breathe * Math.sin(time * A.breatheSpeed));
+  g.fillStyle(c, A.fill * a).fillCircle(x, y, r);
+  g.fillStyle(c, A.core * a).fillCircle(x, y, r * 0.55);
+  for (let i = 0; i < 2; i++) {
+    const k = ((time / period) + i * 0.5) % 1;
+    g.lineStyle(A.waveWidth, c, A.wave * (1 - k) * a).strokeCircle(x, y, r * (0.2 + 0.8 * k));
+  }
+  g.lineStyle(A.rimWidth, c, A.rim * a).strokeCircle(x, y, r);
+}
+
 export class Zones {
   // depth — слой зон на земле; topDepth — слой над персонажами (слэш), сложение цвета
   constructor(scene, depth, topDepth = depth) {
@@ -264,19 +282,10 @@ export class Zones {
       const x = Math.round(p.x);
       const y = Math.round(p.y);
       if (p.fx === 'aura') {
-        const c = p.tint || Z.aura.color;
-        const a = p.alpha == null ? 1 : p.alpha; // облако яда проявляется и гаснет
-        const r = p.radius * (1 + Z.aura.breathe * Math.sin(time * Z.aura.breatheSpeed));
-        g.fillStyle(c, Z.aura.fill * a).fillCircle(x, y, r);
-        g.fillStyle(c, Z.aura.core * a).fillCircle(x, y, r * 0.55);
-        // волны: две, со сдвигом в полпериода удара
+        // облако яда проявляется и гаснет (alpha); волны в такт удару
         const period = p.rehit > 0 ? p.rehit * Z.aura.wavesPerHit : 1;
-        for (let i = 0; i < 2; i++) {
-          const k = ((time / period) + i * 0.5) % 1;
-          g.lineStyle(Z.aura.waveWidth, c, Z.aura.wave * (1 - k) * a)
-              .strokeCircle(x, y, r * (0.2 + 0.8 * k));
-        }
-        g.lineStyle(Z.aura.rimWidth, c, Z.aura.rim * a).strokeCircle(x, y, r);
+        const a = p.alpha == null ? 1 : p.alpha;
+        drawAura(g, x, y, p.radius, p.tint || Z.aura.color, time, period, a);
       } else if (p.fx === 'boom') {
         const k = 1 - p.life / (p.life0 || 1);
         const c = p.tint || Z.boom.color;

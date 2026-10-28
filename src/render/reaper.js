@@ -1,12 +1,14 @@
-// Жница на земле (src/core/reaper.js): освящённые круги, песочные часы, метка телепорта. Заглушка графикой:
-// круги со свечением, пока нет спрайтов. Только читает sim.holy, sim.hourglasses и sim.reaper.tp.
+// Жница на земле (src/core/reaper.js): освящённые круги, песочные часы, метка телепорта. Круги — анимация
+// святой земли (render/zones.js drawAura), почти белая с лёгкой желтизной; часы — графикой. Только читает sim.holy, sim.hourglasses и sim.reaper.tp.
 // Над часами таймер: секунды до пропуска числом и дуга вокруг; последние HOUR_ENDING с мигают красным.
 // Пропуск (часы исчезли по таймеру) — красное кольцо расходится на месте часов. Оглушение (sim.reaper.stunT) —
 // звёзды кружат над головой Жницы (заглушка иконки).
 import { textStyle } from '../ui/style.js';
+import { drawAura } from './zones.js';
 
-const HOLY = 0xffe27a;      // золотой свет круга
-const HOLY_EDGE = 0xfff4c0;
+const HOLY = 0xfffbe6;      // свет круга: почти белый, чуть тёплый
+const HOLY_WAVE = 1.4;      // с на волну круга
+const HOLY_GLOW = 0.6;      // яркость ауры (1 — как у святой земли)
 const SAND = 0xd8b070;      // песок часов
 const SAND_EDGE = 0xf0d8a0;
 const MISS = 0xff4040;      // пропуск
@@ -59,22 +61,18 @@ export class ReaperFx {
   // Проявление (t < warn) как предупреждение босса: заливка растёт от центра к краю. Потом свет пульсирует;
   // в последние секунды круг мигает.
   _holy(g, l, c, time) {
-    const r = c.radius;
+    const x = Math.round(c.x);
+    const y = Math.round(c.y);
     if (c.t < c.warn) {
+      // проявление: аура бледная и разгорается, край тонкий
       const k = c.t / c.warn;
-      g.fillStyle(HOLY, 0.08 + 0.1 * k).fillCircle(c.x, c.y, r);
-      g.fillStyle(HOLY, 0.2 + 0.15 * k).fillCircle(c.x, c.y, r * k);
-      g.lineStyle(1, HOLY_EDGE, 0.5 + 0.4 * k).strokeCircle(c.x, c.y, r);
+      drawAura(g, x, y, c.radius, HOLY, time, HOLY_WAVE, 0.25 + 0.5 * k);
       return;
     }
     const left = c.life - c.t;
     if (left < ENDING && Math.floor(time * 8) % 2 === 0) return;
-    const pulse = 0.5 + 0.5 * Math.sin(time * 3 + c.uid);
-    g.fillStyle(HOLY, 0.14 + 0.06 * pulse).fillCircle(c.x, c.y, r);
-    l.fillStyle(HOLY, 0.08 + 0.05 * pulse).fillCircle(c.x, c.y, r * 0.75);
-    l.fillStyle(HOLY, 0.08).fillCircle(c.x, c.y, r * 0.45);
-    l.lineStyle(3, HOLY, 0.25 + 0.15 * pulse).strokeCircle(c.x, c.y, r + 1);
-    g.lineStyle(1, HOLY_EDGE, 0.95).strokeCircle(c.x, c.y, r);
+    drawAura(g, x, y, c.radius, HOLY, time, HOLY_WAVE, 1);
+    drawAura(l, x, y, c.radius, HOLY, time + HOLY_WAVE / 4, HOLY_WAVE, HOLY_GLOW);
   }
 
   // Часы (наступить — разбить), дуга таймера вокруг и число секунд над ними.

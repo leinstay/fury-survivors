@@ -136,15 +136,14 @@ export const forest = {
     { at: 870, type: 'wall', enemy: 'lamia', count: 20 },
     { at: 900, type: 'boss', boss: 'dryad_queen' },
   ],
-  // Овертайм ради очков в таблице: через минуту враги почти вдвое крепче, через две — почти втрое, и толпа растёт
-  // без предела. Выжить нельзя, но каждая секунда и каждый кил идут в счёт (бот живёт ~1.5 мин, человек 2-3).
+  // Овертайм ради очков в таблице: враги крепнут на 45% за минуту, толпа растёт без предела. Выжить нельзя, но каждая секунда и каждый кил идут в счёт (бот живёт ~1.5 мин, человек 2-3).
   overtime: {
     enemies: ['harpy', 'catgirl', 'bunnygirl', 'foxgirl', 'succubus', 'lamia', 'slime'],
     group: 4,
     rate: 2, rateRamp: 0.03,
     ringEvery: 20, ringEnemy: 'ghost', ringCount: 48,
     eliteEvery: 15,
-    hpRamp: 0.015, damageRamp: 0.008,
+    hpRamp: 0.0075, damageRamp: 0.004, // к 20:00 HP ×10.4 и урон ×5.3 от базы (с ростом этапа)
     reaper: 'reaper', reaperAt: 300,
     reaperEscort: { enemy: 'succubus', max: 20, rate: 1.5, group: 2 },
   },
